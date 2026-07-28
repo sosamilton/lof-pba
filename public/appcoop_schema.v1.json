@@ -91,10 +91,26 @@
       ]
     },
     {
+      "id": "personas",
+      "title": "Personas",
+      "columns": [
+        { "id": "dni", "fields": { "label": "DNI", "type": "Text" } },
+        { "id": "cuil", "fields": { "label": "CUIL", "type": "Text" } },
+        { "id": "apellido", "fields": { "label": "Apellido", "type": "Text" } },
+        { "id": "nombre", "fields": { "label": "Nombre", "type": "Text" } },
+        { "id": "domicilio", "fields": { "label": "Domicilio", "type": "Text" } },
+        { "id": "localidad", "fields": { "label": "Localidad", "type": "Text" } },
+        { "id": "telefono", "fields": { "label": "Telefono", "type": "Text" } },
+        { "id": "email", "fields": { "label": "Email", "type": "Text" } },
+        { "id": "creado_el", "fields": { "label": "Fecha creacion", "type": "DateTime" } }
+      ]
+    },
+    {
       "id": "socios",
       "title": "Socios",
       "columns": [
-        { "id": "dni", "fields": { "label": "DNI", "type": "Text" } },
+        { "id": "persona_id", "fields": { "label": "Persona", "type": "Ref:personas" } },
+        { "id": "dni", "fields": { "label": "DNI (legacy)", "type": "Text" } },
         { "id": "cuil", "fields": { "label": "CUIL", "type": "Text" } },
         { "id": "apellido", "fields": { "label": "Apellido", "type": "Text" } },
         { "id": "nombre", "fields": { "label": "Nombre", "type": "Text" } },
@@ -189,7 +205,8 @@
           "fields": { "label": "Organo", "type": "Choice", "widgetOptions": "{\"choices\":[\"CD\",\"CRC\",\"Federacion\"]}" }
         },
         { "id": "cargo_id", "fields": { "label": "Cargo", "type": "Ref:cargos" } },
-        { "id": "apellido_nombre", "fields": { "label": "Apellido y nombre", "type": "Text" } },
+        { "id": "persona_id", "fields": { "label": "Persona", "type": "Ref:personas" } },
+        { "id": "apellido_nombre", "fields": { "label": "Apellido y nombre (legacy)", "type": "Text" } },
         { "id": "cuil", "fields": { "label": "CUIL", "type": "Text" } },
         { "id": "dni", "fields": { "label": "DNI", "type": "Text" } },
         { "id": "domicilio", "fields": { "label": "Domicilio", "type": "Text" } },
