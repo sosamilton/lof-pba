@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte'
-  import { gristReady, isInGrist, listTables } from '../grist'
+  import { detectGrist, gristReady, isInGrist, listTables } from '../grist'
   import { REQUIRED_TABLES } from '../demoSchema'
   import { ensureSchema, initDemoData } from '../initAppCoop'
 
@@ -67,7 +67,7 @@
   }
 
   onMount(async () => {
-    if (!isInGrist()) return
+    if (!(await detectGrist())) return
     await check()
   })
 </script>

@@ -2,7 +2,7 @@
   import { onMount } from 'svelte'
   import AppShell from './lib/layout/AppShell.svelte'
   import { initRouter, route } from './lib/router'
-  import { isInGrist } from './lib/grist'
+  import { detectGrist, isInGrist } from './lib/grist'
 
   import Inicio from './lib/pages/Inicio.svelte'
   import Landing from './lib/pages/Landing.svelte'
@@ -11,12 +11,20 @@
   import Movimientos from './lib/pages/Movimientos.svelte'
   import Gobierno from './lib/pages/Gobierno.svelte'
 
+  let ready = false
+
   onMount(() => {
-    if (isInGrist()) initRouter()
+    ;(async () => {
+      await detectGrist()
+      if (isInGrist()) initRouter()
+      ready = true
+    })()
   })
 </script>
 
-{#if isInGrist()}
+{#if !ready}
+  <div style="padding: 18px; opacity: 0.8;">Cargando…</div>
+{:else if isInGrist()}
   <AppShell title="AppCoop">
     {#if $route === 'setup'}
       <Setup />
