@@ -1,8 +1,8 @@
 <script>
   import { onMount } from 'svelte'
-  import { detectGrist, gristReady, isInGrist, listTables } from '../grist'
+  import { detectGrist, gristReady, isInGrist, listTables, resolveTableId } from '../grist'
   import { REQUIRED_TABLES } from '../demoSchema'
-  import { ensureSchema, initDemoData } from '../initAppCoop'
+  import { ensureSchema, getSchemaDiff, initDemoData } from '../initAppCoop'
 
   let loading = false
   let error = ''
@@ -22,6 +22,7 @@
     try {
       await gristReady()
       const tables = await listTables()
+      const schemaDiff = await getSchemaDiff()
       const resolved = {}
       const missing = []
       for (const t of REQUIRED_TABLES) {
@@ -29,7 +30,7 @@
         if (!hit) missing.push(t)
         else resolved[t.key] = hit
       }
-      status = { tables, resolved, missing }
+      status = { tables, resolved, missing, schemaDiff }
     } catch (e) {
       error = e?.message || String(e)
       status = null
@@ -46,17 +47,14 @@
       const existing = new Set(tablesBefore.map((t) => String(t || '').toLowerCase()))
       await ensureSchema(existing)
 
-      const tablesAfter = await listTables()
-      const resolve = (ids) => findTable(tablesAfter, ids) || ids[0]
-
       await initDemoData([
-        { tableId: resolve(['escuela']), seedName: 'escuela', batchSize: 10 },
-        { tableId: resolve(['datos_banco']), seedName: 'datos_banco', batchSize: 10 },
-        { tableId: resolve(['kiosco_libreria']), seedName: 'kiosco_libreria', batchSize: 10 },
-        { tableId: resolve(['ejercicios']), seedName: 'ejercicios', batchSize: 10 },
-        { tableId: resolve(['cuentas']), seedName: 'cuentas', batchSize: 50 },
-        { tableId: resolve(['rubros_pia']), seedName: 'rubros_pia', batchSize: 100 },
-        { tableId: resolve(['cargos']), seedName: 'cargos', batchSize: 100 }
+        { tableId: await resolveTableId(['Escuela', 'escuela']), seedName: 'escuela', batchSize: 10 },
+        { tableId: await resolveTableId(['Datos_banco', 'datos_banco']), seedName: 'datos_banco', batchSize: 10 },
+        { tableId: await resolveTableId(['Kiosco_libreria', 'kiosco_libreria']), seedName: 'kiosco_libreria', batchSize: 10 },
+        { tableId: await resolveTableId(['Ejercicios', 'ejercicios']), seedName: 'ejercicios', batchSize: 10 },
+        { tableId: await resolveTableId(['Cuentas', 'cuentas']), seedName: 'cuentas', batchSize: 50 },
+        { tableId: await resolveTableId(['Rubros_pia', 'rubros_pia']), seedName: 'rubros_pia', batchSize: 100 },
+        { tableId: await resolveTableId(['Cargos', 'cargos']), seedName: 'cargos', batchSize: 100 }
       ])
       await check()
     } catch (e) {
@@ -80,11 +78,45 @@
       <p>Verificando tablas…</p>
     {:else if status}
       {#if status.missing.length === 0}
-        <p>Tablas mínimas OK. Usá el menú para navegar.</p>
-        <div class="actions">
-          <button class="btn secondary" on:click={check} disabled={creating}>Revalidar</button>
-          <button class="btn" on:click={initAppCoop} disabled={creating}>Inicializar plantilla AppCoop</button>
-        </div>
+        {#if status.schemaDiff?.missingTables?.length === 0 && status.schemaDiff?.missingColumns?.length === 0}
+          <p>Plantilla AppCoop instalada y sincronizada. Usá el menú para navegar.</p>
+          <div class="actions">
+            <button class="btn secondary" on:click={check} disabled={creating}>Revalidar</button>
+            <button class="btn" on:click={initAppCoop} disabled={creating}>Cargar datos base (si falta)</button>
+          </div>
+        {:else}
+          <div class="msg error">
+            <div class="msgTitle">Hay diferencias con el schema</div>
+            <div class="msgBody">
+              {#if status.schemaDiff?.missingTables?.length}
+                <div style="margin-bottom:6px">
+                  Tablas faltantes:
+                  <ul>
+                    {#each status.schemaDiff.missingTables as t (t.id)}
+                      <li><span class="mono">{t.id}</span></li>
+                    {/each}
+                  </ul>
+                </div>
+              {/if}
+              {#if status.schemaDiff?.missingColumns?.length}
+                <div>
+                  Columnas faltantes:
+                  <ul>
+                    {#each status.schemaDiff.missingColumns as it (it.tableId)}
+                      <li>
+                        <span class="mono">{it.tableId}</span>: {it.columns.map((c) => c.id).join(', ')}
+                      </li>
+                    {/each}
+                  </ul>
+                </div>
+              {/if}
+            </div>
+            <div class="actions">
+              <button class="btn secondary" on:click={check} disabled={creating}>Revalidar</button>
+              <button class="btn" on:click={initAppCoop} disabled={creating}>Actualizar schema + datos base</button>
+            </div>
+          </div>
+        {/if}
       {:else}
         <div class="msg error">
           <div class="msgTitle">Faltan tablas para que la demo funcione</div>
@@ -97,7 +129,7 @@
           </div>
           <div class="actions">
             <button class="btn secondary" on:click={check} disabled={creating}>Reintentar</button>
-            <button class="btn" on:click={initAppCoop} disabled={creating}>Inicializar plantilla AppCoop</button>
+            <button class="btn" on:click={initAppCoop} disabled={creating}>Instalar plantilla AppCoop</button>
           </div>
         </div>
       {/if}

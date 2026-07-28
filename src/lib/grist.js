@@ -92,9 +92,16 @@ export const tableDataToRecords = (data) => {
 export const fetchRecords = async (tableId) => {
   await ensureGristPluginLoaded()
   if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
-  window.grist.ready({ requiredAccess: 'read table' })
+  window.grist.ready({ requiredAccess: 'full', allowSelectBy: true })
   const data = await window.grist.docApi.fetchTable(tableId)
   return tableDataToRecords(data)
+}
+
+export const fetchTableData = async (tableId) => {
+  await ensureGristPluginLoaded()
+  if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
+  window.grist.ready({ requiredAccess: 'full', allowSelectBy: true })
+  return window.grist.docApi.fetchTable(tableId)
 }
 
 export const applyUserActions = async (actions) => {
