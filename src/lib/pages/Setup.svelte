@@ -1,34 +1,37 @@
 <script>
   import { onMount } from 'svelte'
   import { ensureOneRow, fetchRecords, gristReady, isInGrist, resolveTableId, applyUserActions } from '../grist'
+  import { normalizeFields, ORGANISMOS, ORGANISMO_LABELS, NIVELES_CARGO, MESES, TABLE_PREFERRED_IDS } from '../utils'
+  import '../shared.css'
 
-  let loading = true
-  let error = ''
-  let notice = ''
+  let loading = $state(true)
+  let error = $state('')
+  let notice = $state('')
+  let busy = $state(false)
 
-  let tEscuela
-  let tBanco
-  let tKiosco
-  let tEjercicios
-  let tCargos
+  let tEscuela = $state()
+  let tBanco = $state()
+  let tKiosco = $state()
+  let tEjercicios = $state()
+  let tCargos = $state()
 
-  let escuela = {}
-  let banco = {}
-  let kiosco = {}
+  let escuela = $state({})
+  let banco = $state({})
+  let kiosco = $state({})
 
-  let ejercicios = []
-  let nuevoEj = {
+  let ejercicios = $state([])
+  let nuevoEj = $state({
     anio_inicio: '',
     anio_fin: '',
     mes_inicio: 'Marzo',
     saldo_inicial_banco: 0,
     saldo_inicial_efectivo: 0,
     saldo_inicial_caja_chica: 0
-  }
+  })
 
-  let organismo = 'CD'
-  let cargos = []
-  let nuevoCargo = { nombre_cargo: '', nivel: 'Titular', orden: 10, duracion_meses: 12, cargo_obligatorio: false, activo: true }
+  let organismo = $state('CD')
+  let cargos = $state([])
+  let nuevoCargo = $state({ nombre_cargo: '', nivel: 'Titular', orden: 10, duracion_meses: 12, cargo_obligatorio: false, activo: true })
 
   const load = async () => {
     loading = true
@@ -75,18 +78,10 @@
     await applyUserActions([['UpdateRecord', tableId, rec.id, normalizeFields(fields)]])
   }
 
-  const normalizeFields = (obj) => {
-    const out = {}
-    for (const [k, v] of Object.entries(obj || {})) {
-      if (v === '') continue
-      out[k] = v
-    }
-    return out
-  }
-
   const saveSetup = async () => {
     notice = ''
     error = ''
+    busy = true
     try {
       if (!tEscuela || !tBanco || !tKiosco) {
         error = 'Faltan tablas de configuración. Ejecutá "Actualizar schema" en Inicio.'
@@ -98,12 +93,15 @@
       notice = 'Datos guardados.'
     } catch (e) {
       error = e?.message || String(e)
+    } finally {
+      busy = false
     }
   }
 
   const createEjercicio = async () => {
     notice = ''
     error = ''
+    busy = true
     try {
       if (!tEjercicios) {
         error = 'No se encontró la tabla ejercicios. Ejecutá "Actualizar schema" en Inicio.'
@@ -137,12 +135,15 @@
       }
     } catch (e) {
       error = e?.message || String(e)
+    } finally {
+      busy = false
     }
   }
 
   const setEjercicioEnCurso = async (id) => {
     notice = ''
     error = ''
+    busy = true
     try {
       const actions = ejercicios.map((e) => ['UpdateRecord', tEjercicios, e.id, { en_curso: e.id === id }])
       await applyUserActions(actions)
@@ -150,12 +151,15 @@
       notice = 'Ejercicio actualizado.'
     } catch (e) {
       error = e?.message || String(e)
+    } finally {
+      busy = false
     }
   }
 
   const saveCargo = async (c) => {
     notice = ''
     error = ''
+    busy = true
     try {
       if (!tCargos) {
         error = 'No se encontró la tabla cargos. Ejecutá "Actualizar schema" en Inicio.'
@@ -176,12 +180,15 @@
       notice = 'Cargo guardado.'
     } catch (e) {
       error = e?.message || String(e)
+    } finally {
+      busy = false
     }
   }
 
   const addCargo = async () => {
     notice = ''
     error = ''
+    busy = true
     try {
       if (!tCargos) {
         error = 'No se encontró la tabla cargos. Ejecutá "Actualizar schema" en Inicio.'
@@ -214,6 +221,8 @@
       notice = 'Cargo agregado.'
     } catch (e) {
       error = e?.message || String(e)
+    } finally {
+      busy = false
     }
   }
 
@@ -231,84 +240,69 @@
       <h1>Cooperadora</h1>
       <div class="form">
         <div class="row">
-          <label>Distrito</label>
-          <input bind:value={escuela.distrito} />
+          <label>Distrito<input bind:value={escuela.distrito} /></label>
         </div>
         <div class="row">
-          <label>Escuela</label>
-          <input bind:value={escuela.escuela_nombre} />
+          <label>Escuela<input bind:value={escuela.escuela_nombre} /></label>
         </div>
         <div class="row">
-          <label>Número</label>
-          <input bind:value={escuela.escuela_numero} />
+          <label>Número<input bind:value={escuela.escuela_numero} /></label>
         </div>
         <div class="row">
-          <label>CUE</label>
-          <input bind:value={escuela.cue} />
+          <label>CUE<input bind:value={escuela.cue} /></label>
         </div>
         <div class="row">
-          <label>CUIT</label>
-          <input bind:value={escuela.cuit} />
+          <label>CUIT<input bind:value={escuela.cuit} /></label>
         </div>
         <div class="row">
-          <label>Cooperadora</label>
-          <input bind:value={escuela.cooperadora_nombre} />
+          <label>Cooperadora<input bind:value={escuela.cooperadora_nombre} /></label>
         </div>
         <div class="row">
-          <label>Domicilio</label>
-          <input bind:value={escuela.domicilio} />
+          <label>Domicilio<input bind:value={escuela.domicilio} /></label>
         </div>
         <div class="row">
-          <label>Localidad</label>
-          <input bind:value={escuela.localidad} />
+          <label>Localidad<input bind:value={escuela.localidad} /></label>
         </div>
         <div class="row">
-          <label>Email</label>
-          <input bind:value={escuela.email_cooperadora} />
+          <label>Email<input bind:value={escuela.email_cooperadora} /></label>
         </div>
         <div class="row">
-          <label>Teléfono</label>
-          <input bind:value={escuela.telefono_cooperadora} />
+          <label>Teléfono<input bind:value={escuela.telefono_cooperadora} /></label>
         </div>
       </div>
 
       <h2>Banco</h2>
       <div class="form">
         <div class="row">
-          <label>Entidad</label>
-          <input bind:value={banco.entidad} />
+          <label>Entidad<input bind:value={banco.entidad} /></label>
         </div>
         <div class="row">
-          <label>CBU</label>
-          <input bind:value={banco.cbu} />
+          <label>CBU<input bind:value={banco.cbu} /></label>
         </div>
         <div class="row">
-          <label>Cuenta</label>
-          <input bind:value={banco.cuenta_corriente} />
+          <label>Cuenta<input bind:value={banco.cuenta_corriente} /></label>
         </div>
       </div>
 
       <h2>Kiosco</h2>
       <div class="form">
         <div class="row">
-          <label>Posee</label>
-          <select bind:value={kiosco.posee}>
+          <label>Posee<select bind:value={kiosco.posee}>
             <option value={true}>Sí</option>
             <option value={false}>No</option>
-          </select>
+          </select></label>
         </div>
         <div class="row">
-          <label>Modalidad</label>
-          <select bind:value={kiosco.modalidad}>
+          <label>Modalidad<select bind:value={kiosco.modalidad}>
             <option value="">(sin)</option>
             <option value="Propio">Propio</option>
             <option value="Licitado">Licitado</option>
-          </select>
+          </select></label>
         </div>
       </div>
 
       <div class="actions">
-        <button class="btn" on:click={saveSetup}>Guardar datos</button>
+        <button class="btn" onclick={saveSetup}>Guardar datos</button>
       </div>
     </section>
 
@@ -322,7 +316,7 @@
               <div class="item-sub">{e.en_curso ? 'En curso' : 'Inactivo'}</div>
             </div>
             <div class="item-actions">
-              <button class="btn secondary" disabled={e.en_curso} on:click={() => setEjercicioEnCurso(e.id)}>Activar</button>
+              <button class="btn secondary" disabled={e.en_curso} onclick={() => setEjercicioEnCurso(e.id)}>Activar</button>
             </div>
           </div>
         {/each}
@@ -331,16 +325,13 @@
       <h2>Nuevo ejercicio</h2>
       <div class="form">
         <div class="row">
-          <label>Año desde</label>
-          <input type="number" bind:value={nuevoEj.anio_inicio} />
+          <label>Año desde<input type="number" bind:value={nuevoEj.anio_inicio} /></label>
         </div>
         <div class="row">
-          <label>Año hasta</label>
-          <input type="number" bind:value={nuevoEj.anio_fin} />
+          <label>Año hasta<input type="number" bind:value={nuevoEj.anio_fin} /></label>
         </div>
         <div class="row">
-          <label>Mes inicio</label>
-          <select bind:value={nuevoEj.mes_inicio}>
+          <label>Mes inicio<select bind:value={nuevoEj.mes_inicio}>
             <option>Enero</option>
             <option>Febrero</option>
             <option>Marzo</option>
@@ -353,30 +344,27 @@
             <option>Octubre</option>
             <option>Noviembre</option>
             <option>Diciembre</option>
-          </select>
+          </select></label>
         </div>
         <div class="row">
-          <label>Saldo banco</label>
-          <input type="number" bind:value={nuevoEj.saldo_inicial_banco} />
+          <label>Saldo banco<input type="number" bind:value={nuevoEj.saldo_inicial_banco} /></label>
         </div>
         <div class="row">
-          <label>Saldo efectivo</label>
-          <input type="number" bind:value={nuevoEj.saldo_inicial_efectivo} />
+          <label>Saldo efectivo<input type="number" bind:value={nuevoEj.saldo_inicial_efectivo} /></label>
         </div>
         <div class="row">
-          <label>Saldo caja chica</label>
-          <input type="number" bind:value={nuevoEj.saldo_inicial_caja_chica} />
+          <label>Saldo caja chica<input type="number" bind:value={nuevoEj.saldo_inicial_caja_chica} /></label>
         </div>
       </div>
       <div class="actions">
-        <button class="btn" on:click={createEjercicio}>Crear y activar</button>
+        <button class="btn" onclick={createEjercicio}>Crear y activar</button>
       </div>
 
       <h1 style="margin-top:18px">Cargos (base)</h1>
       <div class="tabs">
-        <button class:tabActive={organismo === 'CD'} on:click={() => { organismo = 'CD'; loadCargos() }}>Comisión Directiva</button>
-        <button class:tabActive={organismo === 'CRC'} on:click={() => { organismo = 'CRC'; loadCargos() }}>Comisión Revisora de Cuentas</button>
-        <button class:tabActive={organismo === 'Federacion'} on:click={() => { organismo = 'Federacion'; loadCargos() }}>Federación</button>
+        <button class:tabActive={organismo === 'CD'} onclick={() => { organismo = 'CD'; loadCargos() }}>Comisión Directiva</button>
+        <button class:tabActive={organismo === 'CRC'} onclick={() => { organismo = 'CRC'; loadCargos() }}>Comisión Revisora de Cuentas</button>
+        <button class:tabActive={organismo === 'Federacion'} onclick={() => { organismo = 'Federacion'; loadCargos() }}>Federación</button>
       </div>
       <div class="table">
         <div class="thead">
@@ -401,7 +389,7 @@
             </div>
             <div><input type="checkbox" bind:checked={c.cargo_obligatorio} /></div>
             <div><input type="checkbox" bind:checked={c.activo} disabled={c.cargo_obligatorio} /></div>
-            <div><button class="btn secondary" on:click={() => saveCargo(c)}>Guardar</button></div>
+            <div><button class="btn secondary" onclick={() => saveCargo(c)}>Guardar</button></div>
           </div>
         {/each}
       </div>
@@ -409,35 +397,29 @@
       <h2>Agregar cargo</h2>
       <div class="form">
         <div class="row">
-          <label>Nombre</label>
-          <input bind:value={nuevoCargo.nombre_cargo} />
+          <label>Nombre<input bind:value={nuevoCargo.nombre_cargo} /></label>
         </div>
         <div class="row">
-          <label>Duración (meses)</label>
-          <input type="number" bind:value={nuevoCargo.duracion_meses} />
+          <label>Duración (meses)<input type="number" bind:value={nuevoCargo.duracion_meses} /></label>
         </div>
         <div class="row">
-          <label>Nivel</label>
-          <select bind:value={nuevoCargo.nivel}>
+          <label>Nivel<select bind:value={nuevoCargo.nivel}>
             <option value="Titular">Titular</option>
             <option value="Suplente">Suplente</option>
-          </select>
+          </select></label>
         </div>
         <div class="row">
-          <label>Orden</label>
-          <input type="number" bind:value={nuevoCargo.orden} />
+          <label>Orden<input type="number" bind:value={nuevoCargo.orden} /></label>
         </div>
         <div class="row">
-          <label>Obligatorio</label>
-          <input type="checkbox" bind:checked={nuevoCargo.cargo_obligatorio} />
+          <label>Obligatorio<input type="checkbox" bind:checked={nuevoCargo.cargo_obligatorio} /></label>
         </div>
         <div class="row">
-          <label>Activo</label>
-          <input type="checkbox" bind:checked={nuevoCargo.activo} disabled={nuevoCargo.cargo_obligatorio} />
+          <label>Activo<input type="checkbox" bind:checked={nuevoCargo.activo} disabled={nuevoCargo.cargo_obligatorio} /></label>
         </div>
       </div>
       <div class="actions">
-        <button class="btn" on:click={addCargo}>Agregar</button>
+        <button class="btn" onclick={addCargo}>Agregar</button>
       </div>
     </section>
   </div>
@@ -465,52 +447,6 @@
     grid-template-columns: 1fr;
     gap: 14px;
   }
-  .card {
-    border: 1px solid rgba(128, 128, 128, 0.25);
-    border-radius: 14px;
-    padding: 14px;
-    background: rgba(128, 128, 128, 0.06);
-  }
-  .form {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px 12px;
-  }
-  .row label {
-    display: block;
-    font-size: 12px;
-    opacity: 0.7;
-    margin-bottom: 5px;
-  }
-  input,
-  select {
-    width: 100%;
-    box-sizing: border-box;
-    border: 1px solid rgba(128, 128, 128, 0.35);
-    border-radius: 10px;
-    padding: 8px 10px;
-    background: var(--grist-theme-input-bg, rgba(255, 255, 255, 0.85));
-    color: inherit;
-  }
-  .actions {
-    margin-top: 10px;
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-  }
-  .btn {
-    border: 0;
-    border-radius: 10px;
-    padding: 9px 12px;
-    cursor: pointer;
-    font-weight: 700;
-    background: rgba(22, 179, 120, 0.9);
-    color: #fff;
-  }
-  .btn.secondary {
-    background: rgba(128, 128, 128, 0.18);
-    color: inherit;
-  }
   .list {
     display: flex;
     flex-direction: column;
@@ -534,24 +470,6 @@
     font-size: 12px;
     opacity: 0.7;
     margin-top: 2px;
-  }
-  .tabs {
-    display: flex;
-    gap: 8px;
-    margin: 8px 0 8px 0;
-  }
-  .tabs button {
-    padding: 8px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(128, 128, 128, 0.28);
-    background: rgba(255, 255, 255, 0.04);
-    cursor: pointer;
-    color: inherit;
-  }
-  .tabs button.tabActive {
-    border-color: rgba(22, 179, 120, 0.45);
-    background: rgba(22, 179, 120, 0.14);
-    font-weight: 800;
   }
   .table {
     border: 1px solid rgba(128, 128, 128, 0.22);
@@ -583,24 +501,7 @@
     width: 16px;
     height: 16px;
   }
-  .msg {
-    margin-top: 12px;
-    padding: 10px 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(128, 128, 128, 0.22);
-  }
-  .msg.error {
-    border-color: rgba(176, 0, 32, 0.55);
-    background: rgba(176, 0, 32, 0.08);
-  }
-  .msg.notice {
-    border-color: rgba(22, 179, 120, 0.45);
-    background: rgba(22, 179, 120, 0.12);
-  }
   @media (max-width: 1100px) {
-    .form {
-      grid-template-columns: 1fr;
-    }
     .thead,
     .trow {
       grid-template-columns: 56px minmax(180px, 1fr) 96px 110px 96px 70px 96px;
