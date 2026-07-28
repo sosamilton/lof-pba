@@ -62,14 +62,21 @@
     <div class="muted">{filtered.length} movimientos</div>
   </div>
 
-  <div class="list">
-    {#each filtered as m (m.id)}
-      <div class="item">
-        <div class="title">{m.fecha} · {m.tipo_movimiento} · ${m.importe}</div>
-        <div class="sub">{m.detalle || ''}</div>
-      </div>
-    {/each}
-  </div>
+  {#if filtered.length === 0}
+    <div class="empty">
+      <div class="emptyTitle">No hay movimientos</div>
+      <div class="emptySub">Cuando cargues movimientos en Grist, van a aparecer acá.</div>
+    </div>
+  {:else}
+    <div class="list">
+      {#each filtered as m (m.id)}
+        <div class="item">
+          <div class="title">{m.fecha} · {m.tipo_movimiento} · ${m.importe}</div>
+          <div class="sub">{m.detalle || ''}</div>
+        </div>
+      {/each}
+    </div>
+  {/if}
 
   {#if error}
     <div class="msg error">{error}</div>
@@ -120,6 +127,21 @@
     flex-direction: column;
     gap: 8px;
   }
+  .empty {
+    border: 1px dashed rgba(128, 128, 128, 0.3);
+    border-radius: 14px;
+    padding: 14px;
+    background: rgba(128, 128, 128, 0.04);
+  }
+  .emptyTitle {
+    font-weight: 900;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  .emptySub {
+    opacity: 0.75;
+    font-size: 13px;
+  }
   .item {
     border: 1px solid rgba(128, 128, 128, 0.22);
     border-radius: 14px;
@@ -146,4 +168,3 @@
     background: rgba(176, 0, 32, 0.08);
   }
 </style>
-

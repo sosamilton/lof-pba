@@ -196,14 +196,14 @@
 </script>
 
 {#if !isInGrist()}
-  <h1>Setup</h1>
+  <h1>Cooperadora</h1>
   <p>Esta pantalla solo funciona dentro de Grist.</p>
 {:else if loading}
   <p>Cargando…</p>
 {:else}
   <div class="grid2">
     <section class="card">
-      <h1>Datos cooperadora</h1>
+      <h1>Cooperadora</h1>
       <div class="form">
         <div class="row">
           <label>Distrito</label>
@@ -288,7 +288,7 @@
     </section>
 
     <section class="card">
-      <h1>Ejercicios</h1>
+      <h1>Ejercicio y comisión</h1>
       <div class="list">
         {#each ejercicios as e (e.id)}
           <div class="item">
@@ -347,7 +347,7 @@
         <button class="btn" on:click={createEjercicio}>Crear y activar</button>
       </div>
 
-      <h1 style="margin-top:18px">Cargos</h1>
+      <h1 style="margin-top:18px">Cargos (base)</h1>
       <div class="tabs">
         <button class:tabActive={organismo === 'CD'} on:click={() => { organismo = 'CD'; loadCargos() }}>CD</button>
         <button class:tabActive={organismo === 'CRC'} on:click={() => { organismo = 'CRC'; loadCargos() }}>CRC</button>
