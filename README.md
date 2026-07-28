@@ -69,6 +69,7 @@ Sugerencia: dejá la URL sin ruta y navegá desde el menú. La SPA usa hash rout
 - “No muestra datos”: verificar que el widget esté con **Full document access**.
 - “Funciona en Grist pero no en el navegador”: es normal; fuera de Grist no hay `grist-plugin-api` activo.
 - “Pantalla en blanco/404 al refrescar”: la SPA usa hash routes (`/#/...`) para evitar problemas de routing en Pages.
+- Warning en Actions “Node.js 20 is deprecated”: es un aviso de GitHub Actions sobre acciones internas; no debería romper el build. Si el deploy falla con 404, revisar `Settings → Pages → Source: GitHub Actions`.
 
 ## Pantallas incluidas (demo)
 
