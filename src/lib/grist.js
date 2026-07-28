@@ -1,12 +1,68 @@
-export const isInGrist = () => typeof window !== 'undefined' && typeof window.grist !== 'undefined'
+let _detected = null
+
+const isBrowser = () => typeof window !== 'undefined' && typeof document !== 'undefined'
+
+const isInIframe = () => {
+  if (!isBrowser()) return false
+  try {
+    return window.self !== window.top
+  } catch {
+    return true
+  }
+}
+
+const loadScript = (src) =>
+  new Promise((resolve, reject) => {
+    const el = document.createElement('script')
+    el.src = src
+    el.async = true
+    el.onload = () => resolve(true)
+    el.onerror = () => reject(new Error(`No se pudo cargar ${src}`))
+    document.head.appendChild(el)
+  })
+
+export const ensureGristPluginLoaded = async () => {
+  if (!isBrowser()) return false
+  if (!isInIframe()) return false
+  if (typeof window.grist !== 'undefined') return true
+  await loadScript('https://docs.getgrist.com/grist-plugin-api.js')
+  return typeof window.grist !== 'undefined'
+}
+
+export const isInGrist = () => _detected === true
+
+export const detectGrist = async ({ timeoutMs = 800 } = {}) => {
+  if (!isBrowser()) return false
+  if (!isInIframe()) {
+    _detected = false
+    return false
+  }
+  try {
+    const ok = await ensureGristPluginLoaded()
+    if (!ok) {
+      _detected = false
+      return false
+    }
+    window.grist.ready({ requiredAccess: 'read table' })
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))
+    await Promise.race([window.grist.docApi.listTables(), timeout])
+    _detected = true
+    return true
+  } catch {
+    _detected = false
+    return false
+  }
+}
 
 export const gristReady = async () => {
+  await ensureGristPluginLoaded()
   if (!isInGrist()) return false
   window.grist.ready({ requiredAccess: 'full', allowSelectBy: true })
   return true
 }
 
 export const listTables = async () => {
+  await ensureGristPluginLoaded()
   if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
   return window.grist.docApi.listTables()
 }
@@ -33,17 +89,20 @@ export const tableDataToRecords = (data) => {
 }
 
 export const fetchRecords = async (tableId) => {
+  await ensureGristPluginLoaded()
   if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
   const data = await window.grist.docApi.fetchTable(tableId)
   return tableDataToRecords(data)
 }
 
 export const applyUserActions = async (actions) => {
+  await ensureGristPluginLoaded()
   if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
   return window.grist.docApi.applyUserActions(actions)
 }
 
 export const getApiContext = async () => {
+  await ensureGristPluginLoaded()
   if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
   const res = await window.grist.docApi.getAccessToken({ readOnly: false })
   const token = res?.token
