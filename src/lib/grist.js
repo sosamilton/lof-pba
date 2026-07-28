@@ -1,4 +1,6 @@
 let _detected = null
+let _ready = false
+let _tablesCache = null
 
 const isBrowser = () => typeof window !== 'undefined' && typeof document !== 'undefined'
 
@@ -31,6 +33,13 @@ export const ensureGristPluginLoaded = async () => {
 
 export const isInGrist = () => _detected === true
 
+const ensureReady = () => {
+  if (!_ready && isInGrist()) {
+    window.grist.ready({ requiredAccess: 'full', allowSelectBy: true })
+    _ready = true
+  }
+}
+
 export const detectGrist = async ({ timeoutMs = 800 } = {}) => {
   if (!isBrowser()) return false
   if (!isInIframe()) {
@@ -57,22 +66,36 @@ export const detectGrist = async ({ timeoutMs = 800 } = {}) => {
 export const gristReady = async () => {
   await ensureGristPluginLoaded()
   if (!isInGrist()) return false
-  window.grist.ready({ requiredAccess: 'full', allowSelectBy: true })
+  ensureReady()
   return true
 }
 
 export const listTables = async () => {
   await ensureGristPluginLoaded()
   if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
-  window.grist.ready({ requiredAccess: 'read table' })
-  return window.grist.docApi.listTables()
+  ensureReady()
+  if (_tablesCache) return _tablesCache
+  _tablesCache = await window.grist.docApi.listTables()
+  return _tablesCache
 }
 
+export const invalidateTablesCache = () => {
+  _tablesCache = null
+  _resolveCache = new Map()
+}
+
+let _resolveCache = new Map()
+
 export const resolveTableId = async (preferredIds) => {
+  const cacheKey = preferredIds.join('|').toLowerCase()
+  if (_resolveCache.has(cacheKey)) return _resolveCache.get(cacheKey)
   const tables = await listTables()
   for (const pid of preferredIds) {
     const hit = tables.find((t) => String(t).toLowerCase() === String(pid).toLowerCase())
-    if (hit) return hit
+    if (hit) {
+      _resolveCache.set(cacheKey, hit)
+      return hit
+    }
   }
   return null
 }
@@ -92,7 +115,7 @@ export const tableDataToRecords = (data) => {
 export const fetchRecords = async (tableId) => {
   await ensureGristPluginLoaded()
   if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
-  window.grist.ready({ requiredAccess: 'full', allowSelectBy: true })
+  ensureReady()
   const data = await window.grist.docApi.fetchTable(tableId)
   return tableDataToRecords(data)
 }
@@ -100,20 +123,25 @@ export const fetchRecords = async (tableId) => {
 export const fetchTableData = async (tableId) => {
   await ensureGristPluginLoaded()
   if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
-  window.grist.ready({ requiredAccess: 'full', allowSelectBy: true })
+  ensureReady()
   return window.grist.docApi.fetchTable(tableId)
 }
 
 export const applyUserActions = async (actions) => {
   await ensureGristPluginLoaded()
   if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
-  window.grist.ready({ requiredAccess: 'full', allowSelectBy: true })
-  return window.grist.docApi.applyUserActions(actions)
+  ensureReady()
+  const res = await window.grist.docApi.applyUserActions(actions)
+  if (actions.some((a) => a[0] === 'AddTable')) {
+    invalidateTablesCache()
+  }
+  return res
 }
 
 export const getApiContext = async () => {
   await ensureGristPluginLoaded()
   if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
+  ensureReady()
   const res = await window.grist.docApi.getAccessToken({ readOnly: false })
   const token = res?.token
   const baseUrl = String(res?.baseUrl || '').replace(/\/+$/, '')
