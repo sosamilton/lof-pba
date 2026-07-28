@@ -81,6 +81,22 @@
     }
   }
 
+  let repairResult = null
+  const repairSchema = async () => {
+    creating = true
+    error = ''
+    repairResult = null
+    try {
+      const result = await ensureSchema(new Set((status?.tables || []).map((t) => String(t || '').toLowerCase())))
+      repairResult = result
+      await check()
+    } catch (e) {
+      error = e?.message || String(e)
+    } finally {
+      creating = false
+    }
+  }
+
   onMount(async () => {
     if (!(await detectGrist())) return
     await check()
@@ -100,6 +116,7 @@
           <div class="actions">
             <button class="btn secondary" on:click={check} disabled={creating}>Revalidar</button>
             <button class="btn" on:click={initAppCoop} disabled={creating}>Cargar datos base (si falta)</button>
+            <button class="btn secondary" on:click={repairSchema} disabled={creating}>Reparar Refs</button>
             <button class="btn" on:click={doMigration} disabled={migrating || creating}>
               {migrating ? 'Migrando…' : 'Migrar a personas'}
             </button>
@@ -125,6 +142,19 @@
                     {/each}
                   </ul>
                 </details>
+              {/if}
+            </div>
+          {/if}
+          {#if repairResult}
+            <div class="migrationResult">
+              <div class="msgTitle">Schema reparado</div>
+              <ul>
+                <li>Tablas creadas: <strong>{repairResult.created}</strong></li>
+                <li>Columnas agregadas: <strong>{repairResult.addedColumns}</strong></li>
+                <li>Refs corregidas: <strong>{repairResult.repairedRefs}</strong></li>
+              </ul>
+              {#if repairResult.repairedRefs > 0}
+                <p class="muted">Se corrigieron columnas Ref con mayúsculas/minúsculas incorrectas. Probá guardar de nuevo.</p>
               {/if}
             </div>
           {/if}

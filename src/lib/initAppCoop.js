@@ -23,6 +23,19 @@ const chunk = (arr, n) => {
   return out
 }
 
+const fixRefTypes = (fields, actualTableIds) => {
+  if (!fields || !fields.type) return fields
+  const typeStr = String(fields.type)
+  const refMatch = typeStr.match(/^Ref:(.+)$/)
+  if (!refMatch) return fields
+  const refTableId = refMatch[1]
+  const actual = actualTableIds.get(refTableId.toLowerCase())
+  if (actual && actual !== refTableId) {
+    return { ...fields, type: `Ref:${actual}` }
+  }
+  return fields
+}
+
 export const ensureSchema = async (existingTablesLower) => {
   const schema = await loadAppCoopSchema()
   const missing = (schema.tables || []).filter((t) => !existingTablesLower.has(String(t.id).toLowerCase()))
@@ -36,17 +49,29 @@ export const ensureSchema = async (existingTablesLower) => {
   }
 
   const diff = await getSchemaDiff()
+
+  const actualTableIds = new Map()
+  for (const [lower, actual] of Object.entries(diff.actualTableIds || {})) {
+    actualTableIds.set(lower, actual)
+  }
+
   const actions = []
   for (const item of diff.missingColumns) {
     for (const col of item.columns) {
-      actions.push(['AddColumn', item.tableId, col.id, col.fields || {}])
+      const fixedFields = fixRefTypes(col.fields || {}, actualTableIds)
+      actions.push(['AddColumn', item.tableId, col.id, fixedFields])
     }
   }
   if (actions.length > 0) {
     await applyUserActions(actions)
   }
 
-  return { created: payloadTables.length, addedColumns: actions.length }
+  const repairActions = await getRefRepairActions(diff, schema)
+  if (repairActions.length > 0) {
+    await applyUserActions(repairActions)
+  }
+
+  return { created: payloadTables.length, addedColumns: actions.length, repairedRefs: repairActions.length }
 }
 
 export const seedIfEmpty = async ({ tableId, seedName, batchSize = 100 }) => {
@@ -122,5 +147,41 @@ export const getSchemaDiff = async () => {
     if (missCols.length > 0) missingColumns.push({ tableId: actualTableId, columns: missCols })
   }
 
-  return { missingTables, missingColumns }
+  const actualTableIds = {}
+  for (const [lower, actual] of tableIdLowerToActual.entries()) {
+    actualTableIds[lower] = actual
+  }
+
+  const refColumns = []
+  for (let i = 0; i < (colsMeta?.id?.length || 0); i += 1) {
+    const tableId = tableIdByRef.get(colsMeta.parentId[i])
+    if (!tableId) continue
+    const colId = String(colsMeta.colId[i] || '')
+    const typeStr = String(colsMeta.type[i] || '')
+    const refMatch = typeStr.match(/^Ref:(.+)$/)
+    if (refMatch) {
+      refColumns.push({ tableId, colId, refTableId: refMatch[1], colRef: colsMeta.id[i] })
+    }
+  }
+
+  return { missingTables, missingColumns, actualTableIds, refColumns }
+}
+
+const getRefRepairActions = async (diff, schema) => {
+  const actions = []
+  const schemaTableIds = new Map()
+  for (const t of schema.tables || []) {
+    schemaTableIds.set(String(t.id).toLowerCase(), t.id)
+  }
+  for (const rc of diff.refColumns || []) {
+    const refLower = String(rc.refTableId).toLowerCase()
+    const actual = diff.actualTableIds?.[refLower]
+    if (actual && actual !== rc.refTableId) {
+      const schemaTable = (schema.tables || []).find((t) => String(t.id).toLowerCase() === refLower)
+      const schemaCol = schemaTable?.columns?.find((c) => c.id === rc.colId)
+      const label = schemaCol?.fields?.label || rc.colId
+      actions.push(['ModifyColumn', rc.tableId, rc.colId, { label, type: `Ref:${actual}` }])
+    }
+  }
+  return actions
 }

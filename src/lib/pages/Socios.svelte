@@ -225,6 +225,11 @@
         delete fields.motivo_baja
       }
 
+      if (!tableId) {
+        error = 'No se encontró la tabla socios. Ejecutá "Actualizar schema" en Inicio.'
+        return
+      }
+
       if (form.id) {
         await applyUserActions([['UpdateRecord', tableId, form.id, fields]])
         notice = 'Socio actualizado.'

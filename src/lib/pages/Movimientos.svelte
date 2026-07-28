@@ -157,6 +157,11 @@
     }
 
     try {
+      if (!tableId) {
+        error = 'No se encontró la tabla movimientos. Ejecutá "Actualizar schema" en Inicio.'
+        return
+      }
+
       const cuenta = cuentaById.get(Number(form.cuenta_id))
       const isBanco = String(cuenta?.nombre_cuenta || '') === 'Banco'
 
