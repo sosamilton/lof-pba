@@ -16,6 +16,7 @@
   let selected = null
   let form = null
   let showBaja = false
+  let listOpen = true
 
   const normalize = (s) => String(s || '').toLowerCase().trim()
 
@@ -49,6 +50,8 @@
     .filter((s) => matches(s, q))
     .sort((a, b) => normalize(a.apellido).localeCompare(normalize(b.apellido)) || normalize(a.nombre).localeCompare(normalize(b.nombre)))
 
+  $: showList = listOpen && filtered.length > 0
+
   const load = async () => {
     loading = true
     error = ''
@@ -75,6 +78,7 @@
   const select = (s) => {
     selected = s
     showBaja = Boolean(s.fecha_baja)
+    listOpen = true
     form = {
       id: s.id,
       dni: s.dni || '',
@@ -95,6 +99,7 @@
   const nuevo = () => {
     selected = null
     showBaja = false
+    listOpen = false
     form = {
       dni: '',
       cuil: '',
@@ -176,15 +181,17 @@
     <div class="muted">{filtered.length} socios</div>
   </div>
 
-  <div class="grid">
-    <div class="list">
-      {#each filtered as s (s.id)}
-        <button class:selected={form?.id === s.id} on:click={() => select(s)}>
-          <div class="name">{s.apellido}, {s.nombre}</div>
-          <div class="sub">{isActivo(s) ? 'Activo' : 'Baja'} · DNI {s.dni || '-'} · {s.localidad || ''}</div>
-        </button>
-      {/each}
-    </div>
+  <div class:singlePane={!showList} class="grid">
+    {#if showList}
+      <div class="list">
+        {#each filtered as s (s.id)}
+          <button class:selected={form?.id === s.id} on:click={() => select(s)}>
+            <div class="name">{s.apellido}, {s.nombre}</div>
+            <div class="sub">{isActivo(s) ? 'Activo' : 'Baja'} · DNI {s.dni || '-'} · {s.localidad || ''}</div>
+          </button>
+        {/each}
+      </div>
+    {/if}
 
     <div class="editor">
       {#if form}
@@ -192,6 +199,13 @@
         {#if form.id}
           <div class="toolbar">
             <button class="btn secondary" on:click={() => (showBaja = !showBaja)}>{showBaja ? 'Ocultar baja' : 'Dar de baja'}</button>
+            {#if showList}
+              <button class="btn secondary" on:click={() => (listOpen = false)}>Ocultar lista</button>
+            {/if}
+          </div>
+        {:else}
+          <div class="toolbar">
+            <button class="btn secondary" on:click={() => (listOpen = true)} disabled={filtered.length === 0}>Ver lista</button>
           </div>
         {/if}
         <div class="form">
@@ -254,7 +268,17 @@
           <button class="btn" on:click={save}>Guardar</button>
         </div>
       {:else}
-        <div class="muted">Seleccioná un socio o creá uno nuevo.</div>
+        {#if filtered.length === 0}
+          <div class="empty">
+            <div class="emptyTitle">Todavía no hay socios</div>
+            <div class="emptySub">Creá el primer socio para empezar.</div>
+            <div class="emptyActions">
+              <button class="btn" on:click={nuevo}>Nuevo socio</button>
+            </div>
+          </div>
+        {:else}
+          <div class="muted">Seleccioná un socio o creá uno nuevo.</div>
+        {/if}
       {/if}
     </div>
   </div>
@@ -312,14 +336,20 @@
   }
   .grid {
     display: grid;
-    grid-template-columns: 420px 1fr;
+    grid-template-columns: minmax(280px, 420px) 1fr;
     gap: 12px;
+    align-items: start;
+  }
+  .grid.singlePane {
+    grid-template-columns: 1fr;
   }
   .list {
     border: 1px solid rgba(128, 128, 128, 0.22);
     border-radius: 14px;
     overflow: hidden;
     background: rgba(128, 128, 128, 0.06);
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
   }
   .list button {
     width: 100%;
@@ -362,7 +392,29 @@
   .toolbar {
     display: flex;
     justify-content: flex-end;
+    gap: 8px;
     margin: -2px 0 10px 0;
+    flex-wrap: wrap;
+  }
+  .empty {
+    border: 1px dashed rgba(128, 128, 128, 0.3);
+    border-radius: 14px;
+    padding: 14px;
+    background: rgba(128, 128, 128, 0.04);
+  }
+  .emptyTitle {
+    font-weight: 900;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  .emptySub {
+    opacity: 0.75;
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+  .emptyActions {
+    display: flex;
+    justify-content: flex-end;
   }
   .form {
     display: grid;
