@@ -64,6 +64,7 @@ export const gristReady = async () => {
 export const listTables = async () => {
   await ensureGristPluginLoaded()
   if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
+  window.grist.ready({ requiredAccess: 'read table' })
   return window.grist.docApi.listTables()
 }
 
@@ -91,6 +92,7 @@ export const tableDataToRecords = (data) => {
 export const fetchRecords = async (tableId) => {
   await ensureGristPluginLoaded()
   if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
+  window.grist.ready({ requiredAccess: 'read table' })
   const data = await window.grist.docApi.fetchTable(tableId)
   return tableDataToRecords(data)
 }
@@ -98,6 +100,7 @@ export const fetchRecords = async (tableId) => {
 export const applyUserActions = async (actions) => {
   await ensureGristPluginLoaded()
   if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
+  window.grist.ready({ requiredAccess: 'full', allowSelectBy: true })
   return window.grist.docApi.applyUserActions(actions)
 }
 
@@ -113,50 +116,30 @@ export const getApiContext = async () => {
 }
 
 export const createTables = async (tables) => {
-  const { token, baseUrl, docId } = await getApiContext()
-  if (!token || !baseUrl) throw new Error('No se pudo obtener token/baseUrl para API')
-  if (!docId) throw new Error('No se pudo detectar el docId desde el contexto del widget')
-
-  const url = `${baseUrl}/tables`
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ tables })
-  })
-
-  if (!resp.ok) {
-    const text = await resp.text().catch(() => '')
-    throw new Error(`Error creando tablas (${resp.status}): ${text || resp.statusText}`)
-  }
-
-  return resp.json().catch(() => ({}))
+  if (!Array.isArray(tables) || tables.length === 0) return { ok: true, created: 0 }
+  const actions = tables.map((t) => [
+    'AddTable',
+    t.id,
+    (t.columns || []).map((c) => ({ id: c.id, ...(c.fields || {}) }))
+  ])
+  return applyUserActions(actions)
 }
 
 export const addRecords = async (tableId, records) => {
-  const { token, baseUrl, docId } = await getApiContext()
-  if (!token || !baseUrl) throw new Error('No se pudo obtener token/baseUrl para API')
-  if (!docId) throw new Error('No se pudo detectar el docId desde el contexto del widget')
   if (!Array.isArray(records) || records.length === 0) return { ok: true, added: 0 }
 
-  const url = `${baseUrl}/tables/${encodeURIComponent(tableId)}/records`
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ records: records.map((fields) => ({ fields })) })
-  })
-
-  if (!resp.ok) {
-    const text = await resp.text().catch(() => '')
-    throw new Error(`Error agregando registros en ${tableId} (${resp.status}): ${text || resp.statusText}`)
+  const keys = new Set()
+  for (const r of records) {
+    for (const k of Object.keys(r || {})) keys.add(k)
   }
 
-  return resp.json().catch(() => ({}))
+  const colValues = {}
+  for (const k of keys) {
+    colValues[k] = records.map((r) => (Object.prototype.hasOwnProperty.call(r || {}, k) ? r[k] : null))
+  }
+
+  const rowIds = Array(records.length).fill(null)
+  return applyUserActions([['BulkAddRecord', tableId, rowIds, colValues]])
 }
 
 export const ensureOneRow = async (tableId) => {
