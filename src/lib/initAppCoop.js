@@ -1,14 +1,10 @@
 import { csvToObjects, normalizeSeedValue, parseCsv } from './csv'
 import { addRecords, applyUserActions, createTables, fetchTableData } from './grist'
+import schemaJson from './appcoop_schema.v1.json'
 
 const base = () => String(import.meta.env.BASE_URL || '/')
 
-export const loadAppCoopSchema = async () => {
-  const url = `${base()}appcoop_schema.v1.json`
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`No se pudo cargar schema (${res.status})`)
-  return res.json()
-}
+export const loadAppCoopSchema = async () => schemaJson
 
 export const loadSeedCsv = async (name) => {
   const url = `${base()}seeds/${name}.csv`

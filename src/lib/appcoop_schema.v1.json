@@ -1,0 +1,335 @@
+{
+  "version": 1,
+  "tables": [
+    {
+      "id": "docs_tablas",
+      "title": "Documentacion - Tablas",
+      "columns": [
+        { "id": "table_id", "fields": { "label": "Table ID", "type": "Text" } },
+        { "id": "tabla_visible", "fields": { "label": "Tabla", "type": "Text" } },
+        { "id": "modulo_visible", "fields": { "label": "Modulo", "type": "Text" } },
+        { "id": "doc_md", "fields": { "label": "Documentacion", "type": "Text" } }
+      ]
+    },
+    {
+      "id": "escuela",
+      "title": "Escuela y cooperadora",
+      "columns": [
+        { "id": "distrito", "fields": { "label": "Distrito", "type": "Text" } },
+        { "id": "escuela_nombre", "fields": { "label": "Nombre de la escuela", "type": "Text" } },
+        { "id": "escuela_numero", "fields": { "label": "Numero de escuela", "type": "Text" } },
+        { "id": "cue", "fields": { "label": "CUE", "type": "Text" } },
+        { "id": "cuit", "fields": { "label": "CUIT cooperadora", "type": "Text" } },
+        { "id": "cooperadora_nombre", "fields": { "label": "Nombre de la cooperadora", "type": "Text" } },
+        { "id": "domicilio", "fields": { "label": "Domicilio", "type": "Text" } },
+        { "id": "barrio_paraje", "fields": { "label": "Barrio o paraje", "type": "Text" } },
+        { "id": "localidad", "fields": { "label": "Localidad", "type": "Text" } },
+        { "id": "email_cooperadora", "fields": { "label": "Email cooperadora", "type": "Text" } },
+        { "id": "telefono_cooperadora", "fields": { "label": "Telefono cooperadora", "type": "Text" } },
+        { "id": "email_asesor", "fields": { "label": "Email asesor", "type": "Text" } },
+        { "id": "telefono_asesor", "fields": { "label": "Telefono asesor", "type": "Text" } }
+      ]
+    },
+    {
+      "id": "ejercicios",
+      "title": "Ejercicios",
+      "columns": [
+        { "id": "anio_inicio", "fields": { "label": "Ano desde", "type": "Int" } },
+        { "id": "anio_fin", "fields": { "label": "Ano hasta", "type": "Int" } },
+        {
+          "id": "mes_inicio",
+          "fields": {
+            "label": "Mes de inicio",
+            "type": "Choice",
+            "widgetOptions": "{\"choices\":[\"Enero\",\"Febrero\",\"Marzo\",\"Abril\",\"Mayo\",\"Junio\",\"Julio\",\"Agosto\",\"Septiembre\",\"Octubre\",\"Noviembre\",\"Diciembre\"]}"
+          }
+        },
+        { "id": "saldo_inicial_banco", "fields": { "label": "Saldo inicial banco", "type": "Numeric" } },
+        { "id": "saldo_inicial_efectivo", "fields": { "label": "Saldo inicial efectivo", "type": "Numeric" } },
+        { "id": "saldo_inicial_caja_chica", "fields": { "label": "Saldo inicial caja chica", "type": "Numeric" } },
+        {
+          "id": "saldo_inicial_total",
+          "fields": {
+            "label": "Saldo inicial total",
+            "type": "Numeric",
+            "isFormula": true,
+            "formula": "$saldo_inicial_banco + $saldo_inicial_efectivo + $saldo_inicial_caja_chica"
+          }
+        },
+        { "id": "en_curso", "fields": { "label": "En curso", "type": "Bool" } },
+        { "id": "fecha_inicio", "fields": { "label": "Fecha desde", "type": "Date" } },
+        { "id": "fecha_fin", "fields": { "label": "Fecha hasta", "type": "Date" } },
+        { "id": "observaciones", "fields": { "label": "Observaciones", "type": "Text" } }
+      ]
+    },
+    {
+      "id": "datos_banco",
+      "title": "Cuenta bancaria",
+      "columns": [
+        { "id": "entidad", "fields": { "label": "Entidad bancaria", "type": "Text" } },
+        { "id": "sucursal", "fields": { "label": "Sucursal", "type": "Text" } },
+        { "id": "cuenta_corriente", "fields": { "label": "Cuenta corriente", "type": "Text" } },
+        { "id": "cbu", "fields": { "label": "CBU", "type": "Text" } },
+        { "id": "vigente_desde", "fields": { "label": "Vigente desde", "type": "Date" } }
+      ]
+    },
+    {
+      "id": "kiosco_libreria",
+      "title": "Kiosco o libreria",
+      "columns": [
+        { "id": "posee", "fields": { "label": "Posee kiosco o libreria", "type": "Bool" } },
+        {
+          "id": "modalidad",
+          "fields": {
+            "label": "Modalidad",
+            "type": "Choice",
+            "widgetOptions": "{\"choices\":[\"Propio\",\"Licitado\"]}"
+          }
+        },
+        { "id": "contrato_desde", "fields": { "label": "Contrato desde", "type": "Date" } },
+        { "id": "contrato_hasta", "fields": { "label": "Contrato hasta", "type": "Date" } }
+      ]
+    },
+    {
+      "id": "personas",
+      "title": "Personas",
+      "columns": [
+        { "id": "dni", "fields": { "label": "DNI", "type": "Text" } },
+        { "id": "cuil", "fields": { "label": "CUIL", "type": "Text" } },
+        { "id": "apellido", "fields": { "label": "Apellido", "type": "Text" } },
+        { "id": "nombre", "fields": { "label": "Nombre", "type": "Text" } },
+        { "id": "domicilio", "fields": { "label": "Domicilio", "type": "Text" } },
+        { "id": "localidad", "fields": { "label": "Localidad", "type": "Text" } },
+        { "id": "telefono", "fields": { "label": "Telefono", "type": "Text" } },
+        { "id": "email", "fields": { "label": "Email", "type": "Text" } },
+        { "id": "creado_el", "fields": { "label": "Fecha creacion", "type": "DateTime" } }
+      ]
+    },
+    {
+      "id": "socios",
+      "title": "Socios",
+      "columns": [
+        { "id": "persona_id", "fields": { "label": "Persona", "type": "Ref:personas" } },
+        { "id": "dni", "fields": { "label": "DNI (legacy)", "type": "Text" } },
+        { "id": "cuil", "fields": { "label": "CUIL", "type": "Text" } },
+        { "id": "apellido", "fields": { "label": "Apellido", "type": "Text" } },
+        { "id": "nombre", "fields": { "label": "Nombre", "type": "Text" } },
+        { "id": "domicilio", "fields": { "label": "Domicilio", "type": "Text" } },
+        { "id": "localidad", "fields": { "label": "Localidad", "type": "Text" } },
+        { "id": "telefono", "fields": { "label": "Telefono", "type": "Text" } },
+        { "id": "email", "fields": { "label": "Email", "type": "Text" } },
+        {
+          "id": "tipo_socio",
+          "fields": {
+            "label": "Tipo de socio",
+            "type": "Choice",
+            "widgetOptions": "{\"choices\":[\"Activo\",\"Honorario\",\"Adherente\"]}"
+          }
+        },
+        { "id": "fecha_alta", "fields": { "label": "Fecha de alta", "type": "Date" } },
+        { "id": "fecha_baja", "fields": { "label": "Fecha de baja", "type": "Date" } },
+        {
+          "id": "motivo_baja",
+          "fields": {
+            "label": "Motivo de baja",
+            "type": "Choice",
+            "widgetOptions": "{\"choices\":[\"Renuncia\",\"Fallecimiento\",\"CambioEscuela\",\"Otro\"]}"
+          }
+        },
+        {
+          "id": "activo",
+          "fields": {
+            "label": "Activo",
+            "type": "Bool",
+            "isFormula": true,
+            "formula": "$fecha_baja is None"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cargos",
+      "title": "Cargos",
+      "columns": [
+        { "id": "nombre_cargo", "fields": { "label": "Nombre del cargo", "type": "Text" } },
+        {
+          "id": "organismo",
+          "fields": { "label": "Organo", "type": "Choice", "widgetOptions": "{\"choices\":[\"CD\",\"CRC\",\"Federacion\"]}" }
+        },
+        { "id": "orden", "fields": { "label": "Orden", "type": "Int" } },
+        { "id": "duracion_meses", "fields": { "label": "Duración (meses)", "type": "Int" } },
+        { "id": "cargo_obligatorio", "fields": { "label": "Cargo obligatorio", "type": "Bool" } },
+        { "id": "nivel", "fields": { "label": "Nivel", "type": "Choice", "widgetOptions": "{\"choices\":[\"Titular\",\"Suplente\"]}" } },
+        { "id": "activo", "fields": { "label": "Activo", "type": "Bool" } }
+      ]
+    },
+    {
+      "id": "asambleas",
+      "title": "Asambleas",
+      "columns": [
+        { "id": "fecha", "fields": { "label": "Fecha", "type": "Date" } },
+        {
+          "id": "tipo_asamblea",
+          "fields": {
+            "label": "Tipo de asamblea",
+            "type": "Choice",
+            "widgetOptions": "{\"choices\":[\"AnualOrdinaria\",\"Extraordinaria\"]}"
+          }
+        },
+        { "id": "acta_numero", "fields": { "label": "Acta Nro", "type": "Text" } },
+        { "id": "acta_fojas", "fields": { "label": "Fojas", "type": "Text" } },
+        { "id": "ejercicio_id", "fields": { "label": "Ejercicio", "type": "Ref:ejercicios" } },
+        { "id": "socios_presentes_cantidad", "fields": { "label": "Cantidad de socios presentes", "type": "Int" } },
+        { "id": "resolucion_punto_1", "fields": { "label": "Resolucion punto 1", "type": "Text" } },
+        { "id": "resolucion_punto_2", "fields": { "label": "Resolucion punto 2", "type": "Text" } },
+        { "id": "resolucion_punto_3", "fields": { "label": "Resolucion punto 3", "type": "Text" } },
+        { "id": "resolucion_punto_4", "fields": { "label": "Resolucion punto 4", "type": "Text" } },
+        { "id": "resolucion_punto_5", "fields": { "label": "Resolucion punto 5", "type": "Text" } },
+        { "id": "resolucion_punto_6", "fields": { "label": "Resolucion punto 6", "type": "Text" } },
+        { "id": "resolucion_punto_7", "fields": { "label": "Resolucion punto 7", "type": "Text" } },
+        { "id": "cuota_social_importe", "fields": { "label": "Importe cuota social", "type": "Numeric" } },
+        {
+          "id": "cuota_social_modalidad",
+          "fields": { "label": "Modalidad cuota social", "type": "Choice", "widgetOptions": "{\"choices\":[\"Mensual\",\"Anual\"]}" }
+        },
+        { "id": "caja_chica_importe", "fields": { "label": "Importe caja chica", "type": "Numeric" } },
+        { "id": "acta_pdf", "fields": { "label": "Acta escaneada", "type": "Attachments" } }
+      ]
+    },
+    {
+      "id": "autoridades",
+      "title": "Autoridades",
+      "columns": [
+        {
+          "id": "organismo",
+          "fields": { "label": "Organo", "type": "Choice", "widgetOptions": "{\"choices\":[\"CD\",\"CRC\",\"Federacion\"]}" }
+        },
+        { "id": "cargo_id", "fields": { "label": "Cargo", "type": "Ref:cargos" } },
+        { "id": "persona_id", "fields": { "label": "Persona", "type": "Ref:personas" } },
+        { "id": "apellido_nombre", "fields": { "label": "Apellido y nombre (legacy)", "type": "Text" } },
+        { "id": "cuil", "fields": { "label": "CUIL", "type": "Text" } },
+        { "id": "dni", "fields": { "label": "DNI", "type": "Text" } },
+        { "id": "domicilio", "fields": { "label": "Domicilio", "type": "Text" } },
+        { "id": "localidad", "fields": { "label": "Localidad", "type": "Text" } },
+        { "id": "fecha_asuncion", "fields": { "label": "Fecha de asuncion", "type": "Date" } },
+        { "id": "fecha_cese", "fields": { "label": "Fecha de cese", "type": "Date" } },
+        { "id": "fecha_vencimiento", "fields": { "label": "Fin de mandato", "type": "Date" } },
+        {
+          "id": "motivo_cese",
+          "fields": {
+            "label": "Motivo de cese",
+            "type": "Choice",
+            "widgetOptions": "{\"choices\":[\"Renuncia\",\"FinMandato\",\"Reemplazo\",\"Otro\"]}"
+          }
+        },
+        { "id": "tipo_origen", "fields": { "label": "Designado por", "type": "Choice", "widgetOptions": "{\"choices\":[\"Asamblea\",\"ReunionCD\"]}" } },
+        { "id": "asamblea_id", "fields": { "label": "Asamblea de origen", "type": "Ref:asambleas" } },
+        { "id": "acta_origen_ref", "fields": { "label": "Acta de origen", "type": "Text" } },
+        { "id": "fecha_acta_origen", "fields": { "label": "Fecha del acta", "type": "Date" } },
+        { "id": "reemplaza_autoridad_id", "fields": { "label": "Reemplaza a", "type": "Ref:autoridades" } },
+        { "id": "activo", "fields": { "label": "Activo", "type": "Bool" } },
+        { "id": "ejercicio_id", "fields": { "label": "Ejercicio", "type": "Ref:ejercicios" } }
+      ]
+    },
+    {
+      "id": "cuentas",
+      "title": "Cajas y cuentas",
+      "columns": [
+        { "id": "nombre_cuenta", "fields": { "label": "Caja o cuenta", "type": "Text" } },
+        { "id": "orden", "fields": { "label": "Orden", "type": "Int" } }
+      ]
+    },
+    {
+      "id": "rubros_pia",
+      "title": "Rubros oficiales",
+      "columns": [
+        { "id": "codigo_rubro", "fields": { "label": "Codigo PIA", "type": "Text" } },
+        { "id": "nombre_oficial", "fields": { "label": "Nombre oficial", "type": "Text" } },
+        {
+          "id": "grupo_rubro",
+          "fields": {
+            "label": "Grupo",
+            "type": "Choice",
+            "widgetOptions": "{\"choices\":[\"Recursos Propios\",\"Recursos Oficiales\",\"Otros Ingresos\",\"Gastos Alumno\",\"Gastos Escuela\",\"Gastos Entidad\",\"Otros Gastos\"]}"
+          }
+        },
+        { "id": "tipo_rubro", "fields": { "label": "Tipo de rubro", "type": "Choice", "widgetOptions": "{\"choices\":[\"Entrada\",\"Salida\"]}" } },
+        { "id": "campo_pdf", "fields": { "label": "Campo PDF", "type": "Text" } },
+        { "id": "es_traspaso", "fields": { "label": "Es traspaso", "type": "Bool" } },
+        { "id": "fijo", "fields": { "label": "Fijo", "type": "Bool" } }
+      ]
+    },
+    {
+      "id": "subrubros",
+      "title": "Subrubros",
+      "columns": [
+        { "id": "nombre_subrubro", "fields": { "label": "Subrubro", "type": "Text" } },
+        { "id": "rubro_id", "fields": { "label": "Rubro padre", "type": "Ref:rubros_pia" } },
+        { "id": "activo", "fields": { "label": "Activo", "type": "Bool" } },
+        { "id": "creado_por", "fields": { "label": "Creado por", "type": "Text" } }
+      ]
+    },
+    {
+      "id": "cierres_mensuales",
+      "title": "Cierres mensuales",
+      "columns": [
+        { "id": "periodo", "fields": { "label": "Periodo", "type": "Text" } },
+        { "id": "ejercicio_id", "fields": { "label": "Ejercicio", "type": "Ref:ejercicios" } },
+        { "id": "saldo_banco", "fields": { "label": "Saldo banco", "type": "Numeric" } },
+        { "id": "saldo_efectivo", "fields": { "label": "Saldo efectivo", "type": "Numeric" } },
+        { "id": "saldo_caja_chica", "fields": { "label": "Saldo caja chica", "type": "Numeric" } },
+        { "id": "total_ingresos", "fields": { "label": "Total ingresos", "type": "Numeric" } },
+        { "id": "total_egresos", "fields": { "label": "Total egresos", "type": "Numeric" } },
+        { "id": "cerrado_por", "fields": { "label": "Cerrado por", "type": "Text" } },
+        { "id": "cerrado_el", "fields": { "label": "Fecha de cierre", "type": "DateTime" } },
+        { "id": "motivo_reapertura", "fields": { "label": "Motivo de reapertura", "type": "Text" } },
+        { "id": "reabierto_por", "fields": { "label": "Reabierto por", "type": "Text" } },
+        { "id": "fecha_reapertura", "fields": { "label": "Fecha de reapertura", "type": "DateTime" } }
+      ]
+    },
+    {
+      "id": "movimientos",
+      "title": "Movimientos",
+      "columns": [
+        { "id": "fecha", "fields": { "label": "Fecha", "type": "Date" } },
+        { "id": "ejercicio_id", "fields": { "label": "Ejercicio", "type": "Ref:ejercicios" } },
+        {
+          "id": "periodo",
+          "fields": { "label": "Periodo", "type": "Text", "isFormula": true, "formula": "$fecha.strftime('%Y-%m') if $fecha else None" }
+        },
+        {
+          "id": "tipo_movimiento",
+          "fields": { "label": "Tipo de movimiento", "type": "Choice", "widgetOptions": "{\"choices\":[\"Entrada\",\"Salida\",\"Traspaso\"]}" }
+        },
+        { "id": "rubro_id", "fields": { "label": "Rubro", "type": "Ref:rubros_pia" } },
+        { "id": "subrubro_id", "fields": { "label": "Subrubro", "type": "Ref:subrubros" } },
+        { "id": "detalle", "fields": { "label": "Detalle", "type": "Text" } },
+        { "id": "importe", "fields": { "label": "Importe", "type": "Numeric" } },
+        { "id": "cuenta_id", "fields": { "label": "Caja o cuenta", "type": "Ref:cuentas" } },
+        { "id": "destino_bancario", "fields": { "label": "Destino en banco", "type": "Choice", "widgetOptions": "{\"choices\":[\"CuentaCorriente\",\"PlazoFijo\"]}" } },
+        { "id": "cuenta_destino_id", "fields": { "label": "Caja o cuenta destino", "type": "Ref:cuentas" } },
+        { "id": "socio_id", "fields": { "label": "Socio", "type": "Ref:socios" } },
+        { "id": "fuera_de_termino", "fields": { "label": "Cargado fuera de termino", "type": "Bool" } },
+        { "id": "periodo_cerrado", "fields": { "label": "Periodo cerrado", "type": "Bool" } },
+        { "id": "comprobante", "fields": { "label": "Comprobante", "type": "Attachments" } },
+        { "id": "creado_por", "fields": { "label": "Cargado por", "type": "Text" } },
+        { "id": "creado_el", "fields": { "label": "Fecha de carga", "type": "DateTime" } }
+      ]
+    },
+    {
+      "id": "planillas_generadas",
+      "title": "Planillas generadas",
+      "columns": [
+        {
+          "id": "tipo_planilla",
+          "fields": { "label": "Tipo de planilla", "type": "Choice", "widgetOptions": "{\"choices\":[\"PIA\",\"Nomina\"]}" }
+        },
+        { "id": "ejercicio_id", "fields": { "label": "Ejercicio", "type": "Ref:ejercicios" } },
+        { "id": "fecha_generacion", "fields": { "label": "Fecha de generacion", "type": "DateTime" } },
+        { "id": "generado_por", "fields": { "label": "Generado por", "type": "Text" } },
+        { "id": "version_formulario", "fields": { "label": "Version del formulario", "type": "Text" } },
+        { "id": "archivo_pdf", "fields": { "label": "Archivo PDF", "type": "Attachments" } }
+      ]
+    }
+  ]
+}

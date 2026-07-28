@@ -33,15 +33,10 @@ export const runMigration = async () => {
     pendientes: []
   }
 
-  const personaCache = new Map()
-
   const getOrCreatePersona = async (dni, cuil, apellido, nombre, domicilio, localidad, telefono, email) => {
     const d = normalizeDni(dni)
     if (d && dniToPersona.has(d)) {
       return dniToPersona.get(d)
-    }
-    if (d && personaCache.has(d)) {
-      return personaCache.get(d)
     }
     if (!d) {
       const fullKey = `${normalizeText(apellido)} ${normalizeText(nombre)}`.trim()
@@ -64,7 +59,6 @@ export const runMigration = async () => {
     if (rowId == null) throw new Error('No se pudo crear persona durante migración')
     const newPersona = { id: rowId, ...fields }
     dniToPersona.set(d, newPersona)
-    personaCache.set(d, newPersona)
     result.personasCreadas++
     return newPersona
   }
