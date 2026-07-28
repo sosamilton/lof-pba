@@ -36,6 +36,20 @@
 
   const dateToInput = (v) => (v ? String(v).slice(0, 10) : '')
 
+  const addMonths = (dateStr, months) => {
+    if (!dateStr || months == null || months === '') return ''
+    const m = Number(months)
+    if (!Number.isFinite(m) || m === 0) return dateStr
+    const d = new Date(`${dateStr}T00:00:00`)
+    if (Number.isNaN(d.getTime())) return ''
+    const day = d.getDate()
+    d.setDate(1)
+    d.setMonth(d.getMonth() + m)
+    const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+    d.setDate(Math.min(day, daysInMonth))
+    return d.toISOString().slice(0, 10)
+  }
+
   const load = async () => {
     loading = true
     error = ''
@@ -80,20 +94,24 @@
 
     rows = cargosOrg.map((c) => {
       const a = authByCargo.get(Number(c.id)) || null
+      const duracionMeses = c.duracion_meses ?? ''
+      const fechaAsuncion = dateToInput(a?.fecha_asuncion)
+      const fechaVenc = dateToInput(a?.fecha_vencimiento) || (fechaAsuncion ? addMonths(fechaAsuncion, duracionMeses) : '')
       return {
         cargoId: c.id,
         cargoNombre: c.nombre_cargo,
         cargoOrden: c.orden,
         cargoObligatorio: Boolean(c.cargo_obligatorio),
+        cargoDuracionMeses: duracionMeses,
         id: a?.id || null,
         apellido_nombre: a?.apellido_nombre || '',
         dni: a?.dni || '',
         cuil: a?.cuil || '',
         domicilio: a?.domicilio || '',
         localidad: a?.localidad || '',
-        fecha_asuncion: dateToInput(a?.fecha_asuncion),
+        fecha_asuncion: fechaAsuncion,
         fecha_cese: dateToInput(a?.fecha_cese),
-        fecha_vencimiento: dateToInput(a?.fecha_vencimiento),
+        fecha_vencimiento: fechaVenc,
         motivo_cese: a?.motivo_cese || '',
         activo: a?.activo ?? true
       }
@@ -136,6 +154,8 @@
       const updates = rows
         .filter((r) => r.id)
         .map((r) => {
+          const autoVenc = r.fecha_asuncion ? addMonths(r.fecha_asuncion, r.cargoDuracionMeses) : ''
+          const fechaVencimiento = r.fecha_asuncion ? (r.fecha_vencimiento || autoVenc) : (r.fecha_vencimiento || '')
           const fields = normalizeFields({
             organismo,
             cargo_id: r.cargoId,
@@ -147,7 +167,7 @@
             localidad: String(r.localidad || '').trim(),
             fecha_asuncion: r.fecha_asuncion || '',
             fecha_cese: r.fecha_cese || '',
-            fecha_vencimiento: r.fecha_vencimiento || '',
+            fecha_vencimiento: fechaVencimiento || '',
             motivo_cese: String(r.motivo_cese || '').trim(),
             activo: Boolean(r.activo)
           })
@@ -292,8 +312,8 @@
       <section class="card">
         <div class="rowHead">
           <div class="tabs">
-            <button class:tabActive={organismo === 'CD'} on:click={() => { organismo = 'CD'; loadComision() }}>CD</button>
-            <button class:tabActive={organismo === 'CRC'} on:click={() => { organismo = 'CRC'; loadComision() }}>CRC</button>
+            <button class:tabActive={organismo === 'CD'} on:click={() => { organismo = 'CD'; loadComision() }}>Comisión Directiva</button>
+            <button class:tabActive={organismo === 'CRC'} on:click={() => { organismo = 'CRC'; loadComision() }}>Comisión Revisora de Cuentas</button>
             <button class:tabActive={organismo === 'Federacion'} on:click={() => { organismo = 'Federacion'; loadComision() }}>Federación</button>
           </div>
           <div class="actions">
