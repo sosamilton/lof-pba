@@ -431,7 +431,7 @@
   }
   .grid2 {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 14px;
   }
   .card {
@@ -526,14 +526,19 @@
     border: 1px solid rgba(128, 128, 128, 0.22);
     border-radius: 12px;
     overflow: hidden;
+    overflow-x: auto;
   }
   .thead,
   .trow {
     display: grid;
-    grid-template-columns: 70px 1fr 130px 110px 80px 96px;
+    grid-template-columns: 64px minmax(220px, 1fr) 130px 110px 80px 96px;
     gap: 8px;
     align-items: center;
     padding: 10px;
+  }
+  .thead,
+  .trow {
+    min-width: 740px;
   }
   .thead {
     background: rgba(128, 128, 128, 0.12);
@@ -562,16 +567,12 @@
     background: rgba(22, 179, 120, 0.12);
   }
   @media (max-width: 1100px) {
-    .grid2 {
-      grid-template-columns: 1fr;
-    }
     .form {
       grid-template-columns: 1fr;
     }
     .thead,
     .trow {
-      grid-template-columns: 60px 1fr 110px 96px 70px 96px;
+      grid-template-columns: 56px minmax(180px, 1fr) 110px 96px 70px 96px;
     }
   }
 </style>
-
