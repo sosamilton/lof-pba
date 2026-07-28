@@ -15,6 +15,7 @@
 
   let selected = null
   let form = null
+  let showBaja = false
 
   const normalize = (s) => String(s || '').toLowerCase().trim()
 
@@ -73,6 +74,7 @@
 
   const select = (s) => {
     selected = s
+    showBaja = Boolean(s.fecha_baja)
     form = {
       id: s.id,
       dni: s.dni || '',
@@ -92,6 +94,7 @@
 
   const nuevo = () => {
     selected = null
+    showBaja = false
     form = {
       dni: '',
       cuil: '',
@@ -118,7 +121,12 @@
       Object.keys(fields).forEach((k) => {
         if (fields[k] === '') delete fields[k]
       })
-      if (!form.fecha_baja) delete fields.motivo_baja
+      if (!showBaja) {
+        delete fields.fecha_baja
+        delete fields.motivo_baja
+      } else if (!form.fecha_baja) {
+        delete fields.motivo_baja
+      }
 
       if (form.id) {
         await applyUserActions([['UpdateRecord', tableId, form.id, fields]])
@@ -181,6 +189,11 @@
     <div class="editor">
       {#if form}
         <h2>{form.id ? 'Editar socio' : 'Nuevo socio'}</h2>
+        {#if form.id}
+          <div class="toolbar">
+            <button class="btn secondary" on:click={() => (showBaja = !showBaja)}>{showBaja ? 'Ocultar baja' : 'Dar de baja'}</button>
+          </div>
+        {/if}
         <div class="form">
           <div>
             <label>DNI</label>
@@ -226,14 +239,16 @@
             <label>Email</label>
             <input type="email" bind:value={form.email} />
           </div>
-          <div>
-            <label>Fecha baja</label>
-            <input type="date" bind:value={form.fecha_baja} />
-          </div>
-          <div>
-            <label>Motivo baja</label>
-            <input bind:value={form.motivo_baja} disabled={!form.fecha_baja} />
-          </div>
+          {#if form.id && showBaja}
+            <div>
+              <label>Fecha baja</label>
+              <input type="date" bind:value={form.fecha_baja} />
+            </div>
+            <div>
+              <label>Motivo baja</label>
+              <input bind:value={form.motivo_baja} disabled={!form.fecha_baja} />
+            </div>
+          {/if}
         </div>
         <div class="actions">
           <button class="btn" on:click={save}>Guardar</button>
@@ -344,6 +359,11 @@
     margin: 0 0 12px 0;
     font-size: 16px;
   }
+  .toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin: -2px 0 10px 0;
+  }
   .form {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -383,4 +403,3 @@
     }
   }
 </style>
-
