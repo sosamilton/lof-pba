@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte'
   import AppShell from './lib/layout/AppShell.svelte'
-  import { initRouter, route } from './lib/router'
+  import { initRouter, router } from './lib/router.svelte'
   import { detectGrist, isInGrist } from './lib/grist'
 
   import Inicio from './lib/pages/Inicio.svelte'
@@ -11,14 +11,15 @@
   import Movimientos from './lib/pages/Movimientos.svelte'
   import Gobierno from './lib/pages/Gobierno.svelte'
 
-  let ready = false
+  let ready = $state(false)
 
   onMount(() => {
+    const cleanup = initRouter()
     ;(async () => {
       await detectGrist()
-      if (isInGrist()) initRouter()
       ready = true
     })()
+    return cleanup
   })
 </script>
 
@@ -26,17 +27,19 @@
   <div style="padding: 18px; opacity: 0.8;">Cargando…</div>
 {:else if isInGrist()}
   <AppShell title="AppCoop">
-    {#if $route === 'setup'}
-      <Setup />
-    {:else if $route === 'socios'}
-      <Socios />
-    {:else if $route === 'movimientos'}
-      <Movimientos />
-    {:else if $route === 'gobierno'}
-      <Gobierno />
-    {:else}
-      <Inicio />
-    {/if}
+    {#snippet children()}
+      {#if router.current === 'setup'}
+        <Setup />
+      {:else if router.current === 'socios'}
+        <Socios />
+      {:else if router.current === 'movimientos'}
+        <Movimientos />
+      {:else if router.current === 'gobierno'}
+        <Gobierno />
+      {:else}
+        <Inicio />
+      {/if}
+    {/snippet}
   </AppShell>
 {:else}
   <Landing />

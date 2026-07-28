@@ -1,11 +1,12 @@
 <script>
   import { onMount } from 'svelte'
-  import { route, navigate } from '../router'
+  import { router, navigate } from '../router.svelte'
+  import '../shared.css'
 
-  export let title = 'AppCoop'
+  let { title = 'AppCoop', children } = $props()
 
-  let drawerOpen = false
-  let isSmall = false
+  let drawerOpen = $state(false)
+  let isSmall = $state(false)
 
   const syncSmall = () => {
     isSmall = window.matchMedia('(max-width: 860px)').matches
@@ -28,14 +29,14 @@
 <div class="shell">
   {#if isSmall}
     <div class="topbar">
-      <button class="iconBtn" aria-label="Abrir menú" on:click={() => (drawerOpen = true)}>Menu</button>
+      <button class="iconBtn" aria-label="Abrir menú" onclick={() => (drawerOpen = true)}>Menu</button>
       <div class="topbarTitle">{title}</div>
       <div class="topbarSpacer"></div>
     </div>
   {/if}
 
   {#if isSmall && drawerOpen}
-    <button class="backdrop" aria-label="Cerrar menú" on:click={() => (drawerOpen = false)}></button>
+    <button class="backdrop" aria-label="Cerrar menú" onclick={() => (drawerOpen = false)}></button>
   {/if}
 
   <aside class:sidebar={true} class:drawer={isSmall} class:drawerOpen={drawerOpen}>
@@ -45,16 +46,16 @@
     </div>
 
     <nav class="nav">
-      <a class:selected={$route === 'inicio'} href="#inicio" on:click|preventDefault={() => go('inicio')}>Inicio</a>
-      <a class:selected={$route === 'setup'} href="#setup" on:click|preventDefault={() => go('setup')}>Cooperadora</a>
-      <a class:selected={$route === 'socios'} href="#socios" on:click|preventDefault={() => go('socios')}>Socios</a>
-      <a class:selected={$route === 'movimientos'} href="#movimientos" on:click|preventDefault={() => go('movimientos')}>Movimientos</a>
-      <a class:selected={$route === 'gobierno'} href="#gobierno" on:click|preventDefault={() => go('gobierno')}>Gobierno</a>
+      <a class:selected={router.current === 'inicio'} href="#inicio" onclick={(e) => { e.preventDefault(); go('inicio') }}>Inicio</a>
+      <a class:selected={router.current === 'setup'} href="#setup" onclick={(e) => { e.preventDefault(); go('setup') }}>Cooperadora</a>
+      <a class:selected={router.current === 'socios'} href="#socios" onclick={(e) => { e.preventDefault(); go('socios') }}>Socios</a>
+      <a class:selected={router.current === 'movimientos'} href="#movimientos" onclick={(e) => { e.preventDefault(); go('movimientos') }}>Movimientos</a>
+      <a class:selected={router.current === 'gobierno'} href="#gobierno" onclick={(e) => { e.preventDefault(); go('gobierno') }}>Gobierno</a>
     </nav>
   </aside>
 
   <main class="content">
-    <slot />
+    {@render children()}
   </main>
 </div>
 
