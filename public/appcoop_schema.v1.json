@@ -141,6 +141,7 @@
           "fields": { "label": "Organo", "type": "Choice", "widgetOptions": "{\"choices\":[\"CD\",\"CRC\",\"Federacion\"]}" }
         },
         { "id": "orden", "fields": { "label": "Orden", "type": "Int" } },
+        { "id": "duracion_meses", "fields": { "label": "Duración (meses)", "type": "Int" } },
         { "id": "cargo_obligatorio", "fields": { "label": "Cargo obligatorio", "type": "Bool" } },
         { "id": "nivel", "fields": { "label": "Nivel", "type": "Choice", "widgetOptions": "{\"choices\":[\"Titular\",\"Suplente\"]}" } },
         { "id": "activo", "fields": { "label": "Activo", "type": "Bool" } }

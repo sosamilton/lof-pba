@@ -28,7 +28,7 @@
 
   let organismo = 'CD'
   let cargos = []
-  let nuevoCargo = { nombre_cargo: '', nivel: 'Titular', orden: 10, cargo_obligatorio: false, activo: true }
+  let nuevoCargo = { nombre_cargo: '', nivel: 'Titular', orden: 10, duracion_meses: 12, cargo_obligatorio: false, activo: true }
 
   const load = async () => {
     loading = true
@@ -154,6 +154,7 @@
         nombre_cargo: c.nombre_cargo,
         nivel: c.nivel,
         orden: Number(c.orden || 0),
+        duracion_meses: c.duracion_meses === '' ? '' : Number(c.duracion_meses || 0),
         cargo_obligatorio: Boolean(c.cargo_obligatorio),
         activo: Boolean(c.activo)
       })
@@ -179,12 +180,20 @@
         nombre_cargo: String(nuevoCargo.nombre_cargo).trim(),
         nivel: nuevoCargo.nivel,
         orden: Number(nuevoCargo.orden || 0),
+        duracion_meses: nuevoCargo.duracion_meses === '' ? '' : Number(nuevoCargo.duracion_meses || 0),
         cargo_obligatorio: Boolean(nuevoCargo.cargo_obligatorio),
         activo: Boolean(nuevoCargo.activo)
       })
       if (fields.cargo_obligatorio) fields.activo = true
       await applyUserActions([['AddRecord', tCargos, null, fields]])
-      nuevoCargo = { nombre_cargo: '', nivel: nuevoCargo.nivel || 'Titular', orden: Number(nuevoCargo.orden || 10) + 1, cargo_obligatorio: false, activo: true }
+      nuevoCargo = {
+        nombre_cargo: '',
+        nivel: nuevoCargo.nivel || 'Titular',
+        orden: Number(nuevoCargo.orden || 10) + 1,
+        duracion_meses: Number(nuevoCargo.duracion_meses || 12),
+        cargo_obligatorio: false,
+        activo: true
+      }
       await loadCargos()
       notice = 'Cargo agregado.'
     } catch (e) {
@@ -349,14 +358,15 @@
 
       <h1 style="margin-top:18px">Cargos (base)</h1>
       <div class="tabs">
-        <button class:tabActive={organismo === 'CD'} on:click={() => { organismo = 'CD'; loadCargos() }}>CD</button>
-        <button class:tabActive={organismo === 'CRC'} on:click={() => { organismo = 'CRC'; loadCargos() }}>CRC</button>
+        <button class:tabActive={organismo === 'CD'} on:click={() => { organismo = 'CD'; loadCargos() }}>Comisión Directiva</button>
+        <button class:tabActive={organismo === 'CRC'} on:click={() => { organismo = 'CRC'; loadCargos() }}>Comisión Revisora de Cuentas</button>
         <button class:tabActive={organismo === 'Federacion'} on:click={() => { organismo = 'Federacion'; loadCargos() }}>Federación</button>
       </div>
       <div class="table">
         <div class="thead">
           <div>Orden</div>
           <div>Cargo</div>
+          <div>Duración</div>
           <div>Nivel</div>
           <div>Obligatorio</div>
           <div>Activo</div>
@@ -366,6 +376,7 @@
           <div class="trow">
             <div><input type="number" bind:value={c.orden} /></div>
             <div><input bind:value={c.nombre_cargo} /></div>
+            <div><input type="number" bind:value={c.duracion_meses} /></div>
             <div>
               <select bind:value={c.nivel}>
                 <option value="Titular">Titular</option>
@@ -384,6 +395,10 @@
         <div class="row">
           <label>Nombre</label>
           <input bind:value={nuevoCargo.nombre_cargo} />
+        </div>
+        <div class="row">
+          <label>Duración (meses)</label>
+          <input type="number" bind:value={nuevoCargo.duracion_meses} />
         </div>
         <div class="row">
           <label>Nivel</label>
@@ -531,14 +546,14 @@
   .thead,
   .trow {
     display: grid;
-    grid-template-columns: 64px minmax(220px, 1fr) 130px 110px 80px 96px;
+    grid-template-columns: 64px minmax(220px, 1fr) 110px 130px 110px 80px 96px;
     gap: 8px;
     align-items: center;
     padding: 10px;
   }
   .thead,
   .trow {
-    min-width: 740px;
+    min-width: 850px;
   }
   .thead {
     background: rgba(128, 128, 128, 0.12);
@@ -572,7 +587,7 @@
     }
     .thead,
     .trow {
-      grid-template-columns: 56px minmax(180px, 1fr) 110px 96px 70px 96px;
+      grid-template-columns: 56px minmax(180px, 1fr) 96px 110px 96px 70px 96px;
     }
   }
 </style>
