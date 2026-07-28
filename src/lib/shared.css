@@ -1,0 +1,169 @@
+.btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 9px 12px;
+  cursor: pointer;
+  font-weight: 700;
+  background: rgba(22, 179, 120, 0.9);
+  color: #fff;
+}
+.btn.secondary {
+  background: rgba(128, 128, 128, 0.18);
+  color: inherit;
+}
+.btn.small {
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.muted {
+  opacity: 0.7;
+  font-size: 13px;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.95em;
+}
+
+.msg {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(128, 128, 128, 0.22);
+}
+.msg.error {
+  border-color: rgba(176, 0, 32, 0.55);
+  background: rgba(176, 0, 32, 0.08);
+}
+.msg.notice {
+  border-color: rgba(22, 179, 120, 0.45);
+  background: rgba(22, 179, 120, 0.12);
+}
+
+.empty {
+  border: 1px dashed rgba(128, 128, 128, 0.3);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(128, 128, 128, 0.04);
+}
+.emptyTitle {
+  font-weight: 900;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+.emptySub {
+  opacity: 0.75;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.emptyActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.card {
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(128, 128, 128, 0.06);
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tabs button {
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(128, 128, 128, 0.28);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  color: inherit;
+  font-weight: 800;
+  font-size: 13px;
+}
+.tabs button.tabActive {
+  border-color: rgba(22, 179, 120, 0.45);
+  background: rgba(22, 179, 120, 0.14);
+}
+
+.list {
+  border: 1px solid rgba(128, 128, 128, 0.22);
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(128, 128, 128, 0.06);
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+.list button {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 10px 12px;
+  cursor: pointer;
+  border-top: 1px solid rgba(128, 128, 128, 0.15);
+  color: inherit;
+}
+.list button:first-child {
+  border-top: 0;
+}
+.list button:hover {
+  background: rgba(22, 179, 120, 0.1);
+}
+.list button.selected {
+  background: rgba(22, 179, 120, 0.16);
+}
+
+.editor {
+  border: 1px solid rgba(128, 128, 128, 0.22);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(128, 128, 128, 0.06);
+}
+
+.form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+}
+.form label {
+  display: block;
+  font-size: 12px;
+  opacity: 0.7;
+  margin-bottom: 5px;
+}
+.row.span2 {
+  grid-column: 1 / -1;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(128, 128, 128, 0.35);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: var(--grist-theme-input-bg, rgba(255, 255, 255, 0.85));
+  color: inherit;
+}
+textarea {
+  min-height: 64px;
+  resize: vertical;
+}
+
+@media (max-width: 1100px) {
+  .form {
+    grid-template-columns: 1fr;
+  }
+}
