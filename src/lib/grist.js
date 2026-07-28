@@ -76,6 +76,30 @@ export const createTables = async (tables) => {
   return resp.json().catch(() => ({}))
 }
 
+export const addRecords = async (tableId, records) => {
+  const { token, baseUrl, docId } = await getApiContext()
+  if (!token || !baseUrl) throw new Error('No se pudo obtener token/baseUrl para API')
+  if (!docId) throw new Error('No se pudo detectar el docId desde el contexto del widget')
+  if (!Array.isArray(records) || records.length === 0) return { ok: true, added: 0 }
+
+  const url = `${baseUrl}/tables/${encodeURIComponent(tableId)}/records`
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ records: records.map((fields) => ({ fields })) })
+  })
+
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => '')
+    throw new Error(`Error agregando registros en ${tableId} (${resp.status}): ${text || resp.statusText}`)
+  }
+
+  return resp.json().catch(() => ({}))
+}
+
 export const ensureOneRow = async (tableId) => {
   const recs = await fetchRecords(tableId)
   if (recs.length > 0) return recs[0]

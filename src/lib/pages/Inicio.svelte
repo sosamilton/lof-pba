@@ -1,7 +1,8 @@
 <script>
   import { onMount } from 'svelte'
-  import { createTables, gristReady, isInGrist, listTables } from '../grist'
+  import { gristReady, isInGrist, listTables } from '../grist'
   import { REQUIRED_TABLES } from '../demoSchema'
+  import { ensureSchema, initDemoData } from '../initAppCoop'
 
   let loading = false
   let error = ''
@@ -37,16 +38,26 @@
     }
   }
 
-  const initSchema = async () => {
-    if (!status?.missing?.length) return
+  const initAppCoop = async () => {
     creating = true
     error = ''
     try {
-      const toCreate = status.missing.map((t) => ({
-        id: t.tableId,
-        columns: t.columns.map((c) => ({ id: c.id, fields: { type: c.type } }))
-      }))
-      await createTables(toCreate)
+      const tablesBefore = status?.tables || (await listTables())
+      const existing = new Set(tablesBefore.map((t) => String(t || '').toLowerCase()))
+      await ensureSchema(existing)
+
+      const tablesAfter = await listTables()
+      const resolve = (ids) => findTable(tablesAfter, ids) || ids[0]
+
+      await initDemoData([
+        { tableId: resolve(['escuela']), seedName: 'escuela', batchSize: 10 },
+        { tableId: resolve(['datos_banco']), seedName: 'datos_banco', batchSize: 10 },
+        { tableId: resolve(['kiosco_libreria']), seedName: 'kiosco_libreria', batchSize: 10 },
+        { tableId: resolve(['ejercicios']), seedName: 'ejercicios', batchSize: 10 },
+        { tableId: resolve(['cuentas']), seedName: 'cuentas', batchSize: 50 },
+        { tableId: resolve(['rubros_pia']), seedName: 'rubros_pia', batchSize: 100 },
+        { tableId: resolve(['cargos']), seedName: 'cargos', batchSize: 100 }
+      ])
       await check()
     } catch (e) {
       error = e?.message || String(e)
@@ -70,6 +81,10 @@
     {:else if status}
       {#if status.missing.length === 0}
         <p>Tablas mínimas OK. Usá el menú para navegar.</p>
+        <div class="actions">
+          <button class="btn secondary" on:click={check} disabled={creating}>Revalidar</button>
+          <button class="btn" on:click={initAppCoop} disabled={creating}>Inicializar plantilla AppCoop</button>
+        </div>
       {:else}
         <div class="msg error">
           <div class="msgTitle">Faltan tablas para que la demo funcione</div>
@@ -82,7 +97,7 @@
           </div>
           <div class="actions">
             <button class="btn secondary" on:click={check} disabled={creating}>Reintentar</button>
-            <button class="btn" on:click={initSchema} disabled={creating}>Inicializar tablas demo</button>
+            <button class="btn" on:click={initAppCoop} disabled={creating}>Inicializar plantilla AppCoop</button>
           </div>
         </div>
       {/if}
