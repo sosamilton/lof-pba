@@ -3,11 +3,14 @@
   import { detectGrist, gristReady, isInGrist, listTables, resolveTableId } from '../grist'
   import { REQUIRED_TABLES } from '../demoSchema'
   import { ensureSchema, getSchemaDiff, initDemoData } from '../initAppCoop'
+  import { runMigration } from '../migracion'
 
   let loading = false
   let error = ''
   let status = null
   let creating = false
+  let migrating = false
+  let migrationResult = null
 
   const toKey = (s) => String(s || '').toLowerCase()
 
@@ -64,6 +67,20 @@
     }
   }
 
+  const doMigration = async () => {
+    migrating = true
+    error = ''
+    migrationResult = null
+    try {
+      await ensureSchema(new Set((status?.tables || []).map((t) => String(t || '').toLowerCase())))
+      migrationResult = await runMigration()
+    } catch (e) {
+      error = e?.message || String(e)
+    } finally {
+      migrating = false
+    }
+  }
+
   onMount(async () => {
     if (!(await detectGrist())) return
     await check()
@@ -83,7 +100,34 @@
           <div class="actions">
             <button class="btn secondary" on:click={check} disabled={creating}>Revalidar</button>
             <button class="btn" on:click={initAppCoop} disabled={creating}>Cargar datos base (si falta)</button>
+            <button class="btn" on:click={doMigration} disabled={migrating || creating}>
+              {migrating ? 'Migrando…' : 'Migrar a personas'}
+            </button>
           </div>
+          {#if migrationResult}
+            <div class="migrationResult">
+              <div class="msgTitle">Migración completada</div>
+              <ul>
+                <li>Personas creadas: <strong>{migrationResult.personasCreadas}</strong></li>
+                <li>Socios vinculados: <strong>{migrationResult.sociosVinculados}</strong></li>
+                <li>Autoridades vinculadas: <strong>{migrationResult.autoridadesVinculadas}</strong></li>
+                <li>Pendientes: <strong>{migrationResult.pendientes.length}</strong></li>
+              </ul>
+              {#if migrationResult.pendientes.length > 0}
+                <details>
+                  <summary>Ver pendientes ({migrationResult.pendientes.length})</summary>
+                  <ul class="pendientes">
+                    {#each migrationResult.pendientes as p (p.id)}
+                      <li>
+                        <span class="mono">{p.tabla}:{p.id}</span> — {p.motivo}
+                        ({p.apellido || p.apellido_nombre || ''} {p.nombre || ''})
+                      </li>
+                    {/each}
+                  </ul>
+                </details>
+              {/if}
+            </div>
+          {/if}
         {:else}
           <div class="msg error">
             <div class="msgTitle">Hay diferencias con el schema</div>
@@ -220,5 +264,23 @@
   .btn.secondary {
     background: rgba(128, 128, 128, 0.18);
     color: inherit;
+  }
+  .migrationResult {
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(22, 179, 120, 0.35);
+    background: rgba(22, 179, 120, 0.08);
+  }
+  .migrationResult ul {
+    margin: 6px 0 0 18px;
+    padding: 0;
+  }
+  .pendientes {
+    font-size: 13px;
+    opacity: 0.85;
+  }
+  .pendientes li {
+    margin: 4px 0;
   }
 </style>

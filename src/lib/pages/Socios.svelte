@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte'
   import { applyUserActions, fetchRecords, gristReady, isInGrist, resolveTableId } from '../grist'
+  import { findOrCreatePersona, isValidDni, normalizeCuil, normalizeDni, personaLabel, searchPersonas } from '../personas'
 
   let loading = true
   let error = ''
@@ -17,6 +18,12 @@
   let form = null
   let showBaja = false
   let listOpen = true
+
+  let personaSearch = ''
+  let personaResults = []
+  let personaSearching = false
+  let linkedPersona = null
+  let dniWarning = ''
 
   const normalize = (s) => String(s || '').toLowerCase().trim()
 
@@ -79,8 +86,13 @@
     selected = s
     showBaja = Boolean(s.fecha_baja)
     listOpen = true
+    linkedPersona = null
+    dniWarning = ''
+    personaSearch = ''
+    personaResults = []
     form = {
       id: s.id,
+      persona_id: s.persona_id || null,
       dni: s.dni || '',
       cuil: s.cuil || '',
       apellido: s.apellido || '',
@@ -100,7 +112,12 @@
     selected = null
     showBaja = false
     listOpen = false
+    linkedPersona = null
+    personaSearch = ''
+    personaResults = []
+    dniWarning = ''
     form = {
+      persona_id: null,
       dni: '',
       cuil: '',
       apellido: '',
@@ -116,15 +133,90 @@
     }
   }
 
+  const doPersonaSearch = async () => {
+    if (!personaSearch || personaSearch.length < 2) {
+      personaResults = []
+      return
+    }
+    personaSearching = true
+    try {
+      personaResults = await searchPersonas(personaSearch)
+    } catch (e) {
+      error = e?.message || String(e)
+      personaResults = []
+    } finally {
+      personaSearching = false
+    }
+  }
+
+  const selectPersona = (p) => {
+    linkedPersona = p
+    personaResults = []
+    personaSearch = ''
+    dniWarning = ''
+    form.persona_id = p.id
+    form.dni = p.dni || form.dni
+    form.cuil = p.cuil || form.cuil
+    form.apellido = p.apellido || form.apellido
+    form.nombre = p.nombre || form.nombre
+    form.domicilio = p.domicilio || form.domicilio
+    form.localidad = p.localidad || form.localidad
+    form.telefono = p.telefono || form.telefono
+    form.email = p.email || form.email
+  }
+
+  const unlinkPersona = () => {
+    linkedPersona = null
+    form.persona_id = null
+  }
+
+  const onDniInput = () => {
+    const d = normalizeDni(form.dni)
+    if (d && !isValidDni(d)) {
+      dniWarning = 'DNI inválido (debe tener 7 u 8 dígitos)'
+    } else {
+      dniWarning = ''
+    }
+  }
+
   const save = async () => {
     notice = ''
     error = ''
 
+    if (dniWarning) {
+      error = 'Corregí el DNI antes de guardar.'
+      return
+    }
+
     try {
+      const personaData = {
+        dni: normalizeDni(form.dni) || null,
+        cuil: normalizeCuil(form.cuil) || null,
+        apellido: form.apellido || null,
+        nombre: form.nombre || null,
+        domicilio: form.domicilio || null,
+        localidad: form.localidad || null,
+        telefono: form.telefono || null,
+        email: form.email || null
+      }
+
+      let personaId = form.persona_id
+
+      if (!personaId && (personaData.dni || personaData.apellido || personaData.nombre)) {
+        const persona = await findOrCreatePersona(personaData)
+        personaId = persona?.id || null
+        linkedPersona = persona
+      }
+
       const fields = { ...form }
       delete fields.id
+      fields.persona_id = personaId || null
+
+      fields.dni = normalizeDni(form.dni) || null
+      fields.cuil = normalizeCuil(form.cuil) || null
+
       Object.keys(fields).forEach((k) => {
-        if (fields[k] === '') delete fields[k]
+        if (fields[k] === '' || fields[k] === null) delete fields[k]
       })
       if (!showBaja) {
         delete fields.fecha_baja
@@ -196,6 +288,38 @@
     <div class="editor">
       {#if form}
         <h2>{form.id ? 'Editar socio' : 'Nuevo socio'}</h2>
+
+        <div class="personaBox">
+          {#if linkedPersona}
+            <div class="personaLinked">
+              <span class="badgePersona">Persona vinculada: {personaLabel(linkedPersona)}</span>
+              <button class="btn secondary small" on:click={unlinkPersona}>Desvincular</button>
+            </div>
+          {:else}
+            <label class="personaLabel">Buscar persona existente (DNI, apellido o nombre)</label>
+            <div class="personaSearchRow">
+              <input
+                placeholder="Escribí DNI, apellido o nombre…"
+                bind:value={personaSearch}
+                on:input={doPersonaSearch}
+              />
+              {#if personaSearching}
+                <span class="muted">buscando…</span>
+              {/if}
+            </div>
+            {#if personaResults.length > 0}
+              <div class="personaResults">
+                {#each personaResults as p (p.id)}
+                  <button class="personaResult" on:click={() => selectPersona(p)}>
+                    <strong>{personaLabel(p)}</strong>
+                    <span class="muted"> · DNI {p.dni || '-'} · {p.localidad || ''}</span>
+                  </button>
+                {/each}
+              </div>
+            {/if}
+          {/if}
+        </div>
+
         {#if form.id}
           <div class="toolbar">
             <button class="btn secondary" on:click={() => (showBaja = !showBaja)}>{showBaja ? 'Ocultar baja' : 'Dar de baja'}</button>
@@ -211,7 +335,10 @@
         <div class="form">
           <div>
             <label>DNI</label>
-            <input bind:value={form.dni} />
+            <input bind:value={form.dni} on:input={onDniInput} />
+            {#if dniWarning}
+              <div class="fieldWarn">{dniWarning}</div>
+            {/if}
           </div>
           <div>
             <label>CUIL</label>
@@ -330,9 +457,69 @@
     background: rgba(128, 128, 128, 0.18);
     color: inherit;
   }
+  .btn.small {
+    padding: 5px 8px;
+    font-size: 12px;
+    font-weight: 700;
+  }
   .muted {
     opacity: 0.7;
     font-size: 13px;
+  }
+  .personaBox {
+    border: 1px solid rgba(22, 179, 120, 0.25);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    background: rgba(22, 179, 120, 0.06);
+  }
+  .personaLabel {
+    display: block;
+    font-size: 12px;
+    opacity: 0.7;
+    margin-bottom: 5px;
+  }
+  .personaSearchRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .personaSearchRow input {
+    flex: 1;
+  }
+  .personaResults {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .personaResult {
+    text-align: left;
+    border: 1px solid rgba(128, 128, 128, 0.2);
+    border-radius: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.04);
+    color: inherit;
+    font-size: 13px;
+  }
+  .personaResult:hover {
+    background: rgba(22, 179, 120, 0.12);
+  }
+  .personaLinked {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .badgePersona {
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .fieldWarn {
+    font-size: 11px;
+    color: rgba(176, 0, 32, 0.8);
+    margin-top: 3px;
   }
   .grid {
     display: grid;

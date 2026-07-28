@@ -68,11 +68,28 @@ export const REQUIRED_TABLES = [
     ]
   },
   {
+    key: 'personas',
+    label: 'Personas',
+    tableId: 'personas',
+    preferredIds: ['Personas', 'personas'],
+    columns: [
+      { id: 'dni', type: 'Text' },
+      { id: 'cuil', type: 'Text' },
+      { id: 'apellido', type: 'Text' },
+      { id: 'nombre', type: 'Text' },
+      { id: 'domicilio', type: 'Text' },
+      { id: 'localidad', type: 'Text' },
+      { id: 'telefono', type: 'Text' },
+      { id: 'email', type: 'Text' }
+    ]
+  },
+  {
     key: 'socios',
     label: 'Socios',
     tableId: 'socios',
     preferredIds: ['Socios', 'socios'],
     columns: [
+      { id: 'persona_id', type: 'Ref:personas' },
       { id: 'dni', type: 'Text' },
       { id: 'cuil', type: 'Text' },
       { id: 'apellido', type: 'Text' },
