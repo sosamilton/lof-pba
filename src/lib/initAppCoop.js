@@ -86,8 +86,11 @@ export const getSchemaDiff = async () => {
   const colsMeta = await fetchTableData('_grist_Tables_column')
 
   const tableIdByRef = new Map()
+  const tableIdLowerToActual = new Map()
   for (let i = 0; i < (tablesMeta?.id?.length || 0); i += 1) {
-    tableIdByRef.set(tablesMeta.id[i], String(tablesMeta.tableId[i] || ''))
+    const actual = String(tablesMeta.tableId[i] || '')
+    tableIdByRef.set(tablesMeta.id[i], actual)
+    if (actual) tableIdLowerToActual.set(actual.toLowerCase(), actual)
   }
 
   const colsByTableId = new Map()
@@ -109,13 +112,14 @@ export const getSchemaDiff = async () => {
 
   for (const t of schema.tables || []) {
     const tid = String(t.id || '')
-    if (!existingTablesLower.has(tid.toLowerCase())) {
+    const actualTableId = tableIdLowerToActual.get(tid.toLowerCase()) || null
+    if (!actualTableId) {
       missingTables.push(t)
       continue
     }
-    const existingCols = colsByTableId.get(tid) || new Set()
+    const existingCols = colsByTableId.get(actualTableId) || new Set()
     const missCols = (t.columns || []).filter((c) => !existingCols.has(String(c.id || '')))
-    if (missCols.length > 0) missingColumns.push({ tableId: tid, columns: missCols })
+    if (missCols.length > 0) missingColumns.push({ tableId: actualTableId, columns: missCols })
   }
 
   return { missingTables, missingColumns }
