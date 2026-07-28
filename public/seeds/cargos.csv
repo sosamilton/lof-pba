@@ -1,16 +1,16 @@
-organismo,nombre_cargo,orden,cargo_obligatorio,nivel,activo
-CD,Presidente,1,true,,true
-CD,Vicepresidente,2,true,,true
-CD,Secretario,3,true,,true
-CD,Prosecretario,4,true,,true
-CD,Tesorero,5,true,,true
-CD,Protesorero,6,true,,true
-CD,Vocal Titular 1,7,false,Titular,true
-CD,Vocal Titular 2,8,false,Titular,true
-CD,Vocal Suplente 1,9,false,Suplente,true
-CRC,Titular Docente,1,true,Titular,true
-CRC,Titular,2,true,Titular,true
-CRC,Suplente,3,true,Suplente,true
-CRC,Asesor,4,true,,true
-Federacion,Titular,1,true,Titular,true
-Federacion,Suplente,2,true,Suplente,true
+organismo,nombre_cargo,orden,duracion_meses,cargo_obligatorio,nivel,activo
+CD,Presidente,1,12,true,,true
+CD,Vicepresidente,2,12,true,,true
+CD,Secretario,3,12,true,,true
+CD,Prosecretario,4,12,true,,true
+CD,Tesorero,5,12,true,,true
+CD,Protesorero,6,12,true,,true
+CD,Vocal Titular 1,7,12,false,Titular,true
+CD,Vocal Titular 2,8,12,false,Titular,true
+CD,Vocal Suplente 1,9,12,false,Suplente,true
+CRC,Titular Docente,1,12,true,Titular,true
+CRC,Titular,2,12,true,Titular,true
+CRC,Suplente,3,12,true,Suplente,true
+CRC,Asesor,4,12,true,,true
+Federacion,Titular,1,12,true,Titular,true
+Federacion,Suplente,2,12,true,Suplente,true
