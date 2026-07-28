@@ -151,6 +151,10 @@
     notice = ''
     error = ''
     try {
+      if (!tAutoridades) {
+        error = 'No se encontró la tabla autoridades. Ejecutá "Actualizar schema" en Inicio.'
+        return
+      }
       const updates = rows
         .filter((r) => r.id)
         .map((r) => {
@@ -237,6 +241,10 @@
     notice = ''
     error = ''
     try {
+      if (!tAsambleas) {
+        error = 'No se encontró la tabla asambleas. Ejecutá "Actualizar schema" en Inicio.'
+        return
+      }
       const f = asambleaForm || {}
       const fields = normalizeFields({
         fecha: f.fecha || '',

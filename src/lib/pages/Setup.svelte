@@ -88,6 +88,10 @@
     notice = ''
     error = ''
     try {
+      if (!tEscuela || !tBanco || !tKiosco) {
+        error = 'Faltan tablas de configuración. Ejecutá "Actualizar schema" en Inicio.'
+        return
+      }
       await updateRecord(tEscuela, escuela)
       await updateRecord(tBanco, banco)
       await updateRecord(tKiosco, kiosco)
@@ -101,6 +105,10 @@
     notice = ''
     error = ''
     try {
+      if (!tEjercicios) {
+        error = 'No se encontró la tabla ejercicios. Ejecutá "Actualizar schema" en Inicio.'
+        return
+      }
       const fields = normalizeFields({
         anio_inicio: nuevoEj.anio_inicio ? Number(nuevoEj.anio_inicio) : null,
         anio_fin: nuevoEj.anio_fin ? Number(nuevoEj.anio_fin) : null,
@@ -149,6 +157,10 @@
     notice = ''
     error = ''
     try {
+      if (!tCargos) {
+        error = 'No se encontró la tabla cargos. Ejecutá "Actualizar schema" en Inicio.'
+        return
+      }
       const fields = normalizeFields({
         organismo: c.organismo,
         nombre_cargo: c.nombre_cargo,
@@ -171,6 +183,10 @@
     notice = ''
     error = ''
     try {
+      if (!tCargos) {
+        error = 'No se encontró la tabla cargos. Ejecutá "Actualizar schema" en Inicio.'
+        return
+      }
       if (!String(nuevoCargo.nombre_cargo || '').trim()) {
         error = 'Completá el nombre del cargo.'
         return
