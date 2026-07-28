@@ -43,6 +43,39 @@ export const applyUserActions = async (actions) => {
   return window.grist.docApi.applyUserActions(actions)
 }
 
+export const getApiContext = async () => {
+  if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
+  const res = await window.grist.docApi.getAccessToken({ readOnly: false })
+  const token = res?.token
+  const baseUrl = String(res?.baseUrl || '').replace(/\/+$/, '')
+  const m = baseUrl.match(/\/api\/docs\/([^/]+)$/)
+  const docId = m?.[1] || null
+  return { token, baseUrl, docId }
+}
+
+export const createTables = async (tables) => {
+  const { token, baseUrl, docId } = await getApiContext()
+  if (!token || !baseUrl) throw new Error('No se pudo obtener token/baseUrl para API')
+  if (!docId) throw new Error('No se pudo detectar el docId desde el contexto del widget')
+
+  const url = `${baseUrl}/tables`
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ tables })
+  })
+
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => '')
+    throw new Error(`Error creando tablas (${resp.status}): ${text || resp.statusText}`)
+  }
+
+  return resp.json().catch(() => ({}))
+}
+
 export const ensureOneRow = async (tableId) => {
   const recs = await fetchRecords(tableId)
   if (recs.length > 0) return recs[0]
@@ -50,4 +83,3 @@ export const ensureOneRow = async (tableId) => {
   const after = await fetchRecords(tableId)
   return after[0] || null
 }
-
