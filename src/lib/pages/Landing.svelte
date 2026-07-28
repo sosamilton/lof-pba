@@ -1,4 +1,6 @@
 <script>
+  import '../shared.css'
+
   const repoUrl = 'https://github.com/sosamilton/spa-cooperadora'
   const gristDocsUrl = 'https://support.getgrist.com/widget-custom/'
   const gristUrl = 'https://www.getgrist.com/'
@@ -350,18 +352,8 @@
   }
   .btn {
     display: inline-block;
-    border: 0;
-    border-radius: 10px;
-    padding: 9px 12px;
-    cursor: pointer;
-    font-weight: 800;
     text-decoration: none;
-    background: rgba(22, 179, 120, 0.9);
-    color: #fff;
-  }
-  .btn.secondary {
-    background: rgba(128, 128, 128, 0.18);
-    color: inherit;
+    font-weight: 800;
   }
 
   .link {

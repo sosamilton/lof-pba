@@ -1,46 +1,49 @@
 <script>
   import { onMount } from 'svelte'
   import { applyUserActions, fetchRecords, gristReady, isInGrist, resolveTableId } from '../grist'
+  import { normalize, dateToInput, monthKey, TIPOS_MOVIMIENTO, TABLE_PREFERRED_IDS } from '../utils'
+  import '../shared.css'
 
-  let loading = true
-  let error = ''
-  let notice = ''
-  let tableId
-  let tEjercicios
-  let tRubros
-  let tSubrubros
-  let tCuentas
-  let tSocios
-  let movimientos = []
-  let ejercicios = []
-  let ejercicio = null
-  let rubros = []
-  let subrubros = []
-  let cuentas = []
-  let socios = []
+  let loading = $state(true)
+  let error = $state('')
+  let notice = $state('')
+  let busy = $state(false)
+  let tableId = $state()
+  let tEjercicios = $state()
+  let tRubros = $state()
+  let tSubrubros = $state()
+  let tCuentas = $state()
+  let tSocios = $state()
+  let movimientos = $state([])
+  let ejercicios = $state([])
+  let ejercicio = $state(null)
+  let rubros = $state([])
+  let subrubros = $state([])
+  let cuentas = $state([])
+  let socios = $state([])
 
-  let selectedId = null
-  let form = null
-  let listOpen = true
+  let selectedId = $state(null)
+  let form = $state(null)
+  let listOpen = $state(true)
 
-  let q = ''
-  let tipo = ''
+  let q = $state('')
+  let tipo = $state('')
 
-  const normalize = (s) => String(s || '').toLowerCase().trim()
+  let filtered = $derived(
+    movimientos
+      .filter((m) => (tipo ? String(m.tipo_movimiento || '') === tipo : true))
+      .filter((m) => {
+        const t = normalize(q)
+        if (!t) return true
+        return normalize(m.detalle).includes(t)
+      })
+      .sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')))
+  )
 
-  $: filtered = movimientos
-    .filter((m) => (tipo ? String(m.tipo_movimiento || '') === tipo : true))
-    .filter((m) => {
-      const t = normalize(q)
-      if (!t) return true
-      return normalize(m.detalle).includes(t)
-    })
-    .sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')))
+  let showList = $derived(listOpen && filtered.length > 0)
 
-  $: showList = listOpen && filtered.length > 0
-
-  $: rubroById = new Map(rubros.map((r) => [Number(r.id), r]))
-  $: subrubrosByRubro = (() => {
+  let rubroById = $derived(new Map(rubros.map((r) => [Number(r.id), r])))
+  let subrubrosByRubro = $derived.by(() => {
     const map = new Map()
     for (const s of subrubros) {
       const k = Number(s.rubro_id)
@@ -51,11 +54,9 @@
       arr.sort((a, b) => normalize(a.nombre_subrubro).localeCompare(normalize(b.nombre_subrubro)))
     }
     return map
-  })()
+  })
 
-  $: cuentaById = new Map(cuentas.map((c) => [Number(c.id), c]))
-
-  const monthKey = (iso) => String(iso || '').slice(0, 7)
+  let cuentaById = $derived(new Map(cuentas.map((c) => [Number(c.id), c])))
 
   const load = async () => {
     loading = true
@@ -99,7 +100,7 @@
     listOpen = true
     form = {
       id: m?.id || null,
-      fecha: m?.fecha ? String(m.fecha).slice(0, 10) : '',
+      fecha: dateToInput(m?.fecha),
       tipo_movimiento: m?.tipo_movimiento || 'Entrada',
       rubro_id: m?.rubro_id ?? '',
       subrubro_id: m?.subrubro_id ?? '',
@@ -156,6 +157,7 @@
       return
     }
 
+    busy = true
     try {
       if (!tableId) {
         error = 'No se encontró la tabla movimientos. Ejecutá "Actualizar schema" en Inicio.'
@@ -202,6 +204,8 @@
       }
     } catch (e) {
       error = e?.message || String(e)
+    } finally {
+      busy = false
     }
   }
 
@@ -233,8 +237,8 @@
         <option value="Salida">Salida</option>
         <option value="Traspaso">Traspaso</option>
       </select>
-      <button class="btn" on:click={nuevo}>Nuevo movimiento</button>
-      <button class="btn secondary" on:click={load}>Recargar</button>
+      <button class="btn" onclick={nuevo}>Nuevo movimiento</button>
+      <button class="btn secondary" onclick={load}>Recargar</button>
     </div>
     <div class="muted">{filtered.length} movimientos</div>
   </div>
@@ -255,7 +259,7 @@
             </div>
           {:else}
             {#each filtered as m (m.id)}
-              <button class:selected={m.id === selectedId} on:click={() => select(m)}>
+              <button class:selected={m.id === selectedId} onclick={() => select(m)}>
                 <div class="title">{m.fecha} · {m.tipo_movimiento} · ${m.importe}</div>
                 <div class="sub">
                   {#if m.tipo_movimiento === 'Traspaso'}
@@ -276,95 +280,85 @@
             <h2>{form.id ? 'Editar movimiento' : 'Nuevo movimiento'}</h2>
             <div class="actions">
               {#if showList}
-                <button class="btn secondary" on:click={() => (listOpen = false)}>Ocultar lista</button>
+                <button class="btn secondary" onclick={() => (listOpen = false)}>Ocultar lista</button>
               {/if}
-              <button class="btn" on:click={save}>Guardar</button>
+              <button class="btn" onclick={save}>Guardar</button>
             </div>
           </div>
 
           <div class="form">
             <div class="row">
-              <label>Fecha</label>
-              <input type="date" bind:value={form.fecha} />
+              <label>Fecha<input type="date" bind:value={form.fecha} /></label>
             </div>
             <div class="row">
-              <label>Tipo</label>
-              <select bind:value={form.tipo_movimiento}>
+              <label>Tipo<select bind:value={form.tipo_movimiento}>
                 <option value="Entrada">Entrada</option>
                 <option value="Salida">Salida</option>
                 <option value="Traspaso">Traspaso</option>
-              </select>
+              </select></label>
             </div>
 
             <div class="row span2">
-              <label>Detalle</label>
-              <textarea bind:value={form.detalle} placeholder="Descripción corta (p.ej. Compra kiosco, Pago proveedor, Aporte socio)"></textarea>
+              <label>Detalle<textarea bind:value={form.detalle} placeholder="Descripción corta (p.ej. Compra kiosco, Pago proveedor, Aporte socio)"></textarea></label>
             </div>
 
             <div class="row">
-              <label>Importe</label>
-              <input type="number" bind:value={form.importe} />
+              <label>Importe<input type="number" bind:value={form.importe} /></label>
             </div>
             <div class="row">
-              <label>Caja/cuenta</label>
-              <select bind:value={form.cuenta_id}>
+              <label>Caja/cuenta<select bind:value={form.cuenta_id}>
                 <option value="">Elegir…</option>
                 {#each cuentas as c (c.id)}
                   <option value={c.id}>{c.nombre_cuenta}</option>
                 {/each}
-              </select>
+              </select></label>
             </div>
 
             {#if form.tipo_movimiento === 'Traspaso'}
               <div class="row span2">
-                <label>Cuenta destino</label>
-                <select bind:value={form.cuenta_destino_id}>
+                <label>Cuenta destino<select bind:value={form.cuenta_destino_id}>
                   <option value="">Elegir…</option>
                   {#each cuentas as c (c.id)}
                     <option value={c.id}>{c.nombre_cuenta}</option>
                   {/each}
-                </select>
+                </select></label>
               </div>
             {:else}
               <div class="row">
-                <label>Rubro</label>
-                <select bind:value={form.rubro_id} on:change={onRubroChange}>
+                <label>Rubro<select bind:value={form.rubro_id} onchange={onRubroChange}>
                   <option value="">Elegir…</option>
                   {#each rubros as r (r.id)}
                     <option value={r.id}>{r.codigo_rubro} · {r.nombre_oficial}</option>
                   {/each}
-                </select>
+                </select></label>
               </div>
               <div class="row">
-                <label>Subrubro</label>
-                <select bind:value={form.subrubro_id} disabled={!form.rubro_id}>
+                <label>Subrubro<select bind:value={form.subrubro_id} disabled={!form.rubro_id}>
                   <option value="">(Opcional)</option>
                   {#each (subrubrosByRubro.get(Number(form.rubro_id)) || []) as s (s.id)}
                     <option value={s.id}>{s.nombre_subrubro}</option>
                   {/each}
-                </select>
+                </select></label>
               </div>
             {/if}
 
             {#if String(cuentaById.get(Number(form.cuenta_id))?.nombre_cuenta || '') === 'Banco'}
               <div class="row span2">
-                <label>Destino en banco</label>
-                <select bind:value={form.destino_bancario}>
+                <label>Destino en banco<select bind:value={form.destino_bancario}>
                   <option value="">(Opcional)</option>
                   <option value="CuentaCorriente">Cuenta corriente</option>
                   <option value="PlazoFijo">Plazo fijo</option>
-                </select>
+                </select></label>
               </div>
             {/if}
 
             <div class="row span2">
-              <label>Socio (opcional)</label>
-              <select bind:value={form.socio_id}>
+              <label>Socio (opcional)<select bind:value={form.socio_id}>
                 <option value="">(Ninguno)</option>
                 {#each socios as s (s.id)}
                   <option value={s.id}>{s.apellido}, {s.nombre} · DNI {s.dni || '-'}</option>
                 {/each}
-              </select>
+              </select></label>
             </div>
 
             <div class="row span2 hint">
@@ -377,7 +371,7 @@
               <div class="emptyTitle">Listo para cargar movimientos</div>
               <div class="emptySub">Creá el primer movimiento para empezar.</div>
               <div class="emptyActions">
-                <button class="btn" on:click={nuevo}>Nuevo movimiento</button>
+                <button class="btn" onclick={nuevo}>Nuevo movimiento</button>
               </div>
             </div>
           {:else}
@@ -418,47 +412,6 @@
     align-items: center;
     flex-wrap: wrap;
   }
-  input,
-  select,
-  textarea {
-    width: 100%;
-    box-sizing: border-box;
-    border: 1px solid rgba(128, 128, 128, 0.35);
-    border-radius: 10px;
-    padding: 8px 10px;
-    background: var(--grist-theme-input-bg, rgba(255, 255, 255, 0.85));
-    color: inherit;
-  }
-  textarea {
-    min-height: 64px;
-    resize: vertical;
-  }
-  .btn {
-    border: 0;
-    border-radius: 10px;
-    padding: 9px 12px;
-    cursor: pointer;
-    font-weight: 800;
-    background: rgba(22, 179, 120, 0.9);
-    color: #fff;
-  }
-  .btn.secondary {
-    border: 0;
-    border-radius: 10px;
-    padding: 9px 12px;
-    cursor: pointer;
-    font-weight: 800;
-    background: rgba(128, 128, 128, 0.18);
-    color: inherit;
-  }
-  .muted {
-    opacity: 0.7;
-    font-size: 13px;
-  }
-  .mono {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    font-size: 0.95em;
-  }
   .grid {
     display: grid;
     grid-template-columns: minmax(300px, 440px) 1fr;
@@ -468,71 +421,12 @@
   .grid.singlePane {
     grid-template-columns: 1fr;
   }
-  .list {
-    border: 1px solid rgba(128, 128, 128, 0.22);
-    border-radius: 14px;
-    overflow: hidden;
-    background: rgba(128, 128, 128, 0.06);
-    max-height: calc(100vh - 200px);
-    overflow-y: auto;
-  }
-  .list button {
-    width: 100%;
-    text-align: left;
-    border: 0;
-    background: transparent;
-    padding: 10px 12px;
-    cursor: pointer;
-    border-top: 1px solid rgba(128, 128, 128, 0.15);
-    color: inherit;
-  }
-  .list button:first-child {
-    border-top: 0;
-  }
-  .list button:hover {
-    background: rgba(22, 179, 120, 0.1);
-  }
-  .list button.selected {
-    background: rgba(22, 179, 120, 0.16);
-  }
-  .editor {
-    border: 1px solid rgba(128, 128, 128, 0.22);
-    border-radius: 14px;
-    padding: 14px;
-    background: rgba(128, 128, 128, 0.06);
-  }
   .editorHead {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
     flex-wrap: wrap;
-  }
-  .empty {
-    border: 1px dashed rgba(128, 128, 128, 0.3);
-    border-radius: 14px;
-    padding: 14px;
-    background: rgba(128, 128, 128, 0.04);
-  }
-  .emptyTitle {
-    font-weight: 900;
-    font-size: 14px;
-    margin-bottom: 4px;
-  }
-  .emptySub {
-    opacity: 0.75;
-    font-size: 13px;
-  }
-  .emptyActions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 12px;
-  }
-  .item {
-    border: 1px solid rgba(128, 128, 128, 0.22);
-    border-radius: 14px;
-    padding: 12px;
-    background: rgba(128, 128, 128, 0.06);
   }
   .title {
     font-weight: 800;
@@ -544,40 +438,14 @@
     margin-top: 4px;
   }
   .form {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px 12px;
     margin-top: 10px;
-  }
-  .row label {
-    display: block;
-    font-size: 12px;
-    opacity: 0.7;
-    margin-bottom: 5px;
-  }
-  .row.span2 {
-    grid-column: 1 / -1;
   }
   .row.hint {
     opacity: 0.75;
     font-size: 13px;
   }
-  .msg {
-    margin-top: 12px;
-    padding: 10px 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(128, 128, 128, 0.22);
-  }
-  .msg.error {
-    border-color: rgba(176, 0, 32, 0.55);
-    background: rgba(176, 0, 32, 0.08);
-  }
-  .msg.notice {
-    border-color: rgba(22, 179, 120, 0.45);
-    background: rgba(22, 179, 120, 0.12);
-  }
   @media (max-width: 1100px) {
-    .form {
+    .grid {
       grid-template-columns: 1fr;
     }
   }

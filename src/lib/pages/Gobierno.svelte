@@ -1,54 +1,32 @@
 <script>
   import { onMount } from 'svelte'
   import { applyUserActions, fetchRecords, gristReady, isInGrist, resolveTableId } from '../grist'
+  import { normalizeFields, dateToInput, addMonths, ORGANISMOS, TIPOS_ASAMBLEA, MODALIDAD_CUOTA, TABLE_PREFERRED_IDS } from '../utils'
+  import '../shared.css'
 
-  let loading = true
-  let error = ''
-  let notice = ''
+  let loading = $state(true)
+  let error = $state('')
+  let notice = $state('')
 
-  let tab = 'comision'
-  let organismo = 'CD'
+  let tab = $state('comision')
+  let organismo = $state('CD')
 
-  let tEjercicios
-  let tCargos
-  let tAutoridades
-  let tAsambleas
+  let tEjercicios = $state()
+  let tCargos = $state()
+  let tAutoridades = $state()
+  let tAsambleas = $state()
 
-  let ejercicios = []
-  let ejercicio = null
+  let ejercicios = $state([])
+  let ejercicio = $state(null)
 
-  let cargos = []
-  let autoridades = []
-  let rows = []
+  let cargos = $state([])
+  let autoridades = $state([])
+  let rows = $state([])
 
-  let asambleas = []
-  let selectedAsambleaId = null
-  let asambleaForm = null
-
-  const normalizeFields = (obj) => {
-    const out = {}
-    for (const [k, v] of Object.entries(obj || {})) {
-      if (v === '') continue
-      out[k] = v
-    }
-    return out
-  }
-
-  const dateToInput = (v) => (v ? String(v).slice(0, 10) : '')
-
-  const addMonths = (dateStr, months) => {
-    if (!dateStr || months == null || months === '') return ''
-    const m = Number(months)
-    if (!Number.isFinite(m) || m === 0) return dateStr
-    const d = new Date(`${dateStr}T00:00:00`)
-    if (Number.isNaN(d.getTime())) return ''
-    const day = d.getDate()
-    d.setDate(1)
-    d.setMonth(d.getMonth() + m)
-    const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
-    d.setDate(Math.min(day, daysInMonth))
-    return d.toISOString().slice(0, 10)
-  }
+  let asambleas = $state([])
+  let selectedAsambleaId = $state(null)
+  let asambleaForm = $state(null)
+  let busy = $state(false)
 
   const load = async () => {
     loading = true
@@ -150,6 +128,7 @@
   const saveComision = async () => {
     notice = ''
     error = ''
+    busy = true
     try {
       if (!tAutoridades) {
         error = 'No se encontró la tabla autoridades. Ejecutá "Actualizar schema" en Inicio.'
@@ -183,6 +162,8 @@
       await loadComision()
     } catch (e) {
       error = e?.message || String(e)
+    } finally {
+      busy = false
     }
   }
 
@@ -240,6 +221,7 @@
   const saveAsamblea = async () => {
     notice = ''
     error = ''
+    busy = true
     try {
       if (!tAsambleas) {
         error = 'No se encontró la tabla asambleas. Ejecutá "Actualizar schema" en Inicio.'
@@ -276,6 +258,8 @@
       if (!f.id) asambleaForm = null
     } catch (e) {
       error = e?.message || String(e)
+    } finally {
+      busy = false
     }
   }
 
@@ -310,8 +294,8 @@
       </div>
     </div>
     <div class="tabs">
-      <button class:tabActive={tab === 'comision'} on:click={() => setTab('comision')}>Comisión</button>
-      <button class:tabActive={tab === 'asambleas'} on:click={() => setTab('asambleas')}>Asambleas</button>
+      <button class:tabActive={tab === 'comision'} onclick={() => setTab('comision')}>Comisión</button>
+      <button class:tabActive={tab === 'asambleas'} onclick={() => setTab('asambleas')}>Asambleas</button>
     </div>
   </div>
 
@@ -320,13 +304,13 @@
       <section class="card">
         <div class="rowHead">
           <div class="tabs">
-            <button class:tabActive={organismo === 'CD'} on:click={() => { organismo = 'CD'; loadComision() }}>Comisión Directiva</button>
-            <button class:tabActive={organismo === 'CRC'} on:click={() => { organismo = 'CRC'; loadComision() }}>Comisión Revisora de Cuentas</button>
-            <button class:tabActive={organismo === 'Federacion'} on:click={() => { organismo = 'Federacion'; loadComision() }}>Federación</button>
+            <button class:tabActive={organismo === 'CD'} onclick={() => { organismo = 'CD'; loadComision() }}>Comisión Directiva</button>
+            <button class:tabActive={organismo === 'CRC'} onclick={() => { organismo = 'CRC'; loadComision() }}>Comisión Revisora de Cuentas</button>
+            <button class:tabActive={organismo === 'Federacion'} onclick={() => { organismo = 'Federacion'; loadComision() }}>Federación</button>
           </div>
           <div class="actions">
-            <button class="btn secondary" on:click={initComision}>Inicializar comisión</button>
-            <button class="btn" on:click={saveComision}>Guardar comisión</button>
+            <button class="btn secondary" onclick={initComision}>Inicializar comisión</button>
+            <button class="btn" onclick={saveComision}>Guardar comisión</button>
           </div>
         </div>
 
@@ -368,8 +352,8 @@
         <div class="rowHead">
           <h2>Asambleas</h2>
           <div class="actions">
-            <button class="btn" on:click={newAsamblea}>Nueva asamblea</button>
-            <button class="btn secondary" on:click={loadAsambleas}>Recargar</button>
+            <button class="btn" onclick={newAsamblea}>Nueva asamblea</button>
+            <button class="btn secondary" onclick={loadAsambleas}>Recargar</button>
           </div>
         </div>
 
@@ -382,7 +366,7 @@
               </div>
             {:else}
               {#each asambleas as a (a.id)}
-                <button class:selected={a.id === selectedAsambleaId} on:click={() => editAsamblea(a)}>
+                <button class:selected={a.id === selectedAsambleaId} onclick={() => editAsamblea(a)}>
                   <div class="name">{a.fecha || '(sin fecha)'} · {a.tipo_asamblea}</div>
                   <div class="sub">Acta {a.acta_numero || '-'} · {a.socios_presentes_cantidad ?? '-'} presentes</div>
                 </button>
@@ -395,74 +379,59 @@
               <h2>{asambleaForm.id ? 'Editar asamblea' : 'Nueva asamblea'}</h2>
               <div class="form">
                 <div class="row">
-                  <label>Fecha</label>
-                  <input type="date" bind:value={asambleaForm.fecha} />
+                  <label>Fecha<input type="date" bind:value={asambleaForm.fecha} /></label>
                 </div>
                 <div class="row">
-                  <label>Tipo</label>
-                  <select bind:value={asambleaForm.tipo_asamblea}>
+                  <label>Tipo<select bind:value={asambleaForm.tipo_asamblea}>
                     <option value="AnualOrdinaria">Anual ordinaria</option>
                     <option value="Extraordinaria">Extraordinaria</option>
-                  </select>
+                  </select></label>
                 </div>
                 <div class="row">
-                  <label>Acta N°</label>
-                  <input bind:value={asambleaForm.acta_numero} />
+                  <label>Acta N°<input bind:value={asambleaForm.acta_numero} /></label>
                 </div>
                 <div class="row">
-                  <label>Fojas</label>
-                  <input bind:value={asambleaForm.acta_fojas} />
+                  <label>Fojas<input bind:value={asambleaForm.acta_fojas} /></label>
                 </div>
                 <div class="row">
-                  <label>Presentes</label>
-                  <input type="number" bind:value={asambleaForm.socios_presentes_cantidad} />
+                  <label>Presentes<input type="number" bind:value={asambleaForm.socios_presentes_cantidad} /></label>
                 </div>
                 <div class="row">
-                  <label>Cuota social ($)</label>
-                  <input type="number" bind:value={asambleaForm.cuota_social_importe} />
+                  <label>Cuota social ($)<input type="number" bind:value={asambleaForm.cuota_social_importe} /></label>
                 </div>
                 <div class="row">
-                  <label>Cuota modalidad</label>
-                  <select bind:value={asambleaForm.cuota_social_modalidad}>
+                  <label>Cuota modalidad<select bind:value={asambleaForm.cuota_social_modalidad}>
                     <option value="Mensual">Mensual</option>
                     <option value="Anual">Anual</option>
-                  </select>
+                  </select></label>
                 </div>
                 <div class="row">
-                  <label>Caja chica ($)</label>
-                  <input type="number" bind:value={asambleaForm.caja_chica_importe} />
+                  <label>Caja chica ($)<input type="number" bind:value={asambleaForm.caja_chica_importe} /></label>
                 </div>
                 <div class="row span2">
-                  <label>Resolución punto 1</label>
-                  <textarea bind:value={asambleaForm.resolucion_punto_1}></textarea>
+                  <label>Resolución punto 1<textarea bind:value={asambleaForm.resolucion_punto_1}></textarea></label>
                 </div>
                 <div class="row span2">
-                  <label>Resolución punto 2</label>
-                  <textarea bind:value={asambleaForm.resolucion_punto_2}></textarea>
+                  <label>Resolución punto 2<textarea bind:value={asambleaForm.resolucion_punto_2}></textarea></label>
                 </div>
                 <div class="row span2">
-                  <label>Resolución punto 3</label>
-                  <textarea bind:value={asambleaForm.resolucion_punto_3}></textarea>
+                  <label>Resolución punto 3<textarea bind:value={asambleaForm.resolucion_punto_3}></textarea></label>
                 </div>
                 <div class="row span2">
-                  <label>Resolución punto 4</label>
-                  <textarea bind:value={asambleaForm.resolucion_punto_4}></textarea>
+                  <label>Resolución punto 4<textarea bind:value={asambleaForm.resolucion_punto_4}></textarea></label>
                 </div>
                 <div class="row span2">
-                  <label>Resolución punto 5</label>
-                  <textarea bind:value={asambleaForm.resolucion_punto_5}></textarea>
+                  <label>Resolución punto 5<textarea bind:value={asambleaForm.resolucion_punto_5}></textarea></label>
                 </div>
                 <div class="row span2">
-                  <label>Resolución punto 6</label>
-                  <textarea bind:value={asambleaForm.resolucion_punto_6}></textarea>
+                  <label>Resolución punto 6<textarea bind:value={asambleaForm.resolucion_punto_6}></textarea></label>
                 </div>
                 <div class="row span2">
-                  <label>Resolución punto 7</label>
-                  <textarea bind:value={asambleaForm.resolucion_punto_7}></textarea>
+                  <label>Resolución punto 7<textarea bind:value={asambleaForm.resolucion_punto_7}></textarea></label>
                 </div>
               </div>
               <div class="actions">
-                <button class="btn" on:click={saveAsamblea}>Guardar</button>
+                <button class="btn" onclick={saveAsamblea}>Guardar</button>
               </div>
             {:else}
               <div class="muted">Seleccioná una asamblea o creá una nueva.</div>
@@ -495,41 +464,12 @@
     font-size: 13px;
     margin-top: 2px;
   }
-  .mono {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    font-size: 0.95em;
-  }
   .head {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 12px;
     margin-bottom: 12px;
-  }
-  .tabs {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  .tabs button {
-    padding: 8px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(128, 128, 128, 0.28);
-    background: rgba(255, 255, 255, 0.04);
-    cursor: pointer;
-    color: inherit;
-    font-weight: 800;
-    font-size: 13px;
-  }
-  .tabs button.tabActive {
-    border-color: rgba(22, 179, 120, 0.45);
-    background: rgba(22, 179, 120, 0.14);
-  }
-  .card {
-    border: 1px solid rgba(128, 128, 128, 0.25);
-    border-radius: 14px;
-    padding: 14px;
-    background: rgba(128, 128, 128, 0.06);
   }
   .rowHead {
     display: flex;
@@ -538,24 +478,6 @@
     gap: 12px;
     flex-wrap: wrap;
     margin-bottom: 10px;
-  }
-  .actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  .btn {
-    border: 0;
-    border-radius: 10px;
-    padding: 9px 12px;
-    cursor: pointer;
-    font-weight: 800;
-    background: rgba(22, 179, 120, 0.9);
-    color: #fff;
-  }
-  .btn.secondary {
-    background: rgba(128, 128, 128, 0.18);
-    color: inherit;
   }
   .gridTable {
     border: 1px solid rgba(128, 128, 128, 0.22);
@@ -580,21 +502,6 @@
   .trow {
     border-top: 1px solid rgba(128, 128, 128, 0.18);
   }
-  input,
-  select,
-  textarea {
-    width: 100%;
-    box-sizing: border-box;
-    border: 1px solid rgba(128, 128, 128, 0.35);
-    border-radius: 10px;
-    padding: 8px 10px;
-    background: var(--grist-theme-input-bg, rgba(255, 255, 255, 0.85));
-    color: inherit;
-  }
-  textarea {
-    min-height: 68px;
-    resize: vertical;
-  }
   .cargoName {
     font-weight: 900;
     font-size: 13px;
@@ -616,96 +523,15 @@
     gap: 12px;
     align-items: start;
   }
-  .list {
-    border: 1px solid rgba(128, 128, 128, 0.22);
-    border-radius: 14px;
-    overflow: hidden;
-    background: rgba(128, 128, 128, 0.06);
-    max-height: calc(100vh - 240px);
-    overflow-y: auto;
-  }
-  .list button {
-    width: 100%;
-    text-align: left;
-    border: 0;
-    background: transparent;
-    padding: 10px 12px;
-    cursor: pointer;
-    border-top: 1px solid rgba(128, 128, 128, 0.15);
-    color: inherit;
-  }
-  .list button:first-child {
-    border-top: 0;
-  }
-  .list button:hover {
-    background: rgba(22, 179, 120, 0.1);
-  }
-  .list button.selected {
-    background: rgba(22, 179, 120, 0.16);
-  }
   .name {
     font-weight: 900;
     font-size: 13px;
   }
-  .muted {
-    opacity: 0.7;
-    font-size: 13px;
-  }
-  .editor {
-    border: 1px solid rgba(128, 128, 128, 0.22);
-    border-radius: 14px;
-    padding: 14px;
-    background: rgba(128, 128, 128, 0.06);
-  }
   .form {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px 12px;
     margin-top: 10px;
-  }
-  .row label {
-    display: block;
-    font-size: 12px;
-    opacity: 0.7;
-    margin-bottom: 5px;
-  }
-  .row.span2 {
-    grid-column: 1 / -1;
-  }
-  .empty {
-    border: 1px dashed rgba(128, 128, 128, 0.3);
-    border-radius: 14px;
-    padding: 14px;
-    background: rgba(128, 128, 128, 0.04);
-  }
-  .emptyTitle {
-    font-weight: 900;
-    font-size: 14px;
-    margin-bottom: 4px;
-  }
-  .emptySub {
-    opacity: 0.75;
-    font-size: 13px;
-  }
-  .msg {
-    margin-top: 12px;
-    padding: 10px 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(128, 128, 128, 0.22);
-  }
-  .msg.error {
-    border-color: rgba(176, 0, 32, 0.55);
-    background: rgba(176, 0, 32, 0.08);
-  }
-  .msg.notice {
-    border-color: rgba(22, 179, 120, 0.45);
-    background: rgba(22, 179, 120, 0.12);
   }
   @media (max-width: 1100px) {
     .grid2 {
-      grid-template-columns: 1fr;
-    }
-    .form {
       grid-template-columns: 1fr;
     }
   }

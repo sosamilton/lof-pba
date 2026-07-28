@@ -2,30 +2,31 @@
   import { onMount } from 'svelte'
   import { applyUserActions, fetchRecords, gristReady, isInGrist, resolveTableId } from '../grist'
   import { findOrCreatePersona, isValidDni, normalizeCuil, normalizeDni, personaLabel, searchPersonas } from '../personas'
+  import { normalize, dateToInput, TIPOS_SOCIO, TABLE_PREFERRED_IDS } from '../utils'
+  import '../shared.css'
 
-  let loading = true
-  let error = ''
-  let notice = ''
+  let loading = $state(true)
+  let error = $state('')
+  let notice = $state('')
+  let busy = $state(false)
 
-  let tableId
-  let socios = []
+  let tableId = $state()
+  let socios = $state([])
 
-  let q = ''
-  let estado = 'activos'
-  let tipo = ''
+  let q = $state('')
+  let estado = $state('activos')
+  let tipo = $state('')
 
-  let selected = null
-  let form = null
-  let showBaja = false
-  let listOpen = true
+  let selected = $state(null)
+  let form = $state(null)
+  let showBaja = $state(false)
+  let listOpen = $state(true)
 
-  let personaSearch = ''
-  let personaResults = []
-  let personaSearching = false
-  let linkedPersona = null
-  let dniWarning = ''
-
-  const normalize = (s) => String(s || '').toLowerCase().trim()
+  let personaSearch = $state('')
+  let personaResults = $state([])
+  let personaSearching = $state(false)
+  let linkedPersona = $state(null)
+  let dniWarning = $state('')
 
   const isActivo = (s) => !s.fecha_baja
 
@@ -47,17 +48,19 @@
     return hay.includes(t)
   }
 
-  $: filtered = socios
-    .filter((s) => {
-      if (estado === 'activos') return isActivo(s)
-      if (estado === 'bajas') return !isActivo(s)
-      return true
-    })
-    .filter((s) => (tipo ? String(s.tipo_socio || '') === tipo : true))
-    .filter((s) => matches(s, q))
-    .sort((a, b) => normalize(a.apellido).localeCompare(normalize(b.apellido)) || normalize(a.nombre).localeCompare(normalize(b.nombre)))
+  let filtered = $derived(
+    socios
+      .filter((s) => {
+        if (estado === 'activos') return isActivo(s)
+        if (estado === 'bajas') return !isActivo(s)
+        return true
+      })
+      .filter((s) => (tipo ? String(s.tipo_socio || '') === tipo : true))
+      .filter((s) => matches(s, q))
+      .sort((a, b) => normalize(a.apellido).localeCompare(normalize(b.apellido)) || normalize(a.nombre).localeCompare(normalize(b.nombre)))
+  )
 
-  $: showList = listOpen && filtered.length > 0
+  let showList = $derived(listOpen && filtered.length > 0)
 
   const load = async () => {
     loading = true
@@ -102,8 +105,8 @@
       telefono: s.telefono || '',
       email: s.email || '',
       tipo_socio: s.tipo_socio || 'Activo',
-      fecha_alta: s.fecha_alta ? String(s.fecha_alta).slice(0, 10) : '',
-      fecha_baja: s.fecha_baja ? String(s.fecha_baja).slice(0, 10) : '',
+      fecha_alta: dateToInput(s.fecha_alta),
+      fecha_baja: dateToInput(s.fecha_baja),
       motivo_baja: s.motivo_baja || ''
     }
   }
@@ -133,20 +136,25 @@
     }
   }
 
-  const doPersonaSearch = async () => {
+  let _searchTimer = null
+
+  const doPersonaSearch = () => {
+    clearTimeout(_searchTimer)
     if (!personaSearch || personaSearch.length < 2) {
       personaResults = []
       return
     }
-    personaSearching = true
-    try {
-      personaResults = await searchPersonas(personaSearch)
-    } catch (e) {
-      error = e?.message || String(e)
-      personaResults = []
-    } finally {
-      personaSearching = false
-    }
+    _searchTimer = setTimeout(async () => {
+      personaSearching = true
+      try {
+        personaResults = await searchPersonas(personaSearch)
+      } catch (e) {
+        error = e?.message || String(e)
+        personaResults = []
+      } finally {
+        personaSearching = false
+      }
+    }, 300)
   }
 
   const selectPersona = (p) => {
@@ -188,16 +196,17 @@
       return
     }
 
+    busy = true
     try {
       const personaData = {
-        dni: normalizeDni(form.dni) || null,
-        cuil: normalizeCuil(form.cuil) || null,
-        apellido: form.apellido || null,
-        nombre: form.nombre || null,
-        domicilio: form.domicilio || null,
-        localidad: form.localidad || null,
-        telefono: form.telefono || null,
-        email: form.email || null
+        dni: normalizeDni(form.dni),
+        cuil: normalizeCuil(form.cuil),
+        apellido: form.apellido,
+        nombre: form.nombre,
+        domicilio: form.domicilio,
+        localidad: form.localidad,
+        telefono: form.telefono,
+        email: form.email
       }
 
       let personaId = form.persona_id
@@ -246,6 +255,8 @@
       }
     } catch (e) {
       error = e?.message || String(e)
+    } finally {
+      busy = false
     }
   }
 
@@ -272,8 +283,8 @@
         <option value="Honorario">Honorario</option>
         <option value="Adherente">Adherente</option>
       </select>
-      <button class="btn" on:click={nuevo}>Nuevo socio</button>
-      <button class="btn secondary" on:click={load}>Recargar</button>
+      <button class="btn" onclick={nuevo}>Nuevo socio</button>
+      <button class="btn secondary" onclick={load}>Recargar</button>
     </div>
     <div class="muted">{filtered.length} socios</div>
   </div>
@@ -282,7 +293,7 @@
     {#if showList}
       <div class="list">
         {#each filtered as s (s.id)}
-          <button class:selected={form?.id === s.id} on:click={() => select(s)}>
+          <button class:selected={form?.id === s.id} onclick={() => select(s)}>
             <div class="name">{s.apellido}, {s.nombre}</div>
             <div class="sub">{isActivo(s) ? 'Activo' : 'Baja'} · DNI {s.dni || '-'} · {s.localidad || ''}</div>
           </button>
@@ -298,15 +309,15 @@
           {#if linkedPersona}
             <div class="personaLinked">
               <span class="badgePersona">Persona vinculada: {personaLabel(linkedPersona)}</span>
-              <button class="btn secondary small" on:click={unlinkPersona}>Desvincular</button>
+              <button class="btn secondary small" onclick={unlinkPersona}>Desvincular</button>
             </div>
           {:else}
-            <label class="personaLabel">Buscar persona existente (DNI, apellido o nombre)</label>
+            <span class="personaLabel">Buscar persona existente (DNI, apellido o nombre)</span>
             <div class="personaSearchRow">
               <input
                 placeholder="Escribí DNI, apellido o nombre…"
                 bind:value={personaSearch}
-                on:input={doPersonaSearch}
+                oninput={doPersonaSearch}
               />
               {#if personaSearching}
                 <span class="muted">buscando…</span>
@@ -315,7 +326,7 @@
             {#if personaResults.length > 0}
               <div class="personaResults">
                 {#each personaResults as p (p.id)}
-                  <button class="personaResult" on:click={() => selectPersona(p)}>
+                  <button class="personaResult" onclick={() => selectPersona(p)}>
                     <strong>{personaLabel(p)}</strong>
                     <span class="muted"> · DNI {p.dni || '-'} · {p.localidad || ''}</span>
                   </button>
@@ -327,77 +338,65 @@
 
         {#if form.id}
           <div class="toolbar">
-            <button class="btn secondary" on:click={() => (showBaja = !showBaja)}>{showBaja ? 'Ocultar baja' : 'Dar de baja'}</button>
+            <button class="btn secondary" onclick={() => (showBaja = !showBaja)}>{showBaja ? 'Ocultar baja' : 'Dar de baja'}</button>
             {#if showList}
-              <button class="btn secondary" on:click={() => (listOpen = false)}>Ocultar lista</button>
+              <button class="btn secondary" onclick={() => (listOpen = false)}>Ocultar lista</button>
             {/if}
           </div>
         {:else}
           <div class="toolbar">
-            <button class="btn secondary" on:click={() => (listOpen = true)} disabled={filtered.length === 0}>Ver lista</button>
+            <button class="btn secondary" onclick={() => (listOpen = true)} disabled={filtered.length === 0}>Ver lista</button>
           </div>
         {/if}
         <div class="form">
           <div>
-            <label>DNI</label>
-            <input bind:value={form.dni} on:input={onDniInput} />
+            <label>DNI<input bind:value={form.dni} oninput={onDniInput} /></label>
             {#if dniWarning}
               <div class="fieldWarn">{dniWarning}</div>
             {/if}
           </div>
           <div>
-            <label>CUIL</label>
-            <input bind:value={form.cuil} />
+            <label>CUIL<input bind:value={form.cuil} /></label>
           </div>
           <div>
-            <label>Apellido</label>
-            <input bind:value={form.apellido} />
+            <label>Apellido<input bind:value={form.apellido} /></label>
           </div>
           <div>
-            <label>Nombre</label>
-            <input bind:value={form.nombre} />
+            <label>Nombre<input bind:value={form.nombre} /></label>
           </div>
           <div>
-            <label>Tipo</label>
-            <select bind:value={form.tipo_socio}>
+            <label>Tipo<select bind:value={form.tipo_socio}>
               <option value="Activo">Activo</option>
               <option value="Honorario">Honorario</option>
               <option value="Adherente">Adherente</option>
-            </select>
+            </select></label>
           </div>
           <div>
-            <label>Fecha alta</label>
-            <input type="date" bind:value={form.fecha_alta} />
+            <label>Fecha alta<input type="date" bind:value={form.fecha_alta} /></label>
           </div>
           <div>
-            <label>Domicilio</label>
-            <input bind:value={form.domicilio} />
+            <label>Domicilio<input bind:value={form.domicilio} /></label>
           </div>
           <div>
-            <label>Localidad</label>
-            <input bind:value={form.localidad} />
+            <label>Localidad<input bind:value={form.localidad} /></label>
           </div>
           <div>
-            <label>Teléfono</label>
-            <input bind:value={form.telefono} />
+            <label>Teléfono<input bind:value={form.telefono} /></label>
           </div>
           <div>
-            <label>Email</label>
-            <input type="email" bind:value={form.email} />
+            <label>Email<input type="email" bind:value={form.email} /></label>
           </div>
           {#if form.id && showBaja}
             <div>
-              <label>Fecha baja</label>
-              <input type="date" bind:value={form.fecha_baja} />
+              <label>Fecha baja<input type="date" bind:value={form.fecha_baja} /></label>
             </div>
             <div>
-              <label>Motivo baja</label>
-              <input bind:value={form.motivo_baja} disabled={!form.fecha_baja} />
+              <label>Motivo baja<input bind:value={form.motivo_baja} disabled={!form.fecha_baja} /></label>
             </div>
           {/if}
         </div>
         <div class="actions">
-          <button class="btn" on:click={save}>Guardar</button>
+          <button class="btn" onclick={save}>Guardar</button>
         </div>
       {:else}
         {#if filtered.length === 0}
@@ -405,7 +404,7 @@
             <div class="emptyTitle">Todavía no hay socios</div>
             <div class="emptySub">Creá el primer socio para empezar.</div>
             <div class="emptyActions">
-              <button class="btn" on:click={nuevo}>Nuevo socio</button>
+              <button class="btn" onclick={nuevo}>Nuevo socio</button>
             </div>
           </div>
         {:else}
@@ -440,36 +439,6 @@
     gap: 8px;
     align-items: center;
     flex-wrap: wrap;
-  }
-  input,
-  select {
-    border: 1px solid rgba(128, 128, 128, 0.35);
-    border-radius: 10px;
-    padding: 8px 10px;
-    background: var(--grist-theme-input-bg, rgba(255, 255, 255, 0.85));
-    color: inherit;
-  }
-  .btn {
-    border: 0;
-    border-radius: 10px;
-    padding: 9px 12px;
-    cursor: pointer;
-    font-weight: 700;
-    background: rgba(22, 179, 120, 0.9);
-    color: #fff;
-  }
-  .btn.secondary {
-    background: rgba(128, 128, 128, 0.18);
-    color: inherit;
-  }
-  .btn.small {
-    padding: 5px 8px;
-    font-size: 12px;
-    font-weight: 700;
-  }
-  .muted {
-    opacity: 0.7;
-    font-size: 13px;
   }
   .personaBox {
     border: 1px solid rgba(22, 179, 120, 0.25);
@@ -535,33 +504,6 @@
   .grid.singlePane {
     grid-template-columns: 1fr;
   }
-  .list {
-    border: 1px solid rgba(128, 128, 128, 0.22);
-    border-radius: 14px;
-    overflow: hidden;
-    background: rgba(128, 128, 128, 0.06);
-    max-height: calc(100vh - 200px);
-    overflow-y: auto;
-  }
-  .list button {
-    width: 100%;
-    text-align: left;
-    border: 0;
-    background: transparent;
-    padding: 10px 12px;
-    cursor: pointer;
-    border-top: 1px solid rgba(128, 128, 128, 0.15);
-    color: inherit;
-  }
-  .list button:first-child {
-    border-top: 0;
-  }
-  .list button:hover {
-    background: rgba(22, 179, 120, 0.1);
-  }
-  .list button.selected {
-    background: rgba(22, 179, 120, 0.16);
-  }
   .name {
     font-weight: 800;
     font-size: 14px;
@@ -570,12 +512,6 @@
     font-size: 12px;
     opacity: 0.7;
     margin-top: 2px;
-  }
-  .editor {
-    border: 1px solid rgba(128, 128, 128, 0.22);
-    border-radius: 14px;
-    padding: 14px;
-    background: rgba(128, 128, 128, 0.06);
   }
   .editor h2 {
     margin: 0 0 12px 0;
@@ -588,61 +524,8 @@
     margin: -2px 0 10px 0;
     flex-wrap: wrap;
   }
-  .empty {
-    border: 1px dashed rgba(128, 128, 128, 0.3);
-    border-radius: 14px;
-    padding: 14px;
-    background: rgba(128, 128, 128, 0.04);
-  }
-  .emptyTitle {
-    font-weight: 900;
-    font-size: 14px;
-    margin-bottom: 4px;
-  }
-  .emptySub {
-    opacity: 0.75;
-    font-size: 13px;
-    margin-bottom: 12px;
-  }
-  .emptyActions {
-    display: flex;
-    justify-content: flex-end;
-  }
-  .form {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px 12px;
-  }
-  .form label {
-    display: block;
-    font-size: 12px;
-    opacity: 0.7;
-    margin-bottom: 5px;
-  }
-  .actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 10px;
-  }
-  .msg {
-    margin-top: 12px;
-    padding: 10px 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(128, 128, 128, 0.22);
-  }
-  .msg.error {
-    border-color: rgba(176, 0, 32, 0.55);
-    background: rgba(176, 0, 32, 0.08);
-  }
-  .msg.notice {
-    border-color: rgba(22, 179, 120, 0.45);
-    background: rgba(22, 179, 120, 0.12);
-  }
   @media (max-width: 1100px) {
     .grid {
-      grid-template-columns: 1fr;
-    }
-    .form {
       grid-template-columns: 1fr;
     }
   }

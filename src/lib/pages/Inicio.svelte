@@ -4,13 +4,15 @@
   import { REQUIRED_TABLES } from '../demoSchema'
   import { ensureSchema, getSchemaDiff, initDemoData } from '../initAppCoop'
   import { runMigration } from '../migracion'
+  import '../shared.css'
 
-  let loading = false
-  let error = ''
-  let status = null
-  let creating = false
-  let migrating = false
-  let migrationResult = null
+  let loading = $state(false)
+  let error = $state('')
+  let status = $state(null)
+  let creating = $state(false)
+  let migrating = $state(false)
+  let migrationResult = $state(null)
+  let repairResult = $state(null)
 
   const toKey = (s) => String(s || '').toLowerCase()
 
@@ -81,7 +83,6 @@
     }
   }
 
-  let repairResult = null
   const repairSchema = async () => {
     creating = true
     error = ''
@@ -114,10 +115,10 @@
         {#if status.schemaDiff?.missingTables?.length === 0 && status.schemaDiff?.missingColumns?.length === 0}
           <p>Plantilla AppCoop instalada y sincronizada. Usá el menú para navegar.</p>
           <div class="actions">
-            <button class="btn secondary" on:click={check} disabled={creating}>Revalidar</button>
-            <button class="btn" on:click={initAppCoop} disabled={creating}>Cargar datos base (si falta)</button>
-            <button class="btn secondary" on:click={repairSchema} disabled={creating}>Reparar Refs</button>
-            <button class="btn" on:click={doMigration} disabled={migrating || creating}>
+            <button class="btn secondary" onclick={check} disabled={creating}>Revalidar</button>
+            <button class="btn" onclick={initAppCoop} disabled={creating}>Cargar datos base (si falta)</button>
+            <button class="btn secondary" onclick={repairSchema} disabled={creating}>Reparar Refs</button>
+            <button class="btn" onclick={doMigration} disabled={migrating || creating}>
               {migrating ? 'Migrando…' : 'Migrar a personas'}
             </button>
           </div>
@@ -186,8 +187,8 @@
               {/if}
             </div>
             <div class="actions">
-              <button class="btn secondary" on:click={check} disabled={creating}>Revalidar</button>
-              <button class="btn" on:click={initAppCoop} disabled={creating}>Actualizar schema + datos base</button>
+              <button class="btn secondary" onclick={check} disabled={creating}>Revalidar</button>
+              <button class="btn" onclick={initAppCoop} disabled={creating}>Actualizar schema + datos base</button>
             </div>
           </div>
         {/if}
@@ -202,8 +203,8 @@
             </ul>
           </div>
           <div class="actions">
-            <button class="btn secondary" on:click={check} disabled={creating}>Reintentar</button>
-            <button class="btn" on:click={initAppCoop} disabled={creating}>Instalar plantilla AppCoop</button>
+            <button class="btn secondary" onclick={check} disabled={creating}>Reintentar</button>
+            <button class="btn" onclick={initAppCoop} disabled={creating}>Instalar plantilla AppCoop</button>
           </div>
         </div>
       {/if}
@@ -241,38 +242,12 @@
     margin: 6px 0;
     opacity: 0.85;
   }
-  .card {
-    margin-top: 12px;
-    padding: 12px;
-    border-radius: 10px;
-    border: 1px solid rgba(128, 128, 128, 0.25);
-    background: rgba(128, 128, 128, 0.08);
-  }
   .card ol {
     margin: 8px 0 0 18px;
     padding: 0;
   }
   .card li {
     margin: 6px 0;
-  }
-  .mono {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    font-size: 0.95em;
-  }
-  .msg {
-    margin-top: 12px;
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(128, 128, 128, 0.22);
-    background: rgba(128, 128, 128, 0.06);
-  }
-  .msg.error {
-    border-color: rgba(176, 0, 32, 0.55);
-    background: rgba(176, 0, 32, 0.08);
-  }
-  .msgTitle {
-    font-weight: 800;
-    margin-bottom: 6px;
   }
   .msgBody {
     opacity: 0.9;
@@ -281,19 +256,6 @@
     display: flex;
     gap: 10px;
     margin-top: 10px;
-  }
-  .btn {
-    border: 0;
-    border-radius: 10px;
-    padding: 9px 12px;
-    cursor: pointer;
-    font-weight: 700;
-    background: rgba(22, 179, 120, 0.9);
-    color: #fff;
-  }
-  .btn.secondary {
-    background: rgba(128, 128, 128, 0.18);
-    color: inherit;
   }
   .migrationResult {
     margin-top: 12px;
