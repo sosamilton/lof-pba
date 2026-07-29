@@ -1,7 +1,10 @@
 <script>
   import { onMount } from 'svelte'
-  import { applyUserActions, fetchRecords, gristReady, isInGrist, resolveTableId } from '../grist'
+  import { applyUserActions, fetchRecords, gristReady, isInGrist, resolveTableId, subscribeRecords, getWidgetOptions, setWidgetOption } from '../grist'
+  import { extractRowId } from '../personas'
   import { normalizeFields, dateToInput, addMonths, ORGANISMOS, TIPOS_ASAMBLEA, MODALIDAD_CUOTA, TABLE_PREFERRED_IDS } from '../utils'
+  import MessageBanner from '../components/MessageBanner.svelte'
+  import EmptyState from '../components/EmptyState.svelte'
   import '../shared.css'
 
   let loading = $state(true)
@@ -15,6 +18,7 @@
   let tCargos = $state()
   let tAutoridades = $state()
   let tAsambleas = $state()
+  let tResoluciones = $state()
 
   let ejercicios = $state([])
   let ejercicio = $state(null)
@@ -26,6 +30,7 @@
   let asambleas = $state([])
   let selectedAsambleaId = $state(null)
   let asambleaForm = $state(null)
+  let resoluciones = $state([])
   let busy = $state(false)
 
   const load = async () => {
@@ -34,10 +39,11 @@
     notice = ''
     try {
       await gristReady()
-      tEjercicios = await resolveTableId(['Ejercicios', 'ejercicios'])
-      tCargos = await resolveTableId(['Cargos', 'cargos'])
-      tAutoridades = await resolveTableId(['Autoridades', 'autoridades'])
-      tAsambleas = await resolveTableId(['Asambleas', 'asambleas'])
+      tEjercicios = await resolveTableId(TABLE_PREFERRED_IDS.ejercicios)
+      tCargos = await resolveTableId(TABLE_PREFERRED_IDS.cargos)
+      tAutoridades = await resolveTableId(TABLE_PREFERRED_IDS.autoridades)
+      tAsambleas = await resolveTableId(TABLE_PREFERRED_IDS.asambleas)
+      tResoluciones = await resolveTableId(TABLE_PREFERRED_IDS.resoluciones)
 
       ejercicios = await fetchRecords(tEjercicios)
       ejercicio = ejercicios.find((e) => e.en_curso === true) || null
@@ -56,8 +62,12 @@
   }
 
   const loadComision = async () => {
-    cargos = await fetchRecords(tCargos)
-    autoridades = await fetchRecords(tAutoridades)
+    cargos = await fetchRecords(tCargos, {
+      filter: (c) => c.activo === true || c.cargo_obligatorio === true
+    })
+    autoridades = await fetchRecords(tAutoridades, {
+      filter: (a) => Number(a.ejercicio_id) === Number(ejercicio.id)
+    })
 
     const cargosOrg = cargos
       .filter((c) => String(c.organismo) === organismo)
@@ -168,13 +178,13 @@
   }
 
   const loadAsambleas = async () => {
-    const all = await fetchRecords(tAsambleas)
-    asambleas = all
-      .filter((a) => Number(a.ejercicio_id) === Number(ejercicio.id))
-      .sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')))
+    asambleas = await fetchRecords(tAsambleas, {
+      filter: (a) => Number(a.ejercicio_id) === Number(ejercicio.id),
+      sort: (a, b) => String(b.fecha || '').localeCompare(String(a.fecha || ''))
+    })
   }
 
-  const editAsamblea = (a) => {
+  const editAsamblea = async (a) => {
     selectedAsambleaId = a?.id || null
     asambleaForm = {
       id: a?.id || null,
@@ -185,14 +195,16 @@
       socios_presentes_cantidad: a?.socios_presentes_cantidad ?? '',
       cuota_social_importe: a?.cuota_social_importe ?? '',
       cuota_social_modalidad: a?.cuota_social_modalidad || 'Mensual',
-      caja_chica_importe: a?.caja_chica_importe ?? '',
-      resolucion_punto_1: a?.resolucion_punto_1 || '',
-      resolucion_punto_2: a?.resolucion_punto_2 || '',
-      resolucion_punto_3: a?.resolucion_punto_3 || '',
-      resolucion_punto_4: a?.resolucion_punto_4 || '',
-      resolucion_punto_5: a?.resolucion_punto_5 || '',
-      resolucion_punto_6: a?.resolucion_punto_6 || '',
-      resolucion_punto_7: a?.resolucion_punto_7 || ''
+      caja_chica_importe: a?.caja_chica_importe ?? ''
+    }
+    if (a?.id && tResoluciones) {
+      const recs = await fetchRecords(tResoluciones, {
+        filter: (r) => Number(r.asamblea_id) === Number(a.id),
+        sort: (x, y) => Number(x.numero || 0) - Number(y.numero || 0)
+      })
+      resoluciones = recs.map((r) => ({ id: r.id, numero: r.numero ?? '', texto: r.texto || '' }))
+    } else {
+      resoluciones = []
     }
   }
 
@@ -207,15 +219,19 @@
       socios_presentes_cantidad: '',
       cuota_social_importe: '',
       cuota_social_modalidad: 'Mensual',
-      caja_chica_importe: '',
-      resolucion_punto_1: '',
-      resolucion_punto_2: '',
-      resolucion_punto_3: '',
-      resolucion_punto_4: '',
-      resolucion_punto_5: '',
-      resolucion_punto_6: '',
-      resolucion_punto_7: ''
+      caja_chica_importe: ''
     }
+    resoluciones = []
+  }
+
+  const addResolucion = () => {
+    const nextNum = resoluciones.length + 1
+    resoluciones = [...resoluciones, { id: null, numero: nextNum, texto: '' }]
+  }
+
+  const removeResolucion = (idx) => {
+    resoluciones = resoluciones.filter((_, i) => i !== idx)
+    resoluciones = resoluciones.map((r, i) => ({ ...r, numero: i + 1 }))
   }
 
   const saveAsamblea = async () => {
@@ -237,23 +253,43 @@
         socios_presentes_cantidad: f.socios_presentes_cantidad === '' ? '' : Number(f.socios_presentes_cantidad),
         cuota_social_importe: f.cuota_social_importe === '' ? '' : Number(f.cuota_social_importe),
         cuota_social_modalidad: f.cuota_social_modalidad || '',
-        caja_chica_importe: f.caja_chica_importe === '' ? '' : Number(f.caja_chica_importe),
-        resolucion_punto_1: String(f.resolucion_punto_1 || '').trim(),
-        resolucion_punto_2: String(f.resolucion_punto_2 || '').trim(),
-        resolucion_punto_3: String(f.resolucion_punto_3 || '').trim(),
-        resolucion_punto_4: String(f.resolucion_punto_4 || '').trim(),
-        resolucion_punto_5: String(f.resolucion_punto_5 || '').trim(),
-        resolucion_punto_6: String(f.resolucion_punto_6 || '').trim(),
-        resolucion_punto_7: String(f.resolucion_punto_7 || '').trim()
+        caja_chica_importe: f.caja_chica_importe === '' ? '' : Number(f.caja_chica_importe)
       })
 
+      let asambleaId = f.id
       if (f.id) {
         await applyUserActions([['UpdateRecord', tAsambleas, f.id, fields]])
         notice = 'Asamblea guardada.'
       } else {
-        await applyUserActions([['AddRecord', tAsambleas, null, fields]])
+        const res = await applyUserActions([['AddRecord', tAsambleas, null, fields]])
+        asambleaId = extractRowId(res)
         notice = 'Asamblea creada.'
       }
+
+      if (asambleaId != null && tResoluciones) {
+        const existing = await fetchRecords(tResoluciones, {
+          filter: (r) => Number(r.asamblea_id) === Number(asambleaId)
+        })
+        const toRemove = existing
+          .filter((r) => !resoluciones.some((nr) => nr.id === r.id))
+          .map((r) => ['RemoveRecord', tResoluciones, r.id])
+        const toUpdate = resoluciones
+          .filter((r) => r.id != null && String(r.texto || '').trim())
+          .map((r) => ['UpdateRecord', tResoluciones, r.id, {
+            numero: Number(r.numero || 0),
+            texto: String(r.texto).trim()
+          }])
+        const toAdd = resoluciones
+          .filter((r) => r.id == null && String(r.texto || '').trim())
+          .map((r) => ['AddRecord', tResoluciones, null, {
+            asamblea_id: asambleaId,
+            numero: Number(r.numero || 0),
+            texto: String(r.texto).trim()
+          }])
+        const actions = [...toRemove, ...toUpdate, ...toAdd]
+        if (actions.length > 0) await applyUserActions(actions)
+      }
+
       await loadAsambleas()
       if (!f.id) asambleaForm = null
     } catch (e) {
@@ -265,6 +301,7 @@
 
   const setTab = async (t) => {
     tab = t
+    setWidgetOption('gobiernoTab', t)
     if (!ejercicio) return
     if (t === 'comision') await loadComision()
     if (t === 'asambleas') await loadAsambleas()
@@ -272,7 +309,14 @@
 
   onMount(async () => {
     if (!isInGrist()) return
+    const opts = await getWidgetOptions()
+    if (opts?.gobiernoTab) tab = opts.gobiernoTab
+    if (opts?.gobiernoOrganismo) organismo = opts.gobiernoOrganismo
+    const unsub = subscribeRecords(() => {
+      if (!busy && !loading) load()
+    })
     await load()
+    return unsub
   })
 </script>
 
@@ -304,9 +348,9 @@
       <section class="card">
         <div class="rowHead">
           <div class="tabs">
-            <button class:tabActive={organismo === 'CD'} onclick={() => { organismo = 'CD'; loadComision() }}>Comisión Directiva</button>
-            <button class:tabActive={organismo === 'CRC'} onclick={() => { organismo = 'CRC'; loadComision() }}>Comisión Revisora de Cuentas</button>
-            <button class:tabActive={organismo === 'Federacion'} onclick={() => { organismo = 'Federacion'; loadComision() }}>Federación</button>
+            <button class:tabActive={organismo === 'CD'} onclick={() => { organismo = 'CD'; setWidgetOption('gobiernoOrganismo', 'CD'); loadComision() }}>Comisión Directiva</button>
+            <button class:tabActive={organismo === 'CRC'} onclick={() => { organismo = 'CRC'; setWidgetOption('gobiernoOrganismo', 'CRC'); loadComision() }}>Comisión Revisora de Cuentas</button>
+            <button class:tabActive={organismo === 'Federacion'} onclick={() => { organismo = 'Federacion'; setWidgetOption('gobiernoOrganismo', 'Federacion'); loadComision() }}>Federación</button>
           </div>
           <div class="actions">
             <button class="btn secondary" onclick={initComision}>Inicializar comisión</button>
@@ -315,10 +359,7 @@
         </div>
 
         {#if rows.length === 0}
-          <div class="empty">
-            <div class="emptyTitle">No hay cargos activos</div>
-            <div class="emptySub">Configurá cargos en “Cooperadora”.</div>
-          </div>
+          <EmptyState title="No hay cargos activos" sub="Configurá cargos en “Cooperadora”." />
         {:else}
           <div class="gridTable">
             <div class="thead">
@@ -360,10 +401,7 @@
         <div class="grid2">
           <div class="list">
             {#if asambleas.length === 0}
-              <div class="empty">
-                <div class="emptyTitle">No hay asambleas</div>
-                <div class="emptySub">Creá una asamblea para registrar actas y resoluciones.</div>
-              </div>
+              <EmptyState title="No hay asambleas" sub="Creá una asamblea para registrar actas y resoluciones." />
             {:else}
               {#each asambleas as a (a.id)}
                 <button class:selected={a.id === selectedAsambleaId} onclick={() => editAsamblea(a)}>
@@ -405,29 +443,17 @@
                     <option value="Anual">Anual</option>
                   </select></label>
                 </div>
-                <div class="row">
+                <div class="row span2">
                   <label>Caja chica ($)<input type="number" bind:value={asambleaForm.caja_chica_importe} /></label>
                 </div>
-                <div class="row span2">
-                  <label>Resolución punto 1<textarea bind:value={asambleaForm.resolucion_punto_1}></textarea></label>
-                </div>
-                <div class="row span2">
-                  <label>Resolución punto 2<textarea bind:value={asambleaForm.resolucion_punto_2}></textarea></label>
-                </div>
-                <div class="row span2">
-                  <label>Resolución punto 3<textarea bind:value={asambleaForm.resolucion_punto_3}></textarea></label>
-                </div>
-                <div class="row span2">
-                  <label>Resolución punto 4<textarea bind:value={asambleaForm.resolucion_punto_4}></textarea></label>
-                </div>
-                <div class="row span2">
-                  <label>Resolución punto 5<textarea bind:value={asambleaForm.resolucion_punto_5}></textarea></label>
-                </div>
-                <div class="row span2">
-                  <label>Resolución punto 6<textarea bind:value={asambleaForm.resolucion_punto_6}></textarea></label>
-                </div>
-                <div class="row span2">
-                  <label>Resolución punto 7<textarea bind:value={asambleaForm.resolucion_punto_7}></textarea></label>
+                {#each resoluciones as res, idx}
+                  <div class="row span2 resolucion-row">
+                    <label>Punto {idx + 1}<textarea bind:value={res.texto}></textarea></label>
+                    <button class="btn secondary small" onclick={() => removeResolucion(idx)}>Quitar</button>
+                  </div>
+                {/each}
+                <div class="row">
+                  <button class="btn secondary" onclick={addResolucion}>+ Agregar resolución</button>
                 </div>
               </div>
               <div class="actions">
@@ -442,12 +468,7 @@
     {/if}
   {/if}
 
-  {#if error}
-    <div class="msg error">{error}</div>
-  {/if}
-  {#if notice}
-    <div class="msg notice">{notice}</div>
-  {/if}
+  <MessageBanner {error} {notice} />
 {/if}
 
 <style>
@@ -529,6 +550,14 @@
   }
   .form {
     margin-top: 10px;
+  }
+  .resolucion-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .resolucion-row label {
+    flex: 1;
   }
   @media (max-width: 1100px) {
     .grid2 {

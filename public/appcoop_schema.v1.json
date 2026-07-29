@@ -180,13 +180,6 @@
         { "id": "acta_fojas", "fields": { "label": "Fojas", "type": "Text" } },
         { "id": "ejercicio_id", "fields": { "label": "Ejercicio", "type": "Ref:ejercicios" } },
         { "id": "socios_presentes_cantidad", "fields": { "label": "Cantidad de socios presentes", "type": "Int" } },
-        { "id": "resolucion_punto_1", "fields": { "label": "Resolucion punto 1", "type": "Text" } },
-        { "id": "resolucion_punto_2", "fields": { "label": "Resolucion punto 2", "type": "Text" } },
-        { "id": "resolucion_punto_3", "fields": { "label": "Resolucion punto 3", "type": "Text" } },
-        { "id": "resolucion_punto_4", "fields": { "label": "Resolucion punto 4", "type": "Text" } },
-        { "id": "resolucion_punto_5", "fields": { "label": "Resolucion punto 5", "type": "Text" } },
-        { "id": "resolucion_punto_6", "fields": { "label": "Resolucion punto 6", "type": "Text" } },
-        { "id": "resolucion_punto_7", "fields": { "label": "Resolucion punto 7", "type": "Text" } },
         { "id": "cuota_social_importe", "fields": { "label": "Importe cuota social", "type": "Numeric" } },
         {
           "id": "cuota_social_modalidad",
@@ -194,6 +187,15 @@
         },
         { "id": "caja_chica_importe", "fields": { "label": "Importe caja chica", "type": "Numeric" } },
         { "id": "acta_pdf", "fields": { "label": "Acta escaneada", "type": "Attachments" } }
+      ]
+    },
+    {
+      "id": "resoluciones",
+      "title": "Resoluciones",
+      "columns": [
+        { "id": "asamblea_id", "fields": { "label": "Asamblea", "type": "Ref:asambleas" } },
+        { "id": "numero", "fields": { "label": "Punto", "type": "Int" } },
+        { "id": "texto", "fields": { "label": "Resolución", "type": "Text" } }
       ]
     },
     {
