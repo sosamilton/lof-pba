@@ -66,5 +66,69 @@ export const TABLE_PREFERRED_IDS = {
   resoluciones: ['Resoluciones', 'resoluciones'],
   cuentas: ['Cuentas', 'cuentas'],
   rubros_pia: ['Rubros PIA', 'rubros_pia'],
-  subrubros: ['Subrubros', 'subrubros']
+  subrubros: ['Subrubros', 'subrubros'],
+  configuracion: ['Configuracion', 'configuracion'],
+  cierres_mensuales: ['Cierres_mensuales', 'cierres_mensuales'],
+  planillas_generadas: ['Planillas_generadas', 'planillas_generadas']
+}
+
+export const MODULES = {
+  gestion_completa: {
+    label: 'Gestión completa',
+    description: 'Socios, movimientos, gobierno y reportes',
+    tables: ['docs_tablas', 'escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asambleas', 'resoluciones', 'cuentas', 'rubros_pia', 'subrubros', 'movimientos', 'configuracion'],
+    menuItems: [
+      { route: 'inicio', label: 'Inicio' },
+      { route: 'setup', label: 'Cooperadora' },
+      { route: 'socios', label: 'Socios' },
+      { route: 'movimientos', label: 'Movimientos' },
+      { route: 'gobierno', label: 'Gobierno' }
+    ]
+  },
+  kiosco: {
+    label: 'Kiosco / Librería',
+    description: 'Gestión de kiosco o librería escolar',
+    tables: ['kiosco_libreria'],
+    menuItems: []
+  },
+  tesoreria: {
+    label: 'Tesorería',
+    description: 'Movimientos, cuentas y cierres mensuales',
+    tables: ['movimientos', 'cuentas', 'rubros_pia', 'subrubros', 'cierres_mensuales'],
+    menuItems: [
+      { route: 'movimientos', label: 'Movimientos' }
+    ]
+  },
+  gobierno: {
+    label: 'Gobierno',
+    description: 'Comisión, autoridades y asambleas',
+    tables: ['cargos', 'autoridades', 'asambleas', 'resoluciones'],
+    menuItems: [
+      { route: 'gobierno', label: 'Gobierno' }
+    ]
+  },
+  reportes: {
+    label: 'Reportes PIA / Nómina',
+    description: 'Generación de planillas PIA y nómina de socios',
+    tables: ['planillas_generadas'],
+    menuItems: []
+  }
+}
+
+export const getActiveMenuItems = (config) => {
+  if (!config) return [{ route: 'inicio', label: 'Inicio' }]
+  const items = [{ route: 'inicio', label: 'Inicio' }]
+  if (config.modulo_gestion_completa || config.modulo_tesoreria) {
+    items.push({ route: 'setup', label: 'Cooperadora' })
+  }
+  if (config.modulo_gestion_completa || config.modulo_tesoreria) {
+    items.push({ route: 'movimientos', label: 'Movimientos' })
+  }
+  if (config.modulo_gestion_completa || config.modulo_gobierno) {
+    items.push({ route: 'gobierno', label: 'Gobierno' })
+  }
+  if (config.modulo_gestion_completa || config.modulo_tesoreria) {
+    items.push({ route: 'socios', label: 'Socios' })
+  }
+  return items
 }

@@ -319,6 +319,29 @@
       ]
     },
     {
+      "id": "configuracion",
+      "title": "Configuracion",
+      "columns": [
+        { "id": "modulo_gestion_completa", "fields": { "label": "Gestion completa", "type": "Bool" } },
+        { "id": "modulo_kiosco", "fields": { "label": "Kiosco/libreria", "type": "Bool" } },
+        { "id": "modulo_tesoreria", "fields": { "label": "Tesoreria", "type": "Bool" } },
+        { "id": "modulo_gobierno", "fields": { "label": "Gobierno", "type": "Bool" } },
+        { "id": "modulo_reportes", "fields": { "label": "Reportes PIA/nomina", "type": "Bool" } },
+        { "id": "escuela_nombre", "fields": { "label": "Nombre escuela", "type": "Text" } },
+        { "id": "escuela_numero", "fields": { "label": "Numero escuela", "type": "Text" } },
+        { "id": "cue", "fields": { "label": "CUE", "type": "Text" } },
+        { "id": "cooperadora_nombre", "fields": { "label": "Nombre cooperadora", "type": "Text" } },
+        { "id": "cuit", "fields": { "label": "CUIT cooperadora", "type": "Text" } },
+        { "id": "domicilio", "fields": { "label": "Domicilio", "type": "Text" } },
+        { "id": "localidad", "fields": { "label": "Localidad", "type": "Text" } },
+        { "id": "email", "fields": { "label": "Email", "type": "Text" } },
+        { "id": "telefono", "fields": { "label": "Telefono", "type": "Text" } },
+        { "id": "color_primario", "fields": { "label": "Color primario", "type": "Text" } },
+        { "id": "instalado", "fields": { "label": "Instalado", "type": "Bool" } },
+        { "id": "fecha_instalacion", "fields": { "label": "Fecha instalacion", "type": "DateTime" } }
+      ]
+    },
+    {
       "id": "planillas_generadas",
       "title": "Planillas generadas",
       "columns": [
