@@ -1,12 +1,17 @@
 <script>
   import { onMount } from 'svelte'
   import { router, navigate } from '../router.svelte'
+  import { loadConfig } from '../configuracion'
+  import { getActiveMenuItems } from '../utils'
   import '../shared.css'
 
   let { title = 'AppCoop', children } = $props()
 
   let drawerOpen = $state(false)
   let isSmall = $state(false)
+  let menuItems = $state([{ route: 'inicio', label: 'Inicio' }])
+  let brandTitle = $state(title)
+  let brandSub = $state('Demo cooperadora')
 
   const syncSmall = () => {
     isSmall = window.matchMedia('(max-width: 860px)').matches
@@ -18,10 +23,24 @@
     drawerOpen = false
   }
 
-  onMount(() => {
+  onMount(async () => {
     syncSmall()
     const onResize = () => syncSmall()
     window.addEventListener('resize', onResize)
+    try {
+      const config = await loadConfig()
+      if (config) {
+        menuItems = getActiveMenuItems(config)
+        if (config.cooperadora_nombre) {
+          brandTitle = config.cooperadora_nombre
+        }
+        if (config.escuela_nombre) {
+          brandSub = config.escuela_nombre
+        }
+      }
+    } catch {
+      // keep defaults
+    }
     return () => window.removeEventListener('resize', onResize)
   })
 </script>
@@ -30,7 +49,7 @@
   {#if isSmall}
     <div class="topbar">
       <button class="iconBtn" aria-label="Abrir menú" onclick={() => (drawerOpen = true)}>Menu</button>
-      <div class="topbarTitle">{title}</div>
+      <div class="topbarTitle">{brandTitle}</div>
       <div class="topbarSpacer"></div>
     </div>
   {/if}
@@ -41,16 +60,14 @@
 
   <aside class:sidebar={true} class:drawer={isSmall} class:drawerOpen={drawerOpen}>
     <div class="brand">
-      <div class="brand-title">{title}</div>
-      <div class="brand-sub">Demo cooperadora</div>
+      <div class="brand-title">{brandTitle}</div>
+      <div class="brand-sub">{brandSub}</div>
     </div>
 
     <nav class="nav">
-      <a class:selected={router.current === 'inicio'} href="#inicio" onclick={(e) => { e.preventDefault(); go('inicio') }}>Inicio</a>
-      <a class:selected={router.current === 'setup'} href="#setup" onclick={(e) => { e.preventDefault(); go('setup') }}>Cooperadora</a>
-      <a class:selected={router.current === 'socios'} href="#socios" onclick={(e) => { e.preventDefault(); go('socios') }}>Socios</a>
-      <a class:selected={router.current === 'movimientos'} href="#movimientos" onclick={(e) => { e.preventDefault(); go('movimientos') }}>Movimientos</a>
-      <a class:selected={router.current === 'gobierno'} href="#gobierno" onclick={(e) => { e.preventDefault(); go('gobierno') }}>Gobierno</a>
+      {#each menuItems as item (item.route)}
+        <a class:selected={router.current === item.route} href={'#' + item.route} onclick={(e) => { e.preventDefault(); go(item.route) }}>{item.label}</a>
+      {/each}
     </nav>
   </aside>
 

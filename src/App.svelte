@@ -2,11 +2,13 @@
   import { onMount } from 'svelte'
   import AppShell from './lib/layout/AppShell.svelte'
   import { initRouter, router, navigate } from './lib/router.svelte'
-  import { detectGrist, getGristStatus, getWidgetOptions, isInGrist, subscribeAccess } from './lib/grist'
+  import { detectGrist, getGristStatus, getWidgetOptions, isInGrist, subscribeAccess, listTables } from './lib/grist'
+  import { isInstalled } from './lib/configuracion'
 
   import Inicio from './lib/pages/Inicio.svelte'
   import Landing from './lib/pages/Landing.svelte'
   import NeedsAccess from './lib/pages/NeedsAccess.svelte'
+  import SetupWizard from './lib/pages/SetupWizard.svelte'
   import Setup from './lib/pages/Setup.svelte'
   import Socios from './lib/pages/Socios.svelte'
   import Movimientos from './lib/pages/Movimientos.svelte'
@@ -14,19 +16,41 @@
 
   let ready = $state(false)
   let gristStatus = $state('none')
+  let needsSetup = $state(false)
+
+  const checkInstalled = async () => {
+    try {
+      const tables = await listTables()
+      const hasConfig = tables.some((t) => String(t).toLowerCase() === 'configuracion')
+      if (!hasConfig) {
+        needsSetup = true
+        return
+      }
+      const installed = await isInstalled()
+      needsSetup = !installed
+    } catch {
+      needsSetup = true
+    }
+  }
 
   onMount(async () => {
     const cleanup = await initRouter()
     const status = await detectGrist()
     gristStatus = status
     if (status === 'ready') {
-      const opts = await getWidgetOptions()
-      if (opts?.lastRoute && opts.lastRoute !== router.current) {
-        navigate(opts.lastRoute)
+      await checkInstalled()
+      if (!needsSetup) {
+        const opts = await getWidgetOptions()
+        if (opts?.lastRoute && opts.lastRoute !== router.current) {
+          navigate(opts.lastRoute)
+        }
       }
     }
-    const unsubAccess = subscribeAccess((s) => {
+    const unsubAccess = subscribeAccess(async (s) => {
       gristStatus = s
+      if (s === 'ready') {
+        await checkInstalled()
+      }
     })
     ready = true
     return () => {
@@ -38,6 +62,8 @@
 
 {#if !ready}
   <div style="padding: 18px; opacity: 0.8;">Cargando…</div>
+{:else if gristStatus === 'ready' && needsSetup}
+  <SetupWizard />
 {:else if gristStatus === 'ready'}
   <AppShell title="AppCoop">
     {#snippet children()}
