@@ -1,6 +1,56 @@
 let _detected = null
 let _ready = false
 let _tablesCache = null
+const _recordsSubscribers = new Set()
+const _optionsSubscribers = new Set()
+let _currentOptions = null
+
+export const subscribeRecords = (callback) => {
+  _recordsSubscribers.add(callback)
+  return () => { _recordsSubscribers.delete(callback) }
+}
+
+export const subscribeOptions = (callback) => {
+  _optionsSubscribers.add(callback)
+  if (_currentOptions !== null) callback(_currentOptions)
+  return () => { _optionsSubscribers.delete(callback) }
+}
+
+export const getWidgetOptions = async () => {
+  await ensureGristPluginLoaded()
+  if (!isInGrist() || typeof window.grist.getOptions !== 'function') return null
+  _currentOptions = await window.grist.getOptions()
+  return _currentOptions
+}
+
+export const setWidgetOption = async (key, value) => {
+  await ensureGristPluginLoaded()
+  if (!isInGrist() || typeof window.grist.setOption !== 'function') return
+  await window.grist.setOption(key, value)
+  _currentOptions = { ..._currentOptions, [key]: value }
+  for (const cb of _optionsSubscribers) {
+    try { cb(_currentOptions) } catch (e) { console.error('[grist] options subscriber error:', e) }
+  }
+}
+
+const setupOnRecords = () => {
+  if (!isBrowser() || !window.grist || typeof window.grist.onRecords !== 'function') return
+  window.grist.onRecords((records, mappings) => {
+    for (const cb of _recordsSubscribers) {
+      try { cb(records, mappings) } catch (e) { console.error('[grist] onRecords subscriber error:', e) }
+    }
+  })
+}
+
+const setupOnOptions = () => {
+  if (!isBrowser() || !window.grist || typeof window.grist.onOptions !== 'function') return
+  window.grist.onOptions((customOptions, interactionOptions) => {
+    _currentOptions = customOptions
+    for (const cb of _optionsSubscribers) {
+      try { cb(customOptions, interactionOptions) } catch (e) { console.error('[grist] onOptions subscriber error:', e) }
+    }
+  })
+}
 
 const isBrowser = () => typeof window !== 'undefined' && typeof document !== 'undefined'
 
@@ -53,6 +103,8 @@ export const detectGrist = async ({ timeoutMs = 800 } = {}) => {
       return false
     }
     window.grist.ready({ requiredAccess: 'read table' })
+    setupOnRecords()
+    setupOnOptions()
     const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))
     await Promise.race([window.grist.docApi.listTables(), timeout])
     _detected = true
@@ -112,12 +164,33 @@ export const tableDataToRecords = (data) => {
   return out
 }
 
-export const fetchRecords = async (tableId) => {
+export const fetchRecords = async (tableId, options = {}) => {
   await ensureGristPluginLoaded()
   if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
   ensureReady()
   const data = await window.grist.docApi.fetchTable(tableId)
-  return tableDataToRecords(data)
+  let records = tableDataToRecords(data)
+  if (options.filter) {
+    records = records.filter(options.filter)
+  }
+  if (Array.isArray(options.columns)) {
+    const cols = new Set(['id', ...options.columns])
+    records = records.map((r) => {
+      const out = {}
+      for (const k of cols) if (k in r) out[k] = r[k]
+      return out
+    })
+  }
+  if (options.sort) {
+    records.sort(options.sort)
+  }
+  if (options.limit != null && records.length > options.limit) {
+    records = records.slice(0, options.limit)
+  }
+  if (options.offset != null) {
+    records = records.slice(options.offset)
+  }
+  return records
 }
 
 export const fetchTableData = async (tableId) => {
@@ -177,10 +250,23 @@ export const addRecords = async (tableId, records) => {
   return applyUserActions([['BulkAddRecord', tableId, rowIds, colValues]])
 }
 
+const randomDelay = (maxMs = 300) =>
+  new Promise((resolve) => setTimeout(resolve, Math.floor(Math.random() * maxMs)))
+
+export const withMultiplayerProtection = async (verify, write) => {
+  await randomDelay()
+  if (await verify()) return false
+  await write()
+  return true
+}
+
 export const ensureOneRow = async (tableId) => {
   const recs = await fetchRecords(tableId)
   if (recs.length > 0) return recs[0]
-  await applyUserActions([['AddRecord', tableId, null, {}]])
+  await withMultiplayerProtection(
+    async () => (await fetchRecords(tableId)).length > 0,
+    () => applyUserActions([['AddRecord', tableId, null, {}]])
+  )
   const after = await fetchRecords(tableId)
   return after[0] || null
 }

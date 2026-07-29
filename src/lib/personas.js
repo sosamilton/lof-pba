@@ -1,4 +1,5 @@
-import { applyUserActions, fetchRecords, resolveTableId } from './grist'
+import { applyUserActions, fetchRecords, resolveTableId, withMultiplayerProtection } from './grist'
+import { TABLE_PREFERRED_IDS } from './utils'
 
 export const normalizeDni = (raw) =>
   String(raw || '').replace(/\D/g, '')
@@ -19,9 +20,11 @@ export const isValidCuil = (raw) => {
 const normalizeText = (s) => String(s || '').toLowerCase().trim()
 
 export const searchPersonas = async (query) => {
-  const tableId = await resolveTableId(['Personas', 'personas'])
+  const tableId = await resolveTableId(TABLE_PREFERRED_IDS.personas)
   if (!tableId) return []
-  const all = await fetchRecords(tableId)
+  const all = await fetchRecords(tableId, {
+    columns: ['dni', 'cuil', 'apellido', 'nombre', 'domicilio', 'localidad', 'telefono', 'email']
+  })
   const q = normalizeText(query)
   if (!q) return all
   return all.filter((p) => {
@@ -33,10 +36,13 @@ export const searchPersonas = async (query) => {
 export const findPersonaByDni = async (dni) => {
   const d = normalizeDni(dni)
   if (!d) return null
-  const tableId = await resolveTableId(['Personas', 'personas'])
+  const tableId = await resolveTableId(TABLE_PREFERRED_IDS.personas)
   if (!tableId) return null
-  const all = await fetchRecords(tableId)
-  return all.find((p) => normalizeDni(p.dni) === d) || null
+  const all = await fetchRecords(tableId, {
+    columns: ['dni', 'cuil', 'apellido', 'nombre', 'domicilio', 'localidad', 'telefono', 'email'],
+    filter: (p) => normalizeDni(p.dni) === d
+  })
+  return all[0] || null
 }
 
 export const extractRowId = (res) => {
@@ -48,7 +54,7 @@ export const extractRowId = (res) => {
 }
 
 export const createPersona = async (data) => {
-  const tableId = await resolveTableId(['Personas', 'personas'])
+  const tableId = await resolveTableId(TABLE_PREFERRED_IDS.personas)
   if (!tableId) throw new Error('No se encontró la tabla personas')
   const fields = {}
   const dni = normalizeDni(data.dni)
@@ -68,7 +74,7 @@ export const createPersona = async (data) => {
 }
 
 export const updatePersona = async (id, data) => {
-  const tableId = await resolveTableId(['Personas', 'personas'])
+  const tableId = await resolveTableId(TABLE_PREFERRED_IDS.personas)
   if (!tableId) throw new Error('No se encontró la tabla personas')
   const fields = {}
   const dni = normalizeDni(data.dni)
@@ -90,6 +96,14 @@ export const findOrCreatePersona = async (data) => {
   if (dni) {
     const existing = await findPersonaByDni(dni)
     if (existing) return existing
+  }
+  const created = await withMultiplayerProtection(
+    async () => dni ? Boolean(await findPersonaByDni(dni)) : false,
+    () => createPersona({ ...data, dni })
+  )
+  if (created && dni) {
+    const found = await findPersonaByDni(dni)
+    if (found) return found
   }
   return createPersona({ ...data, dni })
 }
