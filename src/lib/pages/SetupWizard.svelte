@@ -79,10 +79,13 @@
     error = ''
     try {
       const selectedKeys = getSelectedModuleKeys()
-      const tablesToInstall = getTablesForModules(selectedKeys)
       const existingLower = new Set(existingTables.map((t) => String(t || '').toLowerCase()))
 
       const schemaResult = await ensureSchema(existingLower)
+      if (schemaResult?.errors?.length > 0) {
+        error = `Errores de schema: ${schemaResult.errors.join(', ')}`
+        return
+      }
 
       const tEscuela = await resolveTableId(TABLE_PREFERRED_IDS.escuela)
       if (tEscuela) {
@@ -125,6 +128,7 @@
       }
 
       invalidateTablesCache()
+      await new Promise((resolve) => setTimeout(resolve, 1000))
       window.location.reload()
     } catch (e) {
       error = e?.message || String(e)
