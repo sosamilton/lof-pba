@@ -1,12 +1,13 @@
 import { applyUserActions, fetchRecords, resolveTableId } from './grist'
 import { extractRowId, normalizeCuil, normalizeDni } from './personas'
+import { TABLE_PREFERRED_IDS } from './utils'
 
 const normalizeText = (s) => String(s || '').toLowerCase().trim()
 
 export const runMigration = async () => {
-  const tPersonas = await resolveTableId(['Personas', 'personas'])
-  const tSocios = await resolveTableId(['Socios', 'socios'])
-  const tAutoridades = await resolveTableId(['Autoridades', 'autoridades'])
+  const tPersonas = await resolveTableId(TABLE_PREFERRED_IDS.personas)
+  const tSocios = await resolveTableId(TABLE_PREFERRED_IDS.socios)
+  const tAutoridades = await resolveTableId(TABLE_PREFERRED_IDS.autoridades)
 
   if (!tPersonas) throw new Error('Tabla personas no encontrada. Ejecutá primero "Actualizar schema".')
   if (!tSocios) throw new Error('Tabla socios no encontrada.')

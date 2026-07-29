@@ -63,6 +63,7 @@ export const TABLE_PREFERRED_IDS = {
   movimientos: ['Movimientos', 'movimientos'],
   autoridades: ['Autoridades', 'autoridades'],
   asambleas: ['Asambleas', 'asambleas'],
+  resoluciones: ['Resoluciones', 'resoluciones'],
   cuentas: ['Cuentas', 'cuentas'],
   rubros_pia: ['Rubros PIA', 'rubros_pia'],
   subrubros: ['Subrubros', 'subrubros']
