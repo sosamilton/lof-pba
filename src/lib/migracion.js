@@ -25,10 +25,13 @@ export const runMigration = async () => {
     if (d) dniToPersona.set(d, p)
     const fullKey = `${normalizeText(p.apellido)} ${normalizeText(p.nombre)}`.trim()
     if (fullKey && fullKey !== ' ') nameToPersona.set(fullKey, p)
+    const apellidoKey = normalizeText(p.apellido)
+    if (apellidoKey && !nameToPersona.has(apellidoKey)) nameToPersona.set(apellidoKey, p)
   }
 
   const result = {
     personasCreadas: 0,
+    personasActualizadas: 0,
     sociosVinculados: 0,
     autoridadesVinculadas: 0,
     pendientes: []
@@ -37,12 +40,16 @@ export const runMigration = async () => {
   const getOrCreatePersona = async (dni, cuil, apellido, nombre, domicilio, localidad, telefono, email) => {
     const d = normalizeDni(dni)
     if (d && dniToPersona.has(d)) {
-      return dniToPersona.get(d)
+      return { ...dniToPersona.get(d), _existed: true }
     }
     if (!d) {
       const fullKey = `${normalizeText(apellido)} ${normalizeText(nombre)}`.trim()
       if (fullKey && nameToPersona.has(fullKey)) {
-        return nameToPersona.get(fullKey)
+        return { ...nameToPersona.get(fullKey), _existed: true }
+      }
+      const apellidoKey = normalizeText(apellido)
+      if (apellidoKey && nameToPersona.has(apellidoKey)) {
+        return { ...nameToPersona.get(apellidoKey), _existed: true }
       }
       return null
     }
@@ -61,7 +68,7 @@ export const runMigration = async () => {
     const newPersona = { id: rowId, ...fields }
     dniToPersona.set(d, newPersona)
     result.personasCreadas++
-    return newPersona
+    return { ...newPersona, _existed: false }
   }
 
   const socioUpdates = []
@@ -77,6 +84,7 @@ export const runMigration = async () => {
     if (persona) {
       socioUpdates.push(['UpdateRecord', tSocios, s.id, { persona_id: persona.id }])
       result.sociosVinculados++
+      if (persona._existed) result.personasActualizadas++
     } else {
       result.pendientes.push({
         tabla: 'socios',
@@ -101,6 +109,7 @@ export const runMigration = async () => {
     if (persona) {
       autoridadUpdates.push(['UpdateRecord', tAutoridades, a.id, { persona_id: persona.id }])
       result.autoridadesVinculadas++
+      if (persona._existed) result.personasActualizadas++
     } else {
       result.pendientes.push({
         tabla: 'autoridades',

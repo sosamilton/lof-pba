@@ -160,6 +160,9 @@
   }
 
   const selectPersona = (p) => {
+    const legacyFields = ['dni', 'cuil', 'apellido', 'nombre', 'domicilio', 'localidad', 'telefono', 'email']
+    const hasLegacy = legacyFields.some((f) => form[f] && form[f] !== p[f])
+    if (hasLegacy && !confirm('Al vincular esta persona se reemplazarán los datos existentes del socio. ¿Continuar?')) return
     linkedPersona = p
     personaResults = []
     personaSearch = ''
@@ -182,6 +185,7 @@
 
   const onDniInput = () => {
     const d = normalizeDni(form.dni)
+    form.dni = d
     if (d && !isValidDni(d)) {
       dniWarning = 'DNI inválido (debe tener 7 u 8 dígitos)'
     } else {
@@ -200,16 +204,17 @@
 
     busy = true
     try {
-      const personaData = {
-        dni: normalizeDni(form.dni),
-        cuil: normalizeCuil(form.cuil),
-        apellido: form.apellido,
-        nombre: form.nombre,
-        domicilio: form.domicilio,
-        localidad: form.localidad,
-        telefono: form.telefono,
-        email: form.email
-      }
+      const personaData = {}
+      const d = normalizeDni(form.dni)
+      if (d) personaData.dni = d
+      const c = normalizeCuil(form.cuil)
+      if (c) personaData.cuil = c
+      if (form.apellido) personaData.apellido = form.apellido
+      if (form.nombre) personaData.nombre = form.nombre
+      if (form.domicilio) personaData.domicilio = form.domicilio
+      if (form.localidad) personaData.localidad = form.localidad
+      if (form.telefono) personaData.telefono = form.telefono
+      if (form.email) personaData.email = form.email
 
       let personaId = form.persona_id
 

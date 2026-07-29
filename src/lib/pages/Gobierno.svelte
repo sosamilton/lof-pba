@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte'
   import { applyUserActions, fetchRecords, gristReady, isInGrist, resolveTableId, subscribeRecords, getWidgetOptions, setWidgetOption } from '../grist'
-  import { extractRowId } from '../personas'
+  import { extractRowId, findOrCreatePersona, searchPersonas, personaLabel, normalizeDni, isValidDni } from '../personas'
   import { normalizeFields, dateToInput, addMonths, ORGANISMOS, TIPOS_ASAMBLEA, MODALIDAD_CUOTA, TABLE_PREFERRED_IDS } from '../utils'
   import MessageBanner from '../components/MessageBanner.svelte'
   import EmptyState from '../components/EmptyState.svelte'
@@ -32,6 +32,11 @@
   let asambleaForm = $state(null)
   let resoluciones = $state([])
   let busy = $state(false)
+  let personaSearch = $state('')
+  let personaResults = $state([])
+  let personaSearching = $state(false)
+  let searchTargetRow = $state(null)
+  let _searchTimer = null
 
   const load = async () => {
     loading = true
@@ -92,6 +97,7 @@
         cargoObligatorio: Boolean(c.cargo_obligatorio),
         cargoDuracionMeses: duracionMeses,
         id: a?.id || null,
+        persona_id: a?.persona_id || null,
         apellido_nombre: a?.apellido_nombre || '',
         dni: a?.dni || '',
         cuil: a?.cuil || '',
@@ -111,9 +117,9 @@
     error = ''
     try {
       const existingByCargo = new Set(rows.filter((r) => r.id).map((r) => Number(r.cargoId)))
-      const toCreate = rows.filter((r) => !existingByCargo.has(Number(r.cargoId)))
+      const toCreate = rows.filter((r) => !existingByCargo.has(Number(r.cargoId)) && r.cargoObligatorio)
       if (toCreate.length === 0) {
-        notice = 'La comisión ya está inicializada.'
+        notice = 'No hay cargos obligatorios pendientes de inicializar.'
         return
       }
       const actions = toCreate.map((r) => [
@@ -129,10 +135,47 @@
       ])
       await applyUserActions(actions)
       await loadComision()
-      notice = 'Comisión inicializada.'
+      notice = `${toCreate.length} cargo(s) obligatorio(s) inicializado(s). Los opcionales se crean al guardar con datos.`
     } catch (e) {
       error = e?.message || String(e)
     }
+  }
+
+  const doPersonaSearch = (row) => {
+    searchTargetRow = row
+    clearTimeout(_searchTimer)
+    if (!personaSearch || personaSearch.length < 2) {
+      personaResults = []
+      return
+    }
+    _searchTimer = setTimeout(async () => {
+      personaSearching = true
+      try {
+        personaResults = await searchPersonas(personaSearch)
+      } catch (e) {
+        error = e?.message || String(e)
+        personaResults = []
+      } finally {
+        personaSearching = false
+      }
+    }, 300)
+  }
+
+  const linkPersona = (p) => {
+    if (!searchTargetRow) return
+    searchTargetRow.persona_id = p.id
+    searchTargetRow.apellido_nombre = personaLabel(p)
+    searchTargetRow.dni = p.dni || searchTargetRow.dni
+    searchTargetRow.cuil = p.cuil || searchTargetRow.cuil
+    searchTargetRow.domicilio = p.domicilio || searchTargetRow.domicilio
+    searchTargetRow.localidad = p.localidad || searchTargetRow.localidad
+    personaSearch = ''
+    personaResults = []
+    searchTargetRow = null
+  }
+
+  const unlinkPersona = (row) => {
+    row.persona_id = null
   }
 
   const saveComision = async () => {
@@ -144,30 +187,50 @@
         error = 'No se encontró la tabla autoridades. Ejecutá "Actualizar schema" en Inicio.'
         return
       }
-      const updates = rows
-        .filter((r) => r.id)
-        .map((r) => {
-          const autoVenc = r.fecha_asuncion ? addMonths(r.fecha_asuncion, r.cargoDuracionMeses) : ''
-          const fechaVencimiento = r.fecha_asuncion ? (r.fecha_vencimiento || autoVenc) : (r.fecha_vencimiento || '')
-          const fields = normalizeFields({
-            organismo,
-            cargo_id: r.cargoId,
-            ejercicio_id: ejercicio.id,
-            apellido_nombre: String(r.apellido_nombre || '').trim(),
-            dni: String(r.dni || '').trim(),
-            cuil: String(r.cuil || '').trim(),
-            domicilio: String(r.domicilio || '').trim(),
-            localidad: String(r.localidad || '').trim(),
-            fecha_asuncion: r.fecha_asuncion || '',
-            fecha_cese: r.fecha_cese || '',
-            fecha_vencimiento: fechaVencimiento || '',
-            motivo_cese: String(r.motivo_cese || '').trim(),
-            activo: Boolean(r.activo)
+      const missing = rows.filter((r) => r.cargoObligatorio && r.activo && !r.apellido_nombre.trim())
+      if (missing.length > 0) {
+        error = `Faltan cargos obligatorios: ${missing.map((r) => r.cargoNombre).join(', ')}`
+        return
+      }
+      const actions = []
+      for (const r of rows) {
+        if (!r.apellido_nombre.trim() && !r.dni.trim()) continue
+        let personaId = r.persona_id
+        if (!personaId && r.dni && isValidDni(r.dni)) {
+          const persona = await findOrCreatePersona({
+            dni: normalizeDni(r.dni),
+            cuil: r.cuil || '',
+            apellido: r.apellido_nombre.split(',')[0]?.trim() || '',
+            nombre: r.apellido_nombre.split(',')[1]?.trim() || ''
           })
-          return ['UpdateRecord', tAutoridades, r.id, fields]
+          personaId = persona?.id || null
+        }
+        const autoVenc = r.fecha_asuncion ? addMonths(r.fecha_asuncion, r.cargoDuracionMeses) : ''
+        const fechaVencimiento = r.fecha_asuncion ? (r.fecha_vencimiento || autoVenc) : (r.fecha_vencimiento || '')
+        const fields = normalizeFields({
+          organismo,
+          cargo_id: r.cargoId,
+          ejercicio_id: ejercicio.id,
+          persona_id: personaId || '',
+          apellido_nombre: String(r.apellido_nombre || '').trim(),
+          dni: String(r.dni || '').trim(),
+          cuil: String(r.cuil || '').trim(),
+          domicilio: String(r.domicilio || '').trim(),
+          localidad: String(r.localidad || '').trim(),
+          fecha_asuncion: r.fecha_asuncion || '',
+          fecha_cese: r.fecha_cese || '',
+          fecha_vencimiento: fechaVencimiento || '',
+          motivo_cese: String(r.motivo_cese || '').trim(),
+          activo: Boolean(r.activo)
         })
-      if (updates.length === 0) return
-      await applyUserActions(updates)
+        if (r.id) {
+          actions.push(['UpdateRecord', tAutoridades, r.id, fields])
+        } else {
+          actions.push(['AddRecord', tAutoridades, null, fields])
+        }
+      }
+      if (actions.length === 0) return
+      await applyUserActions(actions)
       notice = 'Comisión guardada.'
       await loadComision()
     } catch (e) {
@@ -378,9 +441,27 @@
                     <div class="badge">Obligatorio</div>
                   {/if}
                 </div>
-                <div><input bind:value={r.apellido_nombre} placeholder="Apellido y nombre" /></div>
-                <div><input bind:value={r.dni} placeholder="DNI" /></div>
-                <div><input bind:value={r.cuil} placeholder="CUIL" /></div>
+                <div>
+                  {#if r.persona_id}
+                    <input bind:value={r.apellido_nombre} placeholder="Apellido y nombre" />
+                    <button class="btn secondary small" onclick={() => unlinkPersona(r)}>Desvincular</button>
+                  {:else}
+                    <input bind:value={r.apellido_nombre} placeholder="Apellido y nombre" onfocus={() => searchTargetRow = r} />
+                    <input bind:value={personaSearch} oninput={() => doPersonaSearch(r)} placeholder="Buscar persona…" />
+                    {#if personaSearching && searchTargetRow === r}<span class="muted">Buscando…</span>{/if}
+                    {#if personaResults.length > 0 && searchTargetRow === r}
+                      <div class="personaResults">
+                        {#each personaResults as p (p.id)}
+                          <button class="personaResult" onclick={() => linkPersona(p)}>
+                            {personaLabel(p)} · DNI {p.dni || '-'}
+                          </button>
+                        {/each}
+                      </div>
+                    {/if}
+                  {/if}
+                </div>
+                <div><input bind:value={r.dni} placeholder="DNI" disabled={!!r.persona_id} /></div>
+                <div><input bind:value={r.cuil} placeholder="CUIL" disabled={!!r.persona_id} /></div>
                 <div><input type="date" bind:value={r.fecha_asuncion} /></div>
                 <div><input type="date" bind:value={r.fecha_vencimiento} /></div>
               </div>
@@ -535,5 +616,24 @@
   }
   .resolucion-row label {
     flex: 1;
+  }
+  .personaResults {
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .personaResult {
+    text-align: left;
+    border: 1px solid rgba(128, 128, 128, 0.2);
+    border-radius: 8px;
+    padding: 6px 8px;
+    cursor: pointer;
+    background: transparent;
+    color: inherit;
+    font-size: 12px;
+  }
+  .personaResult:hover {
+    background: rgba(22, 179, 120, 0.1);
   }
 </style>
