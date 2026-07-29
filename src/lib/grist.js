@@ -108,19 +108,12 @@ const setGristStatus = (status) => {
   }
 }
 
-const setupOnAccess = () => {
-  if (!isBrowser() || !window.grist) return
-  if (typeof window.grist.onAccess !== 'function') return
-  window.grist.onAccess((access) => {
-    if (access === 'full') {
-      setGristStatus('ready')
-    } else if (access === 'none') {
-      setGristStatus('no-access')
-    }
-  })
+const tryListTables = async (timeoutMs) => {
+  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))
+  await Promise.race([window.grist.docApi.listTables(), timeout])
 }
 
-export const detectGrist = async ({ timeoutMs = 1500 } = {}) => {
+export const detectGrist = async ({ timeoutMs = 3000, retries = 4, retryDelay = 600 } = {}) => {
   if (!isBrowser()) {
     setGristStatus('none')
     return 'none'
@@ -138,18 +131,26 @@ export const detectGrist = async ({ timeoutMs = 1500 } = {}) => {
     window.grist.ready({ requiredAccess: 'full', allowSelectBy: true })
     setupOnRecords()
     setupOnOptions()
-    setupOnAccess()
-    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))
-    await Promise.race([window.grist.docApi.listTables(), timeout])
-    setGristStatus('ready')
-    return 'ready'
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        await tryListTables(timeoutMs)
+        setGristStatus('ready')
+        return 'ready'
+      } catch (e) {
+        if (attempt < retries - 1) {
+          await new Promise((resolve) => setTimeout(resolve, retryDelay))
+        }
+      }
+    }
+    setGristStatus('no-access')
+    return 'no-access'
   } catch {
     setGristStatus('no-access')
     return 'no-access'
   }
 }
 
-export const retryAccess = async ({ timeoutMs = 1500 } = {}) => {
+export const retryAccess = async ({ timeoutMs = 3000, retries = 4, retryDelay = 600 } = {}) => {
   if (_gristStatus === 'ready') return 'ready'
   if (!isBrowser() || !isInIframe()) return 'none'
   try {
@@ -157,10 +158,19 @@ export const retryAccess = async ({ timeoutMs = 1500 } = {}) => {
     if (typeof window.grist !== 'undefined') {
       window.grist.ready({ requiredAccess: 'full', allowSelectBy: true })
     }
-    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))
-    await Promise.race([window.grist.docApi.listTables(), timeout])
-    setGristStatus('ready')
-    return 'ready'
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        await tryListTables(timeoutMs)
+        setGristStatus('ready')
+        return 'ready'
+      } catch (e) {
+        if (attempt < retries - 1) {
+          await new Promise((resolve) => setTimeout(resolve, retryDelay))
+        }
+      }
+    }
+    setGristStatus('no-access')
+    return 'no-access'
   } catch {
     setGristStatus('no-access')
     return 'no-access'
