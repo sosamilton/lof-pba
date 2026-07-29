@@ -1,13 +1,16 @@
 <script>
   import { onMount } from 'svelte'
-  import { applyUserActions, fetchRecords, gristReady, isInGrist, resolveTableId } from '../grist'
+  import { applyUserActions, fetchRecords, gristReady, isInGrist, resolveTableId, subscribeRecords, getWidgetOptions } from '../grist'
   import { normalize, dateToInput, monthKey, TIPOS_MOVIMIENTO, TABLE_PREFERRED_IDS } from '../utils'
+  import MessageBanner from '../components/MessageBanner.svelte'
+  import EmptyState from '../components/EmptyState.svelte'
   import '../shared.css'
 
   let loading = $state(true)
   let error = $state('')
   let notice = $state('')
   let busy = $state(false)
+  let userName = $state('SPA')
   let tableId = $state()
   let tEjercicios = $state()
   let tRubros = $state()
@@ -68,26 +71,33 @@
     }
     try {
       await gristReady()
-      tableId = await resolveTableId(['Movimientos', 'movimientos'])
-      tEjercicios = await resolveTableId(['Ejercicios', 'ejercicios'])
-      tRubros = await resolveTableId(['Rubros PIA', 'rubros_pia'])
-      tSubrubros = await resolveTableId(['Subrubros', 'subrubros'])
-      tCuentas = await resolveTableId(['Cuentas', 'cuentas'])
-      tSocios = await resolveTableId(['Socios', 'socios'])
+      const opts = await getWidgetOptions()
+      if (opts?.userName) userName = opts.userName
+      tableId = await resolveTableId(TABLE_PREFERRED_IDS.movimientos)
+      tEjercicios = await resolveTableId(TABLE_PREFERRED_IDS.ejercicios)
+      tRubros = await resolveTableId(TABLE_PREFERRED_IDS.rubros_pia)
+      tSubrubros = await resolveTableId(TABLE_PREFERRED_IDS.subrubros)
+      tCuentas = await resolveTableId(TABLE_PREFERRED_IDS.cuentas)
+      tSocios = await resolveTableId(TABLE_PREFERRED_IDS.socios)
 
-      movimientos = await fetchRecords(tableId)
+      movimientos = await fetchRecords(tableId, {
+        sort: (a, b) => String(b.fecha || '').localeCompare(String(a.fecha || ''))
+      })
       ejercicios = await fetchRecords(tEjercicios)
       ejercicio = ejercicios.find((e) => e.en_curso === true) || null
 
-      rubros = await fetchRecords(tRubros)
-      rubros.sort((a, b) => normalize(a.nombre_oficial).localeCompare(normalize(b.nombre_oficial)))
+      rubros = await fetchRecords(tRubros, {
+        sort: (a, b) => normalize(a.nombre_oficial).localeCompare(normalize(b.nombre_oficial))
+      })
 
       subrubros = await fetchRecords(tSubrubros)
-      cuentas = await fetchRecords(tCuentas)
-      cuentas.sort((a, b) => Number(a.orden || 0) - Number(b.orden || 0))
+      cuentas = await fetchRecords(tCuentas, {
+        sort: (a, b) => Number(a.orden || 0) - Number(b.orden || 0)
+      })
 
-      socios = await fetchRecords(tSocios)
-      socios.sort((a, b) => normalize(a.apellido).localeCompare(normalize(b.apellido)) || normalize(a.nombre).localeCompare(normalize(b.nombre)))
+      socios = await fetchRecords(tSocios, {
+        sort: (a, b) => normalize(a.apellido).localeCompare(normalize(b.apellido)) || normalize(a.nombre).localeCompare(normalize(b.nombre))
+      })
     } catch (e) {
       error = e?.message || String(e)
     } finally {
@@ -179,7 +189,7 @@
         destino_bancario: isBanco ? (form.destino_bancario || '') : '',
         cuenta_destino_id: form.tipo_movimiento === 'Traspaso' ? (form.cuenta_destino_id || '') : '',
         socio_id: form.socio_id || '',
-        creado_por: 'SPA',
+        creado_por: userName,
         creado_el: new Date().toISOString()
       }
 
@@ -219,7 +229,13 @@
     if (!exists) form.subrubro_id = ''
   }
 
-  onMount(load)
+  onMount(() => {
+    const unsub = subscribeRecords(() => {
+      if (!busy && !loading) load()
+    })
+    load()
+    return unsub
+  })
 </script>
 
 {#if !isInGrist()}
@@ -244,19 +260,13 @@
   </div>
 
   {#if !ejercicio}
-    <div class="empty">
-      <div class="emptyTitle">No hay ejercicio en curso</div>
-      <div class="emptySub">Activá un ejercicio en “Cooperadora” para registrar movimientos.</div>
-    </div>
+    <EmptyState title="No hay ejercicio en curso" sub="Activá un ejercicio en “Cooperadora” para registrar movimientos." />
   {:else}
     <div class:grid={true} class:singlePane={!showList}>
       {#if showList}
         <div class="list">
           {#if filtered.length === 0}
-            <div class="empty">
-              <div class="emptyTitle">No hay movimientos</div>
-              <div class="emptySub">Creá el primer movimiento para empezar.</div>
-            </div>
+            <EmptyState title="No hay movimientos" sub="Creá el primer movimiento para empezar." />
           {:else}
             {#each filtered as m (m.id)}
               <button class:selected={m.id === selectedId} onclick={() => select(m)}>
@@ -367,13 +377,9 @@
           </div>
         {:else}
           {#if filtered.length === 0}
-            <div class="empty">
-              <div class="emptyTitle">Listo para cargar movimientos</div>
-              <div class="emptySub">Creá el primer movimiento para empezar.</div>
-              <div class="emptyActions">
-                <button class="btn" onclick={nuevo}>Nuevo movimiento</button>
-              </div>
-            </div>
+            <EmptyState title="Listo para cargar movimientos" sub="Creá el primer movimiento para empezar.">
+              <button class="btn" onclick={nuevo}>Nuevo movimiento</button>
+            </EmptyState>
           {:else}
             <div class="muted">Seleccioná un movimiento o creá uno nuevo.</div>
           {/if}
@@ -382,12 +388,7 @@
     </div>
   {/if}
 
-  {#if error}
-    <div class="msg error">{error}</div>
-  {/if}
-  {#if notice}
-    <div class="msg notice">{notice}</div>
-  {/if}
+  <MessageBanner {error} {notice} />
 {/if}
 
 <style>

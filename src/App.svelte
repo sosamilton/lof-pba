@@ -1,8 +1,8 @@
 <script>
   import { onMount } from 'svelte'
   import AppShell from './lib/layout/AppShell.svelte'
-  import { initRouter, router } from './lib/router.svelte'
-  import { detectGrist, isInGrist } from './lib/grist'
+  import { initRouter, router, navigate } from './lib/router.svelte'
+  import { detectGrist, getWidgetOptions, isInGrist } from './lib/grist'
 
   import Inicio from './lib/pages/Inicio.svelte'
   import Landing from './lib/pages/Landing.svelte'
@@ -13,12 +13,16 @@
 
   let ready = $state(false)
 
-  onMount(() => {
-    const cleanup = initRouter()
-    ;(async () => {
-      await detectGrist()
-      ready = true
-    })()
+  onMount(async () => {
+    const cleanup = await initRouter()
+    await detectGrist()
+    if (isInGrist()) {
+      const opts = await getWidgetOptions()
+      if (opts?.lastRoute && opts.lastRoute !== router.current) {
+        navigate(opts.lastRoute)
+      }
+    }
+    ready = true
     return cleanup
   })
 </script>

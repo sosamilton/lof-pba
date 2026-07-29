@@ -1,9 +1,10 @@
 <script>
   import { onMount } from 'svelte'
-  import { detectGrist, gristReady, isInGrist, listTables, resolveTableId } from '../grist'
+  import { detectGrist, gristReady, isInGrist, listTables, resolveTableId, subscribeRecords } from '../grist'
   import { REQUIRED_TABLES } from '../demoSchema'
   import { ensureSchema, getSchemaDiff, initDemoData } from '../initAppCoop'
   import { runMigration } from '../migracion'
+  import { TABLE_PREFERRED_IDS } from '../utils'
   import '../shared.css'
 
   let loading = $state(false)
@@ -53,13 +54,13 @@
       await ensureSchema(existing)
 
       await initDemoData([
-        { tableId: await resolveTableId(['Escuela', 'escuela']), seedName: 'escuela', batchSize: 10 },
-        { tableId: await resolveTableId(['Datos_banco', 'datos_banco']), seedName: 'datos_banco', batchSize: 10 },
-        { tableId: await resolveTableId(['Kiosco_libreria', 'kiosco_libreria']), seedName: 'kiosco_libreria', batchSize: 10 },
-        { tableId: await resolveTableId(['Ejercicios', 'ejercicios']), seedName: 'ejercicios', batchSize: 10 },
-        { tableId: await resolveTableId(['Cuentas', 'cuentas']), seedName: 'cuentas', batchSize: 50 },
-        { tableId: await resolveTableId(['Rubros_pia', 'rubros_pia']), seedName: 'rubros_pia', batchSize: 100 },
-        { tableId: await resolveTableId(['Cargos', 'cargos']), seedName: 'cargos', batchSize: 100 }
+        { tableId: await resolveTableId(TABLE_PREFERRED_IDS.escuela), seedName: 'escuela', batchSize: 10 },
+        { tableId: await resolveTableId(TABLE_PREFERRED_IDS.datos_banco), seedName: 'datos_banco', batchSize: 10 },
+        { tableId: await resolveTableId(TABLE_PREFERRED_IDS.kiosco_libreria), seedName: 'kiosco_libreria', batchSize: 10 },
+        { tableId: await resolveTableId(TABLE_PREFERRED_IDS.ejercicios), seedName: 'ejercicios', batchSize: 10 },
+        { tableId: await resolveTableId(TABLE_PREFERRED_IDS.cuentas), seedName: 'cuentas', batchSize: 50 },
+        { tableId: await resolveTableId(TABLE_PREFERRED_IDS.rubros_pia), seedName: 'rubros_pia', batchSize: 100 },
+        { tableId: await resolveTableId(TABLE_PREFERRED_IDS.cargos), seedName: 'cargos', batchSize: 100 }
       ])
       await check()
     } catch (e) {
@@ -100,7 +101,11 @@
 
   onMount(async () => {
     if (!(await detectGrist())) return
+    const unsub = subscribeRecords(() => {
+      if (!creating && !migrating) check()
+    })
     await check()
+    return unsub
   })
 </script>
 

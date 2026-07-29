@@ -1,3 +1,5 @@
+import { setWidgetOption } from './grist.js'
+
 const normalize = (h) => {
   const v = String(h || '').replace(/^#/, '').trim()
   return v || 'inicio'
@@ -11,9 +13,12 @@ class Router {
     window.location.hash = to
   }
 
-  init = () => {
+  init = async () => {
     if (typeof window === 'undefined') return
-    const onHash = () => { this.current = normalize(window.location.hash) }
+    const onHash = () => {
+      this.current = normalize(window.location.hash)
+      setWidgetOption('lastRoute', this.current)
+    }
     window.addEventListener('hashchange', onHash)
     onHash()
     return () => window.removeEventListener('hashchange', onHash)
