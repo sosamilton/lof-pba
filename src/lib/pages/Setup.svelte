@@ -1,7 +1,8 @@
 <script>
   import { onMount } from 'svelte'
-  import { ensureOneRow, fetchRecords, gristReady, isInGrist, resolveTableId, applyUserActions } from '../grist'
+  import { ensureOneRow, fetchRecords, gristReady, isInGrist, resolveTableId, applyUserActions, subscribeRecords, getWidgetOptions, setWidgetOption } from '../grist'
   import { normalizeFields, ORGANISMOS, ORGANISMO_LABELS, NIVELES_CARGO, MESES, TABLE_PREFERRED_IDS } from '../utils'
+  import MessageBanner from '../components/MessageBanner.svelte'
   import '../shared.css'
 
   let loading = $state(true)
@@ -31,6 +32,7 @@
 
   let organismo = $state('CD')
   let cargos = $state([])
+  let userName = $state('')
   let nuevoCargo = $state({ nombre_cargo: '', nivel: 'Titular', orden: 10, duracion_meses: 12, cargo_obligatorio: false, activo: true })
 
   const load = async () => {
@@ -46,17 +48,19 @@
     try {
       await gristReady()
 
-      tEscuela = await resolveTableId(['Escuela', 'escuela'])
-      tBanco = await resolveTableId(['Datos_banco', 'datos_banco'])
-      tKiosco = await resolveTableId(['Kiosco_libreria', 'kiosco_libreria'])
-      tEjercicios = await resolveTableId(['Ejercicios', 'ejercicios'])
-      tCargos = await resolveTableId(['Cargos', 'cargos'])
+      tEscuela = await resolveTableId(TABLE_PREFERRED_IDS.escuela)
+      tBanco = await resolveTableId(TABLE_PREFERRED_IDS.datos_banco)
+      tKiosco = await resolveTableId(TABLE_PREFERRED_IDS.kiosco_libreria)
+      tEjercicios = await resolveTableId(TABLE_PREFERRED_IDS.ejercicios)
+      tCargos = await resolveTableId(TABLE_PREFERRED_IDS.cargos)
 
       escuela = (await ensureOneRow(tEscuela)) || {}
       banco = (await ensureOneRow(tBanco)) || {}
       kiosco = (await ensureOneRow(tKiosco)) || {}
 
       ejercicios = await fetchRecords(tEjercicios)
+      const opts = await getWidgetOptions()
+      if (opts?.userName) userName = opts.userName
       await loadCargos()
     } catch (e) {
       error = e?.message || String(e)
@@ -90,6 +94,7 @@
       await updateRecord(tEscuela, escuela)
       await updateRecord(tBanco, banco)
       await updateRecord(tKiosco, kiosco)
+      if (userName) await setWidgetOption('userName', userName.trim())
       notice = 'Datos guardados.'
     } catch (e) {
       error = e?.message || String(e)
@@ -226,7 +231,13 @@
     }
   }
 
-  onMount(load)
+  onMount(() => {
+    const unsub = subscribeRecords(() => {
+      if (!busy && !loading) load()
+    })
+    load()
+    return unsub
+  })
 </script>
 
 {#if !isInGrist()}
@@ -298,6 +309,13 @@
             <option value="Propio">Propio</option>
             <option value="Licitado">Licitado</option>
           </select></label>
+        </div>
+      </div>
+
+      <h2>Usuario</h2>
+      <div class="form">
+        <div class="row">
+          <label>Nombre de usuario (para registros)<input bind:value={userName} placeholder="Ej: Juan Pérez" /></label>
         </div>
       </div>
 
@@ -424,12 +442,7 @@
     </section>
   </div>
 
-  {#if error}
-    <div class="msg error">{error}</div>
-  {/if}
-  {#if notice}
-    <div class="msg notice">{notice}</div>
-  {/if}
+  <MessageBanner {error} {notice} />
 {/if}
 
 <style>

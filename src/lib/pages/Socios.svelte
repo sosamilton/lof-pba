@@ -1,8 +1,10 @@
 <script>
   import { onMount } from 'svelte'
-  import { applyUserActions, fetchRecords, gristReady, isInGrist, resolveTableId } from '../grist'
+  import { applyUserActions, fetchRecords, gristReady, isInGrist, resolveTableId, subscribeRecords } from '../grist'
   import { findOrCreatePersona, isValidDni, normalizeCuil, normalizeDni, personaLabel, searchPersonas } from '../personas'
   import { normalize, dateToInput, TIPOS_SOCIO, TABLE_PREFERRED_IDS } from '../utils'
+  import MessageBanner from '../components/MessageBanner.svelte'
+  import EmptyState from '../components/EmptyState.svelte'
   import '../shared.css'
 
   let loading = $state(true)
@@ -76,7 +78,7 @@
 
     try {
       await gristReady()
-      tableId = await resolveTableId(['Socios', 'socios'])
+      tableId = await resolveTableId(TABLE_PREFERRED_IDS.socios)
       socios = await fetchRecords(tableId)
     } catch (e) {
       error = e?.message || String(e)
@@ -260,7 +262,13 @@
     }
   }
 
-  onMount(load)
+  onMount(() => {
+    const unsub = subscribeRecords(() => {
+      if (!busy && !loading) load()
+    })
+    load()
+    return unsub
+  })
 </script>
 
 {#if !isInGrist()}
@@ -400,13 +408,9 @@
         </div>
       {:else}
         {#if filtered.length === 0}
-          <div class="empty">
-            <div class="emptyTitle">Todavía no hay socios</div>
-            <div class="emptySub">Creá el primer socio para empezar.</div>
-            <div class="emptyActions">
-              <button class="btn" onclick={nuevo}>Nuevo socio</button>
-            </div>
-          </div>
+          <EmptyState title="Todavía no hay socios" sub="Creá el primer socio para empezar.">
+            <button class="btn" onclick={nuevo}>Nuevo socio</button>
+          </EmptyState>
         {:else}
           <div class="muted">Seleccioná un socio o creá uno nuevo.</div>
         {/if}
@@ -414,12 +418,7 @@
     </div>
   </div>
 
-  {#if error}
-    <div class="msg error">{error}</div>
-  {/if}
-  {#if notice}
-    <div class="msg notice">{notice}</div>
-  {/if}
+  <MessageBanner {error} {notice} />
 {/if}
 
 <style>
