@@ -76,7 +76,7 @@ export const MODULES = {
   gestion_completa: {
     label: 'Gestión completa',
     description: 'Socios, movimientos, gobierno y reportes',
-    tables: ['docs_tablas', 'escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asambleas', 'resoluciones', 'cuentas', 'rubros_pia', 'subrubros', 'movimientos', 'configuracion'],
+    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asambleas', 'resoluciones', 'cuentas', 'rubros_pia', 'subrubros', 'movimientos', 'configuracion'],
     menuItems: [
       { route: 'inicio', label: 'Inicio' },
       { route: 'setup', label: 'Cooperadora' },
