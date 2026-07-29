@@ -426,19 +426,6 @@
     margin: 0 0 10px 0;
     font-size: 18px;
   }
-  .top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-  .filters {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
   .personaBox {
     border: 1px solid rgba(22, 179, 120, 0.25);
     border-radius: 12px;
@@ -494,24 +481,6 @@
     color: rgba(176, 0, 32, 0.8);
     margin-top: 3px;
   }
-  .grid {
-    display: grid;
-    grid-template-columns: minmax(280px, 420px) 1fr;
-    gap: 12px;
-    align-items: start;
-  }
-  .grid.singlePane {
-    grid-template-columns: 1fr;
-  }
-  .name {
-    font-weight: 800;
-    font-size: 14px;
-  }
-  .sub {
-    font-size: 12px;
-    opacity: 0.7;
-    margin-top: 2px;
-  }
   .editor h2 {
     margin: 0 0 12px 0;
     font-size: 16px;
@@ -522,10 +491,5 @@
     gap: 8px;
     margin: -2px 0 10px 0;
     flex-wrap: wrap;
-  }
-  @media (max-width: 1100px) {
-    .grid {
-      grid-template-columns: 1fr;
-    }
   }
 </style>
