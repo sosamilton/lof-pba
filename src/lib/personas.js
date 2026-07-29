@@ -95,7 +95,17 @@ export const findOrCreatePersona = async (data) => {
   const dni = normalizeDni(data.dni)
   if (dni) {
     const existing = await findPersonaByDni(dni)
-    if (existing) return existing
+    if (existing) {
+      const updates = {}
+      for (const key of ['cuil', 'apellido', 'nombre', 'domicilio', 'localidad', 'telefono', 'email']) {
+        if (data[key] && !existing[key]) updates[key] = data[key]
+      }
+      if (Object.keys(updates).length > 0) {
+        await updatePersona(existing.id, updates)
+        return { ...existing, ...updates }
+      }
+      return existing
+    }
   }
   const created = await withMultiplayerProtection(
     async () => dni ? Boolean(await findPersonaByDni(dni)) : false,

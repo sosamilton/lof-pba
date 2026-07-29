@@ -71,11 +71,17 @@
   }
 
   const doMigration = async () => {
+    const total = (status?.tables || []).length
+    if (!confirm(`Se procesarán ${total} tablas. Esto creará personas y vinculará socios/autoridades. ¿Continuar?`)) return
     migrating = true
     error = ''
     migrationResult = null
     try {
-      await ensureSchema(new Set((status?.tables || []).map((t) => String(t || '').toLowerCase())))
+      const schemaResult = await ensureSchema(new Set((status?.tables || []).map((t) => String(t || '').toLowerCase())))
+      if (schemaResult?.errors?.length > 0) {
+        error = `Schema con errores: ${schemaResult.errors.join(', ')}`
+        return
+      }
       migrationResult = await runMigration()
     } catch (e) {
       error = e?.message || String(e)
@@ -132,6 +138,7 @@
               <div class="msgTitle">Migración completada</div>
               <ul>
                 <li>Personas creadas: <strong>{migrationResult.personasCreadas}</strong></li>
+                <li>Personas existentes reutilizadas: <strong>{migrationResult.personasActualizadas}</strong></li>
                 <li>Socios vinculados: <strong>{migrationResult.sociosVinculados}</strong></li>
                 <li>Autoridades vinculadas: <strong>{migrationResult.autoridadesVinculadas}</strong></li>
                 <li>Pendientes: <strong>{migrationResult.pendientes.length}</strong></li>
