@@ -400,28 +400,6 @@
     margin: 0;
     font-size: 16px;
   }
-  .top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-  .filters {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .grid {
-    display: grid;
-    grid-template-columns: minmax(300px, 440px) 1fr;
-    gap: 12px;
-    align-items: start;
-  }
-  .grid.singlePane {
-    grid-template-columns: 1fr;
-  }
   .editorHead {
     display: flex;
     align-items: center;
@@ -429,25 +407,11 @@
     gap: 10px;
     flex-wrap: wrap;
   }
-  .title {
-    font-weight: 800;
-    font-size: 13px;
-  }
-  .sub {
-    font-size: 12px;
-    opacity: 0.75;
-    margin-top: 4px;
-  }
   .form {
     margin-top: 10px;
   }
   .row.hint {
     opacity: 0.75;
     font-size: 13px;
-  }
-  @media (max-width: 1100px) {
-    .grid {
-      grid-template-columns: 1fr;
-    }
   }
 </style>

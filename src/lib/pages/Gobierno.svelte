@@ -480,25 +480,12 @@
     margin: 0;
     font-size: 16px;
   }
-  .sub {
-    opacity: 0.75;
-    font-size: 13px;
-    margin-top: 2px;
-  }
   .head {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 12px;
     margin-bottom: 12px;
-  }
-  .rowHead {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-bottom: 10px;
   }
   .gridTable {
     border: 1px solid rgba(128, 128, 128, 0.22);
@@ -538,16 +525,6 @@
     font-weight: 900;
     width: fit-content;
   }
-  .grid2 {
-    display: grid;
-    grid-template-columns: 360px 1fr;
-    gap: 12px;
-    align-items: start;
-  }
-  .name {
-    font-weight: 900;
-    font-size: 13px;
-  }
   .form {
     margin-top: 10px;
   }
@@ -558,10 +535,5 @@
   }
   .resolucion-row label {
     flex: 1;
-  }
-  @media (max-width: 1100px) {
-    .grid2 {
-      grid-template-columns: 1fr;
-    }
   }
 </style>
