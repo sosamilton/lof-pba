@@ -2,16 +2,6 @@
   "version": 1,
   "tables": [
     {
-      "id": "docs_tablas",
-      "title": "Documentacion - Tablas",
-      "columns": [
-        { "id": "table_id", "fields": { "label": "Table ID", "type": "Text" } },
-        { "id": "tabla_visible", "fields": { "label": "Tabla", "type": "Text" } },
-        { "id": "modulo_visible", "fields": { "label": "Modulo", "type": "Text" } },
-        { "id": "doc_md", "fields": { "label": "Documentacion", "type": "Text" } }
-      ]
-    },
-    {
       "id": "escuela",
       "title": "Escuela y cooperadora",
       "columns": [
