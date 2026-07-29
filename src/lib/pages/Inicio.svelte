@@ -106,7 +106,8 @@
   }
 
   onMount(async () => {
-    if (!(await detectGrist())) return
+    const status = await detectGrist()
+    if (status !== 'ready') return
     const unsub = subscribeRecords(() => {
       if (!creating && !migrating) check()
     })
