@@ -4,6 +4,8 @@
   const repoUrl = 'https://github.com/sosamilton/spa-cooperadora'
   const gristDocsUrl = 'https://support.getgrist.com/widget-custom/'
   const gristUrl = 'https://www.getgrist.com/'
+  const appUrl = 'https://sosamilton.github.io/spa-cooperadora/'
+  const licenseUrl = 'https://github.com/sosamilton/spa-cooperadora/blob/main/LICENSE'
 </script>
 
 <main class="wrap">
@@ -24,8 +26,9 @@
           datos tuyos, exportables, auditables y fáciles de replicar.
         </p>
         <div class="cta">
-          <a class="btn" href={repoUrl} target="_blank" rel="noreferrer">Ver repo / colaborar</a>
-          <a class="btn secondary" href={gristDocsUrl} target="_blank" rel="noreferrer">Instalar como widget</a>
+          <a class="btn" href={appUrl} target="_blank" rel="noreferrer">Abrir AppCoop</a>
+          <a class="btn secondary" href={repoUrl} target="_blank" rel="noreferrer">Ver repo / colaborar</a>
+          <a class="btn secondary" href={gristDocsUrl} target="_blank" rel="noreferrer">Cómo instalar</a>
         </div>
         <div class="meta">
           Corre como Custom Widget dentro de Grist. En esta página pública ves el proyecto, documentación y roadmap.
@@ -281,10 +284,11 @@
   <footer class="foot">
     <div class="footLeft">
       <div class="footTitle">AppCoop</div>
-      <div class="footSub">Gestión colaborativa para cooperadoras escolares bonaerenses.</div>
+      <div class="footSub">Gestión colaborativa para cooperadoras escolares bonaerenses. Software libre bajo licencia AGPL-3.0.</div>
     </div>
     <div class="footLinks">
       <a class="link" href={repoUrl} target="_blank" rel="noreferrer">Contribuir</a>
+      <a class="link" href={licenseUrl} target="_blank" rel="noreferrer">Licencia</a>
       <a class="link" href={gristDocsUrl} target="_blank" rel="noreferrer">Custom Widgets</a>
     </div>
   </footer>

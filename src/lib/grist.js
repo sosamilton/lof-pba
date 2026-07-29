@@ -1,9 +1,19 @@
 let _detected = null
+let _gristStatus = 'none'
 let _ready = false
 let _tablesCache = null
 const _recordsSubscribers = new Set()
 const _optionsSubscribers = new Set()
+const _accessSubscribers = new Set()
 let _currentOptions = null
+
+export const subscribeAccess = (callback) => {
+  _accessSubscribers.add(callback)
+  callback(_gristStatus)
+  return () => { _accessSubscribers.delete(callback) }
+}
+
+export const getGristStatus = () => _gristStatus
 
 export const subscribeRecords = (callback) => {
   _recordsSubscribers.add(callback)
@@ -81,7 +91,7 @@ export const ensureGristPluginLoaded = async () => {
   return typeof window.grist !== 'undefined'
 }
 
-export const isInGrist = () => _detected === true
+export const isInGrist = () => _gristStatus === 'ready'
 
 const ensureReady = () => {
   if (!_ready && isInGrist()) {
@@ -90,28 +100,70 @@ const ensureReady = () => {
   }
 }
 
-export const detectGrist = async ({ timeoutMs = 800 } = {}) => {
-  if (!isBrowser()) return false
+const setGristStatus = (status) => {
+  _gristStatus = status
+  _detected = status === 'ready'
+  for (const cb of _accessSubscribers) {
+    try { cb(status) } catch (e) { console.error('[grist] access subscriber error:', e) }
+  }
+}
+
+const setupOnAccess = () => {
+  if (!isBrowser() || !window.grist) return
+  if (typeof window.grist.onAccess !== 'function') return
+  window.grist.onAccess((access) => {
+    if (access === 'full') {
+      setGristStatus('ready')
+    } else if (access === 'none') {
+      setGristStatus('no-access')
+    }
+  })
+}
+
+export const detectGrist = async ({ timeoutMs = 1500 } = {}) => {
+  if (!isBrowser()) {
+    setGristStatus('none')
+    return 'none'
+  }
   if (!isInIframe()) {
-    _detected = false
-    return false
+    setGristStatus('none')
+    return 'none'
   }
   try {
     const ok = await ensureGristPluginLoaded()
     if (!ok) {
-      _detected = false
-      return false
+      setGristStatus('none')
+      return 'none'
     }
-    window.grist.ready({ requiredAccess: 'read table' })
+    window.grist.ready({ requiredAccess: 'full', allowSelectBy: true })
     setupOnRecords()
     setupOnOptions()
+    setupOnAccess()
     const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))
     await Promise.race([window.grist.docApi.listTables(), timeout])
-    _detected = true
-    return true
+    setGristStatus('ready')
+    return 'ready'
   } catch {
-    _detected = false
-    return false
+    setGristStatus('no-access')
+    return 'no-access'
+  }
+}
+
+export const retryAccess = async ({ timeoutMs = 1500 } = {}) => {
+  if (_gristStatus === 'ready') return 'ready'
+  if (!isBrowser() || !isInIframe()) return 'none'
+  try {
+    await ensureGristPluginLoaded()
+    if (typeof window.grist !== 'undefined') {
+      window.grist.ready({ requiredAccess: 'full', allowSelectBy: true })
+    }
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))
+    await Promise.race([window.grist.docApi.listTables(), timeout])
+    setGristStatus('ready')
+    return 'ready'
+  } catch {
+    setGristStatus('no-access')
+    return 'no-access'
   }
 }
 
