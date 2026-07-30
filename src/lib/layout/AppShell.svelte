@@ -26,7 +26,7 @@
     socios: UsersIcon,
     movimientos: ArrowLeftRightIcon,
     gobierno: GavelIcon,
-    setup: SettingsIcon,
+    cooperadora: SettingsIcon,
   }
 
   const syncSmall = () => {

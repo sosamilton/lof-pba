@@ -93,7 +93,7 @@
     await applyUserActions([['UpdateRecord', tableId, rec.id, normalizeFields(fields)]])
   }
 
-  const saveSetup = async () => {
+  const saveCooperadora = async () => {
     notice = ''
     error = ''
     busy = true
@@ -368,7 +368,7 @@
         </div>
 
         <div class="flex justify-end">
-          <Button onclick={saveSetup} disabled={busy}>Guardar datos</Button>
+          <Button onclick={saveCooperadora} disabled={busy}>Guardar datos</Button>
         </div>
       </Card.Content>
     </Card.Root>

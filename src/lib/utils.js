@@ -84,7 +84,7 @@ export const MODULES = {
     tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asambleas', 'resoluciones', 'cuentas', 'rubros_pia', 'subrubros', 'movimientos', 'configuracion'],
     menuItems: [
       { route: 'inicio', label: 'Inicio' },
-      { route: 'setup', label: 'Cooperadora' },
+      { route: 'cooperadora', label: 'Cooperadora' },
       { route: 'socios', label: 'Socios' },
       { route: 'movimientos', label: 'Movimientos' },
       { route: 'gobierno', label: 'Gobierno' }
@@ -124,7 +124,7 @@ export const getActiveMenuItems = (config) => {
   if (!config) return [{ route: 'inicio', label: 'Inicio' }]
   const items = [{ route: 'inicio', label: 'Inicio' }]
   if (config.modulo_gestion_completa || config.modulo_tesoreria) {
-    items.push({ route: 'setup', label: 'Cooperadora' })
+    items.push({ route: 'cooperadora', label: 'Cooperadora' })
   }
   if (config.modulo_gestion_completa || config.modulo_tesoreria) {
     items.push({ route: 'movimientos', label: 'Movimientos' })
