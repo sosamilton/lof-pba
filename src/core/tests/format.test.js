@@ -11,6 +11,10 @@ import {
   formatTelefono,
   normalizeTelefonoForStorage,
   isValidTelefono,
+  formatTelefonoNational,
+  normalizeTelefonoNationalForStorage,
+  isValidTelefonoNational,
+  extractNational,
   normalizeEmail,
   isValidEmail,
   parseCue,
@@ -51,8 +55,13 @@ describe('formatCuil', () => {
   it('formats complete 11-digit CUIT', () => {
     expect(formatCuil('20123456789')).toBe('20-12345678-9')
   })
-  it('returns raw digits when incomplete', () => {
-    expect(formatCuil('20123')).toBe('20123')
+  it('formats progressively while typing', () => {
+    expect(formatCuil('2')).toBe('2')
+    expect(formatCuil('20')).toBe('20')
+    expect(formatCuil('201')).toBe('20-1')
+    expect(formatCuil('20123')).toBe('20-123')
+    expect(formatCuil('2012345678')).toBe('20-12345678')
+    expect(formatCuil('20123456789')).toBe('20-12345678-9')
   })
   it('handles formatted input', () => {
     expect(formatCuil('20-12345678-9')).toBe('20-12345678-9')
@@ -123,6 +132,72 @@ describe('isValidTelefono', () => {
   })
 })
 
+describe('formatTelefonoNational', () => {
+  it('formats AMBA mobile (with 9 prefix)', () => {
+    expect(formatTelefonoNational('91112345678')).toBe('9 11 1234-5678')
+  })
+  it('formats AMBA landline', () => {
+    expect(formatTelefonoNational('1112345678')).toBe('11 1234-5678')
+  })
+  it('formats La Plata (221) 7-digit', () => {
+    expect(formatTelefonoNational('2211234567')).toBe('221 123-4567')
+  })
+  it('converts 15 prefix to 9', () => {
+    expect(formatTelefonoNational('151112345678')).toBe('9 11 1234-5678')
+  })
+  it('returns short input as-is', () => {
+    expect(formatTelefonoNational('11')).toBe('11')
+  })
+  it('returns empty for empty input', () => {
+    expect(formatTelefonoNational('')).toBe('')
+  })
+})
+
+describe('normalizeTelefonoNationalForStorage', () => {
+  it('prepends 54 to national number', () => {
+    expect(normalizeTelefonoNationalForStorage('1112345678')).toBe('541112345678')
+  })
+  it('prepends 54 to mobile (with 9)', () => {
+    expect(normalizeTelefonoNationalForStorage('91112345678')).toBe('5491112345678')
+  })
+  it('converts 15 prefix to 549', () => {
+    expect(normalizeTelefonoNationalForStorage('151112345678')).toBe('5491112345678')
+  })
+  it('preserves existing 54 prefix', () => {
+    expect(normalizeTelefonoNationalForStorage('541112345678')).toBe('541112345678')
+  })
+  it('returns empty for empty input', () => {
+    expect(normalizeTelefonoNationalForStorage('')).toBe('')
+  })
+})
+
+describe('isValidTelefonoNational', () => {
+  it('validates 10-digit national', () => {
+    expect(isValidTelefonoNational('1112345678')).toBe(true)
+  })
+  it('validates 11-digit mobile (starts with 9)', () => {
+    expect(isValidTelefonoNational('91112345678')).toBe(true)
+  })
+  it('rejects too short', () => {
+    expect(isValidTelefonoNational('123')).toBe(false)
+  })
+})
+
+describe('extractNational', () => {
+  it('extracts national from stored number with 54', () => {
+    expect(extractNational('5491112345678')).toBe('91112345678')
+  })
+  it('extracts national from landline with 54', () => {
+    expect(extractNational('541112345678')).toBe('1112345678')
+  })
+  it('returns as-is if no 54 prefix', () => {
+    expect(extractNational('1112345678')).toBe('1112345678')
+  })
+  it('returns empty for empty', () => {
+    expect(extractNational('')).toBe('')
+  })
+})
+
 describe('normalizeEmail', () => {
   it('trims and lowercases', () => {
     expect(normalizeEmail('  Test@Example.COM  ')).toBe('test@example.com')
@@ -151,8 +226,14 @@ describe('formatCue', () => {
   it('formats complete 9-digit CUE', () => {
     expect(formatCue('061234500')).toBe('06-12345-00')
   })
-  it('returns raw digits when incomplete', () => {
-    expect(formatCue('06123')).toBe('06123')
+  it('formats progressively while typing', () => {
+    expect(formatCue('0')).toBe('0')
+    expect(formatCue('06')).toBe('06')
+    expect(formatCue('061')).toBe('06-1')
+    expect(formatCue('06123')).toBe('06-123')
+    expect(formatCue('0612345')).toBe('06-12345')
+    expect(formatCue('06123450')).toBe('06-12345-0')
+    expect(formatCue('061234500')).toBe('06-12345-00')
   })
   it('strips non-digits before formatting', () => {
     expect(formatCue('06-12345-00')).toBe('06-12345-00')

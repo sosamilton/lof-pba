@@ -29,7 +29,10 @@ export const parseCuil = (raw) => onlyDigits(raw).slice(0, 11)
 
 export const formatCuil = (raw) => {
   const c = parseCuil(raw)
-  if (c.length < 11) return c // Mientras se completa, mostrar crudo para no confundir
+  if (!c) return ''
+  // Formateo progresivo: XX-XXXXXXXX-X
+  if (c.length <= 2) return c
+  if (c.length <= 10) return `${c.slice(0, 2)}-${c.slice(2)}`
   return `${c.slice(0, 2)}-${c.slice(2, 10)}-${c.slice(10)}`
 }
 
@@ -132,20 +135,69 @@ export const formatTelefono = (raw) => {
 
 // Normaliza a formato canónico para guardar: 54 + [9] + área + número (sin + ni espacios)
 // Si el usuario no puso código de país, asumimos +54
-export const normalizeTelefonoForStorage = (raw) => {
+// Formatea solo la parte nacional del teléfono (sin el prefijo +54).
+// El prefijo de país se maneja visualmente como addon fijo en la UI.
+// Acepta el prefijo "15" de celular local y lo convierte a "9" para mostrar.
+export const formatTelefonoNational = (raw) => {
   let d = onlyDigits(raw)
   if (!d) return ''
-  // Si ya tiene 54 al inicio, respetar
-  if (d.startsWith('54')) return d.slice(0, 13)
-  // Si empieza con 15 (celular local sin área), convertir a 54 9 + número
+  // Quitar el 15 inicial (celular local) y anteponer 9 para mostrar como móvil
   if (d.startsWith('15')) {
-    const num = d.slice(2)
-    return `549${num}`.slice(0, 13)
+    d = '9' + d.slice(2)
   }
-  // Sin código de país: anteponer 54 (fijo) o 549 si parece celular
-  // Heurística: si tiene 10 dígitos y empieza con 11/15/área, asumimos 54
+  // Quitar el 9 inicial si viene de un número que ya lo tenía (celular)
+  let isMobile = false
+  if (d.startsWith('9') && d.length >= 7) {
+    isMobile = true
+    d = d.slice(1)
+  }
+  // d ahora es el número nacional (sin 9 ni 15 ni 54): 10 dígitos idealmente
+  if (d.length < 6) return (isMobile ? '9 ' : '') + d
+
+  const areaLen = detectAreaLen(d)
+  let formatted
+  if (areaLen) {
+    const area = d.slice(0, areaLen)
+    const number = d.slice(areaLen, 10)
+    let fn
+    if (number.length === 8) fn = `${number.slice(0, 4)}-${number.slice(4)}`
+    else if (number.length === 7) fn = `${number.slice(0, 3)}-${number.slice(3)}`
+    else if (number.length === 6) fn = `${number.slice(0, 2)}-${number.slice(2)}`
+    else fn = number
+    formatted = `${area} ${fn}`
+  } else {
+    formatted = d.replace(/\B(?=(\d{4})+(?!\d))/g, '-')
+  }
+  return (isMobile ? '9 ' : '') + formatted
+}
+
+// Normaliza la parte nacional a formato de storage: 54 + [9] + área + número
+export const normalizeTelefonoNationalForStorage = (raw) => {
+  let d = onlyDigits(raw)
+  if (!d) return ''
+  if (d.startsWith('15')) d = '9' + d.slice(2)
+  if (d.startsWith('54')) return d.slice(0, 13)
   return `54${d}`.slice(0, 13)
 }
+
+export const isValidTelefonoNational = (raw) => {
+  const d = onlyDigits(raw)
+  // Acepta 10 (nacional) o 11 (con el 9 de móvil)
+  return d.length === 10 || (d.length === 11 && d.startsWith('9'))
+}
+
+// Extrae la parte nacional de un número guardado (con prefijo 54)
+export const extractNational = (raw) => {
+  let d = onlyDigits(raw)
+  if (!d) return ''
+  if (d.startsWith('54')) d = d.slice(2)
+  // Devolver tal cual (incluye el 9 si es móvil o el 15 si se guardó así)
+  return d
+}
+
+// Compatibilidad: el mismo comportamiento que normalizeTelefonoNationalForStorage
+// para no romper código existente (personas.js, etc.)
+export const normalizeTelefonoForStorage = normalizeTelefonoNationalForStorage
 
 export const isValidTelefono = (raw) => {
   const d = onlyDigits(raw)
@@ -176,7 +228,9 @@ export const parseCue = (raw) => onlyDigits(raw).slice(0, 9)
 export const formatCue = (raw) => {
   const c = parseCue(raw)
   if (!c) return ''
-  if (c.length < 9) return c // Mientras se completa, mostrar crudo
+  // Formateo progresivo: XX-XXXXX-XX
+  if (c.length <= 2) return c
+  if (c.length <= 7) return `${c.slice(0, 2)}-${c.slice(2)}`
   return `${c.slice(0, 2)}-${c.slice(2, 7)}-${c.slice(7)}`
 }
 
