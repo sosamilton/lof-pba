@@ -17,6 +17,10 @@ import {
   formatCue,
   isValidCue,
   cueSedeLabel,
+  parseCbu,
+  formatCbu,
+  isValidCbu,
+  isValidCbuChecksum,
 } from '$core/format.js'
 
 describe('formatDni', () => {
@@ -185,5 +189,48 @@ describe('cueSedeLabel', () => {
   })
   it('returns empty for invalid CUE', () => {
     expect(cueSedeLabel('06123')).toBe('')
+  })
+})
+
+describe('formatCbu', () => {
+  it('formats complete 22-digit CBU', () => {
+    expect(formatCbu('0140002100000000000000')).toBe('01400021-00000000000000')
+  })
+  it('returns raw digits when incomplete', () => {
+    expect(formatCbu('01400021')).toBe('01400021')
+  })
+  it('strips non-digits before formatting', () => {
+    expect(formatCbu('01400021-00000000000000')).toBe('01400021-00000000000000')
+  })
+  it('slices to max 22 digits', () => {
+    expect(formatCbu('0140002100000000000000123')).toBe('01400021-00000000000000')
+  })
+  it('returns empty for empty input', () => {
+    expect(formatCbu('')).toBe('')
+  })
+})
+
+describe('isValidCbu', () => {
+  it('validates 22-digit CBU', () => {
+    expect(isValidCbu('0140002100000000000000')).toBe(true)
+  })
+  it('rejects CBU with less than 22 digits', () => {
+    expect(isValidCbu('01400021')).toBe(false)
+  })
+  it('rejects empty', () => {
+    expect(isValidCbu('')).toBe(false)
+  })
+})
+
+describe('isValidCbuChecksum', () => {
+  it('validates correct checksum (Banco Provincia example)', () => {
+    expect(isValidCbuChecksum('0140002100000000000000')).toBe(true)
+  })
+  it('rejects incorrect checksum', () => {
+    // Mismo CBU pero con DV del bloque 1 alterado
+    expect(isValidCbuChecksum('0140002900000000000000')).toBe(false)
+  })
+  it('rejects non-22-digit', () => {
+    expect(isValidCbuChecksum('01400021')).toBe(false)
   })
 })

@@ -192,3 +192,36 @@ export const cueSedeLabel = (raw) => {
   const suf = c.slice(7)
   return suf === '00' ? 'Sede central' : `Anexo ${suf}`
 }
+
+// ---------- CBU (Clave Bancaria Uniforme) ----------
+// Argentina: 22 dígitos. Estructura: 3 dígitos de entidad + 5 de sucursal/verificador
+// (bloque 1, 8 dígitos) + 13 de cuenta + verificador (bloque 2, 14 dígitos).
+// Guardamos: 22 dígitos crudos. Mostramos: 00000031-0000000000000001
+export const parseCbu = (raw) => onlyDigits(raw).slice(0, 22)
+
+export const formatCbu = (raw) => {
+  const c = parseCbu(raw)
+  if (!c) return ''
+  if (c.length < 22) return c // Mientras se completa, mostrar crudo
+  return `${c.slice(0, 8)}-${c.slice(8)}`
+}
+
+export const isValidCbu = (raw) => parseCbu(raw).length === 22
+
+// Validación de dígitos verificadores de CBU (algoritmo oficial)
+const CBU_PESOS_1 = [7, 1, 3, 9, 7, 1, 3]
+const CBU_PESOS_2 = [3, 9, 7, 1, 3, 9, 7, 1, 3, 9, 7, 1, 3]
+
+const verificarBloque = (bloque, pesos) => {
+  if (bloque.length !== pesos.length + 1) return false
+  const sum = bloque.slice(0, pesos.length).split('').reduce((acc, d, i) => acc + Number(d) * pesos[i], 0)
+  const rest = sum % 10
+  const dv = rest === 0 ? 0 : 10 - rest
+  return dv === Number(bloque[pesos.length])
+}
+
+export const isValidCbuChecksum = (raw) => {
+  const c = parseCbu(raw)
+  if (c.length !== 22) return false
+  return verificarBloque(c.slice(0, 8), CBU_PESOS_1) && verificarBloque(c.slice(8), CBU_PESOS_2)
+}
