@@ -1,16 +1,15 @@
 <script>
   import { onMount } from 'svelte'
   import { movimientosStore as store } from './movimientosStore.svelte'
-  import { normalize, monthKey, formatARS } from '$core/utils'
+  import { normalize, monthKey, formatARS, CATEGORIAS_VINCULO } from '$core/utils'
   import { notify } from '$core/notify.svelte'
   import { Button } from '$lib/components/ui/button'
   import * as Card from '$lib/components/ui/card'
   import { Input } from '$lib/components/ui/input'
-  import { Label } from '$lib/components/ui/label'
   import { Textarea } from '$lib/components/ui/textarea'
   import * as Select from '$lib/components/ui/select'
   import { Skeleton } from '$lib/components/ui/skeleton'
-  import FormField from '$lib/components/FormField.svelte'
+  import * as Field from '$lib/components/ui/field'
   import EmptyState from '$lib/components/EmptyState.svelte'
   import Combobox from '$lib/components/Combobox.svelte'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
@@ -24,18 +23,23 @@
 
   let filtered = $derived(
     store.records
-      .filter((m) => (tipo ? String(m.tipo_movimiento || '') === tipo : true))
-      .filter((m) => {
+      .filter((/** @type {any} */ m) => (tipo ? String(m.tipo_movimiento || '') === tipo : true))
+      .filter((/** @type {any} */ m) => {
         const t = normalize(q)
         if (!t) return true
         return normalize(m.detalle).includes(t)
       })
-      .sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')))
+      .sort((/** @type {any} */ a, /** @type {any} */ b) => String(b.fecha || '').localeCompare(String(a.fecha || '')))
   )
 
   let showList = $derived(store.listOpen && filtered.length > 0)
 
-  let rubroById = $derived(new Map(store.rubros.map((r) => [Number(r.id), r])))
+  let rubroById = $derived(new Map(store.rubros.map((/** @type {any} */ r) => [Number(r.id), r])))
+  let filteredRubros = $derived(
+    store.form?.tipo_movimiento === 'Entrada' || store.form?.tipo_movimiento === 'Salida'
+      ? store.rubros.filter((/** @type {any} */ r) => String(r.tipo_rubro || '') === store.form.tipo_movimiento)
+      : store.rubros
+  )
   let subrubrosByRubro = $derived.by(() => {
     const map = new Map()
     for (const s of store.subrubros) {
@@ -44,11 +48,26 @@
       map.get(k).push(s)
     }
     for (const arr of map.values()) {
-      arr.sort((a, b) => normalize(a.nombre_subrubro).localeCompare(normalize(b.nombre_subrubro)))
+      arr.sort((/** @type {any} */ a, /** @type {any} */ b) => normalize(a.nombre_subrubro).localeCompare(normalize(b.nombre_subrubro)))
     }
     return map
   })
-  let cuentaById = $derived(new Map(store.cuentas.map((c) => [Number(c.id), c])))
+  let cuentaById = $derived(new Map(store.cuentas.map((/** @type {any} */ c) => [Number(c.id), c])))
+
+  // Valor actual del campo persona/socio vinculado
+  let personaVinculadaValue = $derived(
+    store.personasSeleccionables.tipo === 'socio'
+      ? store.form?.socio_id ?? ''
+      : store.form?.persona_id ?? ''
+  )
+
+  const onPersonaVinculadaChange = (/** @type {any} */ val) => {
+    if (store.personasSeleccionables.tipo === 'socio') {
+      store.form.socio_id = val
+    } else {
+      store.form.persona_id = val
+    }
+  }
 
   const handleSave = async () => {
     await store.saveMovimiento()
@@ -150,11 +169,14 @@
               </div>
             </Card.Header>
             <Card.Content class="flex flex-col gap-4">
-              <div class="grid gap-4 sm:grid-cols-2">
-                <FormField label="Fecha" id="fecha" type="date" bind:value={store.form.fecha} />
-                <div>
-                  <Label for="tipo-mov">Tipo</Label>
-                  <Select.Root type="single" bind:value={store.form.tipo_movimiento}>
+              <Field.FieldGroup class="grid gap-4 sm:grid-cols-2">
+                <Field.Field>
+                  <Field.FieldLabel for="fecha">Fecha</Field.FieldLabel>
+                  <Input id="fecha" type="date" bind:value={store.form.fecha} />
+                </Field.Field>
+                <Field.Field>
+                  <Field.FieldLabel for="tipo-mov">Tipo</Field.FieldLabel>
+                  <Select.Root type="single" bind:value={store.form.tipo_movimiento} onchange={store.onTipoChange}>
                     <Select.Trigger id="tipo-mov" class="mt-1 w-full">
                       <Select.Value placeholder="Elegir…" />
                     </Select.Trigger>
@@ -164,13 +186,20 @@
                       <Select.Item value="Traspaso">Traspaso</Select.Item>
                     </Select.Content>
                   </Select.Root>
-                </div>
-                <div class="sm:col-span-2">
-                  <FormField label="Detalle" id="detalle" type="textarea" bind:value={store.form.detalle} placeholder="Descripción corta (p.ej. Compra kiosco, Pago proveedor, Aporte socio)" />
-                </div>
-                <FormField label="Importe" id="importe" type="number" bind:value={store.form.importe} />
-                <div>
-                  <Label for="cuenta">Caja/cuenta</Label>
+                </Field.Field>
+                <Field.Field class="sm:col-span-2">
+                  <Field.FieldLabel for="detalle">Detalle</Field.FieldLabel>
+                  <Textarea id="detalle" bind:value={store.form.detalle} placeholder="Descripción corta (p.ej. Compra kiosco, Pago proveedor, Aporte socio)" />
+                </Field.Field>
+                <Field.Field>
+                  <Field.FieldLabel for="importe">Importe</Field.FieldLabel>
+                  <div class="relative mt-1">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">$</span>
+                    <Input id="importe" type="number" step="0.01" min="0" bind:value={store.form.importe} class="pl-7" placeholder="0,00" />
+                  </div>
+                </Field.Field>
+                <Field.Field>
+                  <Field.FieldLabel for="cuenta">Caja/cuenta</Field.FieldLabel>
                   <Combobox
                     bind:value={store.form.cuenta_id}
                     items={store.cuentas.map((c) => ({ value: c.id, label: c.nombre_cuenta }))}
@@ -178,11 +207,11 @@
                     searchPlaceholder="Buscar cuenta…"
                     class="mt-1"
                   />
-                </div>
+                </Field.Field>
 
                 {#if store.form.tipo_movimiento === 'Traspaso'}
-                  <div class="sm:col-span-2">
-                    <Label for="cuenta-destino">Cuenta destino</Label>
+                  <Field.Field class="sm:col-span-2">
+                    <Field.FieldLabel for="cuenta-destino">Cuenta destino</Field.FieldLabel>
                     <Combobox
                       bind:value={store.form.cuenta_destino_id}
                       items={store.cuentas.map((c) => ({ value: c.id, label: c.nombre_cuenta }))}
@@ -190,37 +219,39 @@
                       searchPlaceholder="Buscar cuenta…"
                       class="mt-1"
                     />
-                  </div>
+                  </Field.Field>
                 {:else}
-                  <div>
-                    <Label for="rubro">Rubro</Label>
+                  <Field.Field>
+                    <Field.FieldLabel for="rubro">Rubro</Field.FieldLabel>
                     <Combobox
                       bind:value={store.form.rubro_id}
-                      items={store.rubros.map((r) => ({ value: r.id, label: `${r.codigo_rubro} · ${r.nombre_oficial}` }))}
+                      items={filteredRubros.map((r) => ({ value: r.id, label: `${r.codigo_rubro} · ${r.nombre_oficial}` }))}
                       placeholder="Elegir…"
                       searchPlaceholder="Buscar rubro…"
                       class="mt-1"
                       onchange={store.onRubroChange}
                     />
-                  </div>
-                  <div>
-                    <Label for="subrubro">Subrubro</Label>
-                    <Select.Root type="single" bind:value={store.form.subrubro_id} disabled={!store.form.rubro_id} allowDeselect={true}>
-                      <Select.Trigger id="subrubro" class="mt-1 w-full">
-                        <Select.Value placeholder="(Opcional)" />
-                      </Select.Trigger>
-                      <Select.Content>
-                        {#each (subrubrosByRubro.get(Number(store.form.rubro_id)) || []) as s (s.id)}
-                          <Select.Item value={String(s.id)}>{s.nombre_subrubro}</Select.Item>
-                        {/each}
-                      </Select.Content>
-                    </Select.Root>
-                  </div>
+                  </Field.Field>
+                  {#if (subrubrosByRubro.get(Number(store.form.rubro_id)) || []).length > 0}
+                    <Field.Field>
+                      <Field.FieldLabel for="subrubro">Subrubro</Field.FieldLabel>
+                      <Select.Root type="single" bind:value={store.form.subrubro_id} disabled={!store.form.rubro_id} allowDeselect={true}>
+                        <Select.Trigger id="subrubro" class="mt-1 w-full">
+                          <Select.Value placeholder="(Opcional)" />
+                        </Select.Trigger>
+                        <Select.Content>
+                          {#each (subrubrosByRubro.get(Number(store.form.rubro_id)) || []) as s (s.id)}
+                            <Select.Item value={String(s.id)}>{s.nombre_subrubro}</Select.Item>
+                          {/each}
+                        </Select.Content>
+                      </Select.Root>
+                    </Field.Field>
+                  {/if}
                 {/if}
 
                 {#if String(cuentaById.get(Number(store.form.cuenta_id))?.nombre_cuenta || '') === 'Banco'}
-                  <div class="sm:col-span-2">
-                    <Label for="destino-banco">Destino en banco</Label>
+                  <Field.Field class="sm:col-span-2">
+                    <Field.FieldLabel for="destino-banco">Destino en banco</Field.FieldLabel>
                     <Select.Root type="single" bind:value={store.form.destino_bancario} allowDeselect={true}>
                       <Select.Trigger id="destino-banco" class="mt-1 w-full">
                         <Select.Value placeholder="(Opcional)" />
@@ -230,24 +261,59 @@
                         <Select.Item value="PlazoFijo">Plazo fijo</Select.Item>
                       </Select.Content>
                     </Select.Root>
-                  </div>
+                  </Field.Field>
                 {/if}
 
-                <div class="sm:col-span-2">
-                  <Label for="socio">Socio (opcional)</Label>
-                  <Combobox
-                    bind:value={store.form.socio_id}
-                    items={store.socios.map((s) => ({ value: s.id, label: `${s.apellido}, ${s.nombre} · DNI ${s.dni || '-'}` }))}
-                    placeholder="(Ninguno)"
-                    searchPlaceholder="Buscar socio…"
-                    class="mt-1"
-                  />
-                </div>
-              </div>
+                {#if store.personasSeleccionables.tipo !== 'none' && (store.personasSeleccionables.items.length > 0 || store.personasSeleccionables.filtroCategoria)}
+                  <Field.Field class="sm:col-span-2">
+                    <Field.FieldLabel for="persona-vinculada">{store.personasSeleccionables.label} (opcional)</Field.FieldLabel>
 
-              <p class="text-xs text-muted-foreground">
+                    {#if store.personasSeleccionables.filtroCategoria && store.categoriasDisponibles.length > 0}
+                      <div class="mb-2 flex flex-wrap items-center gap-1.5">
+                        <span class="text-xs text-muted-foreground">Categoría:</span>
+                        <button
+                          type="button"
+                          class="rounded-full border px-2.5 py-0.5 text-xs transition-colors {!store.filtroCategoria ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}"
+                          onclick={() => store.setFiltroCategoria('')}
+                        >Todas</button>
+                        {#each store.categoriasDisponibles as cat}
+                          <button
+                            type="button"
+                            class="rounded-full border px-2.5 py-0.5 text-xs transition-colors {store.filtroCategoria === cat ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}"
+                            onclick={() => store.setFiltroCategoria(store.filtroCategoria === cat ? '' : cat)}
+                          >{cat}</button>
+                        {/each}
+                      </div>
+                    {/if}
+
+                    {#if store.personasSeleccionables.items.length > 0}
+                      <Combobox
+                        value={personaVinculadaValue}
+                        onchange={onPersonaVinculadaChange}
+                        items={store.personasSeleccionables.items}
+                        placeholder="(Ninguno)"
+                        searchPlaceholder="Buscar persona…"
+                        class="mt-1"
+                      />
+                      {#if store.personasSeleccionables.tipo === 'socio'}
+                        <Field.FieldDescription>Solo se muestran socios activos (pago societario).</Field.FieldDescription>
+                      {:else}
+                        <Field.FieldDescription>
+                          Se muestran todas las personas con su tipo y categoría. Usá el filtro para acotar.
+                        </Field.FieldDescription>
+                      {/if}
+                    {:else}
+                      <Field.FieldDescription>
+                        No hay personas {store.filtroCategoria ? `con categoría "${store.filtroCategoria}"` : 'cargadas'}. Registrá una persona en el módulo Personas.
+                      </Field.FieldDescription>
+                    {/if}
+                  </Field.Field>
+                {/if}
+              </Field.FieldGroup>
+
+              <Field.FieldDescription>
                 Se registra en el período <span class="font-mono">{monthKey(store.form.fecha)}</span> del ejercicio en curso.
-              </p>
+              </Field.FieldDescription>
             </Card.Content>
           </Card.Root>
         {:else if filtered.length === 0}
