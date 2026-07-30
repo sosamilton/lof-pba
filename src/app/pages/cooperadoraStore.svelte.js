@@ -10,6 +10,7 @@ import {
   setWidgetOption,
 } from '$core/grist'
 import { normalizeFields, TABLE_PREFERRED_IDS } from '$core/utils'
+import { loadConfig, saveConfig } from '$core/configuracion'
 import { notify } from '$core/notify.svelte'
 import { createBaseState } from '$core/stores/gristStore.svelte'
 
@@ -20,10 +21,13 @@ let tBanco = $state(null)
 let tKiosco = $state(null)
 let tEjercicios = $state(null)
 let tCargos = $state(null)
+let tCuentas = $state(null)
 
 let escuela = $state({})
 let banco = $state({})
 let kiosco = $state({})
+let cuentas = $state([])
+let cuentaDefaultId = $state('')
 
 let ejercicios = $state([])
 let nuevoEj = $state({
@@ -49,10 +53,14 @@ const load = async () => {
     tKiosco = await resolveTableId(TABLE_PREFERRED_IDS.kiosco_libreria)
     tEjercicios = await resolveTableId(TABLE_PREFERRED_IDS.ejercicios)
     tCargos = await resolveTableId(TABLE_PREFERRED_IDS.cargos)
+    tCuentas = await resolveTableId(TABLE_PREFERRED_IDS.cuentas)
     escuela = (await ensureOneRow(tEscuela)) || {}
     banco = (await ensureOneRow(tBanco)) || {}
     kiosco = (await ensureOneRow(tKiosco)) || {}
     ejercicios = await fetchRecords(tEjercicios)
+    if (tCuentas) cuentas = await fetchRecords(tCuentas, { sort: (a, b) => Number(a.orden || 0) - Number(b.orden || 0) })
+    const config = await loadConfig()
+    cuentaDefaultId = config?.cuenta_default_id ? String(config.cuenta_default_id) : ''
     const opts = await getWidgetOptions()
     if (opts?.userName) userName = opts.userName
     await loadCargos()
@@ -84,6 +92,7 @@ const saveCooperadora = async () => {
     await _updateRecord(tBanco, banco)
     await _updateRecord(tKiosco, kiosco)
     if (userName) await setWidgetOption('userName', userName.trim())
+    if (cuentaDefaultId) await saveConfig({ cuenta_default_id: cuentaDefaultId })
     bs.setNotice('Datos guardados.'); notify.success(bs.notice)
   } catch (e) { bs.setError(e?.message || String(e)); notify.error(bs.error) } finally { bs.setBusy(false) }
 }
@@ -192,11 +201,14 @@ export const cooperadoraStore = {
   get kiosco() { return kiosco },
   get ejercicios() { return ejercicios },
   get nuevoEj() { return nuevoEj },
+  get nuevoCargo() { return nuevoCargo },
   get organismo() { return organismo },
   get cargos() { return cargos },
   get userName() { return userName },
-  get nuevoCargo() { return nuevoCargo },
+  get cuentas() { return cuentas },
+  get cuentaDefaultId() { return cuentaDefaultId },
   setUserName: (v) => { userName = v },
+  setCuentaDefaultId: (v) => { cuentaDefaultId = v },
   setOrganismo,
   load,
   loadCargos,
