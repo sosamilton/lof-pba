@@ -2,6 +2,7 @@
   import * as Popover from '$lib/components/ui/popover'
   import * as Command from '$lib/components/ui/command'
   import { Button } from '$lib/components/ui/button'
+  import { Badge } from '$lib/components/ui/badge'
   import CheckIcon from '@lucide/svelte/icons/check'
   import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down'
   import { normalize } from '$core/utils'
@@ -59,8 +60,15 @@
               onSelect={() => select(item.value)}
               class="flex items-center gap-2"
             >
-              <CheckIcon class="size-4 {String(item.value) === String(value) ? 'opacity-100' : 'opacity-0'}" />
-              {item.label}
+              <CheckIcon class="size-4 shrink-0 {String(item.value) === String(value) ? 'opacity-100' : 'opacity-0'}" />
+              <span class="flex-1 truncate">{item.label}</span>
+              {#if item.badges}
+                <span class="flex shrink-0 gap-1">
+                  {#each item.badges as badge}
+                    <Badge variant="secondary" class="text-[10px] px-1.5 py-0 h-4">{badge}</Badge>
+                  {/each}
+                </span>
+              {/if}
             </Command.Item>
           {/each}
         </Command.Group>

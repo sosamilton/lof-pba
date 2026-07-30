@@ -191,6 +191,7 @@ export function createGristStore(config) {
  * este helper crea getters que delegan en base, manteniendo la reactividad.
  */
 export function extendStore(base, extra) {
+  /** @type {Record<string, any>} */
   const result = {}
   for (const key of Object.getOwnPropertyNames(base)) {
     const desc = Object.getOwnPropertyDescriptor(base, key)
