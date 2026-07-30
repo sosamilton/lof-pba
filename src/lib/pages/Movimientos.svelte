@@ -1,39 +1,27 @@
 <script>
   import { onMount } from 'svelte'
-  import { applyUserActions, fetchRecords, gristReady, isInGrist, resolveTableId, subscribeRecords, getWidgetOptions } from '../grist'
-  import { normalize, dateToInput, monthKey, TIPOS_MOVIMIENTO, TABLE_PREFERRED_IDS } from '../utils'
-  import MessageBanner from '../components/MessageBanner.svelte'
+  import { movimientosStore as store } from '../stores/movimientosStore.svelte'
+  import { isInGrist } from '../grist'
+  import { normalize, monthKey, formatARS } from '../utils'
+  import { notify } from '../stores/notify.svelte'
+  import { Button } from '$lib/components/ui/button'
+  import * as Card from '$lib/components/ui/card'
+  import { Input } from '$lib/components/ui/input'
+  import { Label } from '$lib/components/ui/label'
+  import { Alert, AlertDescription } from '$lib/components/ui/alert'
+  import { Skeleton } from '$lib/components/ui/skeleton'
   import EmptyState from '../components/EmptyState.svelte'
-  import '../shared.css'
-
-  let loading = $state(true)
-  let error = $state('')
-  let notice = $state('')
-  let busy = $state(false)
-  let userName = $state('SPA')
-  let tableId = $state()
-  let tEjercicios = $state()
-  let tRubros = $state()
-  let tSubrubros = $state()
-  let tCuentas = $state()
-  let tSocios = $state()
-  let movimientos = $state([])
-  let ejercicios = $state([])
-  let ejercicio = $state(null)
-  let rubros = $state([])
-  let subrubros = $state([])
-  let cuentas = $state([])
-  let socios = $state([])
-
-  let selectedId = $state(null)
-  let form = $state(null)
-  let listOpen = $state(true)
+  import Combobox from '../components/Combobox.svelte'
+  import SearchIcon from '@lucide/svelte/icons/search'
+  import PlusIcon from '@lucide/svelte/icons/plus'
+  import RefreshIcon from '@lucide/svelte/icons/refresh-cw'
+  import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
 
   let q = $state('')
   let tipo = $state('')
 
   let filtered = $derived(
-    movimientos
+    store.records
       .filter((m) => (tipo ? String(m.tipo_movimiento || '') === tipo : true))
       .filter((m) => {
         const t = normalize(q)
@@ -43,12 +31,12 @@
       .sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')))
   )
 
-  let showList = $derived(listOpen && filtered.length > 0)
+  let showList = $derived(store.listOpen && filtered.length > 0)
 
-  let rubroById = $derived(new Map(rubros.map((r) => [Number(r.id), r])))
+  let rubroById = $derived(new Map(store.rubros.map((r) => [Number(r.id), r])))
   let subrubrosByRubro = $derived.by(() => {
     const map = new Map()
-    for (const s of subrubros) {
+    for (const s of store.subrubros) {
       const k = Number(s.rubro_id)
       if (!map.has(k)) map.set(k, [])
       map.get(k).push(s)
@@ -58,220 +46,77 @@
     }
     return map
   })
+  let cuentaById = $derived(new Map(store.cuentas.map((c) => [Number(c.id), c])))
 
-  let cuentaById = $derived(new Map(cuentas.map((c) => [Number(c.id), c])))
-
-  const load = async () => {
-    loading = true
-    error = ''
-    notice = ''
-    if (!isInGrist()) {
-      loading = false
-      return
-    }
-    try {
-      await gristReady()
-      const opts = await getWidgetOptions()
-      if (opts?.userName) userName = opts.userName
-      tableId = await resolveTableId(TABLE_PREFERRED_IDS.movimientos)
-      tEjercicios = await resolveTableId(TABLE_PREFERRED_IDS.ejercicios)
-      tRubros = await resolveTableId(TABLE_PREFERRED_IDS.rubros_pia)
-      tSubrubros = await resolveTableId(TABLE_PREFERRED_IDS.subrubros)
-      tCuentas = await resolveTableId(TABLE_PREFERRED_IDS.cuentas)
-      tSocios = await resolveTableId(TABLE_PREFERRED_IDS.socios)
-
-      movimientos = await fetchRecords(tableId, {
-        sort: (a, b) => String(b.fecha || '').localeCompare(String(a.fecha || ''))
-      })
-      ejercicios = await fetchRecords(tEjercicios)
-      ejercicio = ejercicios.find((e) => e.en_curso === true) || null
-
-      rubros = await fetchRecords(tRubros, {
-        sort: (a, b) => normalize(a.nombre_oficial).localeCompare(normalize(b.nombre_oficial))
-      })
-
-      subrubros = await fetchRecords(tSubrubros)
-      cuentas = await fetchRecords(tCuentas, {
-        sort: (a, b) => Number(a.orden || 0) - Number(b.orden || 0)
-      })
-
-      socios = await fetchRecords(tSocios, {
-        sort: (a, b) => normalize(a.apellido).localeCompare(normalize(b.apellido)) || normalize(a.nombre).localeCompare(normalize(b.nombre))
-      })
-    } catch (e) {
-      error = e?.message || String(e)
-    } finally {
-      loading = false
-    }
-  }
-
-  const select = (m) => {
-    selectedId = m?.id || null
-    listOpen = true
-    form = {
-      id: m?.id || null,
-      fecha: dateToInput(m?.fecha),
-      tipo_movimiento: m?.tipo_movimiento || 'Entrada',
-      rubro_id: m?.rubro_id ?? '',
-      subrubro_id: m?.subrubro_id ?? '',
-      detalle: m?.detalle || '',
-      importe: m?.importe ?? '',
-      cuenta_id: m?.cuenta_id ?? '',
-      destino_bancario: m?.destino_bancario || '',
-      cuenta_destino_id: m?.cuenta_destino_id ?? '',
-      socio_id: m?.socio_id ?? ''
-    }
-  }
-
-  const nuevo = () => {
-    selectedId = null
-    listOpen = false
-    const today = new Date().toISOString().slice(0, 10)
-    form = {
-      id: null,
-      fecha: today,
-      tipo_movimiento: 'Entrada',
-      rubro_id: '',
-      subrubro_id: '',
-      detalle: '',
-      importe: '',
-      cuenta_id: '',
-      destino_bancario: '',
-      cuenta_destino_id: '',
-      socio_id: ''
-    }
-  }
-
-  const validate = () => {
-    if (!ejercicio) return 'No hay ejercicio en curso. Activá uno en “Cooperadora”.'
-    if (!form?.fecha) return 'Completá la fecha.'
-    if (!form?.tipo_movimiento) return 'Elegí el tipo de movimiento.'
-    if (!form?.importe || Number(form.importe) <= 0) return 'Completá el importe (mayor a 0).'
-    if (!form?.cuenta_id) return 'Elegí la caja/cuenta.'
-    if (form.tipo_movimiento !== 'Traspaso') {
-      if (!form?.rubro_id) return 'Elegí el rubro.'
-    }
-    if (form.tipo_movimiento === 'Traspaso') {
-      if (!form?.cuenta_destino_id) return 'Elegí la cuenta destino.'
-      if (Number(form.cuenta_destino_id) === Number(form.cuenta_id)) return 'La cuenta destino no puede ser la misma.'
-    }
-    return ''
-  }
-
-  const save = async () => {
-    notice = ''
-    error = ''
-    const v = validate()
-    if (v) {
-      error = v
-      return
-    }
-
-    busy = true
-    try {
-      if (!tableId) {
-        error = 'No se encontró la tabla movimientos. Ejecutá "Actualizar schema" en Inicio.'
-        return
-      }
-
-      const cuenta = cuentaById.get(Number(form.cuenta_id))
-      const isBanco = String(cuenta?.nombre_cuenta || '') === 'Banco'
-
-      const fields = {
-        fecha: form.fecha,
-        ejercicio_id: ejercicio.id,
-        tipo_movimiento: form.tipo_movimiento,
-        rubro_id: form.tipo_movimiento === 'Traspaso' ? '' : (form.rubro_id || ''),
-        subrubro_id: form.tipo_movimiento === 'Traspaso' ? '' : (form.subrubro_id || ''),
-        detalle: String(form.detalle || '').trim(),
-        importe: Number(form.importe),
-        cuenta_id: form.cuenta_id,
-        destino_bancario: isBanco ? (form.destino_bancario || '') : '',
-        cuenta_destino_id: form.tipo_movimiento === 'Traspaso' ? (form.cuenta_destino_id || '') : '',
-        socio_id: form.socio_id || '',
-        creado_por: userName,
-        creado_el: new Date().toISOString()
-      }
-
-      Object.keys(fields).forEach((k) => {
-        if (fields[k] === '') delete fields[k]
-      })
-
-      if (form.id) {
-        await applyUserActions([['UpdateRecord', tableId, form.id, fields]])
-        notice = 'Movimiento actualizado.'
-      } else {
-        await applyUserActions([['AddRecord', tableId, null, fields]])
-        notice = 'Movimiento creado.'
-      }
-      movimientos = await fetchRecords(tableId)
-      if (form.id) {
-        const updated = movimientos.find((m) => m.id === form.id)
-        if (updated) select(updated)
-      } else {
-        form = null
-        listOpen = true
-      }
-    } catch (e) {
-      error = e?.message || String(e)
-    } finally {
-      busy = false
-    }
-  }
-
-  const onRubroChange = () => {
-    const list = subrubrosByRubro.get(Number(form.rubro_id)) || []
-    if (list.length === 0) {
-      form.subrubro_id = ''
-      return
-    }
-    const exists = list.some((s) => Number(s.id) === Number(form.subrubro_id))
-    if (!exists) form.subrubro_id = ''
+  const handleSave = async () => {
+    await store.saveMovimiento()
+    if (store.error) notify.error(store.error)
+    else if (store.notice) notify.success(store.notice)
   }
 
   onMount(() => {
-    const unsub = subscribeRecords(() => {
-      if (!busy && !loading) load()
-    })
-    load()
+    const unsub = store.subscribe()
+    store.loadAll()
     return unsub
   })
 </script>
 
 {#if !isInGrist()}
-  <h1>Movimientos</h1>
-  <p>Esta pantalla solo funciona dentro de Grist.</p>
-{:else if loading}
-  <p>Cargando…</p>
-{:else}
-  <div class="top">
-    <div class="filters">
-      <input placeholder="Buscar en detalle" bind:value={q} />
-      <select bind:value={tipo}>
-        <option value="">Todos</option>
-        <option value="Entrada">Entrada</option>
-        <option value="Salida">Salida</option>
-        <option value="Traspaso">Traspaso</option>
-      </select>
-      <button class="btn" onclick={nuevo}>Nuevo movimiento</button>
-      <button class="btn secondary" onclick={load}>Recargar</button>
+  <h1 class="text-lg font-bold">Movimientos</h1>
+  <p class="text-sm text-muted-foreground">Esta pantalla solo funciona dentro de Grist.</p>
+{:else if store.loading}
+  <div class="flex flex-col gap-4">
+    <div class="flex gap-3">
+      <Skeleton class="h-9 flex-1" />
+      <Skeleton class="h-9 w-32" />
     </div>
-    <div class="muted">{filtered.length} movimientos</div>
+    <div class="grid gap-4" style="grid-template-columns: 320px 1fr">
+      <Skeleton class="h-96" />
+      <Skeleton class="h-96" />
+    </div>
+  </div>
+{:else}
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <div class="relative flex-1 min-w-[200px]">
+      <SearchIcon class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Input placeholder="Buscar en detalle" bind:value={q} class="pl-9" />
+    </div>
+    <select bind:value={tipo} class="h-9 rounded-md border border-input bg-background px-3 text-sm">
+      <option value="">Todos</option>
+      <option value="Entrada">Entrada</option>
+      <option value="Salida">Salida</option>
+      <option value="Traspaso">Traspaso</option>
+    </select>
+    <Button onclick={store.nuevo}>
+      <PlusIcon data-icon="inline-start" />
+      Nuevo movimiento
+    </Button>
+    <Button variant="outline" onclick={store.loadAll}>
+      <RefreshIcon data-icon="inline-start" />
+      Recargar
+    </Button>
+    <span class="text-sm text-muted-foreground">{filtered.length} movimientos</span>
   </div>
 
-  {#if !ejercicio}
-    <EmptyState title="No hay ejercicio en curso" sub="Activá un ejercicio en “Cooperadora” para registrar movimientos." />
+  {#if !store.ejercicio}
+    <EmptyState
+      title="No hay ejercicio en curso"
+      sub="Activá un ejercicio en Cooperadora para registrar movimientos."
+    />
   {:else}
-    <div class:grid={true} class:singlePane={!showList}>
+    <div class="grid gap-4" style="grid-template-columns: {showList ? 'minmax(280px, 380px) 1fr' : '1fr'}">
       {#if showList}
-        <div class="list">
+        <div class="max-h-[calc(100vh-200px)] overflow-y-auto rounded-lg border border-border bg-card">
           {#if filtered.length === 0}
-            <EmptyState title="No hay movimientos" sub="Creá el primer movimiento para empezar." />
+            <div class="p-6 text-center text-sm text-muted-foreground">No hay movimientos</div>
           {:else}
             {#each filtered as m (m.id)}
-              <button class:selected={m.id === selectedId} onclick={() => select(m)}>
-                <div class="title">{m.fecha} · {m.tipo_movimiento} · ${m.importe}</div>
-                <div class="sub">
+              <button
+                class="w-full border-b border-border px-4 py-3 text-left transition-colors hover:bg-accent {m.id === store.selectedId ? 'bg-primary/10' : ''}"
+                onclick={() => store.select(m)}
+              >
+                <div class="text-sm font-medium">{m.fecha} · {m.tipo_movimiento} · {formatARS(m.importe)}</div>
+                <div class="text-xs text-muted-foreground">
                   {#if m.tipo_movimiento === 'Traspaso'}
                     {cuentaById.get(Number(m.cuenta_id))?.nombre_cuenta || ''} → {cuentaById.get(Number(m.cuenta_destino_id))?.nombre_cuenta || ''}
                   {:else}
@@ -284,134 +129,141 @@
         </div>
       {/if}
 
-      <div class="editor">
-        {#if form}
-          <div class="editorHead">
-            <h2>{form.id ? 'Editar movimiento' : 'Nuevo movimiento'}</h2>
-            <div class="actions">
-              {#if showList}
-                <button class="btn secondary" onclick={() => (listOpen = false)}>Ocultar lista</button>
-              {/if}
-              <button class="btn" onclick={save}>Guardar</button>
-            </div>
-          </div>
-
-          <div class="form">
-            <div class="row">
-              <label>Fecha<input type="date" bind:value={form.fecha} /></label>
-            </div>
-            <div class="row">
-              <label>Tipo<select bind:value={form.tipo_movimiento}>
-                <option value="Entrada">Entrada</option>
-                <option value="Salida">Salida</option>
-                <option value="Traspaso">Traspaso</option>
-              </select></label>
-            </div>
-
-            <div class="row span2">
-              <label>Detalle<textarea bind:value={form.detalle} placeholder="Descripción corta (p.ej. Compra kiosco, Pago proveedor, Aporte socio)"></textarea></label>
-            </div>
-
-            <div class="row">
-              <label>Importe<input type="number" bind:value={form.importe} /></label>
-            </div>
-            <div class="row">
-              <label>Caja/cuenta<select bind:value={form.cuenta_id}>
-                <option value="">Elegir…</option>
-                {#each cuentas as c (c.id)}
-                  <option value={c.id}>{c.nombre_cuenta}</option>
-                {/each}
-              </select></label>
-            </div>
-
-            {#if form.tipo_movimiento === 'Traspaso'}
-              <div class="row span2">
-                <label>Cuenta destino<select bind:value={form.cuenta_destino_id}>
-                  <option value="">Elegir…</option>
-                  {#each cuentas as c (c.id)}
-                    <option value={c.id}>{c.nombre_cuenta}</option>
-                  {/each}
-                </select></label>
+      <div>
+        {#if store.form}
+          <Card.Root>
+            <Card.Header>
+              <div class="flex items-center justify-between gap-2">
+                <Card.Title class="text-base">
+                  {store.form.id ? 'Editar movimiento' : 'Nuevo movimiento'}
+                </Card.Title>
+                <div class="flex gap-2">
+                  {#if showList}
+                    <Button variant="outline" size="sm" onclick={() => store.setListOpen(false)}>Ocultar lista</Button>
+                  {/if}
+                  <Button onclick={handleSave}>Guardar</Button>
+                </div>
               </div>
-            {:else}
-              <div class="row">
-                <label>Rubro<select bind:value={form.rubro_id} onchange={onRubroChange}>
-                  <option value="">Elegir…</option>
-                  {#each rubros as r (r.id)}
-                    <option value={r.id}>{r.codigo_rubro} · {r.nombre_oficial}</option>
-                  {/each}
-                </select></label>
-              </div>
-              <div class="row">
-                <label>Subrubro<select bind:value={form.subrubro_id} disabled={!form.rubro_id}>
-                  <option value="">(Opcional)</option>
-                  {#each (subrubrosByRubro.get(Number(form.rubro_id)) || []) as s (s.id)}
-                    <option value={s.id}>{s.nombre_subrubro}</option>
-                  {/each}
-                </select></label>
-              </div>
-            {/if}
+            </Card.Header>
+            <Card.Content class="flex flex-col gap-4">
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <Label for="fecha">Fecha</Label>
+                  <Input id="fecha" type="date" bind:value={store.form.fecha} class="mt-1" />
+                </div>
+                <div>
+                  <Label for="tipo-mov">Tipo</Label>
+                  <select id="tipo-mov" bind:value={store.form.tipo_movimiento} class="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+                    <option value="Entrada">Entrada</option>
+                    <option value="Salida">Salida</option>
+                    <option value="Traspaso">Traspaso</option>
+                  </select>
+                </div>
+                <div class="sm:col-span-2">
+                  <Label for="detalle">Detalle</Label>
+                  <textarea id="detalle" bind:value={store.form.detalle} placeholder="Descripción corta (p.ej. Compra kiosco, Pago proveedor, Aporte socio)" class="mt-1 flex min-h-[64px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-y"></textarea>
+                </div>
+                <div>
+                  <Label for="importe">Importe</Label>
+                  <Input id="importe" type="number" bind:value={store.form.importe} class="mt-1" />
+                </div>
+                <div>
+                  <Label for="cuenta">Caja/cuenta</Label>
+                  <Combobox
+                    bind:value={store.form.cuenta_id}
+                    items={store.cuentas.map((c) => ({ value: c.id, label: c.nombre_cuenta }))}
+                    placeholder="Elegir…"
+                    searchPlaceholder="Buscar cuenta…"
+                    class="mt-1"
+                  />
+                </div>
 
-            {#if String(cuentaById.get(Number(form.cuenta_id))?.nombre_cuenta || '') === 'Banco'}
-              <div class="row span2">
-                <label>Destino en banco<select bind:value={form.destino_bancario}>
-                  <option value="">(Opcional)</option>
-                  <option value="CuentaCorriente">Cuenta corriente</option>
-                  <option value="PlazoFijo">Plazo fijo</option>
-                </select></label>
+                {#if store.form.tipo_movimiento === 'Traspaso'}
+                  <div class="sm:col-span-2">
+                    <Label for="cuenta-destino">Cuenta destino</Label>
+                    <Combobox
+                      bind:value={store.form.cuenta_destino_id}
+                      items={store.cuentas.map((c) => ({ value: c.id, label: c.nombre_cuenta }))}
+                      placeholder="Elegir…"
+                      searchPlaceholder="Buscar cuenta…"
+                      class="mt-1"
+                    />
+                  </div>
+                {:else}
+                  <div>
+                    <Label for="rubro">Rubro</Label>
+                    <Combobox
+                      bind:value={store.form.rubro_id}
+                      items={store.rubros.map((r) => ({ value: r.id, label: `${r.codigo_rubro} · ${r.nombre_oficial}` }))}
+                      placeholder="Elegir…"
+                      searchPlaceholder="Buscar rubro…"
+                      class="mt-1"
+                      onchange={store.onRubroChange}
+                    />
+                  </div>
+                  <div>
+                    <Label for="subrubro">Subrubro</Label>
+                    <select id="subrubro" bind:value={store.form.subrubro_id} disabled={!store.form.rubro_id} class="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+                      <option value="">(Opcional)</option>
+                      {#each (subrubrosByRubro.get(Number(store.form.rubro_id)) || []) as s (s.id)}
+                        <option value={s.id}>{s.nombre_subrubro}</option>
+                      {/each}
+                    </select>
+                  </div>
+                {/if}
+
+                {#if String(cuentaById.get(Number(store.form.cuenta_id))?.nombre_cuenta || '') === 'Banco'}
+                  <div class="sm:col-span-2">
+                    <Label for="destino-banco">Destino en banco</Label>
+                    <select id="destino-banco" bind:value={store.form.destino_bancario} class="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+                      <option value="">(Opcional)</option>
+                      <option value="CuentaCorriente">Cuenta corriente</option>
+                      <option value="PlazoFijo">Plazo fijo</option>
+                    </select>
+                  </div>
+                {/if}
+
+                <div class="sm:col-span-2">
+                  <Label for="socio">Socio (opcional)</Label>
+                  <Combobox
+                    bind:value={store.form.socio_id}
+                    items={store.socios.map((s) => ({ value: s.id, label: `${s.apellido}, ${s.nombre} · DNI ${s.dni || '-'}` }))}
+                    placeholder="(Ninguno)"
+                    searchPlaceholder="Buscar socio…"
+                    class="mt-1"
+                  />
+                </div>
               </div>
-            {/if}
 
-            <div class="row span2">
-              <label>Socio (opcional)<select bind:value={form.socio_id}>
-                <option value="">(Ninguno)</option>
-                {#each socios as s (s.id)}
-                  <option value={s.id}>{s.apellido}, {s.nombre} · DNI {s.dni || '-'}</option>
-                {/each}
-              </select></label>
-            </div>
-
-            <div class="row span2 hint">
-              Se registra en el período <span class="mono">{monthKey(form.fecha)}</span> del ejercicio en curso.
-            </div>
-          </div>
+              <p class="text-xs text-muted-foreground">
+                Se registra en el período <span class="font-mono">{monthKey(store.form.fecha)}</span> del ejercicio en curso.
+              </p>
+            </Card.Content>
+          </Card.Root>
+        {:else if filtered.length === 0}
+          <EmptyState
+            title="Listo para cargar movimientos"
+            sub="Creá el primer movimiento para empezar."
+            actionLabel="Nuevo movimiento"
+            onaction={store.nuevo}
+          >
+            {#snippet actionIcon()}
+              <PlusIcon data-icon="inline-start" />
+            {/snippet}
+          </EmptyState>
         {:else}
-          {#if filtered.length === 0}
-            <EmptyState title="Listo para cargar movimientos" sub="Creá el primer movimiento para empezar.">
-              <button class="btn" onclick={nuevo}>Nuevo movimiento</button>
-            </EmptyState>
-          {:else}
-            <div class="muted">Seleccioná un movimiento o creá uno nuevo.</div>
-          {/if}
+          <div class="flex flex-col items-center gap-2 py-12 text-center">
+            <ArrowLeftRightIcon class="size-8 text-muted-foreground" />
+            <p class="text-sm text-muted-foreground">Seleccioná un movimiento o creá uno nuevo.</p>
+          </div>
         {/if}
       </div>
     </div>
   {/if}
 
-  <MessageBanner {error} {notice} />
+  {#if store.error}
+    <Alert variant="destructive" class="mt-4">
+      <AlertDescription>{store.error}</AlertDescription>
+    </Alert>
+  {/if}
 {/if}
-
-<style>
-  h1 {
-    margin: 0 0 10px 0;
-    font-size: 18px;
-  }
-  h2 {
-    margin: 0;
-    font-size: 16px;
-  }
-  .editorHead {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  .form {
-    margin-top: 10px;
-  }
-  .row.hint {
-    opacity: 0.75;
-    font-size: 13px;
-  }
-</style>

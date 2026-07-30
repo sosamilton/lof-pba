@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "skills": {
+    "grist": {
+      "source": "membranedev/application-skills",
+      "sourceType": "github",
+      "skillPath": "skills/grist/SKILL.md",
+      "computedHash": "46f5c8d6535205ae7fb12592c43f68979518b7d2c557f995aafbaa4e70e569b7"
+    },
+    "grist-custom-widgets": {
+      "source": "berhalak/skills",
+      "sourceType": "github",
+      "skillPath": "grist-custom-widgets/SKILL.md",
+      "computedHash": "a45a2eecd49362eecf951d6091694dc43a773f7e992020bf5e005cb4d674df46"
+    },
+    "grist-master": {
+      "source": "edalcin/biodiversitydataskills",
+      "sourceType": "github",
+      "skillPath": "grist-master/SKILL.md",
+      "computedHash": "ca2424523a9d58eec893af010c8a1152580db9a818d1b7252de4876fd813d9f4"
+    },
+    "grist-ui-design": {
+      "source": "berhalak/skills",
+      "sourceType": "github",
+      "skillPath": "grist-ui-design/SKILL.md",
+      "computedHash": "aff3f3ac5b275ca3fb2895d8cb6b1d0550df34b1f5b0b779f1eeff088a689e8f"
+    },
+    "shadcn-svelte": {
+      "source": "huntabyte/shadcn-svelte",
+      "sourceType": "github",
+      "skillPath": "skills/shadcn-svelte/SKILL.md",
+      "computedHash": "d4f3f983a71466a86649985a8a7fbce47da29f44de3a9d02540bbcf3167134e0"
+    },
+    "smithery-ai-cli": {
+      "source": "smithery.ai",
+      "sourceType": "well-known",
+      "computedHash": "dc17f090c975afe1d96a25dbe843fc9c978e96d5699eed1bb7c12b411e10b830"
+    },
+    "svelte-core-bestpractices": {
+      "source": "sveltejs/ai-tools",
+      "sourceType": "github",
+      "skillPath": "plugins/claude/svelte/skills/svelte-core-bestpractices/SKILL.md",
+      "computedHash": "98b4ee346ac45e13740c9f3353b604d5c6e844c96cdc8867052fa961cbdb525d"
+    },
+    "svelte-design": {
+      "source": "ajianaz/skills-collection",
+      "sourceType": "github",
+      "skillPath": "skills/svelte-design/SKILL.md",
+      "computedHash": "af4ae37461cfd2c8131d45fc7be8ba1277e323d7650ba0f61c0e0980f6018346"
+    },
+    "svelte5-best-practices": {
+      "source": "ejirocodes/agent-skills",
+      "sourceType": "github",
+      "skillPath": "svelte/skills/svelte5-best-practices/SKILL.md",
+      "computedHash": "bfcbba3d355aede6f6be9720f195206d4dcaa7c152787ea00c06cb4a1ac44ba4"
+    }
+  }
+}

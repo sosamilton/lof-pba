@@ -1,9 +1,17 @@
 <script>
   import { onMount } from 'svelte'
   import { router, navigate } from '../router.svelte'
-  import { loadConfig } from '../configuracion'
+  import { configStore } from '../stores/configStore.svelte'
   import { getActiveMenuItems } from '../utils'
-  import '../shared.css'
+  import { Button } from '$lib/components/ui/button'
+  import { Separator } from '$lib/components/ui/separator'
+  import * as Sheet from '$lib/components/ui/sheet'
+  import MenuIcon from '@lucide/svelte/icons/menu'
+  import HomeIcon from '@lucide/svelte/icons/home'
+  import UsersIcon from '@lucide/svelte/icons/users'
+  import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
+  import GavelIcon from '@lucide/svelte/icons/gavel'
+  import SettingsIcon from '@lucide/svelte/icons/settings'
 
   let { title = 'AppCoop', children } = $props()
 
@@ -12,6 +20,14 @@
   let menuItems = $state([{ route: 'inicio', label: 'Inicio' }])
   let brandTitle = $state(title)
   let brandSub = $state('Demo cooperadora')
+
+  const iconMap = {
+    inicio: HomeIcon,
+    socios: UsersIcon,
+    movimientos: ArrowLeftRightIcon,
+    gobierno: GavelIcon,
+    setup: SettingsIcon,
+  }
 
   const syncSmall = () => {
     isSmall = window.matchMedia('(max-width: 860px)').matches
@@ -28,15 +44,11 @@
     const onResize = () => syncSmall()
     window.addEventListener('resize', onResize)
     try {
-      const config = await loadConfig()
+      const config = await configStore.load()
       if (config) {
         menuItems = getActiveMenuItems(config)
-        if (config.cooperadora_nombre) {
-          brandTitle = config.cooperadora_nombre
-        }
-        if (config.escuela_nombre) {
-          brandSub = config.escuela_nombre
-        }
+        if (config.cooperadora_nombre) brandTitle = config.cooperadora_nombre
+        if (config.escuela_nombre) brandSub = config.escuela_nombre
       }
     } catch {
       // keep defaults
@@ -45,167 +57,67 @@
   })
 </script>
 
-<div class="shell">
+<div class="grid min-h-screen bg-background text-foreground" style="grid-template-columns: {isSmall ? '1fr' : '260px 1fr'}">
   {#if isSmall}
-    <div class="topbar">
-      <button class="iconBtn" aria-label="Abrir menú" onclick={() => (drawerOpen = true)}>Menu</button>
-      <div class="topbarTitle">{brandTitle}</div>
-      <div class="topbarSpacer"></div>
+    <div class="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-background/80 px-4 py-3 backdrop-blur-sm">
+      <Button variant="ghost" size="icon" aria-label="Abrir menú" onclick={() => (drawerOpen = true)}>
+        <MenuIcon class="size-5" />
+      </Button>
+      <span class="text-sm font-bold">{brandTitle}</span>
     </div>
   {/if}
 
-  {#if isSmall && drawerOpen}
-    <button class="backdrop" aria-label="Cerrar menú" onclick={() => (drawerOpen = false)}></button>
+  {#if isSmall}
+    <Sheet.Root bind:open={drawerOpen}>
+      <Sheet.Content side="left" class="w-[280px] p-0">
+        <Sheet.Header class="px-4 py-3">
+          <Sheet.Title class="text-sm font-bold">{brandTitle}</Sheet.Title>
+          <Sheet.Description class="text-xs text-muted-foreground">{brandSub}</Sheet.Description>
+        </Sheet.Header>
+        <Separator />
+        <nav class="flex flex-col gap-1 p-3">
+          {#each menuItems as item (item.route)}
+            {@const Icon = iconMap[item.route]}
+            <button
+              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground {router.current === item.route ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground'}"
+              onclick={() => go(item.route)}
+            >
+              {#if Icon}
+                <Icon class="size-4 shrink-0" />
+              {/if}
+              {item.label}
+            </button>
+          {/each}
+        </nav>
+      </Sheet.Content>
+    </Sheet.Root>
   {/if}
 
-  <aside class:sidebar={true} class:drawer={isSmall} class:drawerOpen={drawerOpen}>
-    <div class="brand">
-      <div class="brand-title">{brandTitle}</div>
-      <div class="brand-sub">{brandSub}</div>
-    </div>
+  {#if !isSmall}
+    <aside class="sticky top-0 h-screen border-r border-border bg-card/50 p-3 overflow-y-auto">
+      <div class="mb-3 px-2">
+        <div class="text-sm font-bold">{brandTitle}</div>
+        <div class="text-xs text-muted-foreground">{brandSub}</div>
+      </div>
+      <Separator class="mb-3" />
+      <nav class="flex flex-col gap-1">
+        {#each menuItems as item (item.route)}
+          {@const Icon = iconMap[item.route]}
+          <button
+            class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground {router.current === item.route ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground'}"
+            onclick={() => go(item.route)}
+          >
+            {#if Icon}
+              <Icon class="size-4 shrink-0" />
+            {/if}
+            {item.label}
+          </button>
+        {/each}
+      </nav>
+    </aside>
+  {/if}
 
-    <nav class="nav">
-      {#each menuItems as item (item.route)}
-        <a class:selected={router.current === item.route} href={'#' + item.route} onclick={(e) => { e.preventDefault(); go(item.route) }}>{item.label}</a>
-      {/each}
-    </nav>
-  </aside>
-
-  <main class="content">
+  <main class="box-border p-4 sm:p-6">
     {@render children()}
   </main>
 </div>
-
-<style>
-  .shell {
-    display: grid;
-    grid-template-columns: 260px 1fr;
-    min-height: 100vh;
-    background: var(--grist-theme-page-panels-main-panel-bg, var(--bg, #fff));
-    color: var(--grist-theme-text, var(--text-h, #111));
-  }
-
-  .sidebar {
-    border-right: 1px solid rgba(128, 128, 128, 0.25);
-    background: rgba(128, 128, 128, 0.06);
-    padding: 14px;
-    box-sizing: border-box;
-  }
-
-  .topbar {
-    position: sticky;
-    top: 0;
-    z-index: 30;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.25);
-    background: var(--grist-theme-page-panels-main-panel-bg, rgba(128, 128, 128, 0.06));
-  }
-
-  .topbarTitle {
-    font-weight: 800;
-    font-size: 14px;
-  }
-
-  .topbarSpacer {
-    flex: 1;
-  }
-
-  .iconBtn {
-    border: 1px solid rgba(128, 128, 128, 0.28);
-    border-radius: 10px;
-    padding: 8px 10px;
-    background: rgba(255, 255, 255, 0.04);
-    color: inherit;
-    cursor: pointer;
-    font-weight: 800;
-    font-size: 13px;
-  }
-
-  .iconBtn:hover {
-    border-color: rgba(22, 179, 120, 0.35);
-    background: rgba(22, 179, 120, 0.12);
-  }
-
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 35;
-    border: 0;
-    background: rgba(0, 0, 0, 0.35);
-  }
-
-  .drawer {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    z-index: 40;
-    width: min(320px, 86vw);
-    transform: translateX(-102%);
-    transition: transform 140ms ease;
-    border-right: 1px solid rgba(128, 128, 128, 0.25);
-    background: var(--grist-theme-page-panels-main-panel-bg, rgba(128, 128, 128, 0.06));
-  }
-
-  .drawerOpen {
-    transform: translateX(0);
-  }
-
-  .brand {
-    margin-bottom: 12px;
-  }
-
-  .brand-title {
-    font-weight: 800;
-    font-size: 14px;
-  }
-
-  .brand-sub {
-    font-size: 12px;
-    opacity: 0.7;
-    margin-top: 2px;
-  }
-
-  .nav {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .nav a {
-    padding: 10px 10px;
-    border-radius: 10px;
-    text-decoration: none;
-    color: inherit;
-    font-size: 14px;
-    border: 1px solid transparent;
-  }
-
-  .nav a:hover {
-    background: rgba(22, 179, 120, 0.1);
-    border-color: rgba(22, 179, 120, 0.25);
-  }
-
-  .nav a.selected {
-    background: rgba(22, 179, 120, 0.16);
-    border-color: rgba(22, 179, 120, 0.35);
-    font-weight: 700;
-  }
-
-  .content {
-    padding: 18px 18px;
-    box-sizing: border-box;
-  }
-
-  @media (max-width: 860px) {
-    .shell {
-      grid-template-columns: 1fr;
-    }
-    .content {
-      padding: 14px 12px;
-    }
-  }
-</style>
