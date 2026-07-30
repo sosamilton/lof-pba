@@ -8,6 +8,7 @@ import ScrollDownButton from "./select-scroll-down-button.svelte";
 import ScrollUpButton from "./select-scroll-up-button.svelte";
 import Separator from "./select-separator.svelte";
 import Trigger from "./select-trigger.svelte";
+import Value from "./select-value.svelte";
 import Root from "./select.svelte";
 
 export {
@@ -15,6 +16,7 @@ export {
 	Group,
 	Label,
 	Item,
+	Value,
 	Content,
 	Trigger,
 	Separator,
@@ -27,6 +29,7 @@ export {
 	Group as SelectGroup,
 	Label as SelectLabel,
 	Item as SelectItem,
+	Value as SelectValue,
 	Content as SelectContent,
 	Trigger as SelectTrigger,
 	Separator as SelectSeparator,
