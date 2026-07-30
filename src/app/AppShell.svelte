@@ -1,14 +1,15 @@
 <script>
   import { onMount } from 'svelte'
-  import { router, navigate } from '../router.svelte'
-  import { configStore } from '../stores/configStore.svelte'
-  import { getActiveMenuItems } from '../utils'
+  import { router, navigate } from '$core/router.svelte'
+  import { configStore } from '$core/stores/configStore.svelte'
+  import { getActiveMenuItems } from '$core/utils'
   import { Button } from '$lib/components/ui/button'
   import { Separator } from '$lib/components/ui/separator'
   import * as Sheet from '$lib/components/ui/sheet'
   import MenuIcon from '@lucide/svelte/icons/menu'
   import HomeIcon from '@lucide/svelte/icons/home'
   import UsersIcon from '@lucide/svelte/icons/users'
+  import ContactIcon from '@lucide/svelte/icons/contact'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import GavelIcon from '@lucide/svelte/icons/gavel'
   import SettingsIcon from '@lucide/svelte/icons/settings'
@@ -24,6 +25,7 @@
   const iconMap = {
     inicio: HomeIcon,
     socios: UsersIcon,
+    personas: ContactIcon,
     movimientos: ArrowLeftRightIcon,
     gobierno: GavelIcon,
     cooperadora: SettingsIcon,

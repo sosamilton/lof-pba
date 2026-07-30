@@ -17,7 +17,7 @@
   import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
   import MapPinIcon from '@lucide/svelte/icons/map-pin'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
-  import data from '$lib/landing.json'
+  import data from './landing.json'
 
   const iconMap = {
     database: DatabaseIcon,

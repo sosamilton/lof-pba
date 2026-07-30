@@ -27,7 +27,15 @@
     "baseUrl": ".",
     "paths": {
       "$lib": ["./src/lib"],
-      "$lib/*": ["./src/lib/*"]
+      "$lib/*": ["./src/lib/*"],
+      "$core": ["./src/core"],
+      "$core/*": ["./src/core/*"],
+      "$app": ["./src/app"],
+      "$app/*": ["./src/app/*"],
+      "$landing": ["./src/landing"],
+      "$landing/*": ["./src/landing/*"],
+      "$setup": ["./src/setup"],
+      "$setup/*": ["./src/setup/*"]
     }
   },
   /**

@@ -84,10 +84,19 @@
       "id": "personas",
       "title": "Personas",
       "columns": [
+        {
+          "id": "tipo_persona",
+          "fields": {
+            "label": "Tipo de persona",
+            "type": "Choice",
+            "widgetOptions": "{\"choices\":[\"Fisica\",\"Juridica\"]}"
+          }
+        },
         { "id": "dni", "fields": { "label": "DNI", "type": "Text" } },
         { "id": "cuil", "fields": { "label": "CUIL", "type": "Text" } },
         { "id": "apellido", "fields": { "label": "Apellido", "type": "Text" } },
         { "id": "nombre", "fields": { "label": "Nombre", "type": "Text" } },
+        { "id": "razon_social", "fields": { "label": "Razon social", "type": "Text" } },
         { "id": "domicilio", "fields": { "label": "Domicilio", "type": "Text" } },
         { "id": "localidad", "fields": { "label": "Localidad", "type": "Text" } },
         { "id": "telefono", "fields": { "label": "Telefono", "type": "Text" } },
