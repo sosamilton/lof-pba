@@ -132,3 +132,5 @@ export const getActiveMenuItems = (config) => {
   }
   return items
 }
+
+export { cn } from './utils/cn.js'
