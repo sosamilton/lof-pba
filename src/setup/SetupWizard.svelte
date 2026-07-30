@@ -15,6 +15,9 @@
     formatTelefono,
     normalizeTelefonoForStorage,
     isValidTelefono,
+    formatTelefonoNational,
+    normalizeTelefonoNationalForStorage,
+    isValidTelefonoNational,
     normalizeEmail,
     isValidEmail,
     formatCbu,
@@ -28,6 +31,7 @@
   import { Checkbox } from '$lib/components/ui/checkbox'
   import { Alert, AlertDescription } from '$lib/components/ui/alert'
   import { Separator } from '$lib/components/ui/separator'
+  import * as InputGroup from '$lib/components/ui/input-group'
   import Combobox from '$lib/components/Combobox.svelte'
   import PlusIcon from '@lucide/svelte/icons/plus'
   import TrashIcon from '@lucide/svelte/icons/trash'
@@ -155,9 +159,9 @@
   }
 
   const onTelefonoInput = () => {
-    schoolData.telefono = formatTelefono(schoolData.telefono)
-    const stored = normalizeTelefonoForStorage(schoolData.telefono)
-    if (stored && !isValidTelefono(stored) && stored.length > 0) {
+    schoolData.telefono = formatTelefonoNational(schoolData.telefono)
+    const stored = normalizeTelefonoNationalForStorage(schoolData.telefono)
+    if (stored && !isValidTelefonoNational(schoolData.telefono) && schoolData.telefono.replace(/\D/g, '').length > 0) {
       telefonoWarning = 'Teléfono incompleto'
     } else {
       telefonoWarning = ''
@@ -299,7 +303,7 @@
         if (existingEscuela.length === 0) {
           const cueDigits = schoolData.cue.replace(/\D/g, '')
           const cuitDigits = schoolData.cuit.replace(/\D/g, '')
-          const telStored = normalizeTelefonoForStorage(schoolData.telefono)
+          const telStored = normalizeTelefonoNationalForStorage(schoolData.telefono)
           await applyUserActions([['AddRecord', tEscuela, null, {
             escuela_nombre: schoolData.escuela_nombre || '',
             escuela_numero: schoolData.escuela_numero || '',
@@ -368,7 +372,7 @@
         ...schoolData,
         cue: schoolData.cue.replace(/\D/g, ''),
         cuit: schoolData.cuit.replace(/\D/g, ''),
-        telefono: normalizeTelefonoForStorage(schoolData.telefono),
+        telefono: normalizeTelefonoNationalForStorage(schoolData.telefono),
         email: normalizeEmail(schoolData.email),
         cuenta_default_id: cuentaDefaultId,
         instalado: true,
@@ -558,7 +562,10 @@
             </div>
             <div class="flex flex-col gap-1">
               <Label class="text-xs font-bold text-muted-foreground">Teléfono</Label>
-              <Input bind:value={schoolData.telefono} oninput={onTelefonoInput} placeholder="+54 11 1234-5678" inputmode="tel" />
+              <InputGroup.Root>
+                <InputGroup.Addon class="font-bold text-sm">+54</InputGroup.Addon>
+                <InputGroup.Input bind:value={schoolData.telefono} oninput={onTelefonoInput} placeholder="9 11 1234-5678" inputmode="tel" />
+              </InputGroup.Root>
               {#if telefonoWarning}
                 <span class="text-xs text-destructive">{telefonoWarning}</span>
               {/if}
