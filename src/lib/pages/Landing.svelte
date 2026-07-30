@@ -1,694 +1,266 @@
 <script>
-  import '../shared.css'
+  import { Button } from '$lib/components/ui/button'
+  import * as Card from '$lib/components/ui/card'
+  import { Badge } from '$lib/components/ui/badge'
+  import { Separator } from '$lib/components/ui/separator'
+  import DatabaseIcon from '@lucide/svelte/icons/database'
+  import AccessibilityIcon from '@lucide/svelte/icons/accessibility'
+  import EyeIcon from '@lucide/svelte/icons/eye'
+  import FlagIcon from '@lucide/svelte/icons/flag'
+  import UsersIcon from '@lucide/svelte/icons/users'
+  import ShieldIcon from '@lucide/svelte/icons/shield'
+  import BuildingIcon from '@lucide/svelte/icons/building'
+  import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
+  import GavelIcon from '@lucide/svelte/icons/gavel'
+  import CodeXmlIcon from '@lucide/svelte/icons/code-xml'
+  import ExternalLinkIcon from '@lucide/svelte/icons/external-link'
+  import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
+  import MapPinIcon from '@lucide/svelte/icons/map-pin'
+  import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
+  import data from '$lib/landing.json'
 
-  const repoUrl = 'https://github.com/sosamilton/spa-cooperadora'
-  const gristDocsUrl = 'https://support.getgrist.com/widget-custom/'
-  const gristUrl = 'https://www.getgrist.com/'
-  const appUrl = 'https://sosamilton.github.io/spa-cooperadora/'
-  const licenseUrl = 'https://github.com/sosamilton/spa-cooperadora/blob/main/LICENSE'
+  const iconMap = {
+    database: DatabaseIcon,
+    accessibility: AccessibilityIcon,
+    eye: EyeIcon,
+    flag: FlagIcon,
+    users: UsersIcon,
+    shield: ShieldIcon,
+    building: BuildingIcon,
+    'arrow-left-right': ArrowLeftRightIcon,
+    gavel: GavelIcon,
+  }
+
+  let { identidad, principios, funciones, instalacion, roadmap } = data
+  const enlaces = identidad.enlaces
+
+  const roadmapGroups = {
+    proximo: { label: 'Próximo', variant: 'default', items: [] },
+    despues: { label: 'Después', variant: 'secondary', items: [] },
+    futuro: { label: 'A futuro', variant: 'outline', items: [] },
+  }
+
+  for (const item of roadmap) {
+    const key = item.estado
+    if (roadmapGroups[key]) roadmapGroups[key].items.push(item)
+  }
 </script>
 
-<main class="wrap">
-  <header class="hero">
-    <div class="heroTop">
-      <div class="badge">AppCoop · Provincia de Buenos Aires</div>
-      <div class="heroLinks">
-        <a class="link" href={repoUrl} target="_blank" rel="noreferrer">GitHub</a>
-        <a class="link" href={gristUrl} target="_blank" rel="noreferrer">Grist</a>
+<main class="min-h-screen bg-background text-foreground">
+  <!-- NAVBAR -->
+  <nav class="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
+    <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
+      <div class="flex items-center gap-2">
+        <span class="text-lg font-bold tracking-tight">{identidad.nombre}</span>
+        <Badge variant="secondary" class="hidden sm:inline-flex">{identidad.ubicacion}</Badge>
+      </div>
+      <div class="flex items-center gap-2">
+        <Button variant="ghost" size="sm" href={enlaces.repo} target="_blank" rel="noreferrer">
+          <CodeXmlIcon data-icon="inline-start" />
+          <span class="hidden sm:inline">GitHub</span>
+        </Button>
+        <Button variant="outline" size="sm" href={enlaces.grist} target="_blank" rel="noreferrer">
+          <span class="hidden sm:inline">Grist</span>
+          <ExternalLinkIcon data-icon="inline-end" />
+        </Button>
       </div>
     </div>
+  </nav>
 
-    <div class="heroGrid">
-      <div>
-        <h1>Gestión de cooperadoras, bien de acá</h1>
-        <p class="lead">
-          Un sistema para cooperadoras escolares bonaerenses, pensado para la gestión diaria y construido sobre Grist:
-          datos tuyos, exportables, auditables y fáciles de replicar.
+  <!-- HERO -->
+  <section class="relative overflow-hidden border-b border-border">
+    <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-chart-2/5"></div>
+    <div class="relative mx-auto max-w-5xl px-4 py-12 sm:py-16">
+      <div class="flex flex-col gap-6">
+        <div class="flex flex-col gap-3">
+          <Badge class="w-fit" variant="outline">
+            <MapPinIcon data-icon="inline-start" />
+            {identidad.ubicacion}
+          </Badge>
+          <h1 class="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
+            {identidad.slogan}
+          </h1>
+          <p class="max-w-2xl text-base text-muted-foreground sm:text-lg">
+            {identidad.descripcion}
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <Button size="lg" href={enlaces.app} target="_blank" rel="noreferrer">
+            <ExternalLinkIcon data-icon="inline-start" />
+            Abrir {identidad.nombre}
+          </Button>
+          <Button variant="outline" size="lg" href={enlaces.repo} target="_blank" rel="noreferrer">
+            <CodeXmlIcon data-icon="inline-start" />
+            Ver repo / colaborar
+          </Button>
+          <Button variant="secondary" size="lg" href={enlaces.grist_docs} target="_blank" rel="noreferrer">
+            Cómo instalar
+          </Button>
+        </div>
+        <p class="text-sm text-muted-foreground">
+          Corre como Custom Widget dentro de Grist. Acá ves el proyecto, la documentación y lo que viene.
         </p>
-        <div class="cta">
-          <a class="btn" href={appUrl} target="_blank" rel="noreferrer">Abrir AppCoop</a>
-          <a class="btn secondary" href={repoUrl} target="_blank" rel="noreferrer">Ver repo / colaborar</a>
-          <a class="btn secondary" href={gristDocsUrl} target="_blank" rel="noreferrer">Cómo instalar</a>
-        </div>
-        <div class="meta">
-          Corre como Custom Widget dentro de Grist. En esta página pública ves el proyecto, documentación y roadmap.
-        </div>
-      </div>
-
-      <div class="heroCard" role="region" aria-label="Resumen del sistema">
-        <div class="kpis">
-          <div class="kpi">
-            <div class="kpiLabel">Backend</div>
-            <div class="kpiValue">Grist</div>
-          </div>
-          <div class="kpi">
-            <div class="kpiLabel">Datos</div>
-            <div class="kpiValue">SQLite</div>
-          </div>
-          <div class="kpi">
-            <div class="kpiLabel">Foco</div>
-            <div class="kpiValue">MVP</div>
-          </div>
-        </div>
-
-        <div class="heroList">
-          <div class="heroItem">
-            <div class="icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M7 7h10v10H7V7Z" stroke="currentColor" stroke-width="2" />
-                <path d="M4 4h16v16H4V4Z" stroke="currentColor" stroke-width="2" opacity="0.5" />
-              </svg>
-            </div>
-            <div>
-              <div class="heroItemTitle">Soberanía de datos</div>
-              <div class="heroItemSub">El documento es tuyo y exportable. Sin lock-in raro.</div>
-            </div>
-          </div>
-
-          <div class="heroItem">
-            <div class="icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M12 3v18" stroke="currentColor" stroke-width="2" />
-                <path d="M5 10l7-7 7 7" stroke="currentColor" stroke-width="2" />
-                <path d="M5 14h14" stroke="currentColor" stroke-width="2" opacity="0.55" />
-              </svg>
-            </div>
-            <div>
-              <div class="heroItemTitle">Transparencia operativa</div>
-              <div class="heroItemSub">Fórmulas, historial y registros auditables.</div>
-            </div>
-          </div>
-
-          <div class="heroItem">
-            <div class="icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M5 12h14" stroke="currentColor" stroke-width="2" />
-                <path d="M12 5v14" stroke="currentColor" stroke-width="2" />
-                <path d="M7 7l10 10" stroke="currentColor" stroke-width="2" opacity="0.35" />
-              </svg>
-            </div>
-            <div>
-              <div class="heroItemTitle">Colaborativo</div>
-              <div class="heroItemSub">Pensado para comisiones, tesorería y comunidad.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <section class="section">
-    <div class="sectionHead">
-      <h2>Qué podés hacer hoy</h2>
-      <p class="sectionLead">Un MVP realista para cooperadoras: empezar simple, operar bien, mejorar iterando.</p>
-    </div>
-
-    <div class="grid">
-      <article class="card">
-        <div class="cardTop">
-          <div class="icon soft" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M4 7h16" stroke="currentColor" stroke-width="2" />
-              <path d="M4 12h16" stroke="currentColor" stroke-width="2" />
-              <path d="M4 17h10" stroke="currentColor" stroke-width="2" />
-            </svg>
-          </div>
-          <div>
-            <div class="cardTitle">Cooperadora</div>
-            <div class="cardSub">Datos de escuela/cooperadora, ejercicio en curso y cargos base.</div>
-          </div>
-        </div>
-        <ul class="bullets">
-          <li>Configurar banco y kiosco/librería</li>
-          <li>Crear/activar ejercicios</li>
-          <li>Administrar cargos (incluye duración en meses)</li>
-        </ul>
-      </article>
-
-      <article class="card">
-        <div class="cardTop">
-          <div class="icon soft" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="2" />
-              <path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6" stroke="currentColor" stroke-width="2" />
-            </svg>
-          </div>
-          <div>
-            <div class="cardTitle">Socios</div>
-            <div class="cardSub">Alta/edición con búsqueda rápida (sin fricción).</div>
-          </div>
-        </div>
-        <ul class="bullets">
-          <li>Buscar por apellido, DNI, CUIL, email, teléfono</li>
-          <li>Alta rápida y edición</li>
-          <li>Baja como acción explícita (no molesta en creación)</li>
-        </ul>
-      </article>
-
-      <article class="card">
-        <div class="cardTop">
-          <div class="icon soft" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M4 7h16" stroke="currentColor" stroke-width="2" />
-              <path d="M4 12h16" stroke="currentColor" stroke-width="2" />
-              <path d="M4 17h16" stroke="currentColor" stroke-width="2" />
-              <path d="M7 9h4" stroke="currentColor" stroke-width="2" opacity="0.55" />
-            </svg>
-          </div>
-          <div>
-            <div class="cardTitle">Movimientos</div>
-            <div class="cardSub">Formulario para registrar entradas, salidas y traspasos.</div>
-          </div>
-        </div>
-        <ul class="bullets">
-          <li>Rubro/subrubro (PIA) y cuentas</li>
-          <li>Destino bancario cuando corresponde</li>
-          <li>Asociar socio de forma opcional</li>
-        </ul>
-      </article>
-
-      <article class="card">
-        <div class="cardTop">
-          <div class="icon soft" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M7 4h10v4H7V4Z" stroke="currentColor" stroke-width="2" />
-              <path d="M5 10h14v10H5V10Z" stroke="currentColor" stroke-width="2" />
-              <path d="M8 13h8" stroke="currentColor" stroke-width="2" opacity="0.55" />
-              <path d="M8 16h6" stroke="currentColor" stroke-width="2" opacity="0.55" />
-            </svg>
-          </div>
-          <div>
-            <div class="cardTitle">Gobierno</div>
-            <div class="cardSub">Comisión y asambleas vinculadas al ejercicio en curso.</div>
-          </div>
-        </div>
-        <ul class="bullets">
-          <li>Inicializar comisión desde cargos</li>
-          <li>Registrar autoridades y vencimiento de mandato</li>
-          <li>Crear/editar asambleas con resoluciones</li>
-        </ul>
-      </article>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="sectionHead">
-      <h2>Cómo se instala (en 2 minutos)</h2>
-      <p class="sectionLead">La app se integra a tu documento como una página más.</p>
-    </div>
-
-    <div class="steps">
-      <div class="step">
-        <div class="stepN">1</div>
-        <div>
-          <div class="stepTitle">Crear / copiar tu documento</div>
-          <div class="stepSub">Idealmente una copia del template AppCoop, o un doc nuevo.</div>
-        </div>
-      </div>
-      <div class="step">
-        <div class="stepN">2</div>
-        <div>
-          <div class="stepTitle">Agregar widget</div>
-          <div class="stepSub"><span class="mono">Add New</span> → <span class="mono">Add Widget to Page</span> → <span class="mono">Custom</span></div>
-        </div>
-      </div>
-      <div class="step">
-        <div class="stepN">3</div>
-        <div>
-          <div class="stepTitle">Pegar la URL</div>
-          <div class="stepSub">Usá la URL de GitHub Pages de esta SPA.</div>
-        </div>
-      </div>
-      <div class="step">
-        <div class="stepN">4</div>
-        <div>
-          <div class="stepTitle">Dar permisos</div>
-          <div class="stepSub"><span class="mono">Access level</span>: <strong>Full document access</strong></div>
-        </div>
-      </div>
-      <div class="step">
-        <div class="stepN">5</div>
-        <div>
-          <div class="stepTitle">Inicializar plantilla</div>
-          <div class="stepSub">Desde “Inicio”, la app puede crear tablas y cargar datos base si faltan.</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="callouts">
-      <div class="callout">
-        <div class="calloutTitle">Soberanía y replicación</div>
-        <div class="calloutSub">
-          Un documento Grist es un archivo SQLite: podés respaldar, exportar e integrar. Perfecto para organizaciones sin fines de lucro.
-        </div>
-      </div>
-      <div class="callout">
-        <div class="calloutTitle">Software libre como bandera</div>
-        <div class="calloutSub">
-          Este proyecto busca facilitar la transformación digital sin perder control: educación pública, gratuita y de calidad, con compromiso social.
-        </div>
       </div>
     </div>
   </section>
 
-  <section class="section">
-    <div class="sectionHead">
-      <h2>Lo que viene</h2>
-      <p class="sectionLead">Roadmap orientado a productividad: menos planillas, más trazabilidad.</p>
+  <!-- PRINCIPIOS -->
+  <section class="mx-auto max-w-5xl px-4 py-12">
+    <div class="flex flex-col gap-2 mb-6">
+      <h2 class="text-2xl font-bold tracking-tight">Nuestros principios</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        Los que guían cada decisión de diseño y desarrollo de esta herramienta.
+      </p>
     </div>
-
-    <div class="roadmap">
-      <div class="roadItem">
-        <div class="pill">Próximo</div>
-        <div class="roadTitle">Personas unificadas</div>
-        <div class="roadSub">Tabla <span class="mono">personas</span> para vincular socios, autoridades, docentes y directivos sin duplicar datos.</div>
-      </div>
-      <div class="roadItem">
-        <div class="pill">Próximo</div>
-        <div class="roadTitle">Adjuntos y actas</div>
-        <div class="roadSub">Carga guiada de comprobantes, actas y archivos (con trazabilidad).</div>
-      </div>
-      <div class="roadItem">
-        <div class="pill">Después</div>
-        <div class="roadTitle">Cierres y reportes</div>
-        <div class="roadSub">Cierres mensuales, saldos, exportables para PIA / nómina y controles.</div>
-      </div>
-      <div class="roadItem">
-        <div class="pill">Después</div>
-        <div class="roadTitle">Accesos y roles</div>
-        <div class="roadSub">Reglas para tesorería, comisión, asesoría y lectura comunitaria.</div>
-      </div>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {#each principios as p}
+        {@const Icon = iconMap[p.icono]}
+        <Card.Root>
+          <Card.Header>
+            <div class="flex items-center gap-3">
+              <div class="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                {#if Icon}
+                  <Icon class="size-5" />
+                {/if}
+              </div>
+              <Card.Title class="text-base">{p.titulo}</Card.Title>
+            </div>
+          </Card.Header>
+          <Card.Content>
+            <p class="text-sm text-muted-foreground">{p.descripcion}</p>
+          </Card.Content>
+        </Card.Root>
+      {/each}
     </div>
   </section>
 
-  <footer class="foot">
-    <div class="footLeft">
-      <div class="footTitle">AppCoop</div>
-      <div class="footSub">Gestión colaborativa para cooperadoras escolares bonaerenses. Software libre bajo licencia AGPL-3.0.</div>
+  <Separator />
+
+  <!-- FUNCIONES -->
+  <section class="mx-auto max-w-5xl px-4 py-12">
+    <div class="flex flex-col gap-2 mb-6">
+      <h2 class="text-2xl font-bold tracking-tight">Qué podés hacer hoy</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        Cuatro módulos pensados para la gestión diaria de tu cooperadora u organización.
+      </p>
     </div>
-    <div class="footLinks">
-      <a class="link" href={repoUrl} target="_blank" rel="noreferrer">Contribuir</a>
-      <a class="link" href={licenseUrl} target="_blank" rel="noreferrer">Licencia</a>
-      <a class="link" href={gristDocsUrl} target="_blank" rel="noreferrer">Custom Widgets</a>
+    <div class="grid gap-4 sm:grid-cols-2">
+      {#each funciones as f}
+        {@const Icon = iconMap[f.icono]}
+        <Card.Root>
+          <Card.Header>
+            <div class="flex items-center gap-3">
+              <div class="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                {#if Icon}
+                  <Icon class="size-5" />
+                {/if}
+              </div>
+              <div class="flex flex-col">
+                <Card.Title class="text-base">{f.titulo}</Card.Title>
+                <Card.Description>{f.descripcion}</Card.Description>
+              </div>
+            </div>
+          </Card.Header>
+          <Card.Content>
+            <ul class="flex flex-col gap-2">
+              {#each f.items as item}
+                <li class="flex items-start gap-2 text-sm text-muted-foreground">
+                  <CheckCircleIcon class="mt-0.5 size-4 shrink-0 text-primary" />
+                  {item}
+                </li>
+              {/each}
+            </ul>
+          </Card.Content>
+        </Card.Root>
+      {/each}
+    </div>
+  </section>
+
+  <Separator />
+
+  <!-- INSTALACIÓN -->
+  <section class="mx-auto max-w-5xl px-4 py-12">
+    <div class="flex flex-col gap-2 mb-6">
+      <h2 class="text-2xl font-bold tracking-tight">{instalacion.titulo}</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">{instalacion.subtitulo}</p>
+    </div>
+    <div class="flex flex-col gap-3">
+      {#each instalacion.pasos as paso, i}
+        <div class="flex items-start gap-4 rounded-lg border border-border bg-card p-4">
+          <div class="flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 font-bold text-primary text-sm">
+            {i + 1}
+          </div>
+          <div class="flex flex-col gap-1">
+            <div class="font-semibold text-sm">{paso.titulo}</div>
+            <div class="text-sm text-muted-foreground">{paso.descripcion}</div>
+          </div>
+        </div>
+      {/each}
+    </div>
+  </section>
+
+  <Separator />
+
+  <!-- ROADMAP -->
+  <section class="mx-auto max-w-5xl px-4 py-12">
+    <div class="flex flex-col gap-2 mb-8">
+      <h2 class="text-2xl font-bold tracking-tight">Lo que viene</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        Menos planillas, más trazabilidad. Esto es lo que estamos construyendo.
+      </p>
+    </div>
+    <div class="flex flex-col gap-8">
+      {#each Object.entries(roadmapGroups) as [key, group]}
+        {#if group.items.length > 0}
+          <div class="flex flex-col gap-3">
+            <div class="flex items-center gap-2">
+              <Badge variant={group.variant}>{group.label}</Badge>
+              <div class="h-px flex-1 bg-border"></div>
+            </div>
+            <div class="grid gap-3 sm:grid-cols-2">
+              {#each group.items as item}
+                <Card.Root class="gap-2">
+                  <Card.Header class="gap-1">
+                    <Card.Title class="text-sm">{item.titulo}</Card.Title>
+                  </Card.Header>
+                  <Card.Content>
+                    <p class="text-sm text-muted-foreground">{item.descripcion}</p>
+                  </Card.Content>
+                </Card.Root>
+              {/each}
+            </div>
+          </div>
+        {/if}
+      {/each}
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-border bg-card">
+    <div class="mx-auto max-w-5xl px-4 py-8">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div class="flex flex-col gap-1">
+          <div class="flex items-center gap-2">
+            <HeartHandshakeIcon class="size-5 text-primary" />
+            <span class="font-bold">{identidad.nombre}</span>
+          </div>
+          <p class="text-sm text-muted-foreground max-w-prose">
+            {identidad.descripcion} Software libre bajo licencia {identidad.licencia}.
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <Button variant="ghost" size="sm" href={enlaces.repo} target="_blank" rel="noreferrer">
+            <CodeXmlIcon data-icon="inline-start" />
+            Contribuir
+          </Button>
+          <Button variant="ghost" size="sm" href={enlaces.licencia} target="_blank" rel="noreferrer">
+            Licencia
+          </Button>
+          <Button variant="ghost" size="sm" href={enlaces.grist_docs} target="_blank" rel="noreferrer">
+            Custom Widgets
+          </Button>
+        </div>
+      </div>
     </div>
   </footer>
 </main>
-
-<style>
-  .wrap {
-    max-width: 1040px;
-    margin: 0 auto;
-    padding: 22px 18px 28px 18px;
-  }
-
-  .hero {
-    border-radius: 18px;
-    border: 1px solid rgba(128, 128, 128, 0.22);
-    background:
-      radial-gradient(1200px 500px at 10% 0%, rgba(22, 179, 120, 0.18), transparent 55%),
-      radial-gradient(900px 420px at 100% 10%, rgba(255, 196, 0, 0.08), transparent 55%),
-      rgba(128, 128, 128, 0.06);
-    padding: 16px 16px 14px 16px;
-  }
-
-  .heroTop {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  .badge {
-    display: inline-block;
-    padding: 6px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(22, 179, 120, 0.35);
-    background: rgba(22, 179, 120, 0.12);
-    font-weight: 800;
-    font-size: 12px;
-  }
-
-  .heroLinks {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-
-  h1 {
-    margin: 10px 0 10px 0;
-    font-size: 30px;
-    line-height: 1.15;
-    letter-spacing: -0.015em;
-  }
-  .lead {
-    margin: 0 0 14px 0;
-    opacity: 0.92;
-    font-size: 15px;
-    line-height: 1.55;
-  }
-  .cta {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin: 0 0 8px 0;
-  }
-  .btn {
-    display: inline-block;
-    text-decoration: none;
-    font-weight: 800;
-  }
-
-  .link {
-    color: inherit;
-    text-decoration: none;
-    font-weight: 800;
-    font-size: 13px;
-    opacity: 0.85;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.25);
-    padding-bottom: 2px;
-  }
-  .link:hover {
-    opacity: 1;
-    border-bottom-color: rgba(22, 179, 120, 0.45);
-  }
-
-  .meta {
-    opacity: 0.75;
-    font-size: 13px;
-    margin-top: 10px;
-  }
-
-  .heroGrid {
-    display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
-    gap: 14px;
-    align-items: start;
-    margin-top: 6px;
-  }
-
-  .heroCard {
-    border-radius: 16px;
-    border: 1px solid rgba(128, 128, 128, 0.22);
-    background: rgba(128, 128, 128, 0.06);
-    padding: 14px;
-  }
-
-  .kpis {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 12px;
-  }
-
-  .kpi {
-    border: 1px solid rgba(128, 128, 128, 0.18);
-    border-radius: 14px;
-    padding: 10px 10px;
-    background: rgba(128, 128, 128, 0.04);
-  }
-
-  .kpiLabel {
-    font-size: 12px;
-    opacity: 0.75;
-    font-weight: 700;
-  }
-
-  .kpiValue {
-    font-weight: 900;
-    margin-top: 2px;
-    letter-spacing: -0.01em;
-  }
-
-  .heroList {
-    display: grid;
-    gap: 10px;
-  }
-
-  .heroItem {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-  }
-
-  .heroItemTitle {
-    font-weight: 900;
-    font-size: 13px;
-  }
-
-  .heroItemSub {
-    opacity: 0.75;
-    font-size: 13px;
-    margin-top: 2px;
-  }
-
-  .section {
-    margin-top: 18px;
-  }
-
-  .sectionHead {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-bottom: 10px;
-  }
-
-  h2 {
-    margin: 0;
-    font-size: 18px;
-    letter-spacing: -0.01em;
-  }
-
-  .sectionLead {
-    margin: 0;
-    opacity: 0.78;
-    font-size: 13px;
-    max-width: 60ch;
-  }
-
-  .grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  .card {
-    border-radius: 16px;
-    border: 1px solid rgba(128, 128, 128, 0.22);
-    background: rgba(128, 128, 128, 0.06);
-    padding: 14px;
-  }
-
-  .cardTop {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .cardTitle {
-    font-weight: 900;
-    font-size: 14px;
-  }
-
-  .cardSub {
-    opacity: 0.75;
-    font-size: 13px;
-    margin-top: 2px;
-  }
-
-  .bullets {
-    margin: 10px 0 0 18px;
-    padding: 0;
-  }
-
-  .bullets li {
-    margin: 6px 0;
-    opacity: 0.9;
-    font-size: 13px;
-  }
-
-  .steps {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-
-  .step {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-    border-radius: 16px;
-    border: 1px solid rgba(128, 128, 128, 0.22);
-    background: rgba(128, 128, 128, 0.06);
-    padding: 12px 12px;
-  }
-
-  .stepN {
-    width: 28px;
-    height: 28px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 900;
-    border: 1px solid rgba(22, 179, 120, 0.35);
-    background: rgba(22, 179, 120, 0.12);
-    flex-shrink: 0;
-  }
-
-  .stepTitle {
-    font-weight: 900;
-    font-size: 13px;
-  }
-
-  .stepSub {
-    opacity: 0.8;
-    font-size: 13px;
-    margin-top: 2px;
-  }
-
-  .callouts {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-top: 12px;
-  }
-
-  .callout {
-    border-radius: 16px;
-    border: 1px solid rgba(128, 128, 128, 0.22);
-    background: rgba(128, 128, 128, 0.06);
-    padding: 14px;
-  }
-
-  .calloutTitle {
-    font-weight: 900;
-    font-size: 14px;
-  }
-
-  .calloutSub {
-    opacity: 0.82;
-    font-size: 13px;
-    margin-top: 6px;
-    line-height: 1.5;
-  }
-
-  .roadmap {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  .roadItem {
-    border-radius: 16px;
-    border: 1px solid rgba(128, 128, 128, 0.22);
-    background: rgba(128, 128, 128, 0.06);
-    padding: 14px;
-  }
-
-  .pill {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 999px;
-    font-weight: 900;
-    font-size: 12px;
-    border: 1px solid rgba(128, 128, 128, 0.24);
-    background: rgba(128, 128, 128, 0.06);
-    opacity: 0.9;
-  }
-
-  .roadTitle {
-    margin-top: 10px;
-    font-weight: 900;
-    font-size: 14px;
-  }
-
-  .roadSub {
-    opacity: 0.8;
-    font-size: 13px;
-    margin-top: 6px;
-    line-height: 1.5;
-  }
-
-  .mono {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    font-size: 0.95em;
-  }
-
-  .icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    border: 1px solid rgba(128, 128, 128, 0.2);
-    background: rgba(128, 128, 128, 0.04);
-  }
-
-  .icon.soft {
-    border: 1px solid rgba(22, 179, 120, 0.22);
-    background: rgba(22, 179, 120, 0.12);
-  }
-
-  .icon svg {
-    width: 18px;
-    height: 18px;
-    opacity: 0.9;
-    color: var(--grist-theme-cursor, #16b378);
-  }
-
-  .foot {
-    margin-top: 22px;
-    padding-top: 14px;
-    border-top: 1px solid rgba(128, 128, 128, 0.18);
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  .footTitle {
-    font-weight: 900;
-    font-size: 14px;
-  }
-
-  .footSub {
-    opacity: 0.75;
-    font-size: 13px;
-    margin-top: 2px;
-    max-width: 70ch;
-  }
-
-  .footLinks {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  @media (max-width: 980px) {
-    .heroGrid {
-      grid-template-columns: 1fr;
-    }
-    .grid {
-      grid-template-columns: 1fr;
-    }
-    .steps {
-      grid-template-columns: 1fr;
-    }
-    .callouts {
-      grid-template-columns: 1fr;
-    }
-    .roadmap {
-      grid-template-columns: 1fr;
-    }
-    h1 {
-      font-size: 26px;
-    }
-  }
-</style>
