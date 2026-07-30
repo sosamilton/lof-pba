@@ -10,7 +10,7 @@
   import Landing from './lib/pages/Landing.svelte'
   import NeedsAccess from './lib/pages/NeedsAccess.svelte'
   import SetupWizard from './lib/pages/SetupWizard.svelte'
-  import Setup from './lib/pages/Setup.svelte'
+  import Cooperadora from './lib/pages/Cooperadora.svelte'
   import Socios from './lib/pages/Socios.svelte'
   import Movimientos from './lib/pages/Movimientos.svelte'
   import Gobierno from './lib/pages/Gobierno.svelte'
@@ -73,8 +73,8 @@
 {:else if gristStatus === 'ready'}
   <AppShell title="AppCoop">
     {#snippet children()}
-      {#if router.current === 'setup'}
-        <Setup />
+      {#if router.current === 'cooperadora'}
+        <Cooperadora />
       {:else if router.current === 'socios'}
         <Socios />
       {:else if router.current === 'movimientos'}
