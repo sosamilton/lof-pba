@@ -1,19 +1,20 @@
 <script>
   import { onMount } from 'svelte'
   import { Toaster } from '$lib/components/ui/sonner'
-  import AppShell from './lib/layout/AppShell.svelte'
-  import { initRouter, router, navigate } from './lib/router.svelte'
-  import { detectGrist, getGristStatus, getWidgetOptions, isInGrist, subscribeAccess, listTables } from './lib/grist'
-  import { isInstalled } from './lib/configuracion'
+  import AppShell from '$app/AppShell.svelte'
+  import { initRouter, router, navigate } from '$core/router.svelte'
+  import { detectGrist, getGristStatus, getWidgetOptions, isInGrist, subscribeAccess, listTables } from '$core/grist'
+  import { isInstalled } from '$core/configuracion'
 
-  import Inicio from './lib/pages/Inicio.svelte'
-  import Landing from './lib/pages/Landing.svelte'
-  import NeedsAccess from './lib/pages/NeedsAccess.svelte'
-  import SetupWizard from './lib/pages/SetupWizard.svelte'
-  import Cooperadora from './lib/pages/Cooperadora.svelte'
-  import Socios from './lib/pages/Socios.svelte'
-  import Movimientos from './lib/pages/Movimientos.svelte'
-  import Gobierno from './lib/pages/Gobierno.svelte'
+  import Inicio from '$app/pages/Inicio.svelte'
+  import Landing from '$landing/Landing.svelte'
+  import NeedsAccess from '$setup/NeedsAccess.svelte'
+  import SetupWizard from '$setup/SetupWizard.svelte'
+  import Cooperadora from '$app/pages/Cooperadora.svelte'
+  import Socios from '$app/modules/comunidad/Socios.svelte'
+  import Personas from '$app/modules/comunidad/Personas.svelte'
+  import Movimientos from '$app/modules/tesoreria/Movimientos.svelte'
+  import Gobierno from '$app/modules/gobierno/Gobierno.svelte'
 
   let ready = $state(false)
   let gristStatus = $state('none')
@@ -77,6 +78,8 @@
         <Cooperadora />
       {:else if router.current === 'socios'}
         <Socios />
+      {:else if router.current === 'personas'}
+        <Personas />
       {:else if router.current === 'movimientos'}
         <Movimientos />
       {:else if router.current === 'gobierno'}

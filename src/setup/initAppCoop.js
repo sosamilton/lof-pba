@@ -1,6 +1,6 @@
-import { csvToObjects, normalizeSeedValue, parseCsv } from './csv'
-import { addRecords, applyUserActions, createTables, fetchTableData } from './grist'
-import schemaJson from './appcoop_schema.v1.json'
+import { csvToObjects, normalizeSeedValue, parseCsv } from '$core/csv'
+import { addRecords, applyUserActions, createTables, fetchTableData } from '$core/grist'
+import schemaJson from '$core/schema.json'
 
 const base = () => String(import.meta.env.BASE_URL || '/')
 

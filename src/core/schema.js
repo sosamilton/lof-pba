@@ -1,4 +1,4 @@
-import schemaJson from './appcoop_schema.v1.json'
+import schemaJson from './schema.json'
 import { TABLE_PREFERRED_IDS } from './utils'
 
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1)
