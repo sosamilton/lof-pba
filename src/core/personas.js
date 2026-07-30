@@ -1,21 +1,26 @@
 import { applyUserActions, fetchRecords, resolveTableId, withMultiplayerProtection } from './grist'
 import { TABLE_PREFERRED_IDS } from './utils'
+import {
+  parseDni as _parseDni,
+  parseCuil as _parseCuil,
+  isValidDni as _isValidDni,
+  isValidCuil as _isValidCuil,
+  isValidCuilChecksum,
+  normalizeTelefonoForStorage,
+  normalizeEmail,
+  isValidEmail,
+} from './format.js'
 
-export const normalizeDni = (raw) =>
-  String(raw || '').replace(/\D/g, '')
-
-export const normalizeCuil = (raw) =>
-  String(raw || '').replace(/\D/g, '')
-
-export const isValidDni = (raw) => {
-  const d = normalizeDni(raw)
-  return d.length >= 7 && d.length <= 8
-}
-
-export const isValidCuil = (raw) => {
-  const c = normalizeCuil(raw)
-  return c.length === 11
-}
+// Re-export para compatibilidad con código existente.
+// Los datos se guardan como dígitos crudos; el formateo es solo visual.
+export const normalizeDni = _parseDni
+export const normalizeCuil = _parseCuil
+export const isValidDni = _isValidDni
+export const isValidCuil = _isValidCuil
+export const normalizeTelefono = normalizeTelefonoForStorage
+export const normalizeEmailField = normalizeEmail
+export const isValidEmailField = isValidEmail
+export { isValidCuilChecksum }
 
 const normalizeText = (s) => String(s || '').toLowerCase().trim()
 
@@ -23,7 +28,7 @@ export const searchPersonas = async (query) => {
   const tableId = await resolveTableId(TABLE_PREFERRED_IDS.personas)
   if (!tableId) return []
   const all = await fetchRecords(tableId, {
-    columns: ['tipo_persona', 'dni', 'cuil', 'apellido', 'nombre', 'razon_social', 'domicilio', 'localidad', 'telefono', 'email']
+    columns: ['tipo_persona', 'dni', 'cuil', 'apellido', 'nombre', 'razon_social', 'domicilio', 'localidad', 'telefono', 'email', 'categoria']
   })
   const q = normalizeText(query)
   if (!q) return all
@@ -39,7 +44,7 @@ export const findPersonaByDni = async (dni) => {
   const tableId = await resolveTableId(TABLE_PREFERRED_IDS.personas)
   if (!tableId) return null
   const all = await fetchRecords(tableId, {
-    columns: ['tipo_persona', 'dni', 'cuil', 'apellido', 'nombre', 'razon_social', 'domicilio', 'localidad', 'telefono', 'email'],
+    columns: ['tipo_persona', 'dni', 'cuil', 'apellido', 'nombre', 'razon_social', 'domicilio', 'localidad', 'telefono', 'email', 'categoria'],
     filter: (p) => normalizeDni(p.dni) === d
   })
   return all[0] || null
@@ -67,6 +72,7 @@ const buildPersonaFields = (data) => {
   if (data.localidad) fields.localidad = data.localidad
   if (data.telefono) fields.telefono = data.telefono
   if (data.email) fields.email = data.email
+  if (data.categoria) fields.categoria = data.categoria
   return fields
 }
 
@@ -90,11 +96,12 @@ export const updatePersona = async (id, data) => {
 
 export const findOrCreatePersona = async (data) => {
   const dni = normalizeDni(data.dni)
+  // 1. Si hay DNI, buscar persona existente primero
   if (dni) {
     const existing = await findPersonaByDni(dni)
     if (existing) {
       const updates = {}
-      for (const key of ['tipo_persona', 'cuil', 'apellido', 'nombre', 'razon_social', 'domicilio', 'localidad', 'telefono', 'email']) {
+      for (const key of ['tipo_persona', 'cuil', 'apellido', 'nombre', 'razon_social', 'domicilio', 'localidad', 'telefono', 'email', 'categoria']) {
         if (data[key] && !existing[key]) updates[key] = data[key]
       }
       if (Object.keys(updates).length > 0) {
@@ -104,14 +111,28 @@ export const findOrCreatePersona = async (data) => {
       return existing
     }
   }
+  // 2. Crear con protección multiplayer: si otra instancia ya creó la persona,
+  //    withMultiplayerProtection retorna false y re-buscamos en vez de crear duplicado.
+  let createdPersona = null
   const created = await withMultiplayerProtection(
     async () => dni ? Boolean(await findPersonaByDni(dni)) : false,
-    () => createPersona({ ...data, dni })
+    async () => { createdPersona = await createPersona({ ...data, dni }) }
   )
-  if (created && dni) {
+  if (created && createdPersona) {
+    // Confirmar re-leyendo (con pequeño delay para que Grist indexe el registro)
+    if (dni) {
+      await new Promise((r) => setTimeout(r, 150))
+      const found = await findPersonaByDni(dni)
+      if (found) return found
+    }
+    return createdPersona
+  }
+  // 3. created === false: otra instancia creó la persona; re-buscar en vez de duplicar
+  if (dni) {
     const found = await findPersonaByDni(dni)
     if (found) return found
   }
+  // 4. Último recurso: crear sin protección (sin DNI o caso edge)
   return createPersona({ ...data, dni })
 }
 
