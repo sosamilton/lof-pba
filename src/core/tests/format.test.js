@@ -13,6 +13,10 @@ import {
   isValidTelefono,
   normalizeEmail,
   isValidEmail,
+  parseCue,
+  formatCue,
+  isValidCue,
+  cueSedeLabel,
 } from '$core/format.js'
 
 describe('formatDni', () => {
@@ -136,5 +140,50 @@ describe('isValidEmail', () => {
   })
   it('rejects empty', () => {
     expect(isValidEmail('')).toBe(false)
+  })
+})
+
+describe('formatCue', () => {
+  it('formats complete 9-digit CUE', () => {
+    expect(formatCue('061234500')).toBe('06-12345-00')
+  })
+  it('returns raw digits when incomplete', () => {
+    expect(formatCue('06123')).toBe('06123')
+  })
+  it('strips non-digits before formatting', () => {
+    expect(formatCue('06-12345-00')).toBe('06-12345-00')
+  })
+  it('slices to max 9 digits', () => {
+    expect(formatCue('061234500123')).toBe('06-12345-00')
+  })
+  it('returns empty for empty input', () => {
+    expect(formatCue('')).toBe('')
+  })
+})
+
+describe('isValidCue', () => {
+  it('validates 9-digit CUE starting with 06', () => {
+    expect(isValidCue('061234500')).toBe(true)
+  })
+  it('rejects CUE not starting with 06', () => {
+    expect(isValidCue('071234500')).toBe(false)
+  })
+  it('rejects CUE with less than 9 digits', () => {
+    expect(isValidCue('0612345')).toBe(false)
+  })
+  it('rejects empty', () => {
+    expect(isValidCue('')).toBe(false)
+  })
+})
+
+describe('cueSedeLabel', () => {
+  it('labels 00 as sede central', () => {
+    expect(cueSedeLabel('061234500')).toBe('Sede central')
+  })
+  it('labels non-00 as anexo', () => {
+    expect(cueSedeLabel('061234501')).toBe('Anexo 01')
+  })
+  it('returns empty for invalid CUE', () => {
+    expect(cueSedeLabel('06123')).toBe('')
   })
 })
