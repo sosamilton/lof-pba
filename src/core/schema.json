@@ -101,6 +101,14 @@
         { "id": "localidad", "fields": { "label": "Localidad", "type": "Text" } },
         { "id": "telefono", "fields": { "label": "Telefono", "type": "Text" } },
         { "id": "email", "fields": { "label": "Email", "type": "Text" } },
+        {
+          "id": "categoria",
+          "fields": {
+            "label": "Categoria / vinculo",
+            "type": "Choice",
+            "widgetOptions": "{\"choices\":[\"Socio\",\"Docente\",\"Directivo\",\"Proveedor\",\"Donante\"]}"
+          }
+        },
         { "id": "creado_el", "fields": { "label": "Fecha creacion", "type": "DateTime" } }
       ]
     },
@@ -132,7 +140,7 @@
           "fields": {
             "label": "Motivo de baja",
             "type": "Choice",
-            "widgetOptions": "{\"choices\":[\"Renuncia\",\"Fallecimiento\",\"CambioEscuela\",\"Otro\"]}"
+            "widgetOptions": "{\"choices\":[\"Renuncia\",\"Falta de pago\",\"Fallecimiento\",\"CambioEscuela\",\"Otro\"]}"
           }
         },
         {
@@ -310,6 +318,7 @@
         { "id": "destino_bancario", "fields": { "label": "Destino en banco", "type": "Choice", "widgetOptions": "{\"choices\":[\"CuentaCorriente\",\"PlazoFijo\"]}" } },
         { "id": "cuenta_destino_id", "fields": { "label": "Caja o cuenta destino", "type": "Ref:cuentas" } },
         { "id": "socio_id", "fields": { "label": "Socio", "type": "Ref:socios" } },
+        { "id": "persona_id", "fields": { "label": "Persona", "type": "Ref:personas" } },
         { "id": "fuera_de_termino", "fields": { "label": "Cargado fuera de termino", "type": "Bool" } },
         { "id": "periodo_cerrado", "fields": { "label": "Periodo cerrado", "type": "Bool" } },
         { "id": "comprobante", "fields": { "label": "Comprobante", "type": "Attachments" } },
@@ -337,7 +346,8 @@
         { "id": "telefono", "fields": { "label": "Telefono", "type": "Text" } },
         { "id": "color_primario", "fields": { "label": "Color primario", "type": "Text" } },
         { "id": "instalado", "fields": { "label": "Instalado", "type": "Bool" } },
-        { "id": "fecha_instalacion", "fields": { "label": "Fecha instalacion", "type": "DateTime" } }
+        { "id": "fecha_instalacion", "fields": { "label": "Fecha instalacion", "type": "DateTime" } },
+        { "id": "cuenta_default_id", "fields": { "label": "Cuenta/caja por defecto", "type": "Ref:cuentas" } }
       ]
     },
     {
