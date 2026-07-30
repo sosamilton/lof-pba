@@ -17,6 +17,9 @@
     isValidTelefono,
     normalizeEmail,
     isValidEmail,
+    formatCbu,
+    isValidCbu,
+    isValidCbuChecksum,
   } from '$core/format'
   import { Button } from '$lib/components/ui/button'
   import * as Card from '$lib/components/ui/card'
@@ -64,6 +67,29 @@
   let cuitWarning = $state('')
   let telefonoWarning = $state('')
   let emailWarning = $state('')
+  let cbuWarning = $state('')
+
+  // Banco: por defecto Banco Provincia, cuenta corriente en pesos (no editable)
+  // Solo se carga el CBU. El resto viene del convenio DGCyE.
+  let banco = $state({
+    entidad: 'Banco de la Provincia de Buenos Aires',
+    tipo_cuenta: 'Cuenta corriente en pesos',
+    sucursal: '',
+    cuenta_corriente: '',
+    cbu: ''
+  })
+
+  // Kiosco / librería
+  let kiosco = $state({
+    posee: false,
+    modalidad: 'Propio',
+    contrato_desde: '',
+    contrato_hasta: ''
+  })
+
+  // Cuenta default para movimientos: Banco / Efectivo / Caja Chica
+  let cuentaDefault = $state('Banco')
+  const CUENTAS_OPCIONES = ['Banco', 'Efectivo', 'Caja Chica']
 
   // Ejercicio actual: por defecto marzo → marzo del año siguiente
   const currentYear = new Date().getFullYear()
@@ -79,7 +105,7 @@
 
   const localidades = localidadesData.map((l) => ({ value: l, label: l }))
 
-  const steps = ['Módulos', 'Escuela y cooperadora', 'Ejercicio y cargos', 'Instalar']
+  const steps = ['Módulos', 'Escuela y cooperadora', 'Banco y kiosco', 'Ejercicio y cargos', 'Instalar']
 
   const toggleModule = (key) => {
     if (key === 'gestion_completa') {
@@ -144,6 +170,20 @@
       emailWarning = 'Email inválido'
     } else {
       emailWarning = ''
+    }
+  }
+
+  const onCbuInput = () => {
+    banco.cbu = formatCbu(banco.cbu)
+    const c = banco.cbu.replace(/\D/g, '')
+    if (c && !isValidCbu(c)) {
+      cbuWarning = `CBU incompleto: ${c.length}/22 dígitos`
+    } else if (c && isValidCbu(c) && !isValidCbuChecksum(c)) {
+      cbuWarning = 'CBU inválido (dígito verificador incorrecto)'
+    } else if (c && isValidCbu(c)) {
+      cbuWarning = ''
+    } else {
+      cbuWarning = ''
     }
   }
 
@@ -276,9 +316,53 @@
         }
       }
 
+      // Banco: crear registro con datos del convenio (Banco Provincia, cuenta corriente en pesos)
+      const tBanco = await resolveTableId(TABLE_PREFERRED_IDS.datos_banco)
+      if (tBanco) {
+        let existingBanco = []
+        try { existingBanco = await fetchRecords(tBanco) } catch { /* empty */ }
+        if (existingBanco.length === 0) {
+          const cbuDigits = banco.cbu.replace(/\D/g, '')
+          await applyUserActions([['AddRecord', tBanco, null, {
+            entidad: banco.entidad,
+            tipo_cuenta: banco.tipo_cuenta,
+            sucursal: banco.sucursal || '',
+            cuenta_corriente: banco.cuenta_corriente || '',
+            cbu: cbuDigits || '',
+            vigente_desde: new Date().toISOString().slice(0, 10)
+          }]])
+        }
+      }
+
+      // Kiosco / librería
+      const tKiosco = await resolveTableId(TABLE_PREFERRED_IDS.kiosco_libreria)
+      if (tKiosco) {
+        let existingKiosco = []
+        try { existingKiosco = await fetchRecords(tKiosco) } catch { /* empty */ }
+        if (existingKiosco.length === 0) {
+          await applyUserActions([['AddRecord', tKiosco, null, {
+            posee: Boolean(kiosco.posee),
+            modalidad: kiosco.posee ? (kiosco.modalidad || 'Propio') : null,
+            contrato_desde: kiosco.posee && kiosco.modalidad === 'Licitado' ? (kiosco.contrato_desde || null) : null,
+            contrato_hasta: kiosco.posee && kiosco.modalidad === 'Licitado' ? (kiosco.contrato_hasta || null) : null
+          }]])
+        }
+      }
+
       const moduleFlags = {}
       for (const key of Object.keys(MODULES)) {
         moduleFlags[`modulo_${key}`] = Boolean(selectedModules[key])
+      }
+
+      // Resolver el cuenta_default_id contra la tabla cuentas (ya creada por seed)
+      let cuentaDefaultId = null
+      const tCuentas = await resolveTableId(TABLE_PREFERRED_IDS.cuentas)
+      if (tCuentas) {
+        try {
+          const cuentasRecs = await fetchRecords(tCuentas)
+          const match = cuentasRecs.find((c) => String(c.nombre_cuenta) === cuentaDefault)
+          if (match) cuentaDefaultId = match.id
+        } catch { /* empty */ }
       }
 
       await saveConfig({
@@ -288,6 +372,7 @@
         cuit: schoolData.cuit.replace(/\D/g, ''),
         telefono: normalizeTelefonoForStorage(schoolData.telefono),
         email: normalizeEmail(schoolData.email),
+        cuenta_default_id: cuentaDefaultId,
         instalado: true,
         fecha_instalacion: new Date().toISOString()
       })
@@ -354,17 +439,23 @@
     (cueWarning && !cueSedeLabel(schoolData.cue)) ||
     cuitWarning ||
     telefonoWarning ||
-    emailWarning
+    emailWarning ||
+    cbuWarning
 
   const canNext = () => {
     if (step === 0) return getSelectedModuleKeys().length > 0
     if (step === 1) return !hasFieldErrors()
-    if (step === 2) {
+    if (step === 2) return !cbuWarning
+    if (step === 3) {
       if (!ejercicio.mes_inicio) return false
       if (Number(ejercicio.anio_fin) <= Number(ejercicio.anio_inicio)) return false
       // Validar que los cargos opcionales tengan nombre
       const sinNombre = cargos.some((c) => !c.cargo_obligatorio && !c.nombre_cargo.trim())
       if (sinNombre) return false
+      // Validar fechas de kiosco licitado
+      if (kiosco.posee && kiosco.modalidad === 'Licitado') {
+        if (kiosco.contrato_desde && kiosco.contrato_hasta && kiosco.contrato_hasta < kiosco.contrato_desde) return false
+      }
       return true
     }
     return true
@@ -478,6 +569,107 @@
         </Card.Content>
       </Card.Root>
     {:else if step === 2}
+      <!-- Banco -->
+      <Card.Root class="mb-4">
+        <Card.Content class="pt-6">
+          <h2 class="text-[17px] font-bold mb-1.5">Cuenta bancaria</h2>
+          <p class="text-[13px] text-muted-foreground mb-4">Por normativa de la Provincia de Buenos Aires, las cooperadoras escolares operan con una cuenta corriente en pesos en el Banco Provincia. Solo necesitás cargar el CBU.</p>
+
+          <div class="grid gap-3 max-[600px]:grid-cols-1 sm:grid-cols-2">
+            <div class="flex flex-col gap-1">
+              <Label class="text-xs font-bold text-muted-foreground">Entidad bancaria</Label>
+              <Input value={banco.entidad} disabled class="opacity-70" />
+            </div>
+            <div class="flex flex-col gap-1">
+              <Label class="text-xs font-bold text-muted-foreground">Tipo de cuenta</Label>
+              <Input value={banco.tipo_cuenta} disabled class="opacity-70" />
+            </div>
+            <div class="flex flex-col gap-1 sm:col-span-2">
+              <Label class="text-xs font-bold text-muted-foreground">CBU (22 dígitos)</Label>
+              <Input value={banco.cbu} oninput={onCbuInput} placeholder="01400000-00000000000000" />
+              {#if cbuWarning}
+                <span class="text-xs text-destructive">{cbuWarning}</span>
+              {/if}
+            </div>
+            <div class="flex flex-col gap-1">
+              <Label class="text-xs font-bold text-muted-foreground">Sucursal (opcional)</Label>
+              <Input bind:value={banco.sucursal} placeholder="Ej: 000" />
+            </div>
+            <div class="flex flex-col gap-1">
+              <Label class="text-xs font-bold text-muted-foreground">N° de cuenta (opcional)</Label>
+              <Input bind:value={banco.cuenta_corriente} placeholder="N° de cuenta corriente" />
+            </div>
+          </div>
+
+          <div class="mt-4 p-3 rounded-lg border border-border bg-muted/5 text-[13px] text-muted-foreground">
+            <p class="m-0">La cuenta del Banco Provincia está <strong>100% bonificada</strong> para cooperadoras escolares (convenio DGCyE). No se pueden usar bancos privados ni billeteras virtuales institucionalmente.</p>
+          </div>
+        </Card.Content>
+      </Card.Root>
+
+      <Separator class="mb-4" />
+
+      <!-- Cuenta default para movimientos -->
+      <Card.Root class="mb-4">
+        <Card.Content class="pt-6">
+          <h2 class="text-[17px] font-bold mb-1.5">Cuenta preferida para movimientos</h2>
+          <p class="text-[13px] text-muted-foreground mb-4">¿En qué cuenta se registran los movimientos por defecto? Podés cambiarlo en cada movimiento.</p>
+
+          <div class="flex flex-col gap-2">
+            {#each CUENTAS_OPCIONES as c}
+              <label class="flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors hover:border-primary/30 {cuentaDefault === c ? 'border-primary/40 bg-primary/5' : 'border-border'}">
+                <input type="radio" name="cuentaDefault" value={c} bind:group={cuentaDefault} class="size-4 accent-primary" />
+                <span class="text-sm font-bold">{c}</span>
+              </label>
+            {/each}
+          </div>
+        </Card.Content>
+      </Card.Root>
+
+      <Separator class="mb-4" />
+
+      <!-- Kiosco / librería -->
+      <Card.Root class="mb-4">
+        <Card.Content class="pt-6">
+          <h2 class="text-[17px] font-bold mb-1.5">Kiosco / librería</h2>
+          <p class="text-[13px] text-muted-foreground mb-4">¿La cooperadora gestiona un kiosco o librería escolar en este ejercicio?</p>
+
+          <label class="flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors hover:border-primary/30 {kiosco.posee ? 'border-primary/40 bg-primary/5' : 'border-border'} mb-3">
+            <Checkbox checked={kiosco.posee} onchange={() => (kiosco.posee = !kiosco.posee)} />
+            <span class="text-sm font-bold">Tiene kiosco o librería</span>
+          </label>
+
+          {#if kiosco.posee}
+            <div class="grid gap-3 max-[600px]:grid-cols-1 sm:grid-cols-2">
+              <div class="flex flex-col gap-1 sm:col-span-2">
+                <Label class="text-xs font-bold text-muted-foreground">Modalidad de gestión</Label>
+                <div class="flex gap-2">
+                  {#each ['Propio', 'Licitado'] as mod}
+                    <label class="flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors hover:border-primary/30 {kiosco.modalidad === mod ? 'border-primary/40 bg-primary/5' : 'border-border'} flex-1">
+                      <input type="radio" name="modalidad" value={mod} bind:group={kiosco.modalidad} class="size-4 accent-primary" />
+                      <span class="text-sm font-bold">{mod}</span>
+                    </label>
+                  {/each}
+                </div>
+              </div>
+              {#if kiosco.modalidad === 'Licitado'}
+                <div class="flex flex-col gap-1">
+                  <Label class="text-xs font-bold text-muted-foreground">Contrato desde</Label>
+                  <Input type="date" bind:value={kiosco.contrato_desde} />
+                </div>
+                <div class="flex flex-col gap-1">
+                  <Label class="text-xs font-bold text-muted-foreground">Contrato hasta</Label>
+                  <Input type="date" bind:value={kiosco.contrato_hasta} />
+                  {#if kiosco.contrato_desde && kiosco.contrato_hasta && kiosco.contrato_hasta < kiosco.contrato_desde}
+                    <span class="text-xs text-destructive">La fecha de fin no puede ser anterior al inicio</span>
+                  {/if}
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </Card.Content>
+      </Card.Root>
+    {:else if step === 3}
       <!-- Ejercicio -->
       <Card.Root class="mb-4">
         <Card.Content class="pt-6">
@@ -586,7 +778,7 @@
           {/each}
         </Card.Content>
       </Card.Root>
-    {:else if step === 3}
+    {:else if step === 4}
       <Card.Root class="mb-4">
         <Card.Content class="pt-6">
           <h2 class="text-[17px] font-bold mb-1.5">Revisá y instalá</h2>
@@ -615,6 +807,30 @@
                 <div class="text-[13px] text-muted-foreground">{schoolData.cooperadora_nombre || ''}</div>
               </div>
             {/if}
+            <div class="p-3 rounded-lg border border-border bg-muted/5">
+              <div class="font-extrabold text-[13px] mb-1.5">Banco</div>
+              <div class="text-[13px] text-muted-foreground">{banco.entidad} · {banco.tipo_cuenta}</div>
+              {#if banco.cbu}
+                <div class="text-[13px] text-muted-foreground">CBU: {banco.cbu}</div>
+              {/if}
+            </div>
+            <div class="p-3 rounded-lg border border-border bg-muted/5">
+              <div class="font-extrabold text-[13px] mb-1.5">Cuenta default</div>
+              <div class="text-[13px] text-muted-foreground">{cuentaDefault}</div>
+            </div>
+            <div class="p-3 rounded-lg border border-border bg-muted/5">
+              <div class="font-extrabold text-[13px] mb-1.5">Kiosco / librería</div>
+              <div class="text-[13px] text-muted-foreground">
+                {#if kiosco.posee}
+                  Sí · {kiosco.modalidad}
+                  {#if kiosco.modalidad === 'Licitado' && kiosco.contrato_desde}
+                    · {kiosco.contrato_desde} → {kiosco.contrato_hasta || 's/d'}
+                  {/if}
+                {:else}
+                  No
+                {/if}
+              </div>
+            </div>
             <div class="p-3 rounded-lg border border-border bg-muted/5">
               <div class="font-extrabold text-[13px] mb-1.5">Ejercicio</div>
               <div class="text-[13px] text-muted-foreground">{ejercicio.mes_inicio} {ejercicio.anio_inicio} → {ejercicio.anio_fin}</div>

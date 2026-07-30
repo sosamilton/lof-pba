@@ -57,6 +57,7 @@
       "title": "Cuenta bancaria",
       "columns": [
         { "id": "entidad", "fields": { "label": "Entidad bancaria", "type": "Text" } },
+        { "id": "tipo_cuenta", "fields": { "label": "Tipo de cuenta", "type": "Text" } },
         { "id": "sucursal", "fields": { "label": "Sucursal", "type": "Text" } },
         { "id": "cuenta_corriente", "fields": { "label": "Cuenta corriente", "type": "Text" } },
         { "id": "cbu", "fields": { "label": "CBU", "type": "Text" } },
