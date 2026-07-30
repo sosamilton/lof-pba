@@ -29,6 +29,11 @@ export const addMonths = (dateStr, months) => {
 
 export const monthKey = (iso) => String(iso || '').slice(0, 7)
 
+export const formatARS = (amount) => {
+  const n = Number(amount || 0)
+  return n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 export const ORGANISMOS = ['CD', 'CRC', 'Federacion']
 
 export const ORGANISMO_LABELS = {

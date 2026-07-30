@@ -1,500 +1,283 @@
 <script>
   import { onMount } from 'svelte'
-  import { applyUserActions, fetchRecords, gristReady, isInGrist, resolveTableId, subscribeRecords } from '../grist'
-  import { findOrCreatePersona, isValidDni, normalizeCuil, normalizeDni, personaLabel, searchPersonas } from '../personas'
-  import { normalize, dateToInput, TIPOS_SOCIO, TABLE_PREFERRED_IDS } from '../utils'
-  import MessageBanner from '../components/MessageBanner.svelte'
+  import { sociosStore as store } from '../stores/sociosStore.svelte'
+  import { isInGrist } from '../grist'
+  import { normalize, TIPOS_SOCIO } from '../utils'
+  import { personaLabel } from '../personas'
+  import { notify } from '../stores/notify.svelte'
+  import { Button } from '$lib/components/ui/button'
+  import * as Card from '$lib/components/ui/card'
+  import { Badge } from '$lib/components/ui/badge'
+  import { Input } from '$lib/components/ui/input'
+  import { Label } from '$lib/components/ui/label'
+  import { Separator } from '$lib/components/ui/separator'
+  import { Alert, AlertDescription } from '$lib/components/ui/alert'
+  import { Skeleton } from '$lib/components/ui/skeleton'
   import EmptyState from '../components/EmptyState.svelte'
-  import '../shared.css'
-
-  let loading = $state(true)
-  let error = $state('')
-  let notice = $state('')
-  let busy = $state(false)
-
-  let tableId = $state()
-  let socios = $state([])
+  import UserPlusIcon from '@lucide/svelte/icons/user-plus'
+  import SearchIcon from '@lucide/svelte/icons/search'
+  import LinkIcon from '@lucide/svelte/icons/link'
+  import UnlinkIcon from '@lucide/svelte/icons/unlink'
+  import UsersIcon from '@lucide/svelte/icons/users'
 
   let q = $state('')
   let estado = $state('activos')
   let tipo = $state('')
 
-  let selected = $state(null)
-  let form = $state(null)
-  let showBaja = $state(false)
-  let listOpen = $state(true)
-
-  let personaSearch = $state('')
-  let personaResults = $state([])
-  let personaSearching = $state(false)
-  let linkedPersona = $state(null)
-  let dniWarning = $state('')
-
   const isActivo = (s) => !s.fecha_baja
 
-  const matches = (s, query) => {
-    const t = normalize(query)
-    if (!t) return true
-    const hay = [
-      s.apellido,
-      s.nombre,
-      s.dni,
-      s.cuil,
-      s.email,
-      s.telefono,
-      s.localidad,
-      s.domicilio
-    ]
-      .map((v) => normalize(v))
-      .join(' ')
-    return hay.includes(t)
-  }
-
   let filtered = $derived(
-    socios
+    store.records
       .filter((s) => {
         if (estado === 'activos') return isActivo(s)
         if (estado === 'bajas') return !isActivo(s)
         return true
       })
       .filter((s) => (tipo ? String(s.tipo_socio || '') === tipo : true))
-      .filter((s) => matches(s, q))
+      .filter((s) => {
+        const t = normalize(q)
+        if (!t) return true
+        const hay = [s.apellido, s.nombre, s.dni, s.cuil, s.email, s.telefono, s.localidad, s.domicilio]
+          .map((v) => normalize(v))
+          .join(' ')
+        return hay.includes(t)
+      })
       .sort((a, b) => normalize(a.apellido).localeCompare(normalize(b.apellido)) || normalize(a.nombre).localeCompare(normalize(b.nombre)))
   )
 
-  let showList = $derived(listOpen && filtered.length > 0)
+  let showList = $derived(store.listOpen && filtered.length > 0)
 
-  const load = async () => {
-    loading = true
-    error = ''
-    notice = ''
-    selected = null
-    form = null
-
-    if (!isInGrist()) {
-      loading = false
-      return
-    }
-
-    try {
-      await gristReady()
-      tableId = await resolveTableId(TABLE_PREFERRED_IDS.socios)
-      socios = await fetchRecords(tableId)
-    } catch (e) {
-      error = e?.message || String(e)
-    } finally {
-      loading = false
-    }
-  }
-
-  const select = (s) => {
-    selected = s
-    showBaja = Boolean(s.fecha_baja)
-    listOpen = true
-    linkedPersona = null
-    dniWarning = ''
-    personaSearch = ''
-    personaResults = []
-    form = {
-      id: s.id,
-      persona_id: s.persona_id || null,
-      dni: s.dni || '',
-      cuil: s.cuil || '',
-      apellido: s.apellido || '',
-      nombre: s.nombre || '',
-      domicilio: s.domicilio || '',
-      localidad: s.localidad || '',
-      telefono: s.telefono || '',
-      email: s.email || '',
-      tipo_socio: s.tipo_socio || 'Activo',
-      fecha_alta: dateToInput(s.fecha_alta),
-      fecha_baja: dateToInput(s.fecha_baja),
-      motivo_baja: s.motivo_baja || ''
-    }
-  }
-
-  const nuevo = () => {
-    selected = null
-    showBaja = false
-    listOpen = false
-    linkedPersona = null
-    personaSearch = ''
-    personaResults = []
-    dniWarning = ''
-    form = {
-      persona_id: null,
-      dni: '',
-      cuil: '',
-      apellido: '',
-      nombre: '',
-      domicilio: '',
-      localidad: '',
-      telefono: '',
-      email: '',
-      tipo_socio: 'Activo',
-      fecha_alta: new Date().toISOString().slice(0, 10),
-      fecha_baja: '',
-      motivo_baja: ''
-    }
-  }
-
-  let _searchTimer = null
-
-  const doPersonaSearch = () => {
-    clearTimeout(_searchTimer)
-    if (!personaSearch || personaSearch.length < 2) {
-      personaResults = []
-      return
-    }
-    _searchTimer = setTimeout(async () => {
-      personaSearching = true
-      try {
-        personaResults = await searchPersonas(personaSearch)
-      } catch (e) {
-        error = e?.message || String(e)
-        personaResults = []
-      } finally {
-        personaSearching = false
-      }
-    }, 300)
-  }
-
-  const selectPersona = (p) => {
-    const legacyFields = ['dni', 'cuil', 'apellido', 'nombre', 'domicilio', 'localidad', 'telefono', 'email']
-    const hasLegacy = legacyFields.some((f) => form[f] && form[f] !== p[f])
-    if (hasLegacy && !confirm('Al vincular esta persona se reemplazarán los datos existentes del socio. ¿Continuar?')) return
-    linkedPersona = p
-    personaResults = []
-    personaSearch = ''
-    dniWarning = ''
-    form.persona_id = p.id
-    form.dni = p.dni || form.dni
-    form.cuil = p.cuil || form.cuil
-    form.apellido = p.apellido || form.apellido
-    form.nombre = p.nombre || form.nombre
-    form.domicilio = p.domicilio || form.domicilio
-    form.localidad = p.localidad || form.localidad
-    form.telefono = p.telefono || form.telefono
-    form.email = p.email || form.email
-  }
-
-  const unlinkPersona = () => {
-    linkedPersona = null
-    form.persona_id = null
-  }
-
-  const onDniInput = () => {
-    const d = normalizeDni(form.dni)
-    form.dni = d
-    if (d && !isValidDni(d)) {
-      dniWarning = 'DNI inválido (debe tener 7 u 8 dígitos)'
-    } else {
-      dniWarning = ''
-    }
-  }
-
-  const save = async () => {
-    notice = ''
-    error = ''
-
-    if (dniWarning) {
-      error = 'Corregí el DNI antes de guardar.'
-      return
-    }
-
-    busy = true
-    try {
-      const personaData = {}
-      const d = normalizeDni(form.dni)
-      if (d) personaData.dni = d
-      const c = normalizeCuil(form.cuil)
-      if (c) personaData.cuil = c
-      if (form.apellido) personaData.apellido = form.apellido
-      if (form.nombre) personaData.nombre = form.nombre
-      if (form.domicilio) personaData.domicilio = form.domicilio
-      if (form.localidad) personaData.localidad = form.localidad
-      if (form.telefono) personaData.telefono = form.telefono
-      if (form.email) personaData.email = form.email
-
-      let personaId = form.persona_id
-
-      if (!personaId && (personaData.dni || personaData.apellido || personaData.nombre)) {
-        const persona = await findOrCreatePersona(personaData)
-        personaId = persona?.id || null
-        linkedPersona = persona
-      }
-
-      const fields = { ...form }
-      delete fields.id
-      fields.persona_id = personaId || null
-
-      fields.dni = normalizeDni(form.dni) || null
-      fields.cuil = normalizeCuil(form.cuil) || null
-
-      Object.keys(fields).forEach((k) => {
-        if (fields[k] === '' || fields[k] === null) delete fields[k]
-      })
-      if (!showBaja) {
-        delete fields.fecha_baja
-        delete fields.motivo_baja
-      } else if (!form.fecha_baja) {
-        delete fields.motivo_baja
-      }
-
-      if (!tableId) {
-        error = 'No se encontró la tabla socios. Ejecutá "Actualizar schema" en Inicio.'
-        return
-      }
-
-      if (form.id) {
-        await applyUserActions([['UpdateRecord', tableId, form.id, fields]])
-        notice = 'Socio actualizado.'
-      } else {
-        await applyUserActions([['AddRecord', tableId, null, fields]])
-        notice = 'Socio creado.'
-      }
-      socios = await fetchRecords(tableId)
-      if (form.id) {
-        const updated = socios.find((s) => s.id === form.id)
-        if (updated) select(updated)
-      } else {
-        form = null
-      }
-    } catch (e) {
-      error = e?.message || String(e)
-    } finally {
-      busy = false
-    }
+  const handleSave = async () => {
+    await store.saveSocio()
+    if (store.error) notify.error(store.error)
+    else if (store.notice) notify.success(store.notice)
   }
 
   onMount(() => {
-    const unsub = subscribeRecords(() => {
-      if (!busy && !loading) load()
-    })
-    load()
+    const unsub = store.subscribe(() => {})
+    store.load()
     return unsub
   })
 </script>
 
 {#if !isInGrist()}
-  <h1>Socios</h1>
-  <p>Esta pantalla solo funciona dentro de Grist.</p>
-{:else if loading}
-  <p>Cargando…</p>
-{:else}
-  <div class="top">
-    <div class="filters">
-      <input placeholder="Buscar (apellido, nombre, DNI, CUIL, email, teléfono…)" bind:value={q} />
-      <select bind:value={estado}>
-        <option value="activos">Activos</option>
-        <option value="bajas">Bajas</option>
-        <option value="todos">Todos</option>
-      </select>
-      <select bind:value={tipo}>
-        <option value="">Todos los tipos</option>
-        <option value="Activo">Activo</option>
-        <option value="Honorario">Honorario</option>
-        <option value="Adherente">Adherente</option>
-      </select>
-      <button class="btn" onclick={nuevo}>Nuevo socio</button>
-      <button class="btn secondary" onclick={load}>Recargar</button>
+  <h1 class="text-lg font-bold">Socios</h1>
+  <p class="text-sm text-muted-foreground">Esta pantalla solo funciona dentro de Grist.</p>
+{:else if store.loading}
+  <div class="flex flex-col gap-4">
+    <div class="flex gap-3">
+      <Skeleton class="h-9 flex-1" />
+      <Skeleton class="h-9 w-32" />
+      <Skeleton class="h-9 w-32" />
     </div>
-    <div class="muted">{filtered.length} socios</div>
+    <div class="grid gap-4" style="grid-template-columns: 320px 1fr">
+      <Skeleton class="h-96" />
+      <Skeleton class="h-96" />
+    </div>
+  </div>
+{:else}
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <div class="relative flex-1 min-w-[200px]">
+      <SearchIcon class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Input placeholder="Buscar (apellido, nombre, DNI…)" bind:value={q} class="pl-9" />
+    </div>
+    <select bind:value={estado} class="h-9 rounded-md border border-input bg-background px-3 text-sm">
+      <option value="activos">Activos</option>
+      <option value="bajas">Bajas</option>
+      <option value="todos">Todos</option>
+    </select>
+    <select bind:value={tipo} class="h-9 rounded-md border border-input bg-background px-3 text-sm">
+      <option value="">Todos los tipos</option>
+      {#each TIPOS_SOCIO as t}
+        <option value={t}>{t}</option>
+      {/each}
+    </select>
+    <Button onclick={store.nuevo}>
+      <UserPlusIcon data-icon="inline-start" />
+      Nuevo socio
+    </Button>
+    <Button variant="outline" onclick={store.load}>Recargar</Button>
+    <span class="text-sm text-muted-foreground">{filtered.length} socios</span>
   </div>
 
-  <div class:singlePane={!showList} class="grid">
+  <div class="grid gap-4" style="grid-template-columns: {showList ? 'minmax(280px, 380px) 1fr' : '1fr'}">
     {#if showList}
-      <div class="list">
+      <div class="max-h-[calc(100vh-200px)] overflow-y-auto rounded-lg border border-border bg-card">
         {#each filtered as s (s.id)}
-          <button class:selected={form?.id === s.id} onclick={() => select(s)}>
-            <div class="name">{s.apellido}, {s.nombre}</div>
-            <div class="sub">{isActivo(s) ? 'Activo' : 'Baja'} · DNI {s.dni || '-'} · {s.localidad || ''}</div>
+          <button
+            class="w-full border-b border-border px-4 py-3 text-left transition-colors hover:bg-accent {store.form?.id === s.id ? 'bg-primary/10' : ''}"
+            onclick={() => store.select(s)}
+          >
+            <div class="font-semibold text-sm">{s.apellido}, {s.nombre}</div>
+            <div class="text-xs text-muted-foreground">
+              {#if isActivo(s)}
+                <Badge variant="secondary" class="mr-1 text-[10px]">Activo</Badge>
+              {:else}
+                <Badge variant="outline" class="mr-1 text-[10px]">Baja</Badge>
+              {/if}
+              DNI {s.dni || '-'} · {s.localidad || ''}
+            </div>
           </button>
         {/each}
       </div>
     {/if}
 
-    <div class="editor">
-      {#if form}
-        <h2>{form.id ? 'Editar socio' : 'Nuevo socio'}</h2>
-
-        <div class="personaBox">
-          {#if linkedPersona}
-            <div class="personaLinked">
-              <span class="badgePersona">Persona vinculada: {personaLabel(linkedPersona)}</span>
-              <button class="btn secondary small" onclick={unlinkPersona}>Desvincular</button>
-            </div>
-          {:else}
-            <span class="personaLabel">Buscar persona existente (DNI, apellido o nombre)</span>
-            <div class="personaSearchRow">
-              <input
-                placeholder="Escribí DNI, apellido o nombre…"
-                bind:value={personaSearch}
-                oninput={doPersonaSearch}
-              />
-              {#if personaSearching}
-                <span class="muted">buscando…</span>
-              {/if}
-            </div>
-            {#if personaResults.length > 0}
-              <div class="personaResults">
-                {#each personaResults as p (p.id)}
-                  <button class="personaResult" onclick={() => selectPersona(p)}>
-                    <strong>{personaLabel(p)}</strong>
-                    <span class="muted"> · DNI {p.dni || '-'} · {p.localidad || ''}</span>
-                  </button>
-                {/each}
+    <div>
+      {#if store.form}
+        <Card.Root>
+          <Card.Header>
+            <Card.Title class="text-base">
+              {store.form.id ? 'Editar socio' : 'Nuevo socio'}
+            </Card.Title>
+          </Card.Header>
+          <Card.Content class="flex flex-col gap-4">
+            <!-- Persona search -->
+            {#if store.linkedPersona}
+              <div class="flex items-center justify-between gap-2 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2">
+                <span class="text-sm font-medium">
+                  <LinkIcon class="mr-1 inline size-3.5" />
+                  Persona vinculada: {personaLabel(store.linkedPersona)}
+                </span>
+                <Button variant="ghost" size="sm" onclick={store.unlinkPersona}>
+                  <UnlinkIcon data-icon="inline-start" />
+                  Desvincular
+                </Button>
+              </div>
+            {:else}
+              <div class="rounded-lg border border-primary/25 bg-primary/5 px-3 py-2.5">
+                <Label class="text-xs text-muted-foreground">Buscar persona existente (DNI, apellido o nombre)</Label>
+                <div class="mt-1.5 flex items-center gap-2">
+                  <Input
+                    placeholder="Escribí DNI, apellido o nombre…"
+                    bind:value={store.personaSearch}
+                    oninput={store.doPersonaSearch}
+                  />
+                  {#if store.personaSearching}
+                    <span class="text-xs text-muted-foreground">buscando…</span>
+                  {/if}
+                </div>
+                {#if store.personaResults.length > 0}
+                  <div class="mt-2 flex flex-col gap-1">
+                    {#each store.personaResults as p (p.id)}
+                      <button
+                        class="flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-left text-sm transition-colors hover:bg-primary/10"
+                        onclick={() => store.selectPersona(p)}
+                      >
+                        <LinkIcon class="size-3.5 shrink-0 text-primary" />
+                        <strong>{personaLabel(p)}</strong>
+                        <span class="text-muted-foreground"> · DNI {p.dni || '-'} · {p.localidad || ''}</span>
+                      </button>
+                    {/each}
+                  </div>
+                {/if}
               </div>
             {/if}
-          {/if}
-        </div>
 
-        {#if form.id}
-          <div class="toolbar">
-            <button class="btn secondary" onclick={() => (showBaja = !showBaja)}>{showBaja ? 'Ocultar baja' : 'Dar de baja'}</button>
-            {#if showList}
-              <button class="btn secondary" onclick={() => (listOpen = false)}>Ocultar lista</button>
-            {/if}
-          </div>
-        {:else}
-          <div class="toolbar">
-            <button class="btn secondary" onclick={() => (listOpen = true)} disabled={filtered.length === 0}>Ver lista</button>
-          </div>
-        {/if}
-        <div class="form">
-          <div>
-            <label>DNI<input bind:value={form.dni} oninput={onDniInput} /></label>
-            {#if dniWarning}
-              <div class="fieldWarn">{dniWarning}</div>
-            {/if}
-          </div>
-          <div>
-            <label>CUIL<input bind:value={form.cuil} /></label>
-          </div>
-          <div>
-            <label>Apellido<input bind:value={form.apellido} /></label>
-          </div>
-          <div>
-            <label>Nombre<input bind:value={form.nombre} /></label>
-          </div>
-          <div>
-            <label>Tipo<select bind:value={form.tipo_socio}>
-              <option value="Activo">Activo</option>
-              <option value="Honorario">Honorario</option>
-              <option value="Adherente">Adherente</option>
-            </select></label>
-          </div>
-          <div>
-            <label>Fecha alta<input type="date" bind:value={form.fecha_alta} /></label>
-          </div>
-          <div>
-            <label>Domicilio<input bind:value={form.domicilio} /></label>
-          </div>
-          <div>
-            <label>Localidad<input bind:value={form.localidad} /></label>
-          </div>
-          <div>
-            <label>Teléfono<input bind:value={form.telefono} /></label>
-          </div>
-          <div>
-            <label>Email<input type="email" bind:value={form.email} /></label>
-          </div>
-          {#if form.id && showBaja}
-            <div>
-              <label>Fecha baja<input type="date" bind:value={form.fecha_baja} /></label>
+            <!-- Toolbar -->
+            <div class="flex flex-wrap justify-end gap-2">
+              {#if store.form.id}
+                <Button variant="outline" size="sm" onclick={() => { store.showBaja = !store.showBaja }}>
+                  {store.showBaja ? 'Ocultar baja' : 'Dar de baja'}
+                </Button>
+                {#if showList}
+                  <Button variant="outline" size="sm" onclick={() => store.setListOpen(false)}>Ocultar lista</Button>
+                {/if}
+              {:else}
+                <Button variant="outline" size="sm" onclick={() => store.setListOpen(true)} disabled={filtered.length === 0}>Ver lista</Button>
+              {/if}
             </div>
-            <div>
-              <label>Motivo baja<input bind:value={form.motivo_baja} disabled={!form.fecha_baja} /></label>
+
+            <Separator />
+
+            <!-- Form -->
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label for="dni">DNI</Label>
+                <Input id="dni" bind:value={store.form.dni} oninput={store.onDniInput} class="mt-1" />
+                {#if store.dniWarning}
+                  <p class="mt-1 text-xs text-destructive">{store.dniWarning}</p>
+                {/if}
+              </div>
+              <div>
+                <Label for="cuil">CUIL</Label>
+                <Input id="cuil" bind:value={store.form.cuil} class="mt-1" />
+              </div>
+              <div>
+                <Label for="apellido">Apellido</Label>
+                <Input id="apellido" bind:value={store.form.apellido} class="mt-1" />
+              </div>
+              <div>
+                <Label for="nombre">Nombre</Label>
+                <Input id="nombre" bind:value={store.form.nombre} class="mt-1" />
+              </div>
+              <div>
+                <Label for="tipo">Tipo</Label>
+                <select id="tipo" bind:value={store.form.tipo_socio} class="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+                  {#each TIPOS_SOCIO as t}
+                    <option value={t}>{t}</option>
+                  {/each}
+                </select>
+              </div>
+              <div>
+                <Label for="fecha-alta">Fecha alta</Label>
+                <Input id="fecha-alta" type="date" bind:value={store.form.fecha_alta} class="mt-1" />
+              </div>
+              <div>
+                <Label for="domicilio">Domicilio</Label>
+                <Input id="domicilio" bind:value={store.form.domicilio} class="mt-1" />
+              </div>
+              <div>
+                <Label for="localidad">Localidad</Label>
+                <Input id="localidad" bind:value={store.form.localidad} class="mt-1" />
+              </div>
+              <div>
+                <Label for="telefono">Teléfono</Label>
+                <Input id="telefono" bind:value={store.form.telefono} class="mt-1" />
+              </div>
+              <div>
+                <Label for="email">Email</Label>
+                <Input id="email" type="email" bind:value={store.form.email} class="mt-1" />
+              </div>
+              {#if store.form.id && store.showBaja}
+                <div>
+                  <Label for="fecha-baja">Fecha baja</Label>
+                  <Input id="fecha-baja" type="date" bind:value={store.form.fecha_baja} class="mt-1" />
+                </div>
+                <div>
+                  <Label for="motivo-baja">Motivo baja</Label>
+                  <Input id="motivo-baja" bind:value={store.form.motivo_baja} disabled={!store.form.fecha_baja} class="mt-1" />
+                </div>
+              {/if}
             </div>
-          {/if}
-        </div>
-        <div class="actions">
-          <button class="btn" onclick={save}>Guardar</button>
-        </div>
+
+            <div class="flex gap-2">
+              <Button onclick={handleSave}>Guardar</Button>
+            </div>
+          </Card.Content>
+        </Card.Root>
+      {:else if filtered.length === 0}
+        <EmptyState
+          title="Todavía no hay socios"
+          sub="Creá el primer socio para empezar."
+          actionLabel="Nuevo socio"
+          onaction={store.nuevo}
+        >
+          {#snippet actionIcon()}
+            <UserPlusIcon data-icon="inline-start" />
+          {/snippet}
+        </EmptyState>
       {:else}
-        {#if filtered.length === 0}
-          <EmptyState title="Todavía no hay socios" sub="Creá el primer socio para empezar.">
-            <button class="btn" onclick={nuevo}>Nuevo socio</button>
-          </EmptyState>
-        {:else}
-          <div class="muted">Seleccioná un socio o creá uno nuevo.</div>
-        {/if}
+        <div class="flex flex-col items-center gap-2 py-12 text-center">
+          <UsersIcon class="size-8 text-muted-foreground" />
+          <p class="text-sm text-muted-foreground">Seleccioná un socio o creá uno nuevo.</p>
+        </div>
       {/if}
     </div>
   </div>
 
-  <MessageBanner {error} {notice} />
+  {#if store.error}
+    <Alert variant="destructive" class="mt-4">
+      <AlertDescription>{store.error}</AlertDescription>
+    </Alert>
+  {/if}
 {/if}
-
-<style>
-  h1 {
-    margin: 0 0 10px 0;
-    font-size: 18px;
-  }
-  .personaBox {
-    border: 1px solid rgba(22, 179, 120, 0.25);
-    border-radius: 12px;
-    padding: 10px 12px;
-    margin-bottom: 12px;
-    background: rgba(22, 179, 120, 0.06);
-  }
-  .personaLabel {
-    display: block;
-    font-size: 12px;
-    opacity: 0.7;
-    margin-bottom: 5px;
-  }
-  .personaSearchRow {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .personaSearchRow input {
-    flex: 1;
-  }
-  .personaResults {
-    margin-top: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .personaResult {
-    text-align: left;
-    border: 1px solid rgba(128, 128, 128, 0.2);
-    border-radius: 8px;
-    padding: 8px 10px;
-    cursor: pointer;
-    background: rgba(255, 255, 255, 0.04);
-    color: inherit;
-    font-size: 13px;
-  }
-  .personaResult:hover {
-    background: rgba(22, 179, 120, 0.12);
-  }
-  .personaLinked {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-  }
-  .badgePersona {
-    font-size: 13px;
-    font-weight: 700;
-  }
-  .fieldWarn {
-    font-size: 11px;
-    color: rgba(176, 0, 32, 0.8);
-    margin-top: 3px;
-  }
-  .editor h2 {
-    margin: 0 0 12px 0;
-    font-size: 16px;
-  }
-  .toolbar {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    margin: -2px 0 10px 0;
-    flex-wrap: wrap;
-  }
-</style>

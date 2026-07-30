@@ -1,0 +1,216 @@
+import {
+  applyUserActions,
+  fetchRecords,
+  gristReady,
+  isInGrist,
+  resolveTableId,
+  subscribeRecords,
+} from '../grist.js'
+import { TABLE_PREFERRED_IDS, normalizeFields } from '../utils.js'
+
+/**
+ * Factory: crea un store reactivo para una tabla de Grist.
+ *
+ * @param {object} config
+ * @param {string} config.tableKey - Key en TABLE_PREFERRED_IDS para resolver el tableId
+ * @param {object} [config.fetchOptions] - Opciones de fetchRecords (columns, sort, filter, limit)
+ * @param {function} [config.beforeSave] - Hook para transformar fields antes de guardar (recibe record, devuelve fields)
+ * @param {function} [config.afterSave] - Hook que se ejecuta después de guardar (recibe record, tableId)
+ * @returns {object} Store reactivo con records, loading, error, notice, y métodos load/save/remove/refresh
+ */
+export function createGristStore(config) {
+  const { tableKey, fetchOptions = {}, beforeSave, afterSave } = config
+
+  let records = $state([])
+  let loading = $state(false)
+  let error = $state('')
+  let notice = $state('')
+  let tableId = $state(null)
+  let _unsub = null
+  let _busy = false
+
+  const load = async () => {
+    loading = true
+    error = ''
+    notice = ''
+
+    if (!isInGrist()) {
+      loading = false
+      return
+    }
+
+    try {
+      await gristReady()
+      tableId = await resolveTableId(TABLE_PREFERRED_IDS[tableKey])
+      if (!tableId) {
+        error = `No se encontró la tabla ${tableKey}. Ejecutá "Actualizar schema" en Inicio.`
+        return
+      }
+      records = await fetchRecords(tableId, fetchOptions)
+    } catch (e) {
+      error = e?.message || String(e)
+    } finally {
+      loading = false
+    }
+  }
+
+  const refresh = async () => {
+    if (!tableId) return load()
+    try {
+      records = await fetchRecords(tableId, fetchOptions)
+    } catch (e) {
+      error = e?.message || String(e)
+    }
+  }
+
+  /**
+   * Guarda un registro (crea o actualiza según si tiene id)
+   * @param {object} record - Registro a guardar (con id si es update)
+   * @returns {Promise<object|null>} El registro guardado o null si falló
+   */
+  const save = async (record) => {
+    error = ''
+    notice = ''
+    _busy = true
+    try {
+      if (!tableId) {
+        error = `No se encontró la tabla ${tableKey}. Ejecutá "Actualizar schema" en Inicio.`
+        return null
+      }
+
+      let fields = { ...record }
+      delete fields.id
+
+      if (beforeSave) {
+        fields = beforeSave(fields, record)
+      }
+
+      fields = normalizeFields(fields)
+
+      if (record.id) {
+        await applyUserActions([['UpdateRecord', tableId, record.id, fields]])
+        notice = 'Registro actualizado.'
+      } else {
+        await applyUserActions([['AddRecord', tableId, null, fields]])
+        notice = 'Registro creado.'
+      }
+
+      if (afterSave) {
+        await afterSave(record, tableId)
+      }
+
+      await refresh()
+      return record.id
+        ? records.find((r) => r.id === record.id) || null
+        : null
+    } catch (e) {
+      error = e?.message || String(e)
+      return null
+    } finally {
+      _busy = false
+    }
+  }
+
+  /**
+   * Elimina un registro por id
+   * @param {number} id - Row id del registro a eliminar
+   */
+  const remove = async (id) => {
+    error = ''
+    notice = ''
+    _busy = true
+    try {
+      if (!tableId) return
+      await applyUserActions([['RemoveRecord', tableId, id]])
+      notice = 'Registro eliminado.'
+      await refresh()
+    } catch (e) {
+      error = e?.message || String(e)
+    } finally {
+      _busy = false
+    }
+  }
+
+  /**
+   * Suscribe a cambios de Grist (onRecords) para auto-refresh
+   * Llamar en onMount del componente, devuelve función de cleanup
+   */
+  const subscribe = (onExternalChange) => {
+    if (_unsub) _unsub()
+    _unsub = subscribeRecords(() => {
+      if (!_busy && !loading) {
+        if (onExternalChange) onExternalChange()
+        refresh()
+      }
+    })
+    return () => {
+      if (_unsub) _unsub()
+      _unsub = null
+    }
+  }
+
+  /**
+   * Ejecuta acciones crudas de Grist (para lógica específica del módulo)
+   * @param {Array} actions - Array de acciones de applyUserActions
+   */
+  const exec = async (actions) => {
+    error = ''
+    _busy = true
+    try {
+      const res = await applyUserActions(actions)
+      return res
+    } catch (e) {
+      error = e?.message || String(e)
+      throw e
+    } finally {
+      _busy = false
+    }
+  }
+
+  return {
+    get records() { return records },
+    get loading() { return loading },
+    get error() { return error },
+    get notice() { return notice },
+    get tableId() { return tableId },
+    setError: (v) => { error = v },
+    setNotice: (v) => { notice = v },
+    clearMessages: () => { error = ''; notice = '' },
+    load,
+    refresh,
+    save,
+    remove,
+    subscribe,
+    exec,
+  }
+}
+
+/**
+ * Helper para resolver múltiples tableIds a la vez
+ * @param {string[]} tableKeys - Keys en TABLE_PREFERRED_IDS
+ * @returns {Promise<object>} Mapa de tableKey → tableId
+ */
+export async function resolveTableIds(tableKeys) {
+  await gristReady()
+  const out = {}
+  for (const key of tableKeys) {
+    out[key] = await resolveTableId(TABLE_PREFERRED_IDS[key])
+  }
+  return out
+}
+
+/**
+ * Helper para cargar datos de múltiples tablas relacionadas
+ * @param {object} tableIds - Mapa de tableKey → tableId
+ * @param {object} optionsMap - Mapa de tableKey → fetchOptions
+ * @returns {Promise<object>} Mapa de tableKey → records[]
+ */
+export async function fetchRelated(tableIds, optionsMap = {}) {
+  const out = {}
+  for (const [key, tid] of Object.entries(tableIds)) {
+    if (tid) {
+      out[key] = await fetchRecords(tid, optionsMap[key] || {})
+    }
+  }
+  return out
+}
