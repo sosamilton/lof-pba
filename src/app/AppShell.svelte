@@ -51,6 +51,10 @@
         menuItems = getActiveMenuItems(config)
         if (config.cooperadora_nombre) brandTitle = config.cooperadora_nombre
         if (config.escuela_nombre) brandSub = config.escuela_nombre
+        // Actualizar el título de la pestaña del navegador
+        if (config.cooperadora_nombre) {
+          document.title = `${config.cooperadora_nombre} · AppCoop`
+        }
       }
     } catch {
       // keep defaults
