@@ -1,0 +1,31 @@
+# docker-compose.dev.yml — entorno de DESARROLLO LOCAL
+# Vite dev server con HTR montando el código en volumen.
+# No construye el bundle: usa `npm run dev` dentro del container.
+#
+# Uso:
+#   docker compose -f docker-compose.dev.yml up
+#
+# La app queda en http://localhost:5173
+# Los cambios en src/ se reflejan en caliente (HMR) gracias al volumen.
+# node_modules se mantiene en un volumen anónimo para no pisar el del host.
+
+services:
+  appcoop-dev:
+    image: node:24-alpine
+    container_name: appcoop-dev
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "${DEV_PORT:-5173}:5173"
+    volumes:
+      # Código fuente montado en vivo (HMR)
+      - ./:/app
+      # node_modules aislado del host para evitar conflictos de plataforma
+      - appcoop_node_modules:/app/node_modules
+    environment:
+      # Vite necesita esto para servir desde el container
+      - NODE_ENV=development
+    restart: unless-stopped
+
+volumes:
+  appcoop_node_modules:
