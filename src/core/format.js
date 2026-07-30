@@ -166,3 +166,29 @@ export const suggestEmailDomain = (raw) => {
   // Si escribió "juan" sugerir "juan@gmail.com"? No: solo normalizamos.
   return v
 }
+
+// ---------- CUE (Clave Única de Establecimiento) ----------
+// Provincia de Buenos Aires: 9 dígitos, empieza con "06".
+// Estructura: 06 + 5 dígitos de establecimiento + 2 dígitos de sede/anexo (00 = sede central).
+// Guardamos: 9 dígitos crudos. Mostramos: 06-12345-00
+export const parseCue = (raw) => onlyDigits(raw).slice(0, 9)
+
+export const formatCue = (raw) => {
+  const c = parseCue(raw)
+  if (!c) return ''
+  if (c.length < 9) return c // Mientras se completa, mostrar crudo
+  return `${c.slice(0, 2)}-${c.slice(2, 7)}-${c.slice(7)}`
+}
+
+export const isValidCue = (raw) => {
+  const c = parseCue(raw)
+  return c.length === 9 && c.startsWith('06')
+}
+
+// Etiqueta de sede/anexo según los últimos 2 dígitos
+export const cueSedeLabel = (raw) => {
+  const c = parseCue(raw)
+  if (c.length !== 9) return ''
+  const suf = c.slice(7)
+  return suf === '00' ? 'Sede central' : `Anexo ${suf}`
+}
