@@ -202,7 +202,8 @@ export const parseCbu = (raw) => onlyDigits(raw).slice(0, 22)
 export const formatCbu = (raw) => {
   const c = parseCbu(raw)
   if (!c) return ''
-  if (c.length < 22) return c // Mientras se completa, mostrar crudo
+  // Formateo progresivo: en cuanto pasamos los 8 dígitos del bloque 1, mostramos el guión
+  if (c.length <= 8) return c
   return `${c.slice(0, 8)}-${c.slice(8)}`
 }
 
