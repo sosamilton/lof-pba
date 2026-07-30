@@ -13,6 +13,7 @@
   import { Checkbox } from '$lib/components/ui/checkbox'
   import { Switch } from '$lib/components/ui/switch'
   import { Skeleton } from '$lib/components/ui/skeleton'
+  import Combobox from '$lib/components/Combobox.svelte'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
 
   onMount(() => {
@@ -100,9 +101,19 @@
 
     <!-- Usuario -->
     <Card.Root>
-      <Card.Header><Card.Title class="text-base">Usuario</Card.Title></Card.Header>
+      <Card.Header><Card.Title class="text-base">Usuario y preferencias</Card.Title></Card.Header>
       <Card.Content class="flex flex-col gap-4">
         <div><Label for="user-name">Nombre de usuario (para registros)</Label><Input id="user-name" bind:value={store.userName} placeholder="Ej: Juan Pérez" class="mt-1" /></div>
+        <div>
+          <Label for="cuenta-default">Cuenta/caja por defecto</Label>
+          <Combobox
+            bind:value={store.cuentaDefaultId}
+            items={store.cuentas.map((c) => ({ value: c.id, label: c.nombre_cuenta }))}
+            placeholder="(Ninguna)"
+            searchPlaceholder="Buscar cuenta…"
+            class="mt-1"
+          />
+        </div>
         <div class="flex justify-end"><Button onclick={store.saveCooperadora} disabled={store.busy}>Guardar</Button></div>
       </Card.Content>
     </Card.Root>
