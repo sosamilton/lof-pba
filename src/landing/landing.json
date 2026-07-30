@@ -1,0 +1,148 @@
+{
+  "identidad": {
+    "nombre": "ComunidadCoop",
+    "slogan": "Tecnología al servicio del pueblo organizado",
+    "descripcion": "Una herramienta de gestión para cooperadoras y organizaciones comunitarias. Pensada desde el territorio, construida con software libre.",
+    "ubicacion": "Provincia de Buenos Aires, Argentina",
+    "licencia": "AGPL-3.0",
+    "enlaces": {
+      "repo": "https://github.com/sosamilton/spa-cooperadora",
+      "app": "https://sosamilton.github.io/spa-cooperadora/",
+      "grist_docs": "https://support.getgrist.com/widget-custom/",
+      "grist": "https://www.getgrist.com/",
+      "licencia": "https://github.com/sosamilton/spa-cooperadora/blob/main/LICENSE"
+    }
+  },
+  "principios": [
+    {
+      "titulo": "Soberanía de datos",
+      "descripcion": "Tus datos son tuyos. El documento es un archivo SQLite exportable, respaldable y auditable. Sin plataformas intermedias, sin lock-in.",
+      "icono": "database"
+    },
+    {
+      "titulo": "Tecnología accesible",
+      "descripcion": "Pensada para compañeras y compañeros sin conocimientos técnicos. Si sabés usar una planilla, sabés usar esto.",
+      "icono": "accessibility"
+    },
+    {
+      "titulo": "Transparencia operativa",
+      "descripcion": "Cada movimiento, cada decisión, cada acta queda registrada. Fórmulas visibles, historial completo, nada oculto.",
+      "icono": "eye"
+    },
+    {
+      "titulo": "Software libre como bandera",
+      "descripcion": "Código abierto bajo AGPL-3.0. La comunidad puede auditar, modificar y distribuir. El conocimiento es un bien común.",
+      "icono": "flag"
+    },
+    {
+      "titulo": "Construcción colectiva",
+      "descripcion": "Pensado para comisiones, tesorerías y asambleas. Facilita el trabajo en equipo sin jerarquías técnicas.",
+      "icono": "users"
+    },
+    {
+      "titulo": "Independencia tecnológica",
+      "descripcion": "No dependemos de corporaciones ni servicios pagos. Grist es libre y autoinstalable. La herramienta trabaja para vos, no al revés.",
+      "icono": "shield"
+    }
+  ],
+  "funciones": [
+    {
+      "titulo": "Cooperadora",
+      "descripcion": "Datos de la escuela y la cooperadora, ejercicio en curso y cargos base.",
+      "icono": "building",
+      "items": [
+        "Configurar banco y kiosco/librería",
+        "Crear y activar ejercicios",
+        "Administrar cargos con duración en meses"
+      ]
+    },
+    {
+      "titulo": "Socios",
+      "descripcion": "Alta y edición con búsqueda rápida, sin fricción.",
+      "icono": "users",
+      "items": [
+        "Buscar por apellido, DNI, CUIL, email o teléfono",
+        "Alta rápida y edición de datos",
+        "Baja como acción explícita y transparente"
+      ]
+    },
+    {
+      "titulo": "Movimientos",
+      "descripcion": "Registro de entradas, salidas y traspasos con trazabilidad.",
+      "icono": "arrow-left-right",
+      "items": [
+        "Rubro y subrubro según PIA",
+        "Destino bancario cuando corresponde",
+        "Asociar socio de forma opcional"
+      ]
+    },
+    {
+      "titulo": "Gobierno",
+      "descripcion": "Comisión directiva y asambleas vinculadas al ejercicio.",
+      "icono": "gavel",
+      "items": [
+        "Inicializar comisión desde los cargos",
+        "Registrar autoridades y vencimiento de mandato",
+        "Crear y editar asambleas con resoluciones"
+      ]
+    }
+  ],
+  "instalacion": {
+    "titulo": "Cómo se instala",
+    "subtitulo": "En menos de 2 minutos, la app se integra a tu documento como una página más.",
+    "pasos": [
+      {
+        "titulo": "Crear o copiar tu documento",
+        "descripcion": "Idealmente una copia del template, o un documento nuevo en Grist."
+      },
+      {
+        "titulo": "Agregar el widget",
+        "descripcion": "Add New → Add Widget to Page → Custom"
+      },
+      {
+        "titulo": "Pegar la URL",
+        "descripcion": "Usá la URL de GitHub Pages de esta SPA."
+      },
+      {
+        "titulo": "Dar permisos",
+        "descripcion": "Access level: Full document access"
+      },
+      {
+        "titulo": "Inicializar la plantilla",
+        "descripcion": "Desde Inicio, la app crea las tablas y carga los datos base si faltan."
+      }
+    ]
+  },
+  "roadmap": [
+    {
+      "estado": "proximo",
+      "titulo": "Personas unificadas",
+      "descripcion": "Tabla única para vincular socios, autoridades, docentes y directivos sin duplicar datos."
+    },
+    {
+      "estado": "proximo",
+      "titulo": "Adjuntos y actas",
+      "descripcion": "Carga guiada de comprobantes, actas y archivos con trazabilidad completa."
+    },
+    {
+      "estado": "despues",
+      "titulo": "Cierres y reportes",
+      "descripcion": "Cierres mensuales, saldos y exportables para PIA, nómina y controles."
+    },
+    {
+      "estado": "despues",
+      "titulo": "Accesos y roles",
+      "descripcion": "Reglas de permisos para tesorería, comisión, asesoría y lectura comunitaria."
+    },
+    {
+      "estado": "futuro",
+      "titulo": "App móvil",
+      "descripcion": "Acceso desde el celular para consulta de saldos, movimientos y notificaciones."
+    },
+    {
+      "estado": "futuro",
+      "titulo": "Integraciones",
+      "descripcion": "Conexión con sistemas de la DIPREGEP y herramientas de gestión escolar."
+    }
+  ]
+}
