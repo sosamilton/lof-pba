@@ -644,7 +644,7 @@
           <p class="text-[13px] text-muted-foreground mb-4">¿La cooperadora gestiona un kiosco o librería escolar en este ejercicio?</p>
 
           <label class="flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors hover:border-primary/30 {kiosco.posee ? 'border-primary/40 bg-primary/5' : 'border-border'} mb-3">
-            <Checkbox checked={kiosco.posee} onchange={() => (kiosco.posee = !kiosco.posee)} />
+            <Checkbox bind:checked={kiosco.posee} />
             <span class="text-sm font-bold">Tiene kiosco o librería</span>
           </label>
 
