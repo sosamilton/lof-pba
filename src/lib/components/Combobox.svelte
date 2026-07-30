@@ -15,15 +15,27 @@
     disabled = false,
     class: className = '',
     onchange = null,
+    maxResults = 50,
   } = $props()
 
   let open = $state(false)
   let search = $state('')
 
-  let filtered = $derived(
-    search
-      ? items.filter((item) => normalize(item.label).includes(normalize(search)))
+  // Filtrar y limitar resultados para no renderizar miles de items de golpe.
+  // Sin búsqueda: mostrar solo los primeros maxResults (pre-carga).
+  // Con búsqueda: filtrar y limitar también.
+  let filtered = $derived.by(() => {
+    const q = normalize(search)
+    const source = q
+      ? items.filter((item) => normalize(item.label).includes(q))
       : items
+    return source.slice(0, maxResults)
+  })
+
+  let hasMore = $derived(
+    search
+      ? items.filter((item) => normalize(item.label).includes(normalize(search))).length > maxResults
+      : items.length > maxResults
   )
 
   let selectedLabel = $derived(items.find((item) => String(item.value) === String(value))?.label || '')
@@ -72,6 +84,11 @@
             </Command.Item>
           {/each}
         </Command.Group>
+        {#if hasMore}
+          <div class="py-2 px-2 text-xs text-muted-foreground text-center">
+            Mostrando {filtered.length} de {items.length}. Escribí para filtrar más.
+          </div>
+        {/if}
       </Command.List>
     </Command.Root>
   </Popover.Content>
