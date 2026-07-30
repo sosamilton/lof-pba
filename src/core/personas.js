@@ -23,12 +23,12 @@ export const searchPersonas = async (query) => {
   const tableId = await resolveTableId(TABLE_PREFERRED_IDS.personas)
   if (!tableId) return []
   const all = await fetchRecords(tableId, {
-    columns: ['dni', 'cuil', 'apellido', 'nombre', 'domicilio', 'localidad', 'telefono', 'email']
+    columns: ['tipo_persona', 'dni', 'cuil', 'apellido', 'nombre', 'razon_social', 'domicilio', 'localidad', 'telefono', 'email']
   })
   const q = normalizeText(query)
   if (!q) return all
   return all.filter((p) => {
-    const hay = [p.dni, p.cuil, p.apellido, p.nombre].map(normalizeText).join(' ')
+    const hay = [p.dni, p.cuil, p.apellido, p.nombre, p.razon_social].map(normalizeText).join(' ')
     return hay.includes(q)
   })
 }
@@ -39,7 +39,7 @@ export const findPersonaByDni = async (dni) => {
   const tableId = await resolveTableId(TABLE_PREFERRED_IDS.personas)
   if (!tableId) return null
   const all = await fetchRecords(tableId, {
-    columns: ['dni', 'cuil', 'apellido', 'nombre', 'domicilio', 'localidad', 'telefono', 'email'],
+    columns: ['tipo_persona', 'dni', 'cuil', 'apellido', 'nombre', 'razon_social', 'domicilio', 'localidad', 'telefono', 'email'],
     filter: (p) => normalizeDni(p.dni) === d
   })
   return all[0] || null
@@ -53,20 +53,27 @@ export const extractRowId = (res) => {
   return null
 }
 
-export const createPersona = async (data) => {
-  const tableId = await resolveTableId(TABLE_PREFERRED_IDS.personas)
-  if (!tableId) throw new Error('No se encontró la tabla personas')
+const buildPersonaFields = (data) => {
   const fields = {}
+  if (data.tipo_persona) fields.tipo_persona = data.tipo_persona
   const dni = normalizeDni(data.dni)
   const cuil = normalizeCuil(data.cuil)
   if (dni) fields.dni = dni
   if (cuil) fields.cuil = cuil
   if (data.apellido) fields.apellido = data.apellido
   if (data.nombre) fields.nombre = data.nombre
+  if (data.razon_social) fields.razon_social = data.razon_social
   if (data.domicilio) fields.domicilio = data.domicilio
   if (data.localidad) fields.localidad = data.localidad
   if (data.telefono) fields.telefono = data.telefono
   if (data.email) fields.email = data.email
+  return fields
+}
+
+export const createPersona = async (data) => {
+  const tableId = await resolveTableId(TABLE_PREFERRED_IDS.personas)
+  if (!tableId) throw new Error('No se encontró la tabla personas')
+  const fields = buildPersonaFields(data)
   const res = await applyUserActions([['AddRecord', tableId, null, fields]])
   const rowId = extractRowId(res)
   if (rowId == null) throw new Error('No se pudo crear la persona: respuesta inesperada de Grist')
@@ -76,17 +83,7 @@ export const createPersona = async (data) => {
 export const updatePersona = async (id, data) => {
   const tableId = await resolveTableId(TABLE_PREFERRED_IDS.personas)
   if (!tableId) throw new Error('No se encontró la tabla personas')
-  const fields = {}
-  const dni = normalizeDni(data.dni)
-  const cuil = normalizeCuil(data.cuil)
-  if (dni) fields.dni = dni
-  if (cuil) fields.cuil = cuil
-  if (data.apellido) fields.apellido = data.apellido
-  if (data.nombre) fields.nombre = data.nombre
-  if (data.domicilio) fields.domicilio = data.domicilio
-  if (data.localidad) fields.localidad = data.localidad
-  if (data.telefono) fields.telefono = data.telefono
-  if (data.email) fields.email = data.email
+  const fields = buildPersonaFields(data)
   await applyUserActions([['UpdateRecord', tableId, id, fields]])
   return { id, ...fields }
 }
@@ -97,7 +94,7 @@ export const findOrCreatePersona = async (data) => {
     const existing = await findPersonaByDni(dni)
     if (existing) {
       const updates = {}
-      for (const key of ['cuil', 'apellido', 'nombre', 'domicilio', 'localidad', 'telefono', 'email']) {
+      for (const key of ['tipo_persona', 'cuil', 'apellido', 'nombre', 'razon_social', 'domicilio', 'localidad', 'telefono', 'email']) {
         if (data[key] && !existing[key]) updates[key] = data[key]
       }
       if (Object.keys(updates).length > 0) {
@@ -119,4 +116,8 @@ export const findOrCreatePersona = async (data) => {
 }
 
 export const personaLabel = (p) =>
-  p ? `${p.apellido || ''}, ${p.nombre || ''}`.replace(/^,\s*/, '') || '(sin nombre)' : '(sin nombre)'
+  p
+    ? p.razon_social
+      ? p.razon_social
+      : `${p.apellido || ''}, ${p.nombre || ''}`.replace(/^,\s*/, '') || '(sin nombre)'
+    : '(sin nombre)'

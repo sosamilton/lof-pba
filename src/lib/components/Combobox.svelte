@@ -4,7 +4,7 @@
   import { Button } from '$lib/components/ui/button'
   import CheckIcon from '@lucide/svelte/icons/check'
   import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down'
-  import { normalize } from '../utils'
+  import { normalize } from '$core/utils'
 
   let {
     value = $bindable(),
