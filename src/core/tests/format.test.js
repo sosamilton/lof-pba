@@ -196,8 +196,13 @@ describe('formatCbu', () => {
   it('formats complete 22-digit CBU', () => {
     expect(formatCbu('0140002100000000000000')).toBe('01400021-00000000000000')
   })
-  it('returns raw digits when incomplete', () => {
+  it('formats progressively once past 8 digits', () => {
     expect(formatCbu('01400021')).toBe('01400021')
+    expect(formatCbu('014000210')).toBe('01400021-0')
+    expect(formatCbu('01400021000')).toBe('01400021-000')
+  })
+  it('shows raw digits for first 8 digits (no dash yet)', () => {
+    expect(formatCbu('0140')).toBe('0140')
   })
   it('strips non-digits before formatting', () => {
     expect(formatCbu('01400021-00000000000000')).toBe('01400021-00000000000000')

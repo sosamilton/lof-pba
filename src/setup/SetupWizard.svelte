@@ -176,12 +176,10 @@
   const onCbuInput = () => {
     banco.cbu = formatCbu(banco.cbu)
     const c = banco.cbu.replace(/\D/g, '')
-    if (c && !isValidCbu(c)) {
+    if (c && c.length < 22) {
       cbuWarning = `CBU incompleto: ${c.length}/22 dígitos`
-    } else if (c && isValidCbu(c) && !isValidCbuChecksum(c)) {
-      cbuWarning = 'CBU inválido (dígito verificador incorrecto)'
-    } else if (c && isValidCbu(c)) {
-      cbuWarning = ''
+    } else if (c && c.length === 22 && !isValidCbuChecksum(c)) {
+      cbuWarning = 'CBU con dígito verificador incorrecto (revisá, pero podés continuar)'
     } else {
       cbuWarning = ''
     }
@@ -439,13 +437,17 @@
     (cueWarning && !cueSedeLabel(schoolData.cue)) ||
     cuitWarning ||
     telefonoWarning ||
-    emailWarning ||
-    cbuWarning
+    emailWarning
 
   const canNext = () => {
     if (step === 0) return getSelectedModuleKeys().length > 0
     if (step === 1) return !hasFieldErrors()
-    if (step === 2) return !cbuWarning
+    if (step === 2) {
+      // CBU: bloquear solo si está incompleto (no por checksum, que es warning)
+      const cbuDigits = banco.cbu.replace(/\D/g, '')
+      if (cbuDigits && cbuDigits.length !== 22) return false
+      return true
+    }
     if (step === 3) {
       if (!ejercicio.mes_inicio) return false
       if (Number(ejercicio.anio_fin) <= Number(ejercicio.anio_inicio)) return false
@@ -588,7 +590,7 @@
               <Label class="text-xs font-bold text-muted-foreground">CBU (22 dígitos)</Label>
               <Input bind:value={banco.cbu} oninput={onCbuInput} placeholder="01400000-00000000000000" inputmode="numeric" />
               {#if cbuWarning}
-                <span class="text-xs text-destructive">{cbuWarning}</span>
+                <span class="text-xs {cbuWarning.includes('dígito verificador') ? 'text-yellow-600 dark:text-yellow-500' : 'text-destructive'}">{cbuWarning}</span>
               {/if}
             </div>
             <div class="flex flex-col gap-1">
