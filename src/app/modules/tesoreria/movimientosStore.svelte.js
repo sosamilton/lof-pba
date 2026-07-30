@@ -1,6 +1,6 @@
-import { createGristStore, resolveTableIds, fetchRelated } from './gristStore.svelte.js'
-import { fetchRecords } from '../grist.js'
-import { normalize, dateToInput, monthKey } from '../utils.js'
+import { createGristStore, extendStore, resolveTableIds, fetchRelated } from '$core/stores/gristStore.svelte.js'
+import { fetchRecords } from '$core/grist.js'
+import { normalize, dateToInput, monthKey } from '$core/utils.js'
 
 const base = createGristStore({
   tableKey: 'movimientos',
@@ -189,8 +189,7 @@ const subscribe = () => {
   }
 }
 
-export const movimientosStore = {
-  ...base,
+export const movimientosStore = extendStore(base, {
   get rubros() { return rubros },
   get subrubros() { return subrubros },
   get cuentas() { return cuentas },
@@ -213,4 +212,4 @@ export const movimientosStore = {
   saveMovimiento,
   onRubroChange,
   subscribe,
-}
+})
