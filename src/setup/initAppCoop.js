@@ -32,19 +32,42 @@ const fixRefTypes = (fields, actualTableIds) => {
   return fields
 }
 
+// Detecta columnas que son self-references (Ref a la misma tabla).
+// Grist no puede crear estas columnas durante AddTable porque la tabla
+// no existe todavía cuando se procesa la definición de columnas.
+const getSelfRefColumns = (tableId, columns) => {
+  return (columns || []).filter((c) => {
+    const type = String(c.fields?.type || '')
+    const refMatch = type.match(/^Ref:(.+)$/)
+    return refMatch && refMatch[1].toLowerCase() === String(tableId).toLowerCase()
+  })
+}
+
 export const ensureSchema = async (existingTablesLower) => {
   const schema = await loadAppCoopSchema()
   const missing = (schema.tables || []).filter((t) => !existingTablesLower.has(String(t.id).toLowerCase()))
-  const payloadTables = missing.map((t) => ({
-    id: t.id,
-    columns: (t.columns || []).map((c) => ({ id: c.id, fields: c.fields || {} }))
-  }))
+
+  // Excluir self-references del AddTable: Grist las saltea silenciosamente
+  // porque la tabla no existe todavía cuando se procesa la definición.
+  // Se agregan después con AddColumn, cuando la tabla ya existe.
+  const payloadTables = missing.map((t) => {
+    const selfRefs = new Set(getSelfRefColumns(t.id, t.columns).map((c) => c.id))
+    return {
+      id: t.id,
+      columns: (t.columns || [])
+        .filter((c) => !selfRefs.has(c.id))
+        .map((c) => ({ id: c.id, fields: c.fields || {} }))
+    }
+  })
 
   if (payloadTables.length > 0) {
     await createTables(payloadTables)
+    // Dar tiempo a Grist a sincronizar sus tablas internas
+    // (_grist_Tables_column) antes de comparar el schema.
+    await new Promise((resolve) => setTimeout(resolve, 500))
   }
 
-  const diff = await getSchemaDiff()
+  let diff = await getSchemaDiff()
 
   const actualTableIds = new Map()
   for (const [lower, actual] of Object.entries(diff.actualTableIds || {})) {
@@ -60,6 +83,21 @@ export const ensureSchema = async (existingTablesLower) => {
   }
   if (actions.length > 0) {
     await applyUserActions(actions)
+    // Verificar una segunda vez después de agregar columnas faltantes,
+    // por si quedaron columnas que no se detectaron en el primer check
+    // (timing de _grist_Tables_column).
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    diff = await getSchemaDiff()
+    const secondActions = []
+    for (const item of diff.missingColumns) {
+      for (const col of item.columns) {
+        const fixedFields = fixRefTypes(col.fields || {}, actualTableIds)
+        secondActions.push(['AddColumn', item.tableId, col.id, fixedFields])
+      }
+    }
+    if (secondActions.length > 0) {
+      await applyUserActions(secondActions)
+    }
   }
 
   const repairActions = await getRefRepairActions(diff, schema)
