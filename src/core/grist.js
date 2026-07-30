@@ -113,12 +113,9 @@ const tryListTables = async (timeoutMs) => {
   await Promise.race([window.grist.docApi.listTables(), timeout])
 }
 
-export const detectGrist = async ({ timeoutMs = 3000, retries = 4, retryDelay = 600 } = {}) => {
-  if (!isBrowser()) {
-    setGristStatus('none')
-    return 'none'
-  }
-  if (!isInIframe()) {
+const _probeGrist = async ({ timeoutMs = 3000, retries = 4, retryDelay = 600, isRetry = false } = {}) => {
+  if (!isRetry && _gristStatus === 'ready') return 'ready'
+  if (!isBrowser() || !isInIframe()) {
     setGristStatus('none')
     return 'none'
   }
@@ -128,9 +125,13 @@ export const detectGrist = async ({ timeoutMs = 3000, retries = 4, retryDelay = 
       setGristStatus('none')
       return 'none'
     }
-    window.grist.ready({ requiredAccess: 'full', allowSelectBy: true })
-    setupOnRecords()
-    setupOnOptions()
+    if (typeof window.grist !== 'undefined') {
+      window.grist.ready({ requiredAccess: 'full', allowSelectBy: true })
+    }
+    if (!isRetry) {
+      setupOnRecords()
+      setupOnOptions()
+    }
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
         await tryListTables(timeoutMs)
@@ -150,32 +151,9 @@ export const detectGrist = async ({ timeoutMs = 3000, retries = 4, retryDelay = 
   }
 }
 
-export const retryAccess = async ({ timeoutMs = 3000, retries = 4, retryDelay = 600 } = {}) => {
-  if (_gristStatus === 'ready') return 'ready'
-  if (!isBrowser() || !isInIframe()) return 'none'
-  try {
-    await ensureGristPluginLoaded()
-    if (typeof window.grist !== 'undefined') {
-      window.grist.ready({ requiredAccess: 'full', allowSelectBy: true })
-    }
-    for (let attempt = 0; attempt < retries; attempt++) {
-      try {
-        await tryListTables(timeoutMs)
-        setGristStatus('ready')
-        return 'ready'
-      } catch (e) {
-        if (attempt < retries - 1) {
-          await new Promise((resolve) => setTimeout(resolve, retryDelay))
-        }
-      }
-    }
-    setGristStatus('no-access')
-    return 'no-access'
-  } catch {
-    setGristStatus('no-access')
-    return 'no-access'
-  }
-}
+export const detectGrist = (opts = {}) => _probeGrist({ ...opts, isRetry: false })
+
+export const retryAccess = (opts = {}) => _probeGrist({ ...opts, isRetry: true })
 
 export const gristReady = async () => {
   await ensureGristPluginLoaded()
