@@ -52,7 +52,7 @@
   let schoolData = $state({
     escuela_nombre: '',
     escuela_numero: '',
-    cue: '',
+    cue: '06',
     cooperadora_nombre: '',
     cuit: '',
     domicilio: '',
@@ -523,7 +523,7 @@
             </div>
             <div class="flex flex-col gap-1 sm:col-span-2">
               <Label class="text-xs font-bold text-muted-foreground">CUE (Clave Única de Establecimiento)</Label>
-              <Input value={schoolData.cue} oninput={onCueInput} placeholder="06-XXXXX-00 (9 dígitos, empieza con 06)" />
+              <Input bind:value={schoolData.cue} oninput={onCueInput} placeholder="06-XXXXX-00 (00 = sede central)" inputmode="numeric" />
               {#if cueWarning}
                 <span class="text-xs {cueSedeLabel(schoolData.cue) ? 'text-muted-foreground' : 'text-destructive'}">{cueWarning}</span>
               {/if}
@@ -534,7 +534,7 @@
             </div>
             <div class="flex flex-col gap-1">
               <Label class="text-xs font-bold text-muted-foreground">CUIT cooperadora</Label>
-              <Input value={schoolData.cuit} oninput={onCuitInput} placeholder="30-XXXXXXXX-X" />
+              <Input bind:value={schoolData.cuit} oninput={onCuitInput} placeholder="30-XXXXXXXX-X" inputmode="numeric" />
               {#if cuitWarning}
                 <span class="text-xs text-destructive">{cuitWarning}</span>
               {/if}
@@ -549,14 +549,14 @@
             </div>
             <div class="flex flex-col gap-1">
               <Label class="text-xs font-bold text-muted-foreground">Email</Label>
-              <Input value={schoolData.email} oninput={onEmailInput} placeholder="cooperadora@email.com" />
+              <Input bind:value={schoolData.email} oninput={onEmailInput} placeholder="cooperadora@email.com" inputmode="email" />
               {#if emailWarning}
                 <span class="text-xs text-destructive">{emailWarning}</span>
               {/if}
             </div>
             <div class="flex flex-col gap-1">
               <Label class="text-xs font-bold text-muted-foreground">Teléfono</Label>
-              <Input value={schoolData.telefono} oninput={onTelefonoInput} placeholder="+54 11 1234-5678" />
+              <Input bind:value={schoolData.telefono} oninput={onTelefonoInput} placeholder="+54 11 1234-5678" inputmode="tel" />
               {#if telefonoWarning}
                 <span class="text-xs text-destructive">{telefonoWarning}</span>
               {/if}
@@ -586,7 +586,7 @@
             </div>
             <div class="flex flex-col gap-1 sm:col-span-2">
               <Label class="text-xs font-bold text-muted-foreground">CBU (22 dígitos)</Label>
-              <Input value={banco.cbu} oninput={onCbuInput} placeholder="01400000-00000000000000" />
+              <Input bind:value={banco.cbu} oninput={onCbuInput} placeholder="01400000-00000000000000" inputmode="numeric" />
               {#if cbuWarning}
                 <span class="text-xs text-destructive">{cbuWarning}</span>
               {/if}
