@@ -5,7 +5,19 @@
   import { ensureSchema, getSchemaDiff, initDemoData } from '../initAppCoop'
   import { runMigration } from '../migracion'
   import { TABLE_PREFERRED_IDS } from '../utils'
-  import '../shared.css'
+  import { Button } from '$lib/components/ui/button'
+  import * as Card from '$lib/components/ui/card'
+  import { Badge } from '$lib/components/ui/badge'
+  import { Separator } from '$lib/components/ui/separator'
+  import { Alert, AlertDescription } from '$lib/components/ui/alert'
+  import { Skeleton } from '$lib/components/ui/skeleton'
+  import { notify, withNotify } from '../stores/notify.svelte'
+  import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
+  import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
+  import DatabaseIcon from '@lucide/svelte/icons/database'
+  import RefreshIcon from '@lucide/svelte/icons/refresh-cw'
+  import WrenchIcon from '@lucide/svelte/icons/wrench'
+  import ArrowUpIcon from '@lucide/svelte/icons/arrow-up'
 
   let loading = $state(false)
   let error = $state('')
@@ -49,19 +61,21 @@
     creating = true
     error = ''
     try {
-      const tablesBefore = status?.tables || (await listTables())
-      const existing = new Set(tablesBefore.map((t) => String(t || '').toLowerCase()))
-      await ensureSchema(existing)
+      await withNotify('Instalando plantilla…', async () => {
+        const tablesBefore = status?.tables || (await listTables())
+        const existing = new Set(tablesBefore.map((t) => String(t || '').toLowerCase()))
+        await ensureSchema(existing)
 
-      await initDemoData([
-        { tableId: await resolveTableId(TABLE_PREFERRED_IDS.escuela), seedName: 'escuela', batchSize: 10 },
-        { tableId: await resolveTableId(TABLE_PREFERRED_IDS.datos_banco), seedName: 'datos_banco', batchSize: 10 },
-        { tableId: await resolveTableId(TABLE_PREFERRED_IDS.kiosco_libreria), seedName: 'kiosco_libreria', batchSize: 10 },
-        { tableId: await resolveTableId(TABLE_PREFERRED_IDS.ejercicios), seedName: 'ejercicios', batchSize: 10 },
-        { tableId: await resolveTableId(TABLE_PREFERRED_IDS.cuentas), seedName: 'cuentas', batchSize: 50 },
-        { tableId: await resolveTableId(TABLE_PREFERRED_IDS.rubros_pia), seedName: 'rubros_pia', batchSize: 100 },
-        { tableId: await resolveTableId(TABLE_PREFERRED_IDS.cargos), seedName: 'cargos', batchSize: 100 }
-      ])
+        await initDemoData([
+          { tableId: await resolveTableId(TABLE_PREFERRED_IDS.escuela), seedName: 'escuela', batchSize: 10 },
+          { tableId: await resolveTableId(TABLE_PREFERRED_IDS.datos_banco), seedName: 'datos_banco', batchSize: 10 },
+          { tableId: await resolveTableId(TABLE_PREFERRED_IDS.kiosco_libreria), seedName: 'kiosco_libreria', batchSize: 10 },
+          { tableId: await resolveTableId(TABLE_PREFERRED_IDS.ejercicios), seedName: 'ejercicios', batchSize: 10 },
+          { tableId: await resolveTableId(TABLE_PREFERRED_IDS.cuentas), seedName: 'cuentas', batchSize: 50 },
+          { tableId: await resolveTableId(TABLE_PREFERRED_IDS.rubros_pia), seedName: 'rubros_pia', batchSize: 100 },
+          { tableId: await resolveTableId(TABLE_PREFERRED_IDS.cargos), seedName: 'cargos', batchSize: 100 }
+        ])
+      }, { success: 'Plantilla instalada', error: 'Error al instalar' })
       await check()
     } catch (e) {
       error = e?.message || String(e)
@@ -77,12 +91,13 @@
     error = ''
     migrationResult = null
     try {
-      const schemaResult = await ensureSchema(new Set((status?.tables || []).map((t) => String(t || '').toLowerCase())))
-      if (schemaResult?.errors?.length > 0) {
-        error = `Schema con errores: ${schemaResult.errors.join(', ')}`
-        return
-      }
-      migrationResult = await runMigration()
+      await withNotify('Migrando a personas…', async () => {
+        const schemaResult = await ensureSchema(new Set((status?.tables || []).map((t) => String(t || '').toLowerCase())))
+        if (schemaResult?.errors?.length > 0) {
+          throw new Error(`Schema con errores: ${schemaResult.errors.join(', ')}`)
+        }
+        migrationResult = await runMigration()
+      }, { success: 'Migración completada', error: 'Error en migración' })
     } catch (e) {
       error = e?.message || String(e)
     } finally {
@@ -95,8 +110,9 @@
     error = ''
     repairResult = null
     try {
-      const result = await ensureSchema(new Set((status?.tables || []).map((t) => String(t || '').toLowerCase())))
-      repairResult = result
+      await withNotify('Reparando schema…', async () => {
+        repairResult = await ensureSchema(new Set((status?.tables || []).map((t) => String(t || '').toLowerCase())))
+      }, { success: 'Schema reparado', error: 'Error al reparar' })
       await check()
     } catch (e) {
       error = e?.message || String(e)
@@ -116,176 +132,162 @@
   })
 </script>
 
-<div class="page">
-  <h1>AppCoop</h1>
+<div class="flex flex-col gap-4">
+  <div class="flex items-center gap-2">
+    <DatabaseIcon class="size-5 text-primary" />
+    <h1 class="text-lg font-bold">AppCoop</h1>
+  </div>
+
   {#if isInGrist()}
-    <p>Modo widget Grist detectado.</p>
+    <p class="text-sm text-muted-foreground">Modo widget Grist detectado.</p>
+
     {#if loading}
-      <p>Verificando tablas…</p>
+      <div class="flex flex-col gap-4">
+        <Skeleton class="h-8 w-48" />
+        <Skeleton class="h-64 w-full" />
+      </div>
     {:else if status}
       {#if status.missing.length === 0}
         {#if status.schemaDiff?.missingTables?.length === 0 && status.schemaDiff?.missingColumns?.length === 0}
-          <p>Plantilla AppCoop instalada y sincronizada. Usá el menú para navegar.</p>
-          <div class="actions">
-            <button class="btn secondary" onclick={check} disabled={creating}>Revalidar</button>
-            <button class="btn" onclick={initAppCoop} disabled={creating}>Cargar datos base (si falta)</button>
-            <button class="btn secondary" onclick={repairSchema} disabled={creating}>Reparar Refs</button>
-            <button class="btn" onclick={doMigration} disabled={migrating || creating}>
-              {migrating ? 'Migrando…' : 'Migrar a personas'}
-            </button>
-          </div>
-          {#if migrationResult}
-            <div class="migrationResult">
-              <div class="msgTitle">Migración completada</div>
-              <ul>
-                <li>Personas creadas: <strong>{migrationResult.personasCreadas}</strong></li>
-                <li>Personas existentes reutilizadas: <strong>{migrationResult.personasActualizadas}</strong></li>
-                <li>Socios vinculados: <strong>{migrationResult.sociosVinculados}</strong></li>
-                <li>Autoridades vinculadas: <strong>{migrationResult.autoridadesVinculadas}</strong></li>
-                <li>Pendientes: <strong>{migrationResult.pendientes.length}</strong></li>
-              </ul>
-              {#if migrationResult.pendientes.length > 0}
-                <details>
-                  <summary>Ver pendientes ({migrationResult.pendientes.length})</summary>
-                  <ul class="pendientes">
-                    {#each migrationResult.pendientes as p (p.id)}
-                      <li>
-                        <span class="mono">{p.tabla}:{p.id}</span> — {p.motivo}
-                        ({p.apellido || p.apellido_nombre || ''} {p.nombre || ''})
-                      </li>
-                    {/each}
+          <Card.Root>
+            <Card.Content class="flex flex-col gap-4 pt-6">
+              <div class="flex items-center gap-2">
+                <CheckCircleIcon class="size-5 text-primary" />
+                <span class="text-sm font-semibold">Plantilla AppCoop instalada y sincronizada</span>
+              </div>
+              <p class="text-sm text-muted-foreground">Usá el menú para navegar.</p>
+              <div class="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onclick={check} disabled={creating}>
+                  <RefreshIcon data-icon="inline-start" />
+                  Revalidar
+                </Button>
+                <Button variant="outline" size="sm" onclick={initAppCoop} disabled={creating}>
+                  Cargar datos base
+                </Button>
+                <Button variant="outline" size="sm" onclick={repairSchema} disabled={creating}>
+                  <WrenchIcon data-icon="inline-start" />
+                  Reparar Refs
+                </Button>
+                <Button size="sm" onclick={doMigration} disabled={migrating || creating}>
+                  <ArrowUpIcon data-icon="inline-start" />
+                  {migrating ? 'Migrando…' : 'Migrar a personas'}
+                </Button>
+              </div>
+
+              {#if migrationResult}
+                <Separator />
+                <div class="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+                  <div class="text-sm font-semibold">Migración completada</div>
+                  <ul class="mt-2 ml-4 list-disc text-sm text-muted-foreground">
+                    <li>Personas creadas: <strong>{migrationResult.personasCreadas}</strong></li>
+                    <li>Personas existentes reutilizadas: <strong>{migrationResult.personasActualizadas}</strong></li>
+                    <li>Socios vinculados: <strong>{migrationResult.sociosVinculados}</strong></li>
+                    <li>Autoridades vinculadas: <strong>{migrationResult.autoridadesVinculadas}</strong></li>
+                    <li>Pendientes: <strong>{migrationResult.pendientes.length}</strong></li>
                   </ul>
-                </details>
+                  {#if migrationResult.pendientes.length > 0}
+                    <details class="mt-2">
+                      <summary class="text-sm cursor-pointer">Ver pendientes ({migrationResult.pendientes.length})</summary>
+                      <ul class="mt-2 ml-4 list-disc text-xs text-muted-foreground">
+                        {#each migrationResult.pendientes as p (p.id)}
+                          <li>
+                            <span class="font-mono">{p.tabla}:{p.id}</span> — {p.motivo}
+                            ({p.apellido || p.apellido_nombre || ''} {p.nombre || ''})
+                          </li>
+                        {/each}
+                      </ul>
+                    </details>
+                  {/if}
+                </div>
               {/if}
-            </div>
-          {/if}
-          {#if repairResult}
-            <div class="migrationResult">
-              <div class="msgTitle">Schema reparado</div>
-              <ul>
-                <li>Tablas creadas: <strong>{repairResult.created}</strong></li>
-                <li>Columnas agregadas: <strong>{repairResult.addedColumns}</strong></li>
-                <li>Refs corregidas: <strong>{repairResult.repairedRefs}</strong></li>
-              </ul>
-              {#if repairResult.repairedRefs > 0}
-                <p class="muted">Se corrigieron columnas Ref con mayúsculas/minúsculas incorrectas. Probá guardar de nuevo.</p>
+
+              {#if repairResult}
+                <Separator />
+                <div class="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+                  <div class="text-sm font-semibold">Schema reparado</div>
+                  <ul class="mt-2 ml-4 list-disc text-sm text-muted-foreground">
+                    <li>Tablas creadas: <strong>{repairResult.created}</strong></li>
+                    <li>Columnas agregadas: <strong>{repairResult.addedColumns}</strong></li>
+                    <li>Refs corregidas: <strong>{repairResult.repairedRefs}</strong></li>
+                  </ul>
+                </div>
               {/if}
-            </div>
-          {/if}
+            </Card.Content>
+          </Card.Root>
         {:else}
-          <div class="msg error">
-            <div class="msgTitle">Hay diferencias con el schema</div>
-            <div class="msgBody">
+          <Card.Root class="border-destructive/40">
+            <Card.Content class="flex flex-col gap-4 pt-6">
+              <div class="flex items-center gap-2">
+                <AlertTriangleIcon class="size-5 text-destructive" />
+                <span class="text-sm font-semibold">Hay diferencias con el schema</span>
+              </div>
               {#if status.schemaDiff?.missingTables?.length}
-                <div style="margin-bottom:6px">
-                  Tablas faltantes:
-                  <ul>
+                <div>
+                  <p class="text-sm font-medium mb-1">Tablas faltantes:</p>
+                  <ul class="ml-4 list-disc text-sm text-muted-foreground">
                     {#each status.schemaDiff.missingTables as t (t.id)}
-                      <li><span class="mono">{t.id}</span></li>
+                      <li><span class="font-mono">{t.id}</span></li>
                     {/each}
                   </ul>
                 </div>
               {/if}
               {#if status.schemaDiff?.missingColumns?.length}
                 <div>
-                  Columnas faltantes:
-                  <ul>
+                  <p class="text-sm font-medium mb-1">Columnas faltantes:</p>
+                  <ul class="ml-4 list-disc text-sm text-muted-foreground">
                     {#each status.schemaDiff.missingColumns as it (it.tableId)}
-                      <li>
-                        <span class="mono">{it.tableId}</span>: {it.columns.map((c) => c.id).join(', ')}
-                      </li>
+                      <li><span class="font-mono">{it.tableId}</span>: {it.columns.map((c) => c.id).join(', ')}</li>
                     {/each}
                   </ul>
                 </div>
               {/if}
-            </div>
-            <div class="actions">
-              <button class="btn secondary" onclick={check} disabled={creating}>Revalidar</button>
-              <button class="btn" onclick={initAppCoop} disabled={creating}>Actualizar schema + datos base</button>
-            </div>
-          </div>
+              <div class="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onclick={check} disabled={creating}>Revalidar</Button>
+                <Button size="sm" onclick={initAppCoop} disabled={creating}>Actualizar schema + datos base</Button>
+              </div>
+            </Card.Content>
+          </Card.Root>
         {/if}
       {:else}
-        <div class="msg error">
-          <div class="msgTitle">Faltan tablas para que la demo funcione</div>
-          <div class="msgBody">
-            <ul>
+        <Card.Root class="border-destructive/40">
+          <Card.Content class="flex flex-col gap-4 pt-6">
+            <div class="flex items-center gap-2">
+              <AlertTriangleIcon class="size-5 text-destructive" />
+              <span class="text-sm font-semibold">Faltan tablas para que la app funcione</span>
+            </div>
+            <ul class="ml-4 list-disc text-sm text-muted-foreground">
               {#each status.missing as t (t.key)}
-                <li>{t.label} (<span class="mono">{t.tableId}</span>)</li>
+                <li>{t.label} (<span class="font-mono">{t.tableId}</span>)</li>
               {/each}
             </ul>
-          </div>
-          <div class="actions">
-            <button class="btn secondary" onclick={check} disabled={creating}>Reintentar</button>
-            <button class="btn" onclick={initAppCoop} disabled={creating}>Instalar plantilla AppCoop</button>
-          </div>
-        </div>
+            <div class="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onclick={check} disabled={creating}>Reintentar</Button>
+              <Button size="sm" onclick={initAppCoop} disabled={creating}>Instalar plantilla AppCoop</Button>
+            </div>
+          </Card.Content>
+        </Card.Root>
       {/if}
-    {:else}
-      <p>Usá el menú para navegar.</p>
     {/if}
   {:else}
-    <p>Esta demo está pensada para ejecutarse dentro de Grist como Custom Widget.</p>
-    <p>Al abrirla desde un navegador, no tiene acceso a los datos del documento.</p>
-    <div class="card">
-      <p><strong>Cómo instalarla en un documento Grist</strong></p>
-      <ol>
-        <li>Abrí tu documento</li>
-        <li><span class="mono">Add New</span> → <span class="mono">Add Widget to Page</span> → <span class="mono">Custom</span></li>
-        <li>Pegá la URL publicada (GitHub Pages)</li>
-        <li>Elegí <span class="mono">Access level</span>: <strong>Full document access</strong></li>
-      </ol>
-    </div>
+    <Card.Root>
+      <Card.Content class="flex flex-col gap-3 pt-6">
+        <p class="text-sm text-muted-foreground">Esta app está pensada para ejecutarse dentro de Grist como Custom Widget.</p>
+        <p class="text-sm text-muted-foreground">Al abrirla desde un navegador, no tiene acceso a los datos del documento.</p>
+        <Separator />
+        <p class="text-sm font-semibold">Cómo instalarla en un documento Grist</p>
+        <ol class="ml-5 list-decimal text-sm text-muted-foreground">
+          <li>Abrí tu documento</li>
+          <li><span class="font-mono">Add New</span> → <span class="font-mono">Add Widget to Page</span> → <span class="font-mono">Custom</span></li>
+          <li>Pegá la URL publicada (GitHub Pages)</li>
+          <li>Elegí <span class="font-mono">Access level</span>: <strong>Full document access</strong></li>
+        </ol>
+      </Card.Content>
+    </Card.Root>
   {/if}
 
   {#if error}
-    <div class="msg error" style="margin-top:12px">
-      <div class="msgTitle">Error</div>
-      <div class="msgBody">{error}</div>
-    </div>
+    <Alert variant="destructive" class="mt-4">
+      <AlertDescription>{error}</AlertDescription>
+    </Alert>
   {/if}
 </div>
-
-<style>
-  .page h1 {
-    margin: 0 0 10px 0;
-    font-size: 22px;
-  }
-  .page p {
-    margin: 6px 0;
-    opacity: 0.85;
-  }
-  .card ol {
-    margin: 8px 0 0 18px;
-    padding: 0;
-  }
-  .card li {
-    margin: 6px 0;
-  }
-  .msgBody {
-    opacity: 0.9;
-  }
-  .actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
-  }
-  .migrationResult {
-    margin-top: 12px;
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(22, 179, 120, 0.35);
-    background: rgba(22, 179, 120, 0.08);
-  }
-  .migrationResult ul {
-    margin: 6px 0 0 18px;
-    padding: 0;
-  }
-  .pendientes {
-    font-size: 13px;
-    opacity: 0.85;
-  }
-  .pendientes li {
-    margin: 4px 0;
-  }
-</style>

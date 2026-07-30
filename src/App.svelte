@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte'
+  import { Toaster } from '$lib/components/ui/sonner'
   import AppShell from './lib/layout/AppShell.svelte'
   import { initRouter, router, navigate } from './lib/router.svelte'
   import { detectGrist, getGristStatus, getWidgetOptions, isInGrist, subscribeAccess, listTables } from './lib/grist'
@@ -61,7 +62,12 @@
 </script>
 
 {#if !ready}
-  <div style="padding: 18px; opacity: 0.8;">Cargando…</div>
+  <div class="flex items-center justify-center min-h-screen">
+    <div class="flex flex-col items-center gap-3">
+      <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+      <p class="text-sm text-muted-foreground">Cargando…</p>
+    </div>
+  </div>
 {:else if gristStatus === 'ready' && needsSetup}
   <SetupWizard />
 {:else if gristStatus === 'ready'}
@@ -85,3 +91,5 @@
 {:else}
   <Landing />
 {/if}
+
+<Toaster position="top-right" richColors closeButton />

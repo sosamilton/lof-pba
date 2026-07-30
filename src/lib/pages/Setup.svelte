@@ -2,8 +2,19 @@
   import { onMount } from 'svelte'
   import { ensureOneRow, fetchRecords, gristReady, isInGrist, resolveTableId, applyUserActions, subscribeRecords, getWidgetOptions, setWidgetOption } from '../grist'
   import { normalizeFields, ORGANISMOS, ORGANISMO_LABELS, NIVELES_CARGO, MESES, TABLE_PREFERRED_IDS } from '../utils'
-  import MessageBanner from '../components/MessageBanner.svelte'
-  import '../shared.css'
+  import { notify } from '../stores/notify.svelte'
+  import { Button } from '$lib/components/ui/button'
+  import * as Card from '$lib/components/ui/card'
+  import { Badge } from '$lib/components/ui/badge'
+  import { Input } from '$lib/components/ui/input'
+  import { Label } from '$lib/components/ui/label'
+  import { Separator } from '$lib/components/ui/separator'
+  import * as Tabs from '$lib/components/ui/tabs'
+  import * as Table from '$lib/components/ui/table'
+  import { Checkbox } from '$lib/components/ui/checkbox'
+  import { Switch } from '$lib/components/ui/switch'
+  import { Alert, AlertDescription } from '$lib/components/ui/alert'
+  import { Skeleton } from '$lib/components/ui/skeleton'
 
   let loading = $state(true)
   let error = $state('')
@@ -89,6 +100,7 @@
     try {
       if (!tEscuela || !tBanco || !tKiosco) {
         error = 'Faltan tablas de configuración. Ejecutá "Actualizar schema" en Inicio.'
+        notify.error(error)
         return
       }
       await updateRecord(tEscuela, escuela)
@@ -96,8 +108,10 @@
       await updateRecord(tKiosco, kiosco)
       if (userName) await setWidgetOption('userName', userName.trim())
       notice = 'Datos guardados.'
+      notify.success(notice)
     } catch (e) {
       error = e?.message || String(e)
+      notify.error(error)
     } finally {
       busy = false
     }
@@ -130,6 +144,7 @@
       await applyUserActions(actions)
       ejercicios = await fetchRecords(tEjercicios)
       notice = 'Ejercicio creado.'
+      notify.success(notice)
       nuevoEj = {
         anio_inicio: '',
         anio_fin: '',
@@ -154,6 +169,7 @@
       await applyUserActions(actions)
       ejercicios = await fetchRecords(tEjercicios)
       notice = 'Ejercicio actualizado.'
+      notify.success(notice)
     } catch (e) {
       error = e?.message || String(e)
     } finally {
@@ -183,6 +199,7 @@
       await applyUserActions([['UpdateRecord', tCargos, c.id, fields]])
       await loadCargos()
       notice = 'Cargo guardado.'
+      notify.success(notice)
     } catch (e) {
       error = e?.message || String(e)
     } finally {
@@ -224,6 +241,7 @@
       }
       await loadCargos()
       notice = 'Cargo agregado.'
+      notify.success(notice)
     } catch (e) {
       error = e?.message || String(e)
     } finally {
@@ -241,283 +259,266 @@
 </script>
 
 {#if !isInGrist()}
-  <h1>Cooperadora</h1>
-  <p>Esta pantalla solo funciona dentro de Grist.</p>
+  <h1 class="text-lg font-bold">Cooperadora</h1>
+  <p class="text-sm text-muted-foreground">Esta pantalla solo funciona dentro de Grist.</p>
 {:else if loading}
-  <p>Cargando…</p>
+  <div class="flex flex-col gap-4">
+    <Skeleton class="h-8 w-48" />
+    <div class="grid gap-4 lg:grid-cols-2">
+      <Skeleton class="h-96" />
+      <Skeleton class="h-96" />
+    </div>
+  </div>
 {:else}
-  <div class="grid2">
-    <section class="card">
-      <h1>Cooperadora</h1>
-      <div class="form">
-        <div class="row">
-          <label>Distrito<input bind:value={escuela.distrito} /></label>
-        </div>
-        <div class="row">
-          <label>Escuela<input bind:value={escuela.escuela_nombre} /></label>
-        </div>
-        <div class="row">
-          <label>Número<input bind:value={escuela.escuela_numero} /></label>
-        </div>
-        <div class="row">
-          <label>CUE<input bind:value={escuela.cue} /></label>
-        </div>
-        <div class="row">
-          <label>CUIT<input bind:value={escuela.cuit} /></label>
-        </div>
-        <div class="row">
-          <label>Cooperadora<input bind:value={escuela.cooperadora_nombre} /></label>
-        </div>
-        <div class="row">
-          <label>Domicilio<input bind:value={escuela.domicilio} /></label>
-        </div>
-        <div class="row">
-          <label>Localidad<input bind:value={escuela.localidad} /></label>
-        </div>
-        <div class="row">
-          <label>Email<input bind:value={escuela.email_cooperadora} /></label>
-        </div>
-        <div class="row">
-          <label>Teléfono<input bind:value={escuela.telefono_cooperadora} /></label>
-        </div>
-      </div>
-
-      <h2>Banco</h2>
-      <div class="form">
-        <div class="row">
-          <label>Entidad<input bind:value={banco.entidad} /></label>
-        </div>
-        <div class="row">
-          <label>CBU<input bind:value={banco.cbu} /></label>
-        </div>
-        <div class="row">
-          <label>Cuenta<input bind:value={banco.cuenta_corriente} /></label>
-        </div>
-      </div>
-
-      <h2>Kiosco</h2>
-      <div class="form">
-        <div class="row">
-          <label>Posee<select bind:value={kiosco.posee}>
-            <option value={true}>Sí</option>
-            <option value={false}>No</option>
-          </select></label>
-        </div>
-        <div class="row">
-          <label>Modalidad<select bind:value={kiosco.modalidad}>
-            <option value="">(sin)</option>
-            <option value="Propio">Propio</option>
-            <option value="Licitado">Licitado</option>
-          </select></label>
-        </div>
-      </div>
-
-      <h2>Usuario</h2>
-      <div class="form">
-        <div class="row">
-          <label>Nombre de usuario (para registros)<input bind:value={userName} placeholder="Ej: Juan Pérez" /></label>
-        </div>
-      </div>
-
-      <div class="actions">
-        <button class="btn" onclick={saveSetup}>Guardar datos</button>
-      </div>
-    </section>
-
-    <section class="card">
-      <h1>Ejercicio y comisión</h1>
-      <div class="list">
-        {#each ejercicios as e (e.id)}
-          <div class="item">
-            <div class="item-main">
-              <div class="item-title">{e.anio_inicio}-{e.anio_fin} · {e.mes_inicio}</div>
-              <div class="item-sub">{e.en_curso ? 'En curso' : 'Inactivo'}</div>
-            </div>
-            <div class="item-actions">
-              <button class="btn secondary" disabled={e.en_curso} onclick={() => setEjercicioEnCurso(e.id)}>Activar</button>
-            </div>
+  <div class="grid gap-4 lg:grid-cols-2">
+    <!-- Columna 1: Datos de la cooperadora -->
+    <Card.Root>
+      <Card.Header>
+        <Card.Title class="text-base">Cooperadora</Card.Title>
+      </Card.Header>
+      <Card.Content class="flex flex-col gap-4">
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div>
+            <Label for="distrito">Distrito</Label>
+            <Input id="distrito" bind:value={escuela.distrito} class="mt-1" />
           </div>
-        {/each}
-      </div>
-
-      <h2>Nuevo ejercicio</h2>
-      <div class="form">
-        <div class="row">
-          <label>Año desde<input type="number" bind:value={nuevoEj.anio_inicio} /></label>
-        </div>
-        <div class="row">
-          <label>Año hasta<input type="number" bind:value={nuevoEj.anio_fin} /></label>
-        </div>
-        <div class="row">
-          <label>Mes inicio<select bind:value={nuevoEj.mes_inicio}>
-            <option>Enero</option>
-            <option>Febrero</option>
-            <option>Marzo</option>
-            <option>Abril</option>
-            <option>Mayo</option>
-            <option>Junio</option>
-            <option>Julio</option>
-            <option>Agosto</option>
-            <option>Septiembre</option>
-            <option>Octubre</option>
-            <option>Noviembre</option>
-            <option>Diciembre</option>
-          </select></label>
-        </div>
-        <div class="row">
-          <label>Saldo banco<input type="number" bind:value={nuevoEj.saldo_inicial_banco} /></label>
-        </div>
-        <div class="row">
-          <label>Saldo efectivo<input type="number" bind:value={nuevoEj.saldo_inicial_efectivo} /></label>
-        </div>
-        <div class="row">
-          <label>Saldo caja chica<input type="number" bind:value={nuevoEj.saldo_inicial_caja_chica} /></label>
-        </div>
-      </div>
-      <div class="actions">
-        <button class="btn" onclick={createEjercicio}>Crear y activar</button>
-      </div>
-
-      <h1 style="margin-top:18px">Cargos (base)</h1>
-      <div class="tabs">
-        <button class:tabActive={organismo === 'CD'} onclick={() => { organismo = 'CD'; loadCargos() }}>Comisión Directiva</button>
-        <button class:tabActive={organismo === 'CRC'} onclick={() => { organismo = 'CRC'; loadCargos() }}>Comisión Revisora de Cuentas</button>
-        <button class:tabActive={organismo === 'Federacion'} onclick={() => { organismo = 'Federacion'; loadCargos() }}>Federación</button>
-      </div>
-      <div class="table">
-        <div class="thead">
-          <div>Orden</div>
-          <div>Cargo</div>
-          <div>Duración</div>
-          <div>Nivel</div>
-          <div>Obligatorio</div>
-          <div>Activo</div>
-          <div></div>
-        </div>
-        {#each cargos as c (c.id)}
-          <div class="trow">
-            <div><input type="number" bind:value={c.orden} /></div>
-            <div><input bind:value={c.nombre_cargo} /></div>
-            <div><input type="number" bind:value={c.duracion_meses} /></div>
-            <div>
-              <select bind:value={c.nivel}>
-                <option value="Titular">Titular</option>
-                <option value="Suplente">Suplente</option>
-              </select>
-            </div>
-            <div><input type="checkbox" bind:checked={c.cargo_obligatorio} /></div>
-            <div><input type="checkbox" bind:checked={c.activo} disabled={c.cargo_obligatorio} /></div>
-            <div><button class="btn secondary" onclick={() => saveCargo(c)}>Guardar</button></div>
+          <div>
+            <Label for="escuela-nombre">Escuela</Label>
+            <Input id="escuela-nombre" bind:value={escuela.escuela_nombre} class="mt-1" />
           </div>
-        {/each}
-      </div>
+          <div>
+            <Label for="escuela-numero">Número</Label>
+            <Input id="escuela-numero" bind:value={escuela.escuela_numero} class="mt-1" />
+          </div>
+          <div>
+            <Label for="cue">CUE</Label>
+            <Input id="cue" bind:value={escuela.cue} class="mt-1" />
+          </div>
+          <div>
+            <Label for="cuit">CUIT</Label>
+            <Input id="cuit" bind:value={escuela.cuit} class="mt-1" />
+          </div>
+          <div>
+            <Label for="coop-nombre">Cooperadora</Label>
+            <Input id="coop-nombre" bind:value={escuela.cooperadora_nombre} class="mt-1" />
+          </div>
+          <div>
+            <Label for="coop-dom">Domicilio</Label>
+            <Input id="coop-dom" bind:value={escuela.domicilio} class="mt-1" />
+          </div>
+          <div>
+            <Label for="coop-loc">Localidad</Label>
+            <Input id="coop-loc" bind:value={escuela.localidad} class="mt-1" />
+          </div>
+          <div>
+            <Label for="coop-email">Email</Label>
+            <Input id="coop-email" bind:value={escuela.email_cooperadora} class="mt-1" />
+          </div>
+          <div>
+            <Label for="coop-tel">Teléfono</Label>
+            <Input id="coop-tel" bind:value={escuela.telefono_cooperadora} class="mt-1" />
+          </div>
+        </div>
 
-      <h2>Agregar cargo</h2>
-      <div class="form">
-        <div class="row">
-          <label>Nombre<input bind:value={nuevoCargo.nombre_cargo} /></label>
+        <Separator />
+
+        <div class="text-sm font-semibold">Banco</div>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <div>
+            <Label for="banco-entidad">Entidad</Label>
+            <Input id="banco-entidad" bind:value={banco.entidad} class="mt-1" />
+          </div>
+          <div>
+            <Label for="banco-cbu">CBU</Label>
+            <Input id="banco-cbu" bind:value={banco.cbu} class="mt-1" />
+          </div>
+          <div>
+            <Label for="banco-cc">Cuenta</Label>
+            <Input id="banco-cc" bind:value={banco.cuenta_corriente} class="mt-1" />
+          </div>
         </div>
-        <div class="row">
-          <label>Duración (meses)<input type="number" bind:value={nuevoCargo.duracion_meses} /></label>
+
+        <Separator />
+
+        <div class="text-sm font-semibold">Kiosco</div>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div>
+            <Label for="kiosco-posee">Posee</Label>
+            <select id="kiosco-posee" bind:value={kiosco.posee} class="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+              <option value={true}>Sí</option>
+              <option value={false}>No</option>
+            </select>
+          </div>
+          <div>
+            <Label for="kiosco-modalidad">Modalidad</Label>
+            <select id="kiosco-modalidad" bind:value={kiosco.modalidad} class="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+              <option value="">(sin)</option>
+              <option value="Propio">Propio</option>
+              <option value="Licitado">Licitado</option>
+            </select>
+          </div>
         </div>
-        <div class="row">
-          <label>Nivel<select bind:value={nuevoCargo.nivel}>
-            <option value="Titular">Titular</option>
-            <option value="Suplente">Suplente</option>
-          </select></label>
+
+        <Separator />
+
+        <div class="text-sm font-semibold">Usuario</div>
+        <div>
+          <Label for="user-name">Nombre de usuario (para registros)</Label>
+          <Input id="user-name" bind:value={userName} placeholder="Ej: Juan Pérez" class="mt-1" />
         </div>
-        <div class="row">
-          <label>Orden<input type="number" bind:value={nuevoCargo.orden} /></label>
+
+        <div class="flex justify-end">
+          <Button onclick={saveSetup} disabled={busy}>Guardar datos</Button>
         </div>
-        <div class="row">
-          <label>Obligatorio<input type="checkbox" bind:checked={nuevoCargo.cargo_obligatorio} /></label>
+      </Card.Content>
+    </Card.Root>
+
+    <!-- Columna 2: Ejercicios y cargos -->
+    <Card.Root>
+      <Card.Header>
+        <Card.Title class="text-base">Ejercicios y comisión</Card.Title>
+      </Card.Header>
+      <Card.Content class="flex flex-col gap-4">
+        <!-- Lista de ejercicios -->
+        <div class="flex flex-col gap-2">
+          {#each ejercicios as e (e.id)}
+            <div class="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
+              <div>
+                <div class="text-sm font-semibold">{e.anio_inicio}-{e.anio_fin} · {e.mes_inicio}</div>
+                <div class="text-xs text-muted-foreground">{e.en_curso ? 'En curso' : 'Inactivo'}</div>
+              </div>
+              <Button variant="outline" size="sm" disabled={e.en_curso} onclick={() => setEjercicioEnCurso(e.id)}>Activar</Button>
+            </div>
+          {/each}
         </div>
-        <div class="row">
-          <label>Activo<input type="checkbox" bind:checked={nuevoCargo.activo} disabled={nuevoCargo.cargo_obligatorio} /></label>
+
+        <Separator />
+
+        <div class="text-sm font-semibold">Nuevo ejercicio</div>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <div>
+            <Label for="ej-desde">Año desde</Label>
+            <Input id="ej-desde" type="number" bind:value={nuevoEj.anio_inicio} class="mt-1" />
+          </div>
+          <div>
+            <Label for="ej-hasta">Año hasta</Label>
+            <Input id="ej-hasta" type="number" bind:value={nuevoEj.anio_fin} class="mt-1" />
+          </div>
+          <div>
+            <Label for="ej-mes">Mes inicio</Label>
+            <select id="ej-mes" bind:value={nuevoEj.mes_inicio} class="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+              {#each MESES as m}
+                <option value={m}>{m}</option>
+              {/each}
+            </select>
+          </div>
+          <div>
+            <Label for="ej-banco">Saldo banco</Label>
+            <Input id="ej-banco" type="number" bind:value={nuevoEj.saldo_inicial_banco} class="mt-1" />
+          </div>
+          <div>
+            <Label for="ej-efectivo">Saldo efectivo</Label>
+            <Input id="ej-efectivo" type="number" bind:value={nuevoEj.saldo_inicial_efectivo} class="mt-1" />
+          </div>
+          <div>
+            <Label for="ej-caja">Saldo caja chica</Label>
+            <Input id="ej-caja" type="number" bind:value={nuevoEj.saldo_inicial_caja_chica} class="mt-1" />
+          </div>
         </div>
-      </div>
-      <div class="actions">
-        <button class="btn" onclick={addCargo}>Agregar</button>
-      </div>
-    </section>
+        <div class="flex justify-end">
+          <Button size="sm" onclick={createEjercicio} disabled={busy}>Crear y activar</Button>
+        </div>
+
+        <Separator />
+
+        <!-- Cargos -->
+        <div class="text-sm font-semibold">Cargos (base)</div>
+        <Tabs.Root bind:value={organismo} onValueChange={(v) => { organismo = v; loadCargos() }}>
+          <Tabs.List>
+            {#each ORGANISMOS as org}
+              <Tabs.Trigger value={org}>{ORGANISMO_LABELS[org]}</Tabs.Trigger>
+            {/each}
+          </Tabs.List>
+        </Tabs.Root>
+
+        {#if cargos.length > 0}
+          <div class="overflow-x-auto rounded-lg border border-border">
+            <Table.Root>
+              <Table.Header>
+                <Table.Row>
+                  <Table.Head class="w-[64px]">Orden</Table.Head>
+                  <Table.Head>Cargo</Table.Head>
+                  <Table.Head class="w-[100px]">Duración</Table.Head>
+                  <Table.Head class="w-[120px]">Nivel</Table.Head>
+                  <Table.Head class="w-[90px]">Oblig.</Table.Head>
+                  <Table.Head class="w-[70px]">Activo</Table.Head>
+                  <Table.Head class="w-[90px]"></Table.Head>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {#each cargos as c (c.id)}
+                  <Table.Row>
+                    <Table.Cell><Input type="number" bind:value={c.orden} class="h-8 text-sm" /></Table.Cell>
+                    <Table.Cell><Input bind:value={c.nombre_cargo} class="h-8 text-sm" /></Table.Cell>
+                    <Table.Cell><Input type="number" bind:value={c.duracion_meses} class="h-8 text-sm" /></Table.Cell>
+                    <Table.Cell>
+                      <select bind:value={c.nivel} class="h-8 rounded-md border border-input bg-background px-2 text-sm">
+                        {#each NIVELES_CARGO as n}
+                          <option value={n}>{n}</option>
+                        {/each}
+                      </select>
+                    </Table.Cell>
+                    <Table.Cell><Checkbox bind:checked={c.cargo_obligatorio} /></Table.Cell>
+                    <Table.Cell><Switch bind:checked={c.activo} disabled={c.cargo_obligatorio} /></Table.Cell>
+                    <Table.Cell><Button variant="outline" size="sm" onclick={() => saveCargo(c)}>Guardar</Button></Table.Cell>
+                  </Table.Row>
+                {/each}
+              </Table.Body>
+            </Table.Root>
+          </div>
+        {/if}
+
+        <div class="text-sm font-semibold">Agregar cargo</div>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <div>
+            <Label for="nc-nombre">Nombre</Label>
+            <Input id="nc-nombre" bind:value={nuevoCargo.nombre_cargo} class="mt-1" />
+          </div>
+          <div>
+            <Label for="nc-duracion">Duración (meses)</Label>
+            <Input id="nc-duracion" type="number" bind:value={nuevoCargo.duracion_meses} class="mt-1" />
+          </div>
+          <div>
+            <Label for="nc-nivel">Nivel</Label>
+            <select id="nc-nivel" bind:value={nuevoCargo.nivel} class="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+              {#each NIVELES_CARGO as n}
+                <option value={n}>{n}</option>
+              {/each}
+            </select>
+          </div>
+          <div>
+            <Label for="nc-orden">Orden</Label>
+            <Input id="nc-orden" type="number" bind:value={nuevoCargo.orden} class="mt-1" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <Label class="text-xs font-medium text-muted-foreground">Obligatorio</Label>
+            <Checkbox bind:checked={nuevoCargo.cargo_obligatorio} class="mt-1" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <Label class="text-xs font-medium text-muted-foreground">Activo</Label>
+            <Switch bind:checked={nuevoCargo.activo} disabled={nuevoCargo.cargo_obligatorio} class="mt-1" />
+          </div>
+        </div>
+        <div class="flex justify-end">
+          <Button size="sm" onclick={addCargo} disabled={busy}>Agregar</Button>
+        </div>
+      </Card.Content>
+    </Card.Root>
   </div>
 
-  <MessageBanner {error} {notice} />
+  {#if error}
+    <Alert variant="destructive" class="mt-4">
+      <AlertDescription>{error}</AlertDescription>
+    </Alert>
+  {/if}
 {/if}
-
-<style>
-  h1 {
-    margin: 0 0 10px 0;
-    font-size: 18px;
-  }
-  h2 {
-    margin: 14px 0 8px 0;
-    font-size: 14px;
-    opacity: 0.9;
-  }
-  .grid2 {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-  .list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 10px;
-    border: 1px solid rgba(128, 128, 128, 0.22);
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.04);
-  }
-  .item-title {
-    font-weight: 700;
-    font-size: 13px;
-  }
-  .item-sub {
-    font-size: 12px;
-    opacity: 0.7;
-    margin-top: 2px;
-  }
-  .table {
-    border: 1px solid rgba(128, 128, 128, 0.22);
-    border-radius: 12px;
-    overflow: hidden;
-    overflow-x: auto;
-  }
-  .thead,
-  .trow {
-    display: grid;
-    grid-template-columns: 64px minmax(220px, 1fr) 110px 130px 110px 80px 96px;
-    gap: 8px;
-    align-items: center;
-    padding: 10px;
-  }
-  .thead,
-  .trow {
-    min-width: 850px;
-  }
-  .thead {
-    background: rgba(128, 128, 128, 0.12);
-    font-size: 12px;
-    font-weight: 800;
-  }
-  .trow {
-    border-top: 1px solid rgba(128, 128, 128, 0.18);
-  }
-  .trow input[type='checkbox'] {
-    width: 16px;
-    height: 16px;
-  }
-  @media (max-width: 1100px) {
-    .thead,
-    .trow {
-      grid-template-columns: 56px minmax(180px, 1fr) 96px 110px 96px 70px 96px;
-    }
-  }
-</style>

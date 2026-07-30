@@ -1,639 +1,305 @@
 <script>
   import { onMount } from 'svelte'
-  import { applyUserActions, fetchRecords, gristReady, isInGrist, resolveTableId, subscribeRecords, getWidgetOptions, setWidgetOption } from '../grist'
-  import { extractRowId, findOrCreatePersona, searchPersonas, personaLabel, normalizeDni, isValidDni } from '../personas'
-  import { normalizeFields, dateToInput, addMonths, ORGANISMOS, TIPOS_ASAMBLEA, MODALIDAD_CUOTA, TABLE_PREFERRED_IDS } from '../utils'
-  import MessageBanner from '../components/MessageBanner.svelte'
-  import EmptyState from '../components/EmptyState.svelte'
-  import '../shared.css'
-
-  let loading = $state(true)
-  let error = $state('')
-  let notice = $state('')
-
-  let tab = $state('comision')
-  let organismo = $state('CD')
-
-  let tEjercicios = $state()
-  let tCargos = $state()
-  let tAutoridades = $state()
-  let tAsambleas = $state()
-  let tResoluciones = $state()
-
-  let ejercicios = $state([])
-  let ejercicio = $state(null)
-
-  let cargos = $state([])
-  let autoridades = $state([])
-  let rows = $state([])
-
-  let asambleas = $state([])
-  let selectedAsambleaId = $state(null)
-  let asambleaForm = $state(null)
-  let resoluciones = $state([])
-  let busy = $state(false)
-  let personaSearch = $state('')
-  let personaResults = $state([])
-  let personaSearching = $state(false)
-  let searchTargetRow = $state(null)
-  let _searchTimer = null
-
-  const load = async () => {
-    loading = true
-    error = ''
-    notice = ''
-    try {
-      await gristReady()
-      tEjercicios = await resolveTableId(TABLE_PREFERRED_IDS.ejercicios)
-      tCargos = await resolveTableId(TABLE_PREFERRED_IDS.cargos)
-      tAutoridades = await resolveTableId(TABLE_PREFERRED_IDS.autoridades)
-      tAsambleas = await resolveTableId(TABLE_PREFERRED_IDS.asambleas)
-      tResoluciones = await resolveTableId(TABLE_PREFERRED_IDS.resoluciones)
-
-      ejercicios = await fetchRecords(tEjercicios)
-      ejercicio = ejercicios.find((e) => e.en_curso === true) || null
-
-      if (!ejercicio) {
-        return
-      }
-
-      await loadComision()
-      await loadAsambleas()
-    } catch (e) {
-      error = e?.message || String(e)
-    } finally {
-      loading = false
-    }
-  }
-
-  const loadComision = async () => {
-    cargos = await fetchRecords(tCargos, {
-      filter: (c) => c.activo === true || c.cargo_obligatorio === true
-    })
-    autoridades = await fetchRecords(tAutoridades, {
-      filter: (a) => Number(a.ejercicio_id) === Number(ejercicio.id)
-    })
-
-    const cargosOrg = cargos
-      .filter((c) => String(c.organismo) === organismo)
-      .filter((c) => c.activo === true || c.cargo_obligatorio === true)
-      .sort((a, b) => Number(a.orden || 0) - Number(b.orden || 0))
-
-    const authOrg = autoridades
-      .filter((a) => String(a.organismo) === organismo)
-      .filter((a) => Number(a.ejercicio_id) === Number(ejercicio.id))
-
-    const authByCargo = new Map(authOrg.map((a) => [Number(a.cargo_id), a]))
-
-    rows = cargosOrg.map((c) => {
-      const a = authByCargo.get(Number(c.id)) || null
-      const duracionMeses = c.duracion_meses ?? ''
-      const fechaAsuncion = dateToInput(a?.fecha_asuncion)
-      const fechaVenc = dateToInput(a?.fecha_vencimiento) || (fechaAsuncion ? addMonths(fechaAsuncion, duracionMeses) : '')
-      return {
-        cargoId: c.id,
-        cargoNombre: c.nombre_cargo,
-        cargoOrden: c.orden,
-        cargoObligatorio: Boolean(c.cargo_obligatorio),
-        cargoDuracionMeses: duracionMeses,
-        id: a?.id || null,
-        persona_id: a?.persona_id || null,
-        apellido_nombre: a?.apellido_nombre || '',
-        dni: a?.dni || '',
-        cuil: a?.cuil || '',
-        domicilio: a?.domicilio || '',
-        localidad: a?.localidad || '',
-        fecha_asuncion: fechaAsuncion,
-        fecha_cese: dateToInput(a?.fecha_cese),
-        fecha_vencimiento: fechaVenc,
-        motivo_cese: a?.motivo_cese || '',
-        activo: a?.activo ?? true
-      }
-    })
-  }
-
-  const initComision = async () => {
-    notice = ''
-    error = ''
-    try {
-      const existingByCargo = new Set(rows.filter((r) => r.id).map((r) => Number(r.cargoId)))
-      const toCreate = rows.filter((r) => !existingByCargo.has(Number(r.cargoId)) && r.cargoObligatorio)
-      if (toCreate.length === 0) {
-        notice = 'No hay cargos obligatorios pendientes de inicializar.'
-        return
-      }
-      const actions = toCreate.map((r) => [
-        'AddRecord',
-        tAutoridades,
-        null,
-        {
-          organismo,
-          cargo_id: r.cargoId,
-          ejercicio_id: ejercicio.id,
-          activo: true
-        }
-      ])
-      await applyUserActions(actions)
-      await loadComision()
-      notice = `${toCreate.length} cargo(s) obligatorio(s) inicializado(s). Los opcionales se crean al guardar con datos.`
-    } catch (e) {
-      error = e?.message || String(e)
-    }
-  }
-
-  const doPersonaSearch = (row) => {
-    searchTargetRow = row
-    clearTimeout(_searchTimer)
-    if (!personaSearch || personaSearch.length < 2) {
-      personaResults = []
-      return
-    }
-    _searchTimer = setTimeout(async () => {
-      personaSearching = true
-      try {
-        personaResults = await searchPersonas(personaSearch)
-      } catch (e) {
-        error = e?.message || String(e)
-        personaResults = []
-      } finally {
-        personaSearching = false
-      }
-    }, 300)
-  }
-
-  const linkPersona = (p) => {
-    if (!searchTargetRow) return
-    searchTargetRow.persona_id = p.id
-    searchTargetRow.apellido_nombre = personaLabel(p)
-    searchTargetRow.dni = p.dni || searchTargetRow.dni
-    searchTargetRow.cuil = p.cuil || searchTargetRow.cuil
-    searchTargetRow.domicilio = p.domicilio || searchTargetRow.domicilio
-    searchTargetRow.localidad = p.localidad || searchTargetRow.localidad
-    personaSearch = ''
-    personaResults = []
-    searchTargetRow = null
-  }
-
-  const unlinkPersona = (row) => {
-    row.persona_id = null
-  }
-
-  const saveComision = async () => {
-    notice = ''
-    error = ''
-    busy = true
-    try {
-      if (!tAutoridades) {
-        error = 'No se encontró la tabla autoridades. Ejecutá "Actualizar schema" en Inicio.'
-        return
-      }
-      const missing = rows.filter((r) => r.cargoObligatorio && r.activo && !r.apellido_nombre.trim())
-      if (missing.length > 0) {
-        error = `Faltan cargos obligatorios: ${missing.map((r) => r.cargoNombre).join(', ')}`
-        return
-      }
-      const actions = []
-      for (const r of rows) {
-        if (!r.apellido_nombre.trim() && !r.dni.trim()) continue
-        let personaId = r.persona_id
-        if (!personaId && r.dni && isValidDni(r.dni)) {
-          const persona = await findOrCreatePersona({
-            dni: normalizeDni(r.dni),
-            cuil: r.cuil || '',
-            apellido: r.apellido_nombre.split(',')[0]?.trim() || '',
-            nombre: r.apellido_nombre.split(',')[1]?.trim() || ''
-          })
-          personaId = persona?.id || null
-        }
-        const autoVenc = r.fecha_asuncion ? addMonths(r.fecha_asuncion, r.cargoDuracionMeses) : ''
-        const fechaVencimiento = r.fecha_asuncion ? (r.fecha_vencimiento || autoVenc) : (r.fecha_vencimiento || '')
-        const fields = normalizeFields({
-          organismo,
-          cargo_id: r.cargoId,
-          ejercicio_id: ejercicio.id,
-          persona_id: personaId || '',
-          apellido_nombre: String(r.apellido_nombre || '').trim(),
-          dni: String(r.dni || '').trim(),
-          cuil: String(r.cuil || '').trim(),
-          domicilio: String(r.domicilio || '').trim(),
-          localidad: String(r.localidad || '').trim(),
-          fecha_asuncion: r.fecha_asuncion || '',
-          fecha_cese: r.fecha_cese || '',
-          fecha_vencimiento: fechaVencimiento || '',
-          motivo_cese: String(r.motivo_cese || '').trim(),
-          activo: Boolean(r.activo)
-        })
-        if (r.id) {
-          actions.push(['UpdateRecord', tAutoridades, r.id, fields])
-        } else {
-          actions.push(['AddRecord', tAutoridades, null, fields])
-        }
-      }
-      if (actions.length === 0) return
-      await applyUserActions(actions)
-      notice = 'Comisión guardada.'
-      await loadComision()
-    } catch (e) {
-      error = e?.message || String(e)
-    } finally {
-      busy = false
-    }
-  }
-
-  const loadAsambleas = async () => {
-    asambleas = await fetchRecords(tAsambleas, {
-      filter: (a) => Number(a.ejercicio_id) === Number(ejercicio.id),
-      sort: (a, b) => String(b.fecha || '').localeCompare(String(a.fecha || ''))
-    })
-  }
-
-  const editAsamblea = async (a) => {
-    selectedAsambleaId = a?.id || null
-    asambleaForm = {
-      id: a?.id || null,
-      fecha: dateToInput(a?.fecha),
-      tipo_asamblea: a?.tipo_asamblea || 'AnualOrdinaria',
-      acta_numero: a?.acta_numero || '',
-      acta_fojas: a?.acta_fojas || '',
-      socios_presentes_cantidad: a?.socios_presentes_cantidad ?? '',
-      cuota_social_importe: a?.cuota_social_importe ?? '',
-      cuota_social_modalidad: a?.cuota_social_modalidad || 'Mensual',
-      caja_chica_importe: a?.caja_chica_importe ?? ''
-    }
-    if (a?.id && tResoluciones) {
-      const recs = await fetchRecords(tResoluciones, {
-        filter: (r) => Number(r.asamblea_id) === Number(a.id),
-        sort: (x, y) => Number(x.numero || 0) - Number(y.numero || 0)
-      })
-      resoluciones = recs.map((r) => ({ id: r.id, numero: r.numero ?? '', texto: r.texto || '' }))
-    } else {
-      resoluciones = []
-    }
-  }
-
-  const newAsamblea = () => {
-    selectedAsambleaId = null
-    asambleaForm = {
-      id: null,
-      fecha: new Date().toISOString().slice(0, 10),
-      tipo_asamblea: 'AnualOrdinaria',
-      acta_numero: '',
-      acta_fojas: '',
-      socios_presentes_cantidad: '',
-      cuota_social_importe: '',
-      cuota_social_modalidad: 'Mensual',
-      caja_chica_importe: ''
-    }
-    resoluciones = []
-  }
-
-  const addResolucion = () => {
-    const nextNum = resoluciones.length + 1
-    resoluciones = [...resoluciones, { id: null, numero: nextNum, texto: '' }]
-  }
-
-  const removeResolucion = (idx) => {
-    resoluciones = resoluciones.filter((_, i) => i !== idx)
-    resoluciones = resoluciones.map((r, i) => ({ ...r, numero: i + 1 }))
-  }
-
-  const saveAsamblea = async () => {
-    notice = ''
-    error = ''
-    busy = true
-    try {
-      if (!tAsambleas) {
-        error = 'No se encontró la tabla asambleas. Ejecutá "Actualizar schema" en Inicio.'
-        return
-      }
-      const f = asambleaForm || {}
-      const fields = normalizeFields({
-        fecha: f.fecha || '',
-        tipo_asamblea: f.tipo_asamblea || '',
-        acta_numero: String(f.acta_numero || '').trim(),
-        acta_fojas: String(f.acta_fojas || '').trim(),
-        ejercicio_id: ejercicio.id,
-        socios_presentes_cantidad: f.socios_presentes_cantidad === '' ? '' : Number(f.socios_presentes_cantidad),
-        cuota_social_importe: f.cuota_social_importe === '' ? '' : Number(f.cuota_social_importe),
-        cuota_social_modalidad: f.cuota_social_modalidad || '',
-        caja_chica_importe: f.caja_chica_importe === '' ? '' : Number(f.caja_chica_importe)
-      })
-
-      let asambleaId = f.id
-      if (f.id) {
-        await applyUserActions([['UpdateRecord', tAsambleas, f.id, fields]])
-        notice = 'Asamblea guardada.'
-      } else {
-        const res = await applyUserActions([['AddRecord', tAsambleas, null, fields]])
-        asambleaId = extractRowId(res)
-        notice = 'Asamblea creada.'
-      }
-
-      if (asambleaId != null && tResoluciones) {
-        const existing = await fetchRecords(tResoluciones, {
-          filter: (r) => Number(r.asamblea_id) === Number(asambleaId)
-        })
-        const toRemove = existing
-          .filter((r) => !resoluciones.some((nr) => nr.id === r.id))
-          .map((r) => ['RemoveRecord', tResoluciones, r.id])
-        const toUpdate = resoluciones
-          .filter((r) => r.id != null && String(r.texto || '').trim())
-          .map((r) => ['UpdateRecord', tResoluciones, r.id, {
-            numero: Number(r.numero || 0),
-            texto: String(r.texto).trim()
-          }])
-        const toAdd = resoluciones
-          .filter((r) => r.id == null && String(r.texto || '').trim())
-          .map((r) => ['AddRecord', tResoluciones, null, {
-            asamblea_id: asambleaId,
-            numero: Number(r.numero || 0),
-            texto: String(r.texto).trim()
-          }])
-        const actions = [...toRemove, ...toUpdate, ...toAdd]
-        if (actions.length > 0) await applyUserActions(actions)
-      }
-
-      await loadAsambleas()
-      if (!f.id) asambleaForm = null
-    } catch (e) {
-      error = e?.message || String(e)
-    } finally {
-      busy = false
-    }
-  }
-
-  const setTab = async (t) => {
-    tab = t
-    setWidgetOption('gobiernoTab', t)
-    if (!ejercicio) return
-    if (t === 'comision') await loadComision()
-    if (t === 'asambleas') await loadAsambleas()
-  }
+  import { gobiernoStore as store } from '../stores/gobiernoStore.svelte'
+  import { isInGrist, subscribeRecords } from '../grist'
+  import { ORGANISMOS, ORGANISMO_LABELS } from '../utils'
+  import { personaLabel } from '../personas'
+  import { notify } from '../stores/notify.svelte'
+  import { Button } from '$lib/components/ui/button'
+  import * as Card from '$lib/components/ui/card'
+  import { Badge } from '$lib/components/ui/badge'
+  import { Input } from '$lib/components/ui/input'
+  import { Label } from '$lib/components/ui/label'
+  import { Separator } from '$lib/components/ui/separator'
+  import { Textarea } from '$lib/components/ui/textarea'
+  import * as Tabs from '$lib/components/ui/tabs'
+  import * as Table from '$lib/components/ui/table'
+  import { Alert, AlertDescription } from '$lib/components/ui/alert'
+  import { Skeleton } from '$lib/components/ui/skeleton'
+  import PlusIcon from '@lucide/svelte/icons/plus'
+  import TrashIcon from '@lucide/svelte/icons/trash-2'
+  import RefreshIcon from '@lucide/svelte/icons/refresh-cw'
+  import UsersIcon from '@lucide/svelte/icons/users'
+  import GavelIcon from '@lucide/svelte/icons/gavel'
+  import LinkIcon from '@lucide/svelte/icons/link'
+  import UnlinkIcon from '@lucide/svelte/icons/unlink'
 
   onMount(async () => {
     if (!isInGrist()) return
-    const opts = await getWidgetOptions()
-    if (opts?.gobiernoTab) tab = opts.gobiernoTab
-    if (opts?.gobiernoOrganismo) organismo = opts.gobiernoOrganismo
+    await store.initFromOptions()
     const unsub = subscribeRecords(() => {
-      if (!busy && !loading) load()
+      if (!store.busy && !store.loading) store.load()
     })
-    await load()
+    await store.load()
     return unsub
   })
+
+  const handleSaveComision = async () => {
+    await store.saveComision()
+    if (store.error) notify.error(store.error)
+    else if (store.notice) notify.success(store.notice)
+  }
+
+  const handleSaveAsamblea = async () => {
+    await store.saveAsamblea()
+    if (store.error) notify.error(store.error)
+    else if (store.notice) notify.success(store.notice)
+  }
+
+  const handleInitComision = async () => {
+    await store.initComision()
+    if (store.error) notify.error(store.error)
+    else if (store.notice) notify.info(store.notice)
+  }
 </script>
 
 {#if !isInGrist()}
-  <h1>Gobierno</h1>
-  <p>Esta pantalla solo funciona dentro de Grist.</p>
-{:else if loading}
-  <p>Cargando…</p>
+  <h1 class="text-lg font-bold">Gobierno</h1>
+  <p class="text-sm text-muted-foreground">Esta pantalla solo funciona dentro de Grist.</p>
+{:else if store.loading}
+  <div class="flex flex-col gap-4">
+    <Skeleton class="h-8 w-48" />
+    <Skeleton class="h-10 w-full" />
+    <Skeleton class="h-64 w-full" />
+  </div>
 {:else}
-  <div class="head">
-    <div>
-      <h1>Gobierno</h1>
-      <div class="sub">
-        {#if ejercicio}
-          Ejercicio en curso: <span class="mono">{ejercicio.anio_inicio}-{ejercicio.anio_fin}</span>
-        {:else}
-          No hay ejercicio en curso. Activá uno en “Cooperadora”.
-        {/if}
-      </div>
-    </div>
-    <div class="tabs">
-      <button class:tabActive={tab === 'comision'} onclick={() => setTab('comision')}>Comisión</button>
-      <button class:tabActive={tab === 'asambleas'} onclick={() => setTab('asambleas')}>Asambleas</button>
-    </div>
+  <div class="mb-4">
+    <h1 class="text-lg font-bold">Gobierno</h1>
+    <p class="text-sm text-muted-foreground">
+      {#if store.ejercicio}
+        Ejercicio en curso: <span class="font-mono">{store.ejercicio.anio_inicio}-{store.ejercicio.anio_fin}</span>
+      {:else}
+        No hay ejercicio en curso. Activá uno en "Cooperadora".
+      {/if}
+    </p>
   </div>
 
-  {#if ejercicio}
-    {#if tab === 'comision'}
-      <section class="card">
-        <div class="rowHead">
-          <div class="tabs">
-            <button class:tabActive={organismo === 'CD'} onclick={() => { organismo = 'CD'; setWidgetOption('gobiernoOrganismo', 'CD'); loadComision() }}>Comisión Directiva</button>
-            <button class:tabActive={organismo === 'CRC'} onclick={() => { organismo = 'CRC'; setWidgetOption('gobiernoOrganismo', 'CRC'); loadComision() }}>Comisión Revisora de Cuentas</button>
-            <button class:tabActive={organismo === 'Federacion'} onclick={() => { organismo = 'Federacion'; setWidgetOption('gobiernoOrganismo', 'Federacion'); loadComision() }}>Federación</button>
-          </div>
-          <div class="actions">
-            <button class="btn secondary" onclick={initComision}>Inicializar comisión</button>
-            <button class="btn" onclick={saveComision}>Guardar comisión</button>
-          </div>
-        </div>
+  {#if store.ejercicio}
+    <Tabs.Root bind:value={store.tab}>
+      <Tabs.List class="mb-4">
+        <Tabs.Trigger value="comision">
+          <UsersIcon class="mr-1.5 inline size-4" />
+          Comisión
+        </Tabs.Trigger>
+        <Tabs.Trigger value="asambleas">
+          <GavelIcon class="mr-1.5 inline size-4" />
+          Asambleas
+        </Tabs.Trigger>
+      </Tabs.List>
 
-        {#if rows.length === 0}
-          <EmptyState title="No hay cargos activos" sub="Configurá cargos en “Cooperadora”." />
-        {:else}
-          <div class="gridTable">
-            <div class="thead">
-              <div>Cargo</div>
-              <div>Apellido y nombre</div>
-              <div>DNI</div>
-              <div>CUIL</div>
-              <div>Asunción</div>
-              <div>Vence</div>
-            </div>
-            {#each rows as r (r.cargoId)}
-              <div class="trow">
-                <div class="cargo">
-                  <div class="cargoName">{r.cargoNombre}</div>
-                  {#if r.cargoObligatorio}
-                    <div class="badge">Obligatorio</div>
-                  {/if}
-                </div>
-                <div>
-                  {#if r.persona_id}
-                    <input bind:value={r.apellido_nombre} placeholder="Apellido y nombre" />
-                    <button class="btn secondary small" onclick={() => unlinkPersona(r)}>Desvincular</button>
-                  {:else}
-                    <input bind:value={r.apellido_nombre} placeholder="Apellido y nombre" onfocus={() => searchTargetRow = r} />
-                    <input bind:value={personaSearch} oninput={() => doPersonaSearch(r)} placeholder="Buscar persona…" />
-                    {#if personaSearching && searchTargetRow === r}<span class="muted">Buscando…</span>{/if}
-                    {#if personaResults.length > 0 && searchTargetRow === r}
-                      <div class="personaResults">
-                        {#each personaResults as p (p.id)}
-                          <button class="personaResult" onclick={() => linkPersona(p)}>
-                            {personaLabel(p)} · DNI {p.dni || '-'}
-                          </button>
-                        {/each}
-                      </div>
-                    {/if}
-                  {/if}
-                </div>
-                <div><input bind:value={r.dni} placeholder="DNI" disabled={!!r.persona_id} /></div>
-                <div><input bind:value={r.cuil} placeholder="CUIL" disabled={!!r.persona_id} /></div>
-                <div><input type="date" bind:value={r.fecha_asuncion} /></div>
-                <div><input type="date" bind:value={r.fecha_vencimiento} /></div>
+      <!-- Tab: Comisión -->
+      <Tabs.Content value="comision">
+        <Card.Root>
+          <Card.Header>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <Tabs.Root bind:value={store.organismo}>
+                <Tabs.List>
+                  {#each ORGANISMOS as org}
+                    <Tabs.Trigger value={org}>{ORGANISMO_LABELS[org]}</Tabs.Trigger>
+                  {/each}
+                </Tabs.List>
+              </Tabs.Root>
+              <div class="flex gap-2">
+                <Button variant="outline" size="sm" onclick={handleInitComision}>Inicializar comisión</Button>
+                <Button size="sm" onclick={handleSaveComision}>Guardar comisión</Button>
               </div>
-            {/each}
-          </div>
-        {/if}
-      </section>
-    {:else}
-      <section class="card">
-        <div class="rowHead">
-          <h2>Asambleas</h2>
-          <div class="actions">
-            <button class="btn" onclick={newAsamblea}>Nueva asamblea</button>
-            <button class="btn secondary" onclick={loadAsambleas}>Recargar</button>
-          </div>
-        </div>
-
-        <div class="grid2">
-          <div class="list">
-            {#if asambleas.length === 0}
-              <EmptyState title="No hay asambleas" sub="Creá una asamblea para registrar actas y resoluciones." />
+            </div>
+          </Card.Header>
+          <Card.Content>
+            {#if store.rows.length === 0}
+              <p class="py-8 text-center text-sm text-muted-foreground">No hay cargos activos. Configurá cargos en "Cooperadora".</p>
             {:else}
-              {#each asambleas as a (a.id)}
-                <button class:selected={a.id === selectedAsambleaId} onclick={() => editAsamblea(a)}>
-                  <div class="name">{a.fecha || '(sin fecha)'} · {a.tipo_asamblea}</div>
-                  <div class="sub">Acta {a.acta_numero || '-'} · {a.socios_presentes_cantidad ?? '-'} presentes</div>
+              <div class="overflow-x-auto rounded-lg border border-border">
+                <Table.Root>
+                  <Table.Header>
+                    <Table.Row>
+                      <Table.Head>Cargo</Table.Head>
+                      <Table.Head>Apellido y nombre</Table.Head>
+                      <Table.Head class="w-[120px]">DNI</Table.Head>
+                      <Table.Head class="w-[140px]">CUIL</Table.Head>
+                      <Table.Head class="w-[140px]">Asunción</Table.Head>
+                      <Table.Head class="w-[140px]">Vence</Table.Head>
+                    </Table.Row>
+                  </Table.Header>
+                  <Table.Body>
+                    {#each store.rows as r (r.cargoId)}
+                      <Table.Row>
+                        <Table.Cell>
+                          <div class="text-sm font-bold">{r.cargoNombre}</div>
+                          {#if r.cargoObligatorio}
+                            <Badge variant="secondary" class="mt-1">Obligatorio</Badge>
+                          {/if}
+                        </Table.Cell>
+                        <Table.Cell>
+                          <div class="flex flex-col gap-1">
+                            <Input bind:value={r.apellido_nombre} placeholder="Apellido y nombre" disabled={!!r.persona_id} class="h-8 text-sm" />
+                            {#if r.persona_id}
+                              <Button variant="ghost" size="sm" class="h-7 self-start px-2 text-xs" onclick={() => store.unlinkPersona(r)}>
+                                <UnlinkIcon class="mr-1 size-3" />
+                                Desvincular
+                              </Button>
+                            {:else}
+                              <Input
+                                bind:value={store.personaSearch}
+                                oninput={() => store.doPersonaSearch(r)}
+                                placeholder="Buscar persona…"
+                                class="h-8 text-xs"
+                              />
+                              {#if store.personaSearching && store.searchTargetRow === r}
+                                <span class="text-xs text-muted-foreground">Buscando…</span>
+                              {/if}
+                              {#if store.personaResults.length > 0 && store.searchTargetRow === r}
+                                <div class="flex flex-col gap-1">
+                                  {#each store.personaResults as p (p.id)}
+                                    <button
+                                      class="flex items-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-left text-xs transition-colors hover:bg-primary/10"
+                                      onclick={() => store.linkPersona(p)}
+                                    >
+                                      <LinkIcon class="size-3 shrink-0 text-primary" />
+                                      {personaLabel(p)} · DNI {p.dni || '-'}
+                                    </button>
+                                  {/each}
+                                </div>
+                              {/if}
+                            {/if}
+                          </div>
+                        </Table.Cell>
+                        <Table.Cell><Input bind:value={r.dni} placeholder="DNI" disabled={!!r.persona_id} class="h-8 text-sm" /></Table.Cell>
+                        <Table.Cell><Input bind:value={r.cuil} placeholder="CUIL" disabled={!!r.persona_id} class="h-8 text-sm" /></Table.Cell>
+                        <Table.Cell><Input type="date" bind:value={r.fecha_asuncion} class="h-8 text-sm" /></Table.Cell>
+                        <Table.Cell><Input type="date" bind:value={r.fecha_vencimiento} class="h-8 text-sm" /></Table.Cell>
+                      </Table.Row>
+                    {/each}
+                  </Table.Body>
+                </Table.Root>
+              </div>
+            {/if}
+          </Card.Content>
+        </Card.Root>
+      </Tabs.Content>
+
+      <!-- Tab: Asambleas -->
+      <Tabs.Content value="asambleas">
+        <div class="grid gap-4" style="grid-template-columns: minmax(280px, 360px) 1fr">
+          <!-- Lista de asambleas -->
+          <div class="max-h-[calc(100vh-200px)] overflow-y-auto rounded-lg border border-border bg-card">
+            {#if store.asambleas.length === 0}
+              <div class="p-6 text-center text-sm text-muted-foreground">No hay asambleas</div>
+            {:else}
+              {#each store.asambleas as a (a.id)}
+                <button
+                  class="w-full border-b border-border px-4 py-3 text-left transition-colors hover:bg-accent {a.id === store.selectedAsambleaId ? 'bg-primary/10' : ''}"
+                  onclick={() => store.editAsamblea(a)}
+                >
+                  <div class="text-sm font-semibold">{a.fecha || '(sin fecha)'} · {a.tipo_asamblea}</div>
+                  <div class="text-xs text-muted-foreground">Acta {a.acta_numero || '-'} · {a.socios_presentes_cantidad ?? '-'} presentes</div>
                 </button>
               {/each}
             {/if}
           </div>
 
-          <div class="editor">
-            {#if asambleaForm}
-              <h2>{asambleaForm.id ? 'Editar asamblea' : 'Nueva asamblea'}</h2>
-              <div class="form">
-                <div class="row">
-                  <label>Fecha<input type="date" bind:value={asambleaForm.fecha} /></label>
-                </div>
-                <div class="row">
-                  <label>Tipo<select bind:value={asambleaForm.tipo_asamblea}>
-                    <option value="AnualOrdinaria">Anual ordinaria</option>
-                    <option value="Extraordinaria">Extraordinaria</option>
-                  </select></label>
-                </div>
-                <div class="row">
-                  <label>Acta N°<input bind:value={asambleaForm.acta_numero} /></label>
-                </div>
-                <div class="row">
-                  <label>Fojas<input bind:value={asambleaForm.acta_fojas} /></label>
-                </div>
-                <div class="row">
-                  <label>Presentes<input type="number" bind:value={asambleaForm.socios_presentes_cantidad} /></label>
-                </div>
-                <div class="row">
-                  <label>Cuota social ($)<input type="number" bind:value={asambleaForm.cuota_social_importe} /></label>
-                </div>
-                <div class="row">
-                  <label>Cuota modalidad<select bind:value={asambleaForm.cuota_social_modalidad}>
-                    <option value="Mensual">Mensual</option>
-                    <option value="Anual">Anual</option>
-                  </select></label>
-                </div>
-                <div class="row span2">
-                  <label>Caja chica ($)<input type="number" bind:value={asambleaForm.caja_chica_importe} /></label>
-                </div>
-                {#each resoluciones as res, idx}
-                  <div class="row span2 resolucion-row">
-                    <label>Punto {idx + 1}<textarea bind:value={res.texto}></textarea></label>
-                    <button class="btn secondary small" onclick={() => removeResolucion(idx)}>Quitar</button>
+          <!-- Editor de asamblea -->
+          <div>
+            <div class="mb-3 flex gap-2">
+              <Button size="sm" onclick={store.newAsamblea}>
+                <PlusIcon data-icon="inline-start" />
+                Nueva asamblea
+              </Button>
+              <Button variant="outline" size="sm" onclick={store.loadAsambleas}>
+                <RefreshIcon data-icon="inline-start" />
+                Recargar
+              </Button>
+            </div>
+
+            {#if store.asambleaForm}
+              <Card.Root>
+                <Card.Header>
+                  <Card.Title class="text-base">
+                    {store.asambleaForm.id ? 'Editar asamblea' : 'Nueva asamblea'}
+                  </Card.Title>
+                </Card.Header>
+                <Card.Content class="flex flex-col gap-4">
+                  <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label for="as-fecha">Fecha</Label>
+                      <Input id="as-fecha" type="date" bind:value={store.asambleaForm.fecha} class="mt-1" />
+                    </div>
+                    <div>
+                      <Label for="as-tipo">Tipo</Label>
+                      <select id="as-tipo" bind:value={store.asambleaForm.tipo_asamblea} class="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+                        <option value="AnualOrdinaria">Anual ordinaria</option>
+                        <option value="Extraordinaria">Extraordinaria</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label for="as-acta">Acta N°</Label>
+                      <Input id="as-acta" bind:value={store.asambleaForm.acta_numero} class="mt-1" />
+                    </div>
+                    <div>
+                      <Label for="as-fojas">Fojas</Label>
+                      <Input id="as-fojas" bind:value={store.asambleaForm.acta_fojas} class="mt-1" />
+                    </div>
+                    <div>
+                      <Label for="as-presentes">Presentes</Label>
+                      <Input id="as-presentes" type="number" bind:value={store.asambleaForm.socios_presentes_cantidad} class="mt-1" />
+                    </div>
+                    <div>
+                      <Label for="as-cuota">Cuota social ($)</Label>
+                      <Input id="as-cuota" type="number" bind:value={store.asambleaForm.cuota_social_importe} class="mt-1" />
+                    </div>
+                    <div>
+                      <Label for="as-modalidad">Cuota modalidad</Label>
+                      <select id="as-modalidad" bind:value={store.asambleaForm.cuota_social_modalidad} class="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+                        <option value="Mensual">Mensual</option>
+                        <option value="Anual">Anual</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label for="as-caja">Caja chica ($)</Label>
+                      <Input id="as-caja" type="number" bind:value={store.asambleaForm.caja_chica_importe} class="mt-1" />
+                    </div>
                   </div>
-                {/each}
-                <div class="row">
-                  <button class="btn secondary" onclick={addResolucion}>+ Agregar resolución</button>
-                </div>
-              </div>
-              <div class="actions">
-                <button class="btn" onclick={saveAsamblea}>Guardar</button>
-              </div>
+
+                  <Separator />
+
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                      <span class="text-sm font-semibold">Resoluciones</span>
+                      <Button variant="outline" size="sm" onclick={store.addResolucion}>
+                        <PlusIcon data-icon="inline-start" />
+                        Agregar
+                      </Button>
+                    </div>
+                    {#each store.resoluciones as res, idx}
+                      <div class="flex items-start gap-2">
+                        <div class="flex-1">
+                          <Label class="text-xs text-muted-foreground">Punto {idx + 1}</Label>
+                          <Textarea bind:value={res.texto} placeholder="Texto de la resolución…" class="mt-1" />
+                        </div>
+                        <Button variant="ghost" size="sm" class="mt-5" onclick={() => store.removeResolucion(idx)}>
+                          <TrashIcon class="size-4" />
+                        </Button>
+                      </div>
+                    {/each}
+                  </div>
+
+                  <div class="flex justify-end">
+                    <Button onclick={handleSaveAsamblea}>Guardar</Button>
+                  </div>
+                </Card.Content>
+              </Card.Root>
             {:else}
-              <div class="muted">Seleccioná una asamblea o creá una nueva.</div>
+              <p class="text-sm text-muted-foreground">Seleccioná una asamblea o creá una nueva.</p>
             {/if}
           </div>
         </div>
-      </section>
-    {/if}
+      </Tabs.Content>
+    </Tabs.Root>
   {/if}
 
-  <MessageBanner {error} {notice} />
+  {#if store.error}
+    <Alert variant="destructive" class="mt-4">
+      <AlertDescription>{store.error}</AlertDescription>
+    </Alert>
+  {/if}
 {/if}
-
-<style>
-  h1 {
-    margin: 0 0 10px 0;
-    font-size: 18px;
-  }
-  h2 {
-    margin: 0;
-    font-size: 16px;
-  }
-  .head {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-  .gridTable {
-    border: 1px solid rgba(128, 128, 128, 0.22);
-    border-radius: 12px;
-    overflow-x: auto;
-    background: rgba(128, 128, 128, 0.03);
-  }
-  .thead,
-  .trow {
-    display: grid;
-    grid-template-columns: minmax(220px, 1fr) minmax(220px, 1.2fr) 120px 160px 140px 140px;
-    gap: 8px;
-    align-items: center;
-    padding: 10px;
-    min-width: 980px;
-  }
-  .thead {
-    background: rgba(128, 128, 128, 0.12);
-    font-size: 12px;
-    font-weight: 900;
-  }
-  .trow {
-    border-top: 1px solid rgba(128, 128, 128, 0.18);
-  }
-  .cargoName {
-    font-weight: 900;
-    font-size: 13px;
-  }
-  .badge {
-    display: inline-block;
-    margin-top: 4px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    border: 1px solid rgba(22, 179, 120, 0.35);
-    background: rgba(22, 179, 120, 0.12);
-    font-size: 12px;
-    font-weight: 900;
-    width: fit-content;
-  }
-  .form {
-    margin-top: 10px;
-  }
-  .resolucion-row {
-    display: flex;
-    align-items: flex-end;
-    gap: 8px;
-  }
-  .resolucion-row label {
-    flex: 1;
-  }
-  .personaResults {
-    margin-top: 4px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .personaResult {
-    text-align: left;
-    border: 1px solid rgba(128, 128, 128, 0.2);
-    border-radius: 8px;
-    padding: 6px 8px;
-    cursor: pointer;
-    background: transparent;
-    color: inherit;
-    font-size: 12px;
-  }
-  .personaResult:hover {
-    background: rgba(22, 179, 120, 0.1);
-  }
-</style>
