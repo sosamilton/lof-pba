@@ -46,6 +46,10 @@ export const TIPOS_MOVIMIENTO = ['Entrada', 'Salida', 'Traspaso']
 
 export const TIPOS_SOCIO = ['Activo', 'Honorario', 'Adherente']
 
+export const MOTIVOS_BAJA = ['Renuncia', 'Falta de pago', 'Fallecimiento', 'CambioEscuela', 'Otro']
+
+export const CATEGORIAS_VINCULO = ['Socio', 'Docente', 'Directivo', 'Proveedor', 'Donante']
+
 export const NIVELES_CARGO = ['Titular', 'Suplente']
 
 export const TIPOS_ASAMBLEA = ['AnualOrdinaria', 'Extraordinaria']
@@ -99,7 +103,7 @@ export const MODULES = {
   tesoreria: {
     label: 'Tesorería',
     description: 'Movimientos, cuentas y cierres mensuales',
-    tables: ['movimientos', 'cuentas', 'rubros_pia', 'subrubros', 'cierres_mensuales'],
+    tables: ['movimientos', 'cuentas', 'rubros_pia', 'subrubros', 'cierres_mensuales', 'socios', 'ejercicios'],
     menuItems: [
       { route: 'movimientos', label: 'Movimientos' }
     ]

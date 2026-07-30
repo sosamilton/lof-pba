@@ -1,32 +1,36 @@
 <script>
   import { onMount } from 'svelte'
   import { personasStore as store } from './personasStore.svelte'
-  import { normalize } from '$core/utils'
+  import { normalize, CATEGORIAS_VINCULO } from '$core/utils'
   import { personaLabel } from '$core/personas'
   import { notify } from '$core/notify.svelte'
   import { Button } from '$lib/components/ui/button'
   import * as Card from '$lib/components/ui/card'
   import { Badge } from '$lib/components/ui/badge'
   import { Input } from '$lib/components/ui/input'
-  import { Label } from '$lib/components/ui/label'
   import { Separator } from '$lib/components/ui/separator'
   import * as Select from '$lib/components/ui/select'
   import { Skeleton } from '$lib/components/ui/skeleton'
-  import FormField from '$lib/components/FormField.svelte'
+  import * as Field from '$lib/components/ui/field'
+  import Combobox from '$lib/components/Combobox.svelte'
   import EmptyState from '$lib/components/EmptyState.svelte'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
   import UserPlusIcon from '@lucide/svelte/icons/user-plus'
   import SearchIcon from '@lucide/svelte/icons/search'
   import UsersIcon from '@lucide/svelte/icons/users'
   import BuildingIcon from '@lucide/svelte/icons/building-2'
+  import localidadesBA from '$core/data/localidades-buenos-aires.json'
 
   let q = $state('')
   let tipoFilter = $state('')
 
-  const isJuridica = (p) => p.tipo_persona === 'Juridica'
+  // Items para el Combobox de localidades (884 localidades de PBA)
+  const localidadesItems = localidadesBA.map((nombre) => ({ value: nombre, label: nombre }))
 
-  const isDniQuery = (str) => /^\d+$/.test(str.trim())
-  const buildPrefill = (str) => {
+  const isJuridica = (/** @type {any} */ p) => p.tipo_persona === 'Juridica'
+
+  const isDniQuery = (/** @type {string} */ str) => /^\d+$/.test(str.trim())
+  const buildPrefill = (/** @type {string} */ str) => {
     const trimmed = str.trim()
     if (!trimmed) return {}
     if (isDniQuery(trimmed)) return { dni: trimmed }
@@ -37,16 +41,16 @@
 
   let filtered = $derived(
     store.records
-      .filter((p) => (tipoFilter ? (p.tipo_persona || 'Fisica') === tipoFilter : true))
-      .filter((p) => {
+      .filter((/** @type {any} */ p) => (tipoFilter ? (p.tipo_persona || 'Fisica') === tipoFilter : true))
+      .filter((/** @type {any} */ p) => {
         const t = normalize(q)
         if (!t) return true
         const hay = [p.dni, p.cuil, p.apellido, p.nombre, p.razon_social, p.email, p.telefono, p.localidad]
-          .map((v) => normalize(v))
+          .map((/** @type {any} */ v) => normalize(v))
           .join(' ')
         return hay.includes(t)
       })
-      .sort((a, b) => {
+      .sort((/** @type {any} */ a, /** @type {any} */ b) => {
         const la = normalize(personaLabel(a))
         const lb = normalize(personaLabel(b))
         return la.localeCompare(lb)
@@ -151,9 +155,9 @@
             <Separator />
 
             <!-- Form -->
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div class="sm:col-span-2">
-                <Label for="tipo_persona">Tipo de persona</Label>
+            <Field.FieldGroup class="grid gap-4 sm:grid-cols-2">
+              <Field.Field class="sm:col-span-2">
+                <Field.FieldLabel for="tipo_persona">Tipo de persona</Field.FieldLabel>
                 <Select.Root type="single" bind:value={store.form.tipo_persona}>
                   <Select.Trigger id="tipo_persona" class="mt-1 w-full">
                     <Select.Value placeholder="Elegir…" />
@@ -163,25 +167,77 @@
                     <Select.Item value="Juridica">Jurídica</Select.Item>
                   </Select.Content>
                 </Select.Root>
-              </div>
+              </Field.Field>
+
+              <Field.Field class="sm:col-span-2">
+                <Field.FieldLabel for="categoria">Categoría / vínculo</Field.FieldLabel>
+                <Select.Root type="single" bind:value={store.form.categoria} allowDeselect={true}>
+                  <Select.Trigger id="categoria" class="mt-1 w-full">
+                    <Select.Value placeholder="Elegir…" />
+                  </Select.Trigger>
+                  <Select.Content>
+                    {#each CATEGORIAS_VINCULO as cat}
+                      <Select.Item value={cat}>{cat}</Select.Item>
+                    {/each}
+                  </Select.Content>
+                </Select.Root>
+              </Field.Field>
 
               {#if store.form.tipo_persona === 'Juridica'}
-                <div class="sm:col-span-2">
-                  <FormField label="Razón social" id="razon_social" bind:value={store.form.razon_social} />
-                </div>
-                <FormField label="CUIT" id="cuil" bind:value={store.form.cuil} oninput={store.onCuilInput} />
+                <Field.Field class="sm:col-span-2">
+                  <Field.FieldLabel for="razon_social">Razón social</Field.FieldLabel>
+                  <Input id="razon_social" bind:value={store.form.razon_social} />
+                </Field.Field>
+                <Field.Field data-invalid={Boolean(store.cuilWarning)}>
+                  <Field.FieldLabel for="cuil">CUIT</Field.FieldLabel>
+                  <Input id="cuil" bind:value={store.form.cuil} oninput={store.onCuilInput} aria-invalid={Boolean(store.cuilWarning)} placeholder="20-12345678-9" />
+                  {#if store.cuilWarning}<Field.FieldError>{store.cuilWarning}</Field.FieldError>{/if}
+                </Field.Field>
               {:else}
-                <FormField label="DNI" id="dni" bind:value={store.form.dni} oninput={store.onDniInput} error={store.dniWarning} />
-                <FormField label="CUIL" id="cuil" bind:value={store.form.cuil} oninput={store.onCuilInput} />
-                <FormField label="Apellido" id="apellido" bind:value={store.form.apellido} />
-                <FormField label="Nombre" id="nombre" bind:value={store.form.nombre} />
+                <Field.Field data-invalid={Boolean(store.dniWarning)}>
+                  <Field.FieldLabel for="dni">DNI</Field.FieldLabel>
+                  <Input id="dni" bind:value={store.form.dni} oninput={store.onDniInput} aria-invalid={Boolean(store.dniWarning)} placeholder="12.345.678" inputmode="numeric" />
+                  {#if store.dniWarning}<Field.FieldError>{store.dniWarning}</Field.FieldError>{/if}
+                </Field.Field>
+                <Field.Field data-invalid={Boolean(store.cuilWarning)}>
+                  <Field.FieldLabel for="cuil">CUIL</Field.FieldLabel>
+                  <Input id="cuil" bind:value={store.form.cuil} oninput={store.onCuilInput} aria-invalid={Boolean(store.cuilWarning)} placeholder="20-12345678-9" inputmode="numeric" />
+                  {#if store.cuilWarning}<Field.FieldError>{store.cuilWarning}</Field.FieldError>{/if}
+                </Field.Field>
+                <Field.Field>
+                  <Field.FieldLabel for="apellido">Apellido</Field.FieldLabel>
+                  <Input id="apellido" bind:value={store.form.apellido} />
+                </Field.Field>
+                <Field.Field>
+                  <Field.FieldLabel for="nombre">Nombre</Field.FieldLabel>
+                  <Input id="nombre" bind:value={store.form.nombre} />
+                </Field.Field>
               {/if}
 
-              <FormField label="Domicilio" id="domicilio" bind:value={store.form.domicilio} />
-              <FormField label="Localidad" id="localidad" bind:value={store.form.localidad} />
-              <FormField label="Teléfono" id="telefono" bind:value={store.form.telefono} />
-              <FormField label="Email" id="email" type="email" bind:value={store.form.email} />
-            </div>
+              <Field.Field>
+                <Field.FieldLabel for="domicilio">Domicilio</Field.FieldLabel>
+                <Input id="domicilio" bind:value={store.form.domicilio} />
+              </Field.Field>
+              <Field.Field>
+                <Field.FieldLabel for="localidad">Localidad</Field.FieldLabel>
+                <Combobox
+                  bind:value={store.form.localidad}
+                  items={localidadesItems}
+                  placeholder="Elegir localidad…"
+                  searchPlaceholder="Buscar localidad de PBA…"
+                />
+              </Field.Field>
+              <Field.Field data-invalid={Boolean(store.telefonoWarning)}>
+                <Field.FieldLabel for="telefono">Teléfono</Field.FieldLabel>
+                <Input id="telefono" bind:value={store.form.telefono} oninput={store.onTelefonoInput} aria-invalid={Boolean(store.telefonoWarning)} placeholder="+54 9 11 1234-5678" inputmode="tel" />
+                {#if store.telefonoWarning}<Field.FieldError>{store.telefonoWarning}</Field.FieldError>{/if}
+              </Field.Field>
+              <Field.Field data-invalid={Boolean(store.emailWarning)}>
+                <Field.FieldLabel for="email">Email</Field.FieldLabel>
+                <Input id="email" type="email" bind:value={store.form.email} oninput={store.onEmailInput} aria-invalid={Boolean(store.emailWarning)} placeholder="nombre@ejemplo.com" inputmode="email" />
+                {#if store.emailWarning}<Field.FieldError>{store.emailWarning}</Field.FieldError>{/if}
+              </Field.Field>
+            </Field.FieldGroup>
 
             <div class="flex gap-2">
               <Button onclick={handleSave}>Guardar</Button>
