@@ -1,7 +1,8 @@
-import { createGristStore } from './gristStore.svelte.js'
-import { fetchRecords, resolveTableId, gristReady } from '../grist.js'
-import { dateToInput } from '../utils.js'
-import { findOrCreatePersona, searchPersonas, isValidDni, normalizeDni, normalizeCuil } from '../personas.js'
+import { createGristStore, extendStore } from '$core/stores/gristStore.svelte.js'
+import { fetchRecords, resolveTableId, gristReady } from '$core/grist.js'
+import { dateToInput } from '$core/utils.js'
+import { findOrCreatePersona, findPersonaByDni, isValidDni, normalizeDni, normalizeCuil } from '$core/personas.js'
+import { usePersonaSearch } from '$core/usePersonaSearch.svelte.js'
 
 const base = createGristStore({
   tableKey: 'socios',
@@ -23,12 +24,9 @@ let selected = $state(null)
 let form = $state(null)
 let showBaja = $state(false)
 let listOpen = $state(true)
-let personaSearch = $state('')
-let personaResults = $state([])
-let personaSearching = $state(false)
+const ps = usePersonaSearch()
 let linkedPersona = $state(null)
 let dniWarning = $state('')
-let _searchTimer = null
 
 const select = (s) => {
   selected = s
@@ -36,8 +34,7 @@ const select = (s) => {
   listOpen = true
   linkedPersona = null
   dniWarning = ''
-  personaSearch = ''
-  personaResults = []
+  ps.reset()
   form = {
     id: s.id,
     persona_id: s.persona_id || null,
@@ -56,20 +53,18 @@ const select = (s) => {
   }
 }
 
-const nuevo = () => {
+const nuevo = (prefill = {}) => {
   selected = null
   showBaja = false
-  listOpen = false
   linkedPersona = null
-  personaSearch = ''
-  personaResults = []
+  ps.reset()
   dniWarning = ''
   form = {
     persona_id: null,
-    dni: '',
+    dni: prefill.dni || '',
     cuil: '',
-    apellido: '',
-    nombre: '',
+    apellido: prefill.apellido || '',
+    nombre: prefill.nombre || '',
     domicilio: '',
     localidad: '',
     telefono: '',
@@ -79,25 +74,12 @@ const nuevo = () => {
     fecha_baja: '',
     motivo_baja: '',
   }
-}
-
-const doPersonaSearch = () => {
-  clearTimeout(_searchTimer)
-  if (!personaSearch || personaSearch.length < 2) {
-    personaResults = []
-    return
-  }
-  _searchTimer = setTimeout(async () => {
-    personaSearching = true
-    try {
-      personaResults = await searchPersonas(personaSearch)
-    } catch (e) {
-      base.setError(e?.message || String(e))
-      personaResults = []
-    } finally {
-      personaSearching = false
+  if (prefill.dni) {
+    const d = normalizeDni(prefill.dni)
+    if (d && !isValidDni(d)) {
+      dniWarning = 'DNI inválido (debe tener 7 u 8 dígitos)'
     }
-  }, 300)
+  }
 }
 
 const selectPersona = (p) => {
@@ -105,8 +87,7 @@ const selectPersona = (p) => {
   const hasLegacy = legacyFields.some((f) => form[f] && form[f] !== p[f])
   if (hasLegacy && !confirm('Al vincular esta persona se reemplazarán los datos existentes del socio. ¿Continuar?')) return
   linkedPersona = p
-  personaResults = []
-  personaSearch = ''
+  ps.reset()
   dniWarning = ''
   form.persona_id = p.id
   form.dni = p.dni || form.dni
@@ -119,6 +100,15 @@ const selectPersona = (p) => {
   form.email = p.email || form.email
 }
 
+const cancelar = () => {
+  form = null
+  selected = null
+  listOpen = true
+  linkedPersona = null
+  ps.reset()
+  dniWarning = ''
+}
+
 const unlinkPersona = () => {
   linkedPersona = null
   form.persona_id = null
@@ -129,14 +119,38 @@ const onDniInput = () => {
   form.dni = d
   if (d && !isValidDni(d)) {
     dniWarning = 'DNI inválido (debe tener 7 u 8 dígitos)'
-  } else {
-    dniWarning = ''
+    return
   }
+  if (!d || form.id) {
+    dniWarning = ''
+    linkedPersona = null
+    form.persona_id = null
+    return
+  }
+  dniWarning = 'Verificando DNI…'
+  findPersonaByDni(d).then((existing) => {
+    if (existing) {
+      linkedPersona = existing
+      form.persona_id = existing.id
+      form.cuil = existing.cuil || form.cuil
+      form.apellido = existing.apellido || form.apellido
+      form.nombre = existing.nombre || form.nombre
+      form.domicilio = existing.domicilio || form.domicilio
+      form.localidad = existing.localidad || form.localidad
+      form.telefono = existing.telefono || form.telefono
+      form.email = existing.email || form.email
+      dniWarning = `Persona cargada: ${existing.apellido || ''}, ${existing.nombre || ''}`
+    } else {
+      linkedPersona = null
+      form.persona_id = null
+      dniWarning = ''
+    }
+  })
 }
 
 const saveSocio = async () => {
   base.clearMessages()
-  if (dniWarning) {
+  if (dniWarning && dniWarning !== 'Verificando DNI…') {
     base.setError('Corregí el DNI antes de guardar.')
     return null
   }
@@ -187,6 +201,7 @@ const saveSocio = async () => {
       if (updated) select(updated)
     } else {
       form = null
+      listOpen = true
     }
     return result
   } catch (e) {
@@ -195,24 +210,25 @@ const saveSocio = async () => {
   }
 }
 
-export const sociosStore = {
-  ...base,
+export const sociosStore = extendStore(base, {
   get selected() { return selected },
   get form() { return form },
   get showBaja() { return showBaja },
   get listOpen() { return listOpen },
-  get personaSearch() { return personaSearch },
-  get personaResults() { return personaResults },
-  get personaSearching() { return personaSearching },
+  get personaSearch() { return ps.query },
+  set personaSearch(v) { ps.query = v },
+  get personaResults() { return ps.results },
+  get personaSearching() { return ps.searching },
   get linkedPersona() { return linkedPersona },
   get dniWarning() { return dniWarning },
-  setPersonaSearch: (v) => { personaSearch = v },
+  setPersonaSearch: (v) => { ps.query = v },
   setListOpen: (v) => { listOpen = v },
   select,
   nuevo,
-  doPersonaSearch,
+  cancelar,
+  doPersonaSearch: ps.search,
   selectPersona,
   unlinkPersona,
   onDniInput,
   saveSocio,
-}
+})
