@@ -1,17 +1,18 @@
 <script>
   import { onMount } from 'svelte'
   import { sociosStore as store } from './sociosStore.svelte'
-  import { normalize, TIPOS_SOCIO } from '$core/utils'
+  import { normalize, TIPOS_SOCIO, MOTIVOS_BAJA } from '$core/utils'
   import { personaLabel } from '$core/personas'
   import { notify } from '$core/notify.svelte'
   import { Button } from '$lib/components/ui/button'
   import * as Card from '$lib/components/ui/card'
   import { Badge } from '$lib/components/ui/badge'
   import { Input } from '$lib/components/ui/input'
-  import { Label } from '$lib/components/ui/label'
   import { Separator } from '$lib/components/ui/separator'
   import * as Select from '$lib/components/ui/select'
-  import FormField from '$lib/components/FormField.svelte'
+  import * as Field from '$lib/components/ui/field'
+  import * as Alert from '$lib/components/ui/alert'
+  import Combobox from '$lib/components/Combobox.svelte'
   import EmptyState from '$lib/components/EmptyState.svelte'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
   import { Skeleton } from '$lib/components/ui/skeleton'
@@ -19,15 +20,18 @@
   import SearchIcon from '@lucide/svelte/icons/search'
   import LinkIcon from '@lucide/svelte/icons/link'
   import UsersIcon from '@lucide/svelte/icons/users'
+  import localidadesBA from '$core/data/localidades-buenos-aires.json'
 
   let q = $state('')
   let estado = $state('activos')
   let tipo = $state('')
 
-  const isActivo = (s) => !s.fecha_baja
+  const localidadesItems = localidadesBA.map((nombre) => ({ value: nombre, label: nombre }))
 
-  const isDniQuery = (str) => /^\d+$/.test(str.trim())
-  const buildPrefill = (str) => {
+  const isActivo = (/** @type {any} */ s) => !s.fecha_baja
+
+  const isDniQuery = (/** @type {string} */ str) => /^\d+$/.test(str.trim())
+  const buildPrefill = (/** @type {string} */ str) => {
     const trimmed = str.trim()
     if (!trimmed) return {}
     if (isDniQuery(trimmed)) return { dni: trimmed }
@@ -38,21 +42,21 @@
 
   let filtered = $derived(
     store.records
-      .filter((s) => {
+      .filter((/** @type {any} */ s) => {
         if (estado === 'activos') return isActivo(s)
         if (estado === 'bajas') return !isActivo(s)
         return true
       })
-      .filter((s) => (tipo ? String(s.tipo_socio || '') === tipo : true))
-      .filter((s) => {
+      .filter((/** @type {any} */ s) => (tipo ? String(s.tipo_socio || '') === tipo : true))
+      .filter((/** @type {any} */ s) => {
         const t = normalize(q)
         if (!t) return true
         const hay = [s.apellido, s.nombre, s.dni, s.cuil, s.email, s.telefono, s.localidad, s.domicilio]
-          .map((v) => normalize(v))
+          .map((/** @type {any} */ v) => normalize(v))
           .join(' ')
         return hay.includes(t)
       })
-      .sort((a, b) => normalize(a.apellido).localeCompare(normalize(b.apellido)) || normalize(a.nombre).localeCompare(normalize(b.nombre)))
+      .sort((/** @type {any} */ a, /** @type {any} */ b) => normalize(a.apellido).localeCompare(normalize(b.apellido)) || normalize(a.nombre).localeCompare(normalize(b.nombre)))
   )
 
   const handleSave = async () => {
@@ -156,7 +160,10 @@
             <!-- Toolbar -->
             <div class="flex flex-wrap justify-end gap-2">
               {#if store.form.id}
-                <Button variant="outline" size="sm" onclick={() => { store.showBaja = !store.showBaja }}>
+                {#if store.form.fecha_baja}
+                  <Button variant="outline" size="sm" onclick={store.reactivar}>Reactivar socio</Button>
+                {/if}
+                <Button variant="outline" size="sm" onclick={store.toggleBaja}>
                   {store.showBaja ? 'Ocultar baja' : 'Dar de baja'}
                 </Button>
               {:else}
@@ -167,13 +174,27 @@
             <Separator />
 
             <!-- Form -->
-            <div class="grid gap-4 sm:grid-cols-2">
-              <FormField label="DNI" id="dni" bind:value={store.form.dni} oninput={store.onDniInput} error={store.dniWarning} />
-              <FormField label="CUIL" id="cuil" bind:value={store.form.cuil} />
-              <FormField label="Apellido" id="apellido" bind:value={store.form.apellido} />
-              <FormField label="Nombre" id="nombre" bind:value={store.form.nombre} />
-              <div>
-                <Label for="tipo">Tipo</Label>
+            <Field.FieldGroup class="grid gap-4 sm:grid-cols-2">
+              <Field.Field data-invalid={Boolean(store.dniWarning)}>
+                <Field.FieldLabel for="dni">DNI</Field.FieldLabel>
+                <Input id="dni" bind:value={store.form.dni} oninput={store.onDniInput} aria-invalid={Boolean(store.dniWarning)} placeholder="12.345.678" inputmode="numeric" />
+                {#if store.dniWarning}<Field.FieldError>{store.dniWarning}</Field.FieldError>{/if}
+              </Field.Field>
+              <Field.Field data-invalid={Boolean(store.cuilWarning)}>
+                <Field.FieldLabel for="cuil">CUIL</Field.FieldLabel>
+                <Input id="cuil" bind:value={store.form.cuil} oninput={store.onCuilInput} aria-invalid={Boolean(store.cuilWarning)} placeholder="20-12345678-9" inputmode="numeric" />
+                {#if store.cuilWarning}<Field.FieldError>{store.cuilWarning}</Field.FieldError>{/if}
+              </Field.Field>
+              <Field.Field>
+                <Field.FieldLabel for="apellido">Apellido</Field.FieldLabel>
+                <Input id="apellido" bind:value={store.form.apellido} />
+              </Field.Field>
+              <Field.Field>
+                <Field.FieldLabel for="nombre">Nombre</Field.FieldLabel>
+                <Input id="nombre" bind:value={store.form.nombre} />
+              </Field.Field>
+              <Field.Field>
+                <Field.FieldLabel for="tipo">Tipo</Field.FieldLabel>
                 <Select.Root type="single" bind:value={store.form.tipo_socio}>
                   <Select.Trigger id="tipo" class="mt-1 w-full">
                     <Select.Value placeholder="Elegir…" />
@@ -184,17 +205,76 @@
                     {/each}
                   </Select.Content>
                 </Select.Root>
-              </div>
-              <FormField label="Fecha alta" id="fecha-alta" type="date" bind:value={store.form.fecha_alta} />
-              <FormField label="Domicilio" id="domicilio" bind:value={store.form.domicilio} />
-              <FormField label="Localidad" id="localidad" bind:value={store.form.localidad} />
-              <FormField label="Teléfono" id="telefono" bind:value={store.form.telefono} />
-              <FormField label="Email" id="email" type="email" bind:value={store.form.email} />
-              {#if store.form.id && store.showBaja}
-                <FormField label="Fecha baja" id="fecha-baja" type="date" bind:value={store.form.fecha_baja} />
-                <FormField label="Motivo baja" id="motivo-baja" bind:value={store.form.motivo_baja} disabled={!store.form.fecha_baja} />
+              </Field.Field>
+              <Field.Field>
+                <Field.FieldLabel for="fecha-alta">Fecha alta</Field.FieldLabel>
+                <Input id="fecha-alta" type="date" bind:value={store.form.fecha_alta} />
+              </Field.Field>
+              <Field.Field>
+                <Field.FieldLabel for="domicilio">Domicilio</Field.FieldLabel>
+                <Input id="domicilio" bind:value={store.form.domicilio} />
+              </Field.Field>
+              <Field.Field>
+                <Field.FieldLabel for="localidad">Localidad</Field.FieldLabel>
+                <Combobox
+                  bind:value={store.form.localidad}
+                  items={localidadesItems}
+                  placeholder="Elegir localidad…"
+                  searchPlaceholder="Buscar localidad de PBA…"
+                />
+              </Field.Field>
+              <Field.Field data-invalid={Boolean(store.telefonoWarning)}>
+                <Field.FieldLabel for="telefono">Teléfono</Field.FieldLabel>
+                <Input id="telefono" bind:value={store.form.telefono} oninput={store.onTelefonoInput} aria-invalid={Boolean(store.telefonoWarning)} placeholder="+54 9 11 1234-5678" inputmode="tel" />
+                {#if store.telefonoWarning}<Field.FieldError>{store.telefonoWarning}</Field.FieldError>{/if}
+              </Field.Field>
+              <Field.Field data-invalid={Boolean(store.emailWarning)}>
+                <Field.FieldLabel for="email">Email</Field.FieldLabel>
+                <Input id="email" type="email" bind:value={store.form.email} oninput={store.onEmailInput} aria-invalid={Boolean(store.emailWarning)} placeholder="nombre@ejemplo.com" inputmode="email" />
+                {#if store.emailWarning}<Field.FieldError>{store.emailWarning}</Field.FieldError>{/if}
+              </Field.Field>
+              {#if store.form.id && store.form.fecha_baja && !store.showBaja}
+                <Field.Field class="sm:col-span-2">
+                  <Alert.Root variant="destructive">
+                    <Alert.Title>Socio dado de baja</Alert.Title>
+                    <Alert.Description>
+                      Fecha de baja: {store.form.fecha_baja}{#if store.form.motivo_baja} · Motivo: {store.form.motivo_baja === 'CambioEscuela' ? 'Cambio de escuela' : store.form.motivo_baja}{/if}
+                      <br />
+                      <Button variant="outline" size="sm" class="mt-2" onclick={store.toggleBaja}>Editar baja</Button>
+                      <Button variant="outline" size="sm" class="mt-2 ml-2" onclick={store.reactivar}>Reactivar socio</Button>
+                    </Alert.Description>
+                  </Alert.Root>
+                </Field.Field>
               {/if}
-            </div>
+            </Field.FieldGroup>
+
+            {#if store.form.id && store.showBaja}
+              <Alert.Root variant="destructive">
+                <Alert.Title>Dar de baja al socio</Alert.Title>
+                <Alert.Description>
+                  Completá los datos de la baja. Al guardar, el socio pasará a estado inactivo.
+                </Alert.Description>
+              </Alert.Root>
+              <Field.FieldGroup class="grid gap-4 sm:grid-cols-2">
+                <Field.Field>
+                  <Field.FieldLabel for="fecha-baja">Fecha de baja</Field.FieldLabel>
+                  <Input id="fecha-baja" type="date" bind:value={store.form.fecha_baja} />
+                </Field.Field>
+                <Field.Field data-disabled={!store.form.fecha_baja}>
+                  <Field.FieldLabel for="motivo-baja">Motivo de baja</Field.FieldLabel>
+                  <Select.Root type="single" bind:value={store.form.motivo_baja} allowDeselect={true}>
+                    <Select.Trigger id="motivo-baja" class="mt-1 w-full" disabled={!store.form.fecha_baja}>
+                      <Select.Value placeholder="Elegir motivo…" />
+                    </Select.Trigger>
+                    <Select.Content>
+                      {#each MOTIVOS_BAJA as m}
+                        <Select.Item value={m}>{m === 'CambioEscuela' ? 'Cambio de escuela' : m}</Select.Item>
+                      {/each}
+                    </Select.Content>
+                  </Select.Root>
+                </Field.Field>
+              </Field.FieldGroup>
+            {/if}
 
             <div class="flex gap-2">
               <Button onclick={handleSave}>Guardar</Button>
