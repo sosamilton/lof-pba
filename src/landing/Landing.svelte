@@ -141,7 +141,7 @@
     <div class="flex flex-col gap-2 mb-6">
       <h2 class="text-2xl font-bold tracking-tight">Qué podés hacer hoy</h2>
       <p class="text-sm text-muted-foreground max-w-prose">
-        Cuatro módulos pensados para la gestión diaria de tu cooperadora u organización.
+        Cuatro módulos pensados para la gestión diaria de tu cooperadora escolar.
       </p>
     </div>
     <div class="grid gap-4 sm:grid-cols-2">
