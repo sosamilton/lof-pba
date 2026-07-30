@@ -87,7 +87,7 @@ export const ensureGristPluginLoaded = async () => {
   if (!isBrowser()) return false
   if (!isInIframe()) return false
   if (typeof window.grist !== 'undefined') return true
-  await loadScript('https://docs.getgrist.com/grist-plugin-api.js')
+  await loadScript('./grist-plugin-api.js')
   return typeof window.grist !== 'undefined'
 }
 
