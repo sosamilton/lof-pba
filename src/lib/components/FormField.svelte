@@ -1,5 +1,7 @@
 <script>
   import { Label } from '$lib/components/ui/label'
+  import { Input } from '$lib/components/ui/input'
+  import { Textarea } from '$lib/components/ui/textarea'
 
   let {
     label,
@@ -19,17 +21,17 @@
 <div class="flex flex-col gap-1">
   <Label for={id} class="text-xs font-medium text-muted-foreground">{label}</Label>
   {#if type === 'textarea'}
-    <textarea
+    <Textarea
       {id}
       {placeholder}
       {disabled}
       bind:value
       onchange
       oninput
-      class="flex min-h-[64px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-y {className}"
-    ></textarea>
+      class={className}
+    />
   {:else}
-    <input
+    <Input
       {id}
       {type}
       {placeholder}
@@ -37,7 +39,7 @@
       bind:value
       onchange
       oninput
-      class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 {className}"
+      class={className}
     />
   {/if}
   {#if error}
