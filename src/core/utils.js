@@ -52,7 +52,23 @@ export const CATEGORIAS_VINCULO = ['Socio', 'Docente', 'Directivo', 'Proveedor',
 
 export const NIVELES_CARGO = ['Titular', 'Suplente']
 
-export const TIPOS_ASAMBLEA = ['AnualOrdinaria', 'Extraordinaria']
+export const TIPOS_ASAMBLEA = ['AGO', 'AGE', 'RCD']
+
+export const TIPOS_ASAMBLEA_LABELS = {
+  AGO: 'Asamblea General Ordinaria',
+  AGE: 'Asamblea General Extraordinaria',
+  RCD: 'Reunión de Comisión Directiva',
+}
+
+export const TIPOS_ASAMBLEA_CORTO = {
+  AGO: 'Asamblea Ordinaria',
+  AGE: 'Asamblea Extraordinaria',
+  RCD: 'Reunión de CD',
+}
+
+export const MOTIVOS_CESE = ['Renuncia', 'FinMandato', 'Reemplazo', 'Otro']
+
+export const TIPOS_ORIGEN_AUTORIDAD = ['Asamblea', 'ReunionCD']
 
 export const MODALIDAD_CUOTA = ['Mensual', 'Anual']
 
@@ -84,14 +100,14 @@ export const TABLE_PREFERRED_IDS = {
 export const MODULES = {
   gestion_completa: {
     label: 'Gestión completa',
-    description: 'Socios, movimientos, gobierno y reportes',
+    description: 'Socios, movimientos, asambleas y autoridades, y reportes',
     tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asambleas', 'resoluciones', 'cuentas', 'rubros_pia', 'subrubros', 'movimientos', 'configuracion'],
     menuItems: [
       { route: 'inicio', label: 'Inicio' },
       { route: 'cooperadora', label: 'Cooperadora' },
       { route: 'socios', label: 'Socios' },
       { route: 'movimientos', label: 'Movimientos' },
-      { route: 'gobierno', label: 'Gobierno' }
+      { route: 'gobierno', label: 'Asambleas y Autoridades' }
     ]
   },
   kiosco: {
@@ -109,11 +125,11 @@ export const MODULES = {
     ]
   },
   gobierno: {
-    label: 'Gobierno',
-    description: 'Comisión, autoridades y asambleas',
+    label: 'Asambleas y Autoridades',
+    description: 'Asambleas, reuniones de CD, autoridades y mandatos',
     tables: ['cargos', 'autoridades', 'asambleas', 'resoluciones'],
     menuItems: [
-      { route: 'gobierno', label: 'Gobierno' }
+      { route: 'gobierno', label: 'Asambleas y Autoridades' }
     ]
   },
   reportes: {
@@ -134,7 +150,7 @@ export const getActiveMenuItems = (config) => {
     items.push({ route: 'movimientos', label: 'Movimientos' })
   }
   if (config.modulo_gestion_completa || config.modulo_gobierno) {
-    items.push({ route: 'gobierno', label: 'Gobierno' })
+    items.push({ route: 'gobierno', label: 'Asambleas y Autoridades' })
   }
   if (config.modulo_gestion_completa || config.modulo_tesoreria) {
     items.push({ route: 'socios', label: 'Socios' })

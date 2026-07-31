@@ -179,9 +179,9 @@
         {
           "id": "tipo_asamblea",
           "fields": {
-            "label": "Tipo de asamblea",
+            "label": "Tipo de reunion",
             "type": "Choice",
-            "widgetOptions": "{\"choices\":[\"AnualOrdinaria\",\"Extraordinaria\"]}"
+            "widgetOptions": "{\"choices\":[\"AGO\",\"AGE\",\"RCD\"]}"
           }
         },
         { "id": "acta_numero", "fields": { "label": "Acta Nro", "type": "Text" } },
