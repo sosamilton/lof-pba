@@ -55,7 +55,10 @@ export const extractRowId = (res) => {
   if (res == null) return null
   if (typeof res === 'number') return res
   if (Array.isArray(res)) return extractRowId(res[0])
-  if (typeof res === 'object') return res.id ?? res.rowId ?? res.retValue ?? null
+  if (typeof res === 'object') {
+    if (Array.isArray(res.retValues)) return extractRowId(res.retValues[0])
+    return res.id ?? res.rowId ?? res.retValue ?? null
+  }
   return null
 }
 
@@ -73,6 +76,7 @@ const buildPersonaFields = (data) => {
   if (data.localidad) fields.localidad = data.localidad
   if (data.telefono) fields.telefono = data.telefono
   if (data.email) fields.email = data.email
+  if (data.fecha_nacimiento) fields.fecha_nacimiento = data.fecha_nacimiento
   if (data.categoria) fields.categoria = data.categoria
   return fields
 }
