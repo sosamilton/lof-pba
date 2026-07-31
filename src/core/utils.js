@@ -48,6 +48,29 @@ export const TIPOS_SOCIO = ['Activo', 'Honorario', 'Adherente']
 
 export const MOTIVOS_BAJA = ['Renuncia', 'Falta de pago', 'Fallecimiento', 'CambioEscuela', 'Otro']
 
+export const ageFromBirth = (iso) => {
+  if (!iso) return null
+  const d = new Date(`${iso}T00:00:00`)
+  if (Number.isNaN(d.getTime())) return null
+  const now = new Date()
+  let age = now.getFullYear() - d.getFullYear()
+  const m = now.getMonth() - d.getMonth()
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--
+  return age
+}
+
+export const isAdult = (iso) => {
+  const a = ageFromBirth(iso)
+  return a == null ? null : a >= 18
+}
+
+export const daysSince = (iso) => {
+  if (!iso) return null
+  const d = new Date(`${iso}T00:00:00`)
+  if (Number.isNaN(d.getTime())) return null
+  return Math.floor((Date.now() - d.getTime()) / 86400000)
+}
+
 export const CATEGORIAS_VINCULO = ['Socio', 'Docente', 'Directivo', 'Proveedor', 'Donante']
 
 export const NIVELES_CARGO = ['Titular', 'Suplente']

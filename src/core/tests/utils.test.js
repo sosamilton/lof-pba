@@ -5,6 +5,9 @@ import {
   dateToInput,
   addMonths,
   monthKey,
+  ageFromBirth,
+  isAdult,
+  daysSince,
   TABLE_PREFERRED_IDS
 } from '$core/utils'
 
@@ -83,5 +86,58 @@ describe('TABLE_PREFERRED_IDS', () => {
       expect(Array.isArray(ids), `${key} should be array`).toBe(true)
       expect(ids.length, `${key} should have at least 2 elements`).toBeGreaterThanOrEqual(2)
     }
+  })
+})
+
+describe('ageFromBirth', () => {
+  it('returns null for empty/invalid', () => {
+    expect(ageFromBirth(null)).toBeNull()
+    expect(ageFromBirth('')).toBeNull()
+    expect(ageFromBirth('invalid')).toBeNull()
+  })
+  it('calculates age correctly for adult', () => {
+    const today = new Date()
+    const year = today.getFullYear() - 30
+    const iso = `${year}-06-15`
+    expect(ageFromBirth(iso)).toBe(30)
+  })
+  it('handles birthday not yet passed this year', () => {
+    const today = new Date()
+    const year = today.getFullYear() - 30
+    const futureMonth = today.getMonth() + 2 > 11 ? 0 : today.getMonth() + 2
+    const iso = `${year}-${String(futureMonth + 1).padStart(2, '0')}-15`
+    expect(ageFromBirth(iso)).toBe(29)
+  })
+})
+
+describe('isAdult', () => {
+  it('returns null for empty', () => {
+    expect(isAdult(null)).toBeNull()
+    expect(isAdult('')).toBeNull()
+  })
+  it('returns true for 18+', () => {
+    const year = new Date().getFullYear() - 20
+    expect(isAdult(`${year}-01-01`)).toBe(true)
+  })
+  it('returns false for minor', () => {
+    const year = new Date().getFullYear() - 15
+    expect(isAdult(`${year}-01-01`)).toBe(false)
+  })
+})
+
+describe('daysSince', () => {
+  it('returns null for empty/invalid', () => {
+    expect(daysSince(null)).toBeNull()
+    expect(daysSince('')).toBeNull()
+    expect(daysSince('invalid')).toBeNull()
+  })
+  it('returns 0 for today', () => {
+    const today = new Date().toISOString().slice(0, 10)
+    expect(daysSince(today)).toBe(0)
+  })
+  it('returns positive for past date', () => {
+    const iso = '2020-01-01'
+    const result = daysSince(iso)
+    expect(result).toBeGreaterThan(1000)
   })
 })
