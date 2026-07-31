@@ -52,9 +52,10 @@
       "icono": "rocket",
       "items": [
         "Formateo en vivo de CUIT, CUE, teléfono, email y CBU",
-        "Configuración de banco, kiosco/librería y cuenta por defecto",
+        "Tres modos de gestión: solo PIA/nómina, gestión integral o por etapas",
         "Cargos del estatuto al mínimo legal + Federación opcional",
-        "Color de marca de la cooperadora como tema de la app"
+        "Color de marca de la cooperadora como tema de la app",
+        "Validación y bloqueo de datos institucionales y bancarios"
       ]
     },
     {
@@ -65,7 +66,9 @@
         "Búsqueda instantánea por apellido, DNI, CUIL, email o teléfono",
         "Alta, edición y baja como acción explícita y transparente",
         "Categoría de vínculo: socio, docente, directivo, proveedor, donante",
-        "Tabla única que vincula socios, autoridades y directivos sin duplicar"
+        "Tabla única que vincula socios, autoridades y directivos sin duplicar",
+        "Fecha de nacimiento con validación de mayoría de edad al registrar",
+        "Habilitación electoral automática: socio activo con 30 días de antigüedad"
       ]
     },
     {
@@ -76,7 +79,8 @@
         "Rubro y subrubro según PIA",
         "Destino bancario cuando corresponde",
         "Asociar socio o persona de forma opcional",
-        "Combobox con umbral de búsqueda para listas grandes"
+        "Combobox con umbral de búsqueda para listas grandes",
+        "Dashboard con métricas: socios activos, altas/bajas, vencimientos"
       ]
     },
     {
@@ -87,7 +91,8 @@
         "Inicializar comisión desde los cargos del estatuto",
         "Registrar autoridades con vencimiento de mandato",
         "Gestionar ceses y reemplazos con historial completo",
-        "Crear y editar asambleas con resoluciones"
+        "Crear y editar asambleas con resoluciones",
+        "Padrón electoral automático según estatuto modelo"
       ]
     }
   ],
