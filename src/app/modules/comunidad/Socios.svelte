@@ -2,8 +2,8 @@
   import { onMount } from 'svelte'
   import { sociosStore as store } from './sociosStore.svelte'
   import { normalize, TIPOS_SOCIO, MOTIVOS_BAJA } from '$core/utils'
-  import { personaLabel } from '$core/personas'
-  import { notify } from '$core/notify.svelte'
+  import { personaLabel, isDniQuery, buildPrefill, localidadesItems } from '$core/personas'
+  import { notifyAfter } from '$core/notify.svelte'
   import { Button } from '$lib/components/ui/button'
   import * as Card from '$lib/components/ui/card'
   import { Badge } from '$lib/components/ui/badge'
@@ -20,25 +20,11 @@
   import SearchIcon from '@lucide/svelte/icons/search'
   import LinkIcon from '@lucide/svelte/icons/link'
   import UsersIcon from '@lucide/svelte/icons/users'
-  import localidadesBA from '$core/data/localidades-buenos-aires.json'
-
   let q = $state('')
   let estado = $state('activos')
   let tipo = $state('')
 
-  const localidadesItems = localidadesBA.map((nombre) => ({ value: nombre, label: nombre }))
-
   const isActivo = (/** @type {any} */ s) => !s.fecha_baja
-
-  const isDniQuery = (/** @type {string} */ str) => /^\d+$/.test(str.trim())
-  const buildPrefill = (/** @type {string} */ str) => {
-    const trimmed = str.trim()
-    if (!trimmed) return {}
-    if (isDniQuery(trimmed)) return { dni: trimmed }
-    const parts = trimmed.split(/\s+/)
-    if (parts.length >= 2) return { apellido: parts[0], nombre: parts.slice(1).join(' ') }
-    return { nombre: trimmed }
-  }
 
   let filtered = $derived(
     store.records
@@ -59,14 +45,10 @@
       .sort((/** @type {any} */ a, /** @type {any} */ b) => normalize(a.apellido).localeCompare(normalize(b.apellido)) || normalize(a.nombre).localeCompare(normalize(b.nombre)))
   )
 
-  const handleSave = async () => {
-    await store.saveSocio()
-    if (store.error) notify.error(store.error)
-    else if (store.notice) notify.success(store.notice)
-  }
+  const handleSave = () => notifyAfter(store, store.saveSocio)
 
   onMount(() => {
-    const unsub = store.subscribe(() => {})
+    const unsub = store.subscribe()
     store.load()
     return unsub
   })
