@@ -20,6 +20,7 @@ export const saveConfig = async (data) => {
   const existing = await fetchRecords(tableId)
   const fields = {}
   for (const [k, v] of Object.entries(data)) {
+    if (k === 'id') continue
     if (v !== undefined) fields[k] = v
   }
   if (existing.length > 0) {
