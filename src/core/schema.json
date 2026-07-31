@@ -17,7 +17,9 @@
         { "id": "email_cooperadora", "fields": { "label": "Email cooperadora", "type": "Text" } },
         { "id": "telefono_cooperadora", "fields": { "label": "Telefono cooperadora", "type": "Text" } },
         { "id": "email_asesor", "fields": { "label": "Email asesor", "type": "Text" } },
-        { "id": "telefono_asesor", "fields": { "label": "Telefono asesor", "type": "Text" } }
+        { "id": "telefono_asesor", "fields": { "label": "Telefono asesor", "type": "Text" } },
+        { "id": "email_escuela", "fields": { "label": "Email institucional escuela", "type": "Text" } },
+        { "id": "datos_validados", "fields": { "label": "Datos validados", "type": "Bool" } }
       ]
     },
     {
@@ -61,7 +63,8 @@
         { "id": "sucursal", "fields": { "label": "Sucursal", "type": "Text" } },
         { "id": "cuenta_corriente", "fields": { "label": "Cuenta corriente", "type": "Text" } },
         { "id": "cbu", "fields": { "label": "CBU", "type": "Text" } },
-        { "id": "vigente_desde", "fields": { "label": "Vigente desde", "type": "Date" } }
+        { "id": "vigente_desde", "fields": { "label": "Vigente desde", "type": "Date" } },
+        { "id": "banco_validado", "fields": { "label": "Banco validado", "type": "Bool" } }
       ]
     },
     {
@@ -341,11 +344,10 @@
       "id": "configuracion",
       "title": "Configuracion",
       "columns": [
-        { "id": "modulo_gestion_completa", "fields": { "label": "Gestion completa", "type": "Bool" } },
+        { "id": "modulo_solo_pia", "fields": { "label": "Solo PIA/Nomina", "type": "Bool" } },
+        { "id": "modulo_gestion_integral", "fields": { "label": "Gestion integral", "type": "Bool" } },
+        { "id": "modulo_gestion_etapas", "fields": { "label": "Gestion por etapas", "type": "Bool" } },
         { "id": "modulo_kiosco", "fields": { "label": "Kiosco/libreria", "type": "Bool" } },
-        { "id": "modulo_tesoreria", "fields": { "label": "Tesoreria", "type": "Bool" } },
-        { "id": "modulo_gobierno", "fields": { "label": "Gobierno", "type": "Bool" } },
-        { "id": "modulo_reportes", "fields": { "label": "Reportes PIA/nomina", "type": "Bool" } },
         { "id": "escuela_nombre", "fields": { "label": "Nombre escuela", "type": "Text" } },
         { "id": "escuela_numero", "fields": { "label": "Numero escuela", "type": "Text" } },
         { "id": "cue", "fields": { "label": "CUE", "type": "Text" } },
@@ -358,7 +360,8 @@
         { "id": "color_primario", "fields": { "label": "Color primario", "type": "Text" } },
         { "id": "instalado", "fields": { "label": "Instalado", "type": "Bool" } },
         { "id": "fecha_instalacion", "fields": { "label": "Fecha instalacion", "type": "DateTime" } },
-        { "id": "cuenta_default_id", "fields": { "label": "Cuenta/caja por defecto", "type": "Ref:cuentas" } }
+        { "id": "cuenta_default_id", "fields": { "label": "Cuenta/caja por defecto", "type": "Ref:cuentas" } },
+        { "id": "generar_periodos_automatico", "fields": { "label": "Generar periodos automatico", "type": "Bool" } }
       ]
     },
     {
