@@ -3,8 +3,8 @@
   import { router, navigate } from '$core/router.svelte'
   import { configStore } from '$core/stores/configStore.svelte'
   import { getActiveMenuItems } from '$core/utils'
+  import { applyBrandTheme } from '$core/theme'
   import * as Sidebar from '$lib/components/ui/sidebar'
-  import { Separator } from '$lib/components/ui/separator'
   import HomeIcon from '@lucide/svelte/icons/home'
   import UsersIcon from '@lucide/svelte/icons/users'
   import ContactIcon from '@lucide/svelte/icons/contact'
@@ -40,6 +40,7 @@
         if (config.cooperadora_nombre) {
           document.title = `${config.cooperadora_nombre} · AppCoop`
         }
+        if (config.color_primario) applyBrandTheme(config.color_primario)
       }
     } catch {
       // keep defaults
@@ -93,10 +94,10 @@
   </Sidebar.Root>
 
   <Sidebar.Inset>
-    <header class="flex h-16 shrink-0 items-center gap-3 border-b border-border px-4 transition-[width,height] ease-linear">
+    <header class="flex h-12 shrink-0 items-center px-4">
       <Sidebar.Trigger />
-      <Separator />
-      <span class="text-sm font-semibold truncate">{brandTitle}</span>
+      <span class="flex-1 text-center text-sm font-semibold truncate">{brandTitle}</span>
+      <span class="text-xs text-muted-foreground">AppCoop</span>
     </header>
     <main class="box-border flex-1 p-4 sm:p-6">
       {@render children()}
