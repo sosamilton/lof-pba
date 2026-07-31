@@ -23,7 +23,7 @@ import {
   isValidCbuChecksum,
 } from '$core/format'
 import localidadesData from '$core/data/localidades-buenos-aires.json'
-import { DEMO_MODULES, DEMO_SCHOOL, DEMO_BANCO, DEMO_KIOSCO, DEMO_EJERCICIO } from './demoData'
+import { DEMO_MODULES, DEMO_ESC_COOP, DEMO_BANCO, DEMO_KIOSCO, DEMO_EJERCICIO } from './demoData'
 
 const CUENTAS_OPCIONES = ['Banco', 'Efectivo', 'Caja Chica']
 const currentYear = new Date().getFullYear()
@@ -343,7 +343,7 @@ export class SetupStore {
         this.selectedModules = { ...DEMO_MODULES }
         break
       case 1: // Escuela y cooperadora
-        this.schoolData = { ...DEMO_SCHOOL }
+        this.schoolData = { ...DEMO_ESC_COOP }
         this.onCueInput()
         this.onCuitInput()
         this.onTelefonoInput()
