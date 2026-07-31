@@ -15,28 +15,23 @@
     disabled = false,
     class: className = '',
     onchange = null,
-    maxResults = 50,
+    popoverWidth = '300px',
   } = $props()
 
   let open = $state(false)
   let search = $state('')
 
-  // Filtrar y limitar resultados para no renderizar miles de items de golpe.
-  // Sin búsqueda: mostrar solo los primeros maxResults (pre-carga).
-  // Con búsqueda: filtrar y limitar también.
-  let filtered = $derived.by(() => {
-    const q = normalize(search)
-    const source = q
-      ? items.filter((item) => normalize(item.label).includes(q))
-      : items
-    return source.slice(0, maxResults)
-  })
+  const MIN_CHARS = 3
+  const LARGE_THRESHOLD = 50
+  let isLarge = $derived(items.length > LARGE_THRESHOLD)
+  let canSearch = $derived(!isLarge || search.trim().length >= MIN_CHARS)
 
-  let hasMore = $derived(
-    search
-      ? items.filter((item) => normalize(item.label).includes(normalize(search))).length > maxResults
-      : items.length > maxResults
-  )
+  let filtered = $derived.by(() => {
+    if (isLarge && search.trim().length < MIN_CHARS) return []
+    if (!isLarge) return items
+    const q = normalize(search)
+    return items.filter((item) => normalize(item.label).includes(q))
+  })
 
   let selectedLabel = $derived(items.find((item) => String(item.value) === String(value))?.label || '')
 
@@ -61,33 +56,37 @@
       <ChevronsUpDownIcon class="ml-2 size-4 shrink-0 opacity-50" />
     </Button>
   </Popover.Trigger>
-  <Popover.Content class="w-[var(--bit-popover-width,300px)] p-0">
-    <Command.Root>
+  <Popover.Content class="p-0" style="--bit-popover-width: {popoverWidth}; width: {popoverWidth};">
+    <Command.Root shouldFilter={false}>
       <Command.Input bind:value={search} placeholder={searchPlaceholder} />
       <Command.List>
-        <Command.Empty>No se encontraron resultados.</Command.Empty>
-        <Command.Group>
-          {#each filtered as item (item.value)}
-            <Command.Item
-              onSelect={() => select(item.value)}
-              class="flex items-center gap-2"
-            >
-              <CheckIcon class="size-4 shrink-0 {String(item.value) === String(value) ? 'opacity-100' : 'opacity-0'}" />
-              <span class="flex-1 truncate">{item.label}</span>
-              {#if item.badges}
-                <span class="flex shrink-0 gap-1">
-                  {#each item.badges as badge}
-                    <Badge variant="secondary" class="text-[10px] px-1.5 py-0 h-4">{badge}</Badge>
-                  {/each}
-                </span>
-              {/if}
-            </Command.Item>
-          {/each}
-        </Command.Group>
-        {#if hasMore}
-          <div class="py-2 px-2 text-xs text-muted-foreground text-center">
-            Mostrando {filtered.length} de {items.length}. Escribí para filtrar más.
+        {#if !canSearch}
+          <div class="py-6 text-center text-sm text-muted-foreground">
+            Escribí al menos {MIN_CHARS} letras para buscar…
           </div>
+        {:else if filtered.length === 0}
+          <div class="py-6 text-center text-sm text-muted-foreground">
+            No se encontraron resultados.
+          </div>
+        {:else}
+          <Command.Group>
+            {#each filtered as item (item.value)}
+              <Command.Item
+                onSelect={() => select(item.value)}
+                class="flex items-center gap-2"
+              >
+                <CheckIcon class="size-4 shrink-0 {String(item.value) === String(value) ? 'opacity-100' : 'opacity-0'}" />
+                <span class="flex-1 truncate">{item.label}</span>
+                {#if item.badges}
+                  <span class="flex shrink-0 gap-1">
+                    {#each item.badges as badge}
+                      <Badge variant="secondary" class="text-[10px] px-1.5 py-0 h-4">{badge}</Badge>
+                    {/each}
+                  </span>
+                {/if}
+              </Command.Item>
+            {/each}
+          </Command.Group>
         {/if}
       </Command.List>
     </Command.Root>
