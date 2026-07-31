@@ -64,6 +64,7 @@
       <div class="p-3 rounded-lg border border-border bg-muted/5">
         <div class="font-extrabold text-[13px] mb-1.5">Cargos</div>
         <div class="text-[13px] text-muted-foreground">{store.cargos.length} cargo(s) configurado(s)</div>
+        <div class="text-[13px] text-muted-foreground">Federación: {store.federacionAdherida ? 'adherida' : 'no adherida'}</div>
       </div>
     </div>
 
