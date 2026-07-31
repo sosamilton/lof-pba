@@ -2,7 +2,7 @@
   import { onMount } from 'svelte'
   import { movimientosStore as store } from './movimientosStore.svelte'
   import { normalize, monthKey, formatARS, CATEGORIAS_VINCULO } from '$core/utils'
-  import { notify } from '$core/notify.svelte'
+  import { notifyAfter } from '$core/notify.svelte'
   import { Button } from '$lib/components/ui/button'
   import * as Card from '$lib/components/ui/card'
   import { Input } from '$lib/components/ui/input'
@@ -69,11 +69,7 @@
     }
   }
 
-  const handleSave = async () => {
-    await store.saveMovimiento()
-    if (store.error) notify.error(store.error)
-    else if (store.notice) notify.success(store.notice)
-  }
+  const handleSave = () => notifyAfter(store, store.saveMovimiento)
 
   onMount(() => {
     const unsub = store.subscribe()

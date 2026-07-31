@@ -9,12 +9,10 @@ import {
   normalizeCuil,
   normalizeTelefono,
   normalizeEmailField,
-  isValidCuil,
-  isValidCuilChecksum,
-  isValidEmailField,
 } from '$core/personas.js'
 import { formatDni, formatCuil, formatTelefono } from '$core/format.js'
 import { usePersonaSearch } from '$core/usePersonaSearch.svelte.js'
+import { useFieldWarnings } from '$core/useFieldWarnings.svelte.js'
 
 const base = createGristStore({
   tableKey: 'socios',
@@ -25,7 +23,6 @@ const base = createGristStore({
     out.cuil = normalizeCuil(out.cuil) || null
     if (out.telefono) out.telefono = normalizeTelefono(out.telefono) || null
     if (out.email) out.email = normalizeEmailField(out.email) || null
-    // Limpiar campos vacíos
     Object.keys(out).forEach((k) => {
       if (out[k] === '' || out[k] === null) delete out[k]
     })
@@ -33,27 +30,21 @@ const base = createGristStore({
   },
 })
 
-// Estado específico de Socios
 let selected = $state(null)
 let form = $state(null)
 let showBaja = $state(false)
 let listOpen = $state(true)
 const ps = usePersonaSearch()
 let linkedPersona = $state(null)
-let dniWarning = $state('')
-let cuilWarning = $state('')
-let telefonoWarning = $state('')
-let emailWarning = $state('')
+
+const fw = useFieldWarnings({ getForm: () => form })
 
 const select = (s) => {
   selected = s
   showBaja = Boolean(s?.fecha_baja)
   listOpen = true
   linkedPersona = null
-  dniWarning = ''
-  cuilWarning = ''
-  telefonoWarning = ''
-  emailWarning = ''
+  fw.reset()
   ps.reset()
   form = {
     id: s.id,
@@ -78,10 +69,7 @@ const nuevo = (prefill = {}) => {
   showBaja = false
   linkedPersona = null
   ps.reset()
-  dniWarning = ''
-  cuilWarning = ''
-  telefonoWarning = ''
-  emailWarning = ''
+  fw.reset()
   form = {
     persona_id: null,
     dni: formatDni(prefill.dni || ''),
@@ -100,7 +88,7 @@ const nuevo = (prefill = {}) => {
   if (prefill.dni) {
     const d = normalizeDni(prefill.dni)
     if (d && !isValidDni(d)) {
-      dniWarning = 'DNI inválido (debe tener 7 u 8 dígitos)'
+      fw.setDniWarning('DNI inválido (debe tener 7 u 8 dígitos)')
     }
   }
 }
@@ -111,10 +99,7 @@ const selectPersona = (p) => {
   if (hasLegacy && !confirm('Al vincular esta persona se reemplazarán los datos existentes del socio. ¿Continuar?')) return
   linkedPersona = p
   ps.reset()
-  dniWarning = ''
-  cuilWarning = ''
-  telefonoWarning = ''
-  emailWarning = ''
+  fw.reset()
   form.persona_id = p.id
   form.dni = formatDni(p.dni || form.dni)
   form.cuil = formatCuil(p.cuil || form.cuil)
@@ -132,10 +117,7 @@ const cancelar = () => {
   listOpen = true
   linkedPersona = null
   ps.reset()
-  dniWarning = ''
-  cuilWarning = ''
-  telefonoWarning = ''
-  emailWarning = ''
+  fw.reset()
 }
 
 const unlinkPersona = () => {
@@ -145,7 +127,6 @@ const unlinkPersona = () => {
 
 const toggleBaja = () => {
   if (!showBaja) {
-    // Al abrir la baja, setear fecha default = hoy si no tiene
     if (!form.fecha_baja) {
       form.fecha_baja = new Date().toISOString().slice(0, 10)
     }
@@ -154,7 +135,6 @@ const toggleBaja = () => {
 }
 
 const reactivar = () => {
-  // Limpiar campos de baja para reactivar el socio
   form.fecha_baja = ''
   form.motivo_baja = ''
   showBaja = false
@@ -164,16 +144,16 @@ const onDniInput = () => {
   const d = normalizeDni(form.dni)
   form.dni = formatDni(d)
   if (d && !isValidDni(d)) {
-    dniWarning = 'DNI inválido (debe tener 7 u 8 dígitos)'
+    fw.setDniWarning('DNI inválido (debe tener 7 u 8 dígitos)')
     return
   }
   if (!d || form.id) {
-    dniWarning = ''
+    fw.setDniWarning('')
     linkedPersona = null
     form.persona_id = null
     return
   }
-  dniWarning = 'Verificando DNI…'
+  fw.setDniWarning('Verificando DNI…')
   findPersonaByDni(d).then((existing) => {
     if (existing) {
       linkedPersona = existing
@@ -185,65 +165,21 @@ const onDniInput = () => {
       form.localidad = existing.localidad || form.localidad
       form.telefono = formatTelefono(existing.telefono || form.telefono)
       form.email = existing.email || form.email
-      dniWarning = `Persona cargada: ${existing.apellido || ''}, ${existing.nombre || ''}`
+      fw.setDniWarning(`Persona cargada: ${existing.apellido || ''}, ${existing.nombre || ''}`)
     } else {
       linkedPersona = null
       form.persona_id = null
-      dniWarning = ''
+      fw.setDniWarning('')
     }
   })
 }
 
-const onCuilInput = () => {
-  const c = normalizeCuil(form.cuil)
-  form.cuil = formatCuil(c)
-  if (c && isValidCuil(c) && !isValidCuilChecksum(c)) {
-    cuilWarning = 'CUIT/CUIL inválido (dígito verificador incorrecto)'
-  } else {
-    cuilWarning = ''
-  }
-}
-
-const onTelefonoInput = () => {
-  const raw = form.telefono
-  form.telefono = formatTelefono(raw)
-  const stored = normalizeTelefono(raw)
-  if (stored && stored.length < 10 && stored.length > 0) {
-    telefonoWarning = 'Teléfono incompleto'
-  } else {
-    telefonoWarning = ''
-  }
-}
-
-const onEmailInput = () => {
-  form.email = normalizeEmailField(form.email)
-  if (form.email && !isValidEmailField(form.email)) {
-    emailWarning = 'Email inválido'
-  } else {
-    emailWarning = ''
-  }
-}
-
 const saveSocio = async () => {
   base.clearMessages()
-  if (dniWarning && dniWarning !== 'Verificando DNI…' && !dniWarning.startsWith('Persona cargada')) {
-    base.setError('Corregí el DNI antes de guardar.')
+  if (fw.hasBlockingWarnings()) {
+    base.setError('Corregí los campos marcados antes de guardar.')
     return null
   }
-  if (cuilWarning) {
-    base.setError('Corregí el CUIT/CUIL antes de guardar.')
-    return null
-  }
-  if (telefonoWarning) {
-    base.setError('Corregí el teléfono antes de guardar.')
-    return null
-  }
-  if (emailWarning) {
-    base.setError('Corregí el email antes de guardar.')
-    return null
-  }
-  // Validar: si se está reactivando (no hay fecha_baja pero el socio tenía una),
-  // la fecha_alta no puede ser anterior a la última fecha_baja
   if (form.id && !form.fecha_baja) {
     const existing = base.records.find((s) => s.id === form.id)
     if (existing?.fecha_baja && form.fecha_alta) {
@@ -254,14 +190,12 @@ const saveSocio = async () => {
       }
     }
   }
-  // Validar: si se está dando de baja, la fecha_baja no puede ser anterior a la fecha_alta
   if (form.fecha_baja && form.fecha_alta && form.fecha_baja < form.fecha_alta) {
     base.setError('La fecha de baja no puede ser anterior a la fecha de alta.')
     return null
   }
 
   try {
-    // 1. Persona handling: guardar/actualizar persona PRIMERO y esperar confirmación
     const personaData = {}
     const d = normalizeDni(form.dni)
     if (d) personaData.dni = d
@@ -286,7 +220,6 @@ const saveSocio = async () => {
       form.persona_id = personaId
     }
 
-    // 2. Ahora guardar el socio con el persona_id confirmado
     const fields = { ...form }
     delete fields.id
     fields.persona_id = personaId || null
@@ -308,7 +241,6 @@ const saveSocio = async () => {
     const record = { ...form, ...fields }
     const result = await base.save(record)
 
-    // Re-seleccionar si era edición
     if (form.id) {
       const updated = base.records.find((s) => s.id === form.id)
       if (updated) select(updated)
@@ -334,10 +266,10 @@ export const sociosStore = extendStore(base, {
   get personaResults() { return ps.results },
   get personaSearching() { return ps.searching },
   get linkedPersona() { return linkedPersona },
-  get dniWarning() { return dniWarning },
-  get cuilWarning() { return cuilWarning },
-  get telefonoWarning() { return telefonoWarning },
-  get emailWarning() { return emailWarning },
+  get dniWarning() { return fw.dniWarning },
+  get cuilWarning() { return fw.cuilWarning },
+  get telefonoWarning() { return fw.telefonoWarning },
+  get emailWarning() { return fw.emailWarning },
   setPersonaSearch: (v) => { ps.query = v },
   setListOpen: (v) => { listOpen = v },
   select,
@@ -349,8 +281,8 @@ export const sociosStore = extendStore(base, {
   toggleBaja,
   reactivar,
   onDniInput,
-  onCuilInput,
-  onTelefonoInput,
-  onEmailInput,
+  onCuilInput: fw.onCuilInput,
+  onTelefonoInput: fw.onTelefonoInput,
+  onEmailInput: fw.onEmailInput,
   saveSocio,
 })
