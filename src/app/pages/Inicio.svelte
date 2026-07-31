@@ -1,154 +1,32 @@
 <script>
   import { onMount } from 'svelte'
-  import { detectGrist, gristReady, isInGrist, listTables, resolveTableId, subscribeRecords } from '$core/grist'
-  import { REQUIRED_TABLES } from '$core/schema'
-  import { ensureSchema, getSchemaDiff, initDemoData } from '$setup/initAppCoop'
-  import { runMigration, deduplicatePersonas } from '$setup/migracion'
-  import { TABLE_PREFERRED_IDS } from '$core/utils'
+  import { isInGrist } from '$core/grist'
+  import { MESES } from '$core/utils'
+  import { inicioStore as store } from './inicioStore.svelte.js'
   import { Button } from '$lib/components/ui/button'
   import * as Card from '$lib/components/ui/card'
   import { Badge } from '$lib/components/ui/badge'
   import { Separator } from '$lib/components/ui/separator'
-  import { Alert, AlertDescription } from '$lib/components/ui/alert'
+  import { Input } from '$lib/components/ui/input'
+  import { Label } from '$lib/components/ui/label'
+  import * as Select from '$lib/components/ui/select'
+  import { Checkbox } from '$lib/components/ui/checkbox'
   import { Skeleton } from '$lib/components/ui/skeleton'
   import MessageBanner from '$lib/components/MessageBanner.svelte'
-  import { notify, withNotify } from '$core/notify.svelte'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
   import DatabaseIcon from '@lucide/svelte/icons/database'
   import RefreshIcon from '@lucide/svelte/icons/refresh-cw'
   import WrenchIcon from '@lucide/svelte/icons/wrench'
-  import ArrowUpIcon from '@lucide/svelte/icons/arrow-up'
   import CopyCheckIcon from '@lucide/svelte/icons/copy-check'
+  import UsersIcon from '@lucide/svelte/icons/users'
+  import CalendarIcon from '@lucide/svelte/icons/calendar'
+  import ShieldCheckIcon from '@lucide/svelte/icons/shield-check'
+  import TrendingUpIcon from '@lucide/svelte/icons/trending-up'
+  import AlertCircleIcon from '@lucide/svelte/icons/alert-circle'
+  import SettingsIcon from '@lucide/svelte/icons/settings'
 
-  let loading = $state(false)
-  let error = $state('')
-  let status = $state(null)
-  let creating = $state(false)
-  let migrating = $state(false)
-  let migrationResult = $state(null)
-  let dedupResult = $state(null)
-  let repairResult = $state(null)
-
-  const toKey = (s) => String(s || '').toLowerCase()
-
-  const findTable = (tables, preferredIds) => {
-    const hay = new Set((tables || []).map(toKey))
-    return preferredIds.find((id) => hay.has(toKey(id))) || null
-  }
-
-  const check = async () => {
-    loading = true
-    error = ''
-    try {
-      await gristReady()
-      const tables = await listTables()
-      const schemaDiff = await getSchemaDiff()
-      const resolved = {}
-      const missing = []
-      for (const t of REQUIRED_TABLES) {
-        const hit = findTable(tables, t.preferredIds)
-        if (!hit) missing.push(t)
-        else resolved[t.key] = hit
-      }
-      status = { tables, resolved, missing, schemaDiff }
-    } catch (e) {
-      error = e?.message || String(e)
-      status = null
-    } finally {
-      loading = false
-    }
-  }
-
-  const initAppCoop = async () => {
-    creating = true
-    error = ''
-    try {
-      await withNotify('Instalando plantilla…', async () => {
-        const tablesBefore = status?.tables || (await listTables())
-        const existing = new Set(tablesBefore.map((t) => String(t || '').toLowerCase()))
-        await ensureSchema(existing)
-
-        await initDemoData([
-          { tableId: await resolveTableId(TABLE_PREFERRED_IDS.escuela), seedName: 'escuela', batchSize: 10 },
-          { tableId: await resolveTableId(TABLE_PREFERRED_IDS.datos_banco), seedName: 'datos_banco', batchSize: 10 },
-          { tableId: await resolveTableId(TABLE_PREFERRED_IDS.kiosco_libreria), seedName: 'kiosco_libreria', batchSize: 10 },
-          { tableId: await resolveTableId(TABLE_PREFERRED_IDS.ejercicios), seedName: 'ejercicios', batchSize: 10 },
-          { tableId: await resolveTableId(TABLE_PREFERRED_IDS.cuentas), seedName: 'cuentas', batchSize: 50 },
-          { tableId: await resolveTableId(TABLE_PREFERRED_IDS.rubros_pia), seedName: 'rubros_pia', batchSize: 100 },
-          { tableId: await resolveTableId(TABLE_PREFERRED_IDS.cargos), seedName: 'cargos', batchSize: 100 }
-        ])
-      }, { success: 'Plantilla instalada', error: 'Error al instalar' })
-      await check()
-    } catch (e) {
-      error = e?.message || String(e)
-    } finally {
-      creating = false
-    }
-  }
-
-  const doMigration = async () => {
-    const total = (status?.tables || []).length
-    if (!confirm(`Se procesarán ${total} tablas. Esto creará personas y vinculará socios/autoridades. ¿Continuar?`)) return
-    migrating = true
-    error = ''
-    migrationResult = null
-    try {
-      await withNotify('Migrando a personas…', async () => {
-        const schemaResult = await ensureSchema(new Set((status?.tables || []).map((t) => String(t || '').toLowerCase())))
-        if (schemaResult?.errors?.length > 0) {
-          throw new Error(`Schema con errores: ${schemaResult.errors.join(', ')}`)
-        }
-        migrationResult = await runMigration()
-      }, { success: 'Migración completada', error: 'Error en migración' })
-    } catch (e) {
-      error = e?.message || String(e)
-    } finally {
-      migrating = false
-    }
-  }
-
-  const doDedup = async () => {
-    if (!confirm('Se buscarán y fusionarán personas con DNI duplicado. ¿Continuar?')) return
-    migrating = true
-    error = ''
-    dedupResult = null
-    try {
-      await withNotify('Deduplicando personas…', async () => {
-        dedupResult = await deduplicatePersonas()
-      }, { success: 'Deduplicación completada', error: 'Error en deduplicación' })
-    } catch (e) {
-      error = e?.message || String(e)
-    } finally {
-      migrating = false
-    }
-  }
-
-  const repairSchema = async () => {
-    creating = true
-    error = ''
-    repairResult = null
-    try {
-      await withNotify('Reparando schema…', async () => {
-        repairResult = await ensureSchema(new Set((status?.tables || []).map((t) => String(t || '').toLowerCase())))
-      }, { success: 'Schema reparado', error: 'Error al reparar' })
-      await check()
-    } catch (e) {
-      error = e?.message || String(e)
-    } finally {
-      creating = false
-    }
-  }
-
-  onMount(async () => {
-    const status = await detectGrist()
-    if (status !== 'ready') return
-    const unsub = subscribeRecords(() => {
-      if (!creating && !migrating) check()
-    })
-    await check()
-    return unsub
-  })
+  onMount(() => store.init())
 </script>
 
 <div class="flex flex-col gap-4">
@@ -158,132 +36,219 @@
   </div>
 
   {#if isInGrist()}
-    <p class="text-sm text-muted-foreground">Modo widget Grist detectado.</p>
-
-    {#if loading}
+    {#if store.loading}
       <div class="flex flex-col gap-4">
         <Skeleton class="h-8 w-48" />
         <Skeleton class="h-64 w-full" />
       </div>
-    {:else if status}
-      {#if status.missing.length === 0}
-        {#if status.schemaDiff?.missingTables?.length === 0 && status.schemaDiff?.missingColumns?.length === 0}
+    {:else if store.status}
+      {#if store.status.missing.length === 0 && store.status.schemaDiff?.missingTables?.length === 0 && store.status.schemaDiff?.missingColumns?.length === 0}
+        <!-- Dashboard -->
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Card.Root>
-            <Card.Content class="flex flex-col gap-4 pt-6">
-              <div class="flex items-center gap-2">
-                <CheckCircleIcon class="size-5 text-primary" />
-                <span class="text-sm font-semibold">Plantilla AppCoop instalada y sincronizada</span>
+            <Card.Content class="flex flex-col gap-1 pt-4">
+              <div class="flex items-center gap-2 text-muted-foreground">
+                <CalendarIcon class="size-4" />
+                <span class="text-xs font-medium">Ejercicio en curso</span>
               </div>
-              <p class="text-sm text-muted-foreground">Usá el menú para navegar.</p>
-              <div class="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onclick={check} disabled={creating}>
-                  <RefreshIcon data-icon="inline-start" />
-                  Revalidar
-                </Button>
-                <Button variant="outline" size="sm" onclick={initAppCoop} disabled={creating}>
-                  Cargar datos base
-                </Button>
-                <Button variant="outline" size="sm" onclick={repairSchema} disabled={creating}>
-                  <WrenchIcon data-icon="inline-start" />
-                  Reparar Refs
-                </Button>
-                <Button size="sm" onclick={doMigration} disabled={migrating || creating}>
-                  <ArrowUpIcon data-icon="inline-start" />
-                  {migrating ? 'Migrando…' : 'Migrar a personas'}
-                </Button>
-                <Button variant="outline" size="sm" onclick={doDedup} disabled={migrating || creating}>
-                  <CopyCheckIcon data-icon="inline-start" />
-                  {migrating ? 'Procesando…' : 'Deduplicar personas'}
-                </Button>
-              </div>
-
-              {#if migrationResult}
-                <Separator />
-                <div class="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
-                  <div class="text-sm font-semibold">Migración completada</div>
-                  <ul class="mt-2 ml-4 list-disc text-sm text-muted-foreground">
-                    <li>Personas creadas: <strong>{migrationResult.personasCreadas}</strong></li>
-                    <li>Personas existentes reutilizadas: <strong>{migrationResult.personasActualizadas}</strong></li>
-                    <li>Socios vinculados: <strong>{migrationResult.sociosVinculados}</strong></li>
-                    <li>Autoridades vinculadas: <strong>{migrationResult.autoridadesVinculadas}</strong></li>
-                    <li>Pendientes: <strong>{migrationResult.pendientes.length}</strong></li>
-                  </ul>
-                  {#if migrationResult.pendientes.length > 0}
-                    <details class="mt-2">
-                      <summary class="text-sm cursor-pointer">Ver pendientes ({migrationResult.pendientes.length})</summary>
-                      <ul class="mt-2 ml-4 list-disc text-xs text-muted-foreground">
-                        {#each migrationResult.pendientes as p (p.id)}
-                          <li>
-                            <span class="font-mono">{p.tabla}:{p.id}</span> — {p.motivo}
-                            ({p.apellido || p.apellido_nombre || ''} {p.nombre || ''})
-                          </li>
-                        {/each}
-                      </ul>
-                    </details>
-                  {/if}
-                </div>
-              {/if}
-
-              {#if dedupResult}
-                <Separator />
-                <div class="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
-                  <div class="text-sm font-semibold">Deduplicación completada</div>
-                  <ul class="mt-2 ml-4 list-disc text-sm text-muted-foreground">
-                    <li>Duplicados encontrados: <strong>{dedupResult.duplicatesFound}</strong></li>
-                    <li>Campos fusionados: <strong>{dedupResult.merged}</strong></li>
-                    <li>Personas eliminadas: <strong>{dedupResult.removed}</strong></li>
-                  </ul>
-                </div>
-              {/if}
-
-              {#if repairResult}
-                <Separator />
-                <div class="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
-                  <div class="text-sm font-semibold">Schema reparado</div>
-                  <ul class="mt-2 ml-4 list-disc text-sm text-muted-foreground">
-                    <li>Tablas creadas: <strong>{repairResult.created}</strong></li>
-                    <li>Columnas agregadas: <strong>{repairResult.addedColumns}</strong></li>
-                    <li>Refs corregidas: <strong>{repairResult.repairedRefs}</strong></li>
-                  </ul>
-                </div>
+              {#if store.dashLoading}
+                <Skeleton class="h-6 w-32 mt-1" />
+              {:else if store.ejercicioEnCurso}
+                <div class="text-lg font-bold">{store.ejercicioEnCurso.anio_inicio}-{store.ejercicioEnCurso.anio_fin}</div>
+                <div class="text-xs text-muted-foreground">Inicio: {store.ejercicioEnCurso.mes_inicio}</div>
+                {#if store.ejercicioProximoVencer}
+                  <Badge variant="destructive" class="mt-1 w-fit">Próximo a vencer</Badge>
+                {/if}
+              {:else}
+                <div class="text-sm text-muted-foreground">Sin ejercicio activo</div>
               {/if}
             </Card.Content>
           </Card.Root>
-        {:else}
-          <Card.Root class="border-destructive/40">
-            <Card.Content class="flex flex-col gap-4 pt-6">
-              <div class="flex items-center gap-2">
-                <AlertTriangleIcon class="size-5 text-destructive" />
-                <span class="text-sm font-semibold">Hay diferencias con el schema</span>
+
+          <Card.Root>
+            <Card.Content class="flex flex-col gap-1 pt-4">
+              <div class="flex items-center gap-2 text-muted-foreground">
+                <ShieldCheckIcon class="size-4" />
+                <span class="text-xs font-medium">Cargos obligatorios cubiertos</span>
               </div>
-              {#if status.schemaDiff?.missingTables?.length}
-                <div>
-                  <p class="text-sm font-medium mb-1">Tablas faltantes:</p>
-                  <ul class="ml-4 list-disc text-sm text-muted-foreground">
-                    {#each status.schemaDiff.missingTables as t (t.id)}
-                      <li><span class="font-mono">{t.id}</span></li>
-                    {/each}
-                  </ul>
-                </div>
+              {#if store.dashLoading}
+                <Skeleton class="h-6 w-20 mt-1" />
+              {:else}
+                <div class="text-lg font-bold">{store.cargosCubiertos} / {store.cargosObligatorios}</div>
+                {#if store.cargosCubiertos < store.cargosObligatorios}
+                  <Badge variant="secondary" class="mt-1 w-fit">Faltan {store.cargosObligatorios - store.cargosCubiertos}</Badge>
+                {:else}
+                  <Badge variant="default" class="mt-1 w-fit">Completo</Badge>
+                {/if}
               {/if}
-              {#if status.schemaDiff?.missingColumns?.length}
-                <div>
-                  <p class="text-sm font-medium mb-1">Columnas faltantes:</p>
-                  <ul class="ml-4 list-disc text-sm text-muted-foreground">
-                    {#each status.schemaDiff.missingColumns as it (it.tableId)}
-                      <li><span class="font-mono">{it.tableId}</span>: {it.columns.map((c) => c.id).join(', ')}</li>
-                    {/each}
-                  </ul>
-                </div>
+            </Card.Content>
+          </Card.Root>
+
+          <Card.Root>
+            <Card.Content class="flex flex-col gap-1 pt-4">
+              <div class="flex items-center gap-2 text-muted-foreground">
+                <UsersIcon class="size-4" />
+                <span class="text-xs font-medium">Socios activos</span>
+              </div>
+              {#if store.dashLoading}
+                <Skeleton class="h-6 w-16 mt-1" />
+              {:else}
+                <div class="text-lg font-bold">{store.sociosActivos}</div>
               {/if}
-              <div class="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onclick={check} disabled={creating}>Revalidar</Button>
-                <Button size="sm" onclick={initAppCoop} disabled={creating}>Actualizar schema + datos base</Button>
+            </Card.Content>
+          </Card.Root>
+
+          <Card.Root>
+            <Card.Content class="flex flex-col gap-1 pt-4">
+              <div class="flex items-center gap-2 text-muted-foreground">
+                <TrendingUpIcon class="size-4" />
+                <span class="text-xs font-medium">Altas/bajas último año</span>
+              </div>
+              {#if store.dashLoading}
+                <Skeleton class="h-6 w-24 mt-1" />
+              {:else}
+                <div class="text-lg font-bold">
+                  <span class="text-primary">+{store.altasUltimoAnio}</span>
+                  <span class="text-muted-foreground mx-1">/</span>
+                  <span class="text-destructive">-{store.bajasUltimoAnio}</span>
+                </div>
+                <div class="text-xs text-muted-foreground">Saldo neto: {store.altasUltimoAnio - store.bajasUltimoAnio}</div>
+              {/if}
+            </Card.Content>
+          </Card.Root>
+
+          {#if store.vencimientosProximos.length > 0}
+            <Card.Root class="border-destructive/40">
+              <Card.Content class="flex flex-col gap-1 pt-4">
+                <div class="flex items-center gap-2 text-destructive">
+                  <AlertCircleIcon class="size-4" />
+                  <span class="text-xs font-medium">Vencimientos próximos (60 días)</span>
+                </div>
+                <div class="text-lg font-bold">{store.vencimientosProximos.length}</div>
+                <div class="text-xs text-muted-foreground">mandatos por vencer</div>
+              </Card.Content>
+            </Card.Root>
+          {/if}
+
+          {#if store.alertaAsamblea}
+            <Card.Root class="border-primary/40">
+              <Card.Content class="flex flex-col gap-1 pt-4">
+                <div class="flex items-center gap-2 text-primary">
+                  <AlertCircleIcon class="size-4" />
+                  <span class="text-xs font-medium">Asamblea ordinaria</span>
+                </div>
+                <div class="text-sm font-semibold">Recordatorio</div>
+                <div class="text-xs text-muted-foreground">Segunda quincena de mayo: realizar AGO</div>
+              </Card.Content>
+            </Card.Root>
+          {/if}
+        </div>
+
+        {#if store.ejercicioProximoVencer && !store.showNuevoEjercicio}
+          <Button onclick={() => store.setShowNuevoEjercicio(true)} disabled={store.creating}>
+            <CalendarIcon data-icon="inline-start" />
+            Crear nuevo ejercicio
+          </Button>
+        {/if}
+        {#if store.showNuevoEjercicio}
+          <Card.Root>
+            <Card.Header>
+              <Card.Title class="text-base">Crear nuevo ejercicio</Card.Title>
+            </Card.Header>
+            <Card.Content class="flex flex-col gap-4">
+              <div class="grid gap-3 sm:grid-cols-3">
+                <div><Label for="ej-desde">Año desde</Label><Input id="ej-desde" type="number" bind:value={store.nuevoEj.anio_inicio} class="mt-1" /></div>
+                <div><Label for="ej-hasta">Año hasta</Label><Input id="ej-hasta" type="number" bind:value={store.nuevoEj.anio_fin} class="mt-1" /></div>
+                <div>
+                  <Label for="ej-mes">Mes inicio</Label>
+                  <Select.Root type="single" bind:value={store.nuevoEj.mes_inicio}>
+                    <Select.Trigger id="ej-mes" class="mt-1 w-full">
+                      <Select.Value placeholder="Mes…" />
+                    </Select.Trigger>
+                    <Select.Content>
+                      {#each MESES as m}<Select.Item value={m}>{m}</Select.Item>{/each}
+                    </Select.Content>
+                  </Select.Root>
+                </div>
+                <div><Label for="ej-banco">Saldo banco</Label><Input id="ej-banco" type="number" bind:value={store.nuevoEj.saldo_inicial_banco} class="mt-1" /></div>
+                <div><Label for="ej-efectivo">Saldo efectivo</Label><Input id="ej-efectivo" type="number" bind:value={store.nuevoEj.saldo_inicial_efectivo} class="mt-1" /></div>
+                <div><Label for="ej-caja">Saldo caja chica</Label><Input id="ej-caja" type="number" bind:value={store.nuevoEj.saldo_inicial_caja_chica} class="mt-1" /></div>
+              </div>
+              <div class="flex justify-end gap-2">
+                <Button variant="outline" size="sm" onclick={() => store.setShowNuevoEjercicio(false)}>Cancelar</Button>
+                <Button size="sm" onclick={store.crearEjercicio} disabled={store.creating}>Crear y activar</Button>
               </div>
             </Card.Content>
           </Card.Root>
         {/if}
-      {:else}
+
+        <!-- Configuración y administración técnica -->
+        <Card.Root>
+          <Card.Header>
+            <Card.Title class="text-base flex items-center gap-2">
+              <SettingsIcon class="size-4" />
+              Configuración y administración
+            </Card.Title>
+          </Card.Header>
+          <Card.Content class="flex flex-col gap-4">
+            <div class="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+              <div>
+                <div class="text-sm font-medium">Generación automática de períodos</div>
+                <div class="text-xs text-muted-foreground">Crea un nuevo ejercicio automáticamente 2 meses antes del vencimiento</div>
+              </div>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <Checkbox bind:checked={store.generarPeriodosAuto} onCheckedChange={(v) => store.onPeriodosAutoChange(v)} disabled={store.savingConfig} />
+                <span class="text-sm">{store.generarPeriodosAuto ? 'Activado' : 'Desactivado'}</span>
+              </label>
+            </div>
+
+            <Separator />
+
+            <div class="flex items-center gap-2">
+              <CheckCircleIcon class="size-5 text-primary" />
+              <span class="text-sm font-semibold">Plantilla AppCoop instalada y sincronizada</span>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onclick={store.check} disabled={store.creating}>
+                <RefreshIcon data-icon="inline-start" />
+                Revalidar
+              </Button>
+              <Button variant="outline" size="sm" onclick={store.repairSchema} disabled={store.creating}>
+                <WrenchIcon data-icon="inline-start" />
+                Reparar Refs
+              </Button>
+              <Button variant="outline" size="sm" onclick={store.doDedup} disabled={store.migrating || store.creating}>
+                <CopyCheckIcon data-icon="inline-start" />
+                {store.migrating ? 'Procesando…' : 'Deduplicar personas'}
+              </Button>
+            </div>
+
+            {#if store.dedupResult}
+              <Separator />
+              <div class="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+                <div class="text-sm font-semibold">Deduplicación completada</div>
+                <ul class="mt-2 ml-4 list-disc text-sm text-muted-foreground">
+                  <li>Duplicados encontrados: <strong>{store.dedupResult.duplicatesFound}</strong></li>
+                  <li>Campos fusionados: <strong>{store.dedupResult.merged}</strong></li>
+                  <li>Personas eliminadas: <strong>{store.dedupResult.removed}</strong></li>
+                </ul>
+              </div>
+            {/if}
+
+            {#if store.repairResult}
+              <Separator />
+              <div class="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+                <div class="text-sm font-semibold">Schema reparado</div>
+                <ul class="mt-2 ml-4 list-disc text-sm text-muted-foreground">
+                  <li>Tablas creadas: <strong>{store.repairResult.created}</strong></li>
+                  <li>Columnas agregadas: <strong>{store.repairResult.addedColumns}</strong></li>
+                  <li>Refs corregidas: <strong>{store.repairResult.repairedRefs}</strong></li>
+                </ul>
+              </div>
+            {/if}
+          </Card.Content>
+        </Card.Root>
+      {:else if store.status.missing.length > 0}
         <Card.Root class="border-destructive/40">
           <Card.Content class="flex flex-col gap-4 pt-6">
             <div class="flex items-center gap-2">
@@ -291,13 +256,45 @@
               <span class="text-sm font-semibold">Faltan tablas para que la app funcione</span>
             </div>
             <ul class="ml-4 list-disc text-sm text-muted-foreground">
-              {#each status.missing as t (t.key)}
+              {#each store.status.missing as t (t.key)}
                 <li>{t.label} (<span class="font-mono">{t.tableId}</span>)</li>
               {/each}
             </ul>
             <div class="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onclick={check} disabled={creating}>Reintentar</Button>
-              <Button size="sm" onclick={initAppCoop} disabled={creating}>Instalar plantilla AppCoop</Button>
+              <Button variant="outline" size="sm" onclick={store.check} disabled={store.creating}>Reintentar</Button>
+            </div>
+          </Card.Content>
+        </Card.Root>
+      {:else}
+        <Card.Root class="border-destructive/40">
+          <Card.Content class="flex flex-col gap-4 pt-6">
+            <div class="flex items-center gap-2">
+              <AlertTriangleIcon class="size-5 text-destructive" />
+              <span class="text-sm font-semibold">Hay diferencias con el schema</span>
+            </div>
+            {#if store.status.schemaDiff?.missingTables?.length}
+              <div>
+                <p class="text-sm font-medium mb-1">Tablas faltantes:</p>
+                <ul class="ml-4 list-disc text-sm text-muted-foreground">
+                  {#each store.status.schemaDiff.missingTables as t (t.id)}
+                    <li><span class="font-mono">{t.id}</span></li>
+                  {/each}
+                </ul>
+              </div>
+            {/if}
+            {#if store.status.schemaDiff?.missingColumns?.length}
+              <div>
+                <p class="text-sm font-medium mb-1">Columnas faltantes:</p>
+                <ul class="ml-4 list-disc text-sm text-muted-foreground">
+                  {#each store.status.schemaDiff.missingColumns as it (it.tableId)}
+                    <li><span class="font-mono">{it.tableId}</span>: {it.columns.map((c) => c.id).join(', ')}</li>
+                  {/each}
+                </ul>
+              </div>
+            {/if}
+            <div class="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onclick={store.check} disabled={store.creating}>Revalidar</Button>
+              <Button size="sm" onclick={store.repairSchema} disabled={store.creating}>Reparar schema</Button>
             </div>
           </Card.Content>
         </Card.Root>
@@ -320,5 +317,5 @@
     </Card.Root>
   {/if}
 
-  <MessageBanner error={error} />
+  <MessageBanner error={store.error} />
 </div>
