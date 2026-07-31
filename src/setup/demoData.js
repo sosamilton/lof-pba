@@ -2,11 +2,10 @@
 // Consumidos por SetupStore.fillDemoData() para precargar la UI de cada paso.
 
 export const DEMO_MODULES = {
-  gestion_completa: true,
-  kiosco: false,
-  tesoreria: false,
-  gobierno: true,
-  reportes: false
+  solo_pia: false,
+  gestion_integral: true,
+  gestion_etapas: false,
+  kiosco: false
 }
 
 export const DEMO_ESC_COOP = {

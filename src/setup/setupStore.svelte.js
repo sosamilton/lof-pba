@@ -28,7 +28,7 @@ import { DEMO_MODULES, DEMO_ESC_COOP, DEMO_BANCO, DEMO_KIOSCO, DEMO_EJERCICIO } 
 const CUENTAS_OPCIONES = ['Banco', 'Efectivo', 'Caja Chica']
 const currentYear = new Date().getFullYear()
 
-/** @typedef {'gestion_completa' | 'kiosco' | 'tesoreria' | 'gobierno' | 'reportes'} ModuleKey */
+/** @typedef {'solo_pia' | 'gestion_integral' | 'gestion_etapas' | 'kiosco'} ModuleKey */
 /** @typedef {'CD' | 'CRC' | 'Federacion'} Organismo */
 
 /**
@@ -73,11 +73,10 @@ export class SetupStore {
   existingTables = $state(/** @type {string[]} */ ([]))
 
   selectedModules = $state(/** @type {Record<ModuleKey, boolean>} */ ({
-    gestion_completa: true,
-    kiosco: false,
-    tesoreria: true,
-    gobierno: true,
-    reportes: true
+    solo_pia: false,
+    gestion_integral: true,
+    gestion_etapas: false,
+    kiosco: false
   }))
 
   schoolData = $state({
@@ -139,16 +138,15 @@ export class SetupStore {
   }
 
   toggleModule(/** @type {ModuleKey} */ key) {
-    if (key === 'gestion_completa') {
-      const newVal = !this.selectedModules.gestion_completa
-      this.selectedModules.gestion_completa = newVal
-      if (newVal) {
-        this.selectedModules.tesoreria = true
-        this.selectedModules.gobierno = true
-        this.selectedModules.reportes = true
-      }
-    } else {
+    const mod = MODULES[key]
+    if (!mod?.implemented) return
+    if (mod?.optional) {
       this.selectedModules[key] = !this.selectedModules[key]
+    } else {
+      for (const k of /** @type {ModuleKey[]} */ (Object.keys(MODULES))) {
+        if (!MODULES[k]?.optional) this.selectedModules[k] = false
+      }
+      this.selectedModules[key] = true
     }
   }
 
@@ -378,7 +376,7 @@ export class SetupStore {
   }
 
   canNext() {
-    if (this.step === 0) return this.selectedModuleKeys.length > 0
+    if (this.step === 0) return this.selectedModuleKeys.some((k) => !MODULES[k]?.optional)
     if (this.step === 1) return !this.hasFieldErrors()
     if (this.step === 2) {
       const cbuDigits = this.banco.cbu.replace(/\D/g, '')
@@ -419,6 +417,10 @@ export class SetupStore {
           const cueDigits = this.schoolData.cue.replace(/\D/g, '')
           const cuitDigits = this.schoolData.cuit.replace(/\D/g, '')
           const telStored = normalizeTelefonoNationalForStorage(this.schoolData.telefono)
+          const escuelaValidada = Boolean(
+            String(this.schoolData.escuela_nombre || '').trim() &&
+            cueDigits && isValidCue(cueDigits)
+          )
           await applyUserActions([['AddRecord', tEscuela, null, {
             escuela_nombre: this.schoolData.escuela_nombre || '',
             escuela_numero: this.schoolData.escuela_numero || '',
@@ -428,7 +430,8 @@ export class SetupStore {
             domicilio: this.schoolData.domicilio || '',
             localidad: this.schoolData.localidad || '',
             email_cooperadora: normalizeEmail(this.schoolData.email) || '',
-            telefono_cooperadora: telStored || ''
+            telefono_cooperadora: telStored || '',
+            datos_validados: escuelaValidada
           }]])
         }
       }
@@ -439,13 +442,15 @@ export class SetupStore {
         try { existingBanco = await fetchRecords(tBanco) } catch { /* empty */ }
         if (existingBanco.length === 0) {
           const cbuDigits = this.banco.cbu.replace(/\D/g, '')
+          const bancoValidado = Boolean(cbuDigits && isValidCbuChecksum(cbuDigits))
           await applyUserActions([['AddRecord', tBanco, null, {
             entidad: this.banco.entidad,
             tipo_cuenta: this.banco.tipo_cuenta,
             sucursal: this.banco.sucursal || '',
             cuenta_corriente: this.banco.cuenta_corriente || '',
             cbu: cbuDigits || '',
-            vigente_desde: new Date().toISOString().slice(0, 10)
+            vigente_desde: new Date().toISOString().slice(0, 10),
+            banco_validado: bancoValidado
           }]])
         }
       }
@@ -492,9 +497,10 @@ export class SetupStore {
         fecha_instalacion: new Date().toISOString()
       })
 
-      const needsEjercicioCargos = this.selectedModules.gestion_completa || this.selectedModules.tesoreria || this.selectedModules.gobierno
+      const needsEjercicio = this.selectedModules.gestion_integral || this.selectedModules.solo_pia
+      const needsCargos = this.selectedModules.gestion_integral
 
-      if (needsEjercicioCargos) {
+      if (needsEjercicio) {
         const tEjercicios = await resolveTableId(TABLE_PREFERRED_IDS.ejercicios)
         if (tEjercicios) {
           let existingEj = []
@@ -512,7 +518,9 @@ export class SetupStore {
             }]])
           }
         }
+      }
 
+      if (needsCargos) {
         const tCargos = await resolveTableId(TABLE_PREFERRED_IDS.cargos)
         if (tCargos) {
           let existingCargos = []
@@ -530,11 +538,17 @@ export class SetupStore {
             await addRecords(tCargos, records)
           }
         }
+      }
 
-        await initDemoData([
-          { tableId: await resolveTableId(TABLE_PREFERRED_IDS.cuentas), seedName: 'cuentas', batchSize: 50 },
-          { tableId: await resolveTableId(TABLE_PREFERRED_IDS.rubros_pia), seedName: 'rubros_pia', batchSize: 100 }
-        ])
+      const seeds = []
+      if (this.selectedModules.gestion_integral) {
+        seeds.push({ tableId: await resolveTableId(TABLE_PREFERRED_IDS.cuentas), seedName: 'cuentas', batchSize: 50 })
+      }
+      if (needsEjercicio) {
+        seeds.push({ tableId: await resolveTableId(TABLE_PREFERRED_IDS.rubros_pia), seedName: 'rubros_pia', batchSize: 100 })
+      }
+      if (seeds.length > 0) {
+        await initDemoData(seeds)
       }
 
       invalidateTablesCache()

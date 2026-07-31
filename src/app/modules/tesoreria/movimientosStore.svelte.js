@@ -306,7 +306,7 @@ export const movimientosStore = extendStore(base, {
   setQ: (v) => { q = v },
   setTipo: (v) => { tipo = v },
   setListOpen: (v) => { listOpen = v },
-  setUserName: (v) => { userName = v },
+  // userName is hardcoded to 'SPA' — will be managed via access control later
   loadAll,
   select,
   nuevo,

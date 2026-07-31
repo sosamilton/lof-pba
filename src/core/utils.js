@@ -121,65 +121,66 @@ export const TABLE_PREFERRED_IDS = {
 }
 
 export const MODULES = {
-  gestion_completa: {
-    label: 'Gestión completa',
-    description: 'Socios, movimientos, asambleas y autoridades, y reportes',
-    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asambleas', 'resoluciones', 'cuentas', 'rubros_pia', 'subrubros', 'movimientos', 'configuracion'],
+  solo_pia: {
+    label: 'Solo PIA / Nómina',
+    description: 'Simplificá la generación de planillas PIA y nómina de socios. Carga personas y socios, y generá los reportes cuando los necesites.',
+    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'rubros_pia', 'planillas_generadas', 'configuracion'],
+    menuItems: [
+      { route: 'inicio', label: 'Inicio' },
+      { route: 'socios', label: 'Socios' },
+      { route: 'personas', label: 'Personas' }
+    ],
+    implemented: true
+  },
+  gestion_integral: {
+    label: 'Gestión integral',
+    description: 'Registrá gastos, movimientos, socios, asambleas y autoridades. Generá reportes PIA y nómina automáticamente.',
+    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asambleas', 'resoluciones', 'cuentas', 'rubros_pia', 'subrubros', 'movimientos', 'configuracion', 'planillas_generadas', 'cierres_mensuales'],
     menuItems: [
       { route: 'inicio', label: 'Inicio' },
       { route: 'cooperadora', label: 'Cooperadora' },
       { route: 'socios', label: 'Socios' },
       { route: 'movimientos', label: 'Movimientos' },
-      { route: 'gobierno', label: 'Asambleas y Autoridades' }
-    ]
+      { route: 'gobierno', label: 'Asambleas y Autoridades' },
+      { route: 'personas', label: 'Personas' }
+    ],
+    implemented: true
+  },
+  gestion_etapas: {
+    label: 'Gestión por etapas',
+    description: 'Carga consolidada por período (semanal, mensual, bimestral o semestral). Próximamente.',
+    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'rubros_pia', 'planillas_generadas', 'configuracion'],
+    menuItems: [
+      { route: 'inicio', label: 'Inicio' },
+      { route: 'socios', label: 'Socios' },
+      { route: 'personas', label: 'Personas' }
+    ],
+    implemented: false
   },
   kiosco: {
     label: 'Kiosco / Librería',
     description: 'Gestión de kiosco o librería escolar',
     tables: ['kiosco_libreria'],
-    menuItems: []
-  },
-  tesoreria: {
-    label: 'Tesorería',
-    description: 'Movimientos, cuentas y cierres mensuales',
-    tables: ['movimientos', 'cuentas', 'rubros_pia', 'subrubros', 'cierres_mensuales', 'socios', 'ejercicios'],
-    menuItems: [
-      { route: 'movimientos', label: 'Movimientos' }
-    ]
-  },
-  gobierno: {
-    label: 'Asambleas y Autoridades',
-    description: 'Asambleas, reuniones de CD, autoridades y mandatos',
-    tables: ['cargos', 'autoridades', 'asambleas', 'resoluciones'],
-    menuItems: [
-      { route: 'gobierno', label: 'Asambleas y Autoridades' }
-    ]
-  },
-  reportes: {
-    label: 'Reportes PIA / Nómina',
-    description: 'Generación de planillas PIA y nómina de socios',
-    tables: ['planillas_generadas'],
-    menuItems: []
+    menuItems: [],
+    implemented: true,
+    optional: true
   }
 }
 
 export const getActiveMenuItems = (config) => {
   if (!config) return [{ route: 'inicio', label: 'Inicio' }]
   const items = [{ route: 'inicio', label: 'Inicio' }]
-  if (config.modulo_gestion_completa || config.modulo_tesoreria) {
+
+  if (config.modulo_gestion_integral) {
     items.push({ route: 'cooperadora', label: 'Cooperadora' })
-  }
-  if (config.modulo_gestion_completa || config.modulo_tesoreria) {
     items.push({ route: 'movimientos', label: 'Movimientos' })
-  }
-  if (config.modulo_gestion_completa || config.modulo_gobierno) {
     items.push({ route: 'gobierno', label: 'Asambleas y Autoridades' })
-  }
-  if (config.modulo_gestion_completa || config.modulo_tesoreria) {
     items.push({ route: 'socios', label: 'Socios' })
-  }
-  if (config.modulo_gestion_completa || config.modulo_tesoreria || config.modulo_gobierno) {
+    items.push({ route: 'personas', label: 'Personas' })
+  } else if (config.modulo_solo_pia || config.modulo_gestion_etapas) {
+    items.push({ route: 'socios', label: 'Socios' })
     items.push({ route: 'personas', label: 'Personas' })
   }
+
   return items
 }
