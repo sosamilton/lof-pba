@@ -12,9 +12,11 @@
   import BuildingIcon from '@lucide/svelte/icons/building'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import GavelIcon from '@lucide/svelte/icons/gavel'
+  import RocketIcon from '@lucide/svelte/icons/rocket'
   import CodeXmlIcon from '@lucide/svelte/icons/code-xml'
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link'
   import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
+  import ImageIcon from '@lucide/svelte/icons/image'
   import MapPinIcon from '@lucide/svelte/icons/map-pin'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
   import data from './landing.json'
@@ -29,9 +31,10 @@
     building: BuildingIcon,
     'arrow-left-right': ArrowLeftRightIcon,
     gavel: GavelIcon,
+    rocket: RocketIcon,
   }
 
-  let { identidad, principios, funciones, instalacion, roadmap } = data
+  let { identidad, principios, funciones, capturas, instalacion, roadmap } = data
   const enlaces = identidad.enlaces
 
   const roadmapGroups = {
@@ -51,6 +54,7 @@
   <nav class="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
     <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
       <div class="flex items-center gap-2">
+        <img src="./logo.svg" alt="{identidad.nombre}" class="size-7" />
         <span class="text-lg font-bold tracking-tight">{identidad.nombre}</span>
         <Badge variant="secondary" class="hidden sm:inline-flex">{identidad.ubicacion}</Badge>
       </div>
@@ -73,6 +77,7 @@
     <div class="relative mx-auto max-w-5xl px-4 py-12 sm:py-16">
       <div class="flex flex-col gap-6">
         <div class="flex flex-col gap-3">
+          <img src="./logo.svg" alt="{identidad.nombre}" class="size-16" />
           <Badge class="w-fit" variant="outline">
             <MapPinIcon data-icon="inline-start" />
             {identidad.ubicacion}
@@ -177,6 +182,37 @@
   </section>
 
   <Separator />
+
+  <!-- CAPTURAS -->
+  {#if capturas?.items?.length > 0}
+    <section class="mx-auto max-w-5xl px-4 py-12">
+      <div class="flex flex-col gap-2 mb-6">
+        <h2 class="text-2xl font-bold tracking-tight">{capturas.titulo}</h2>
+        <p class="text-sm text-muted-foreground max-w-prose">{capturas.subtitulo}</p>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        {#each capturas.items as captura}
+          <Card.Root class="overflow-hidden">
+            <div class="aspect-video bg-muted flex items-center justify-center">
+              {#if captura.imagen}
+                <img src={captura.imagen} alt={captura.titulo} class="w-full h-full object-cover" />
+              {:else}
+                <ImageIcon class="size-12 text-muted-foreground/40" />
+              {/if}
+            </div>
+            <Card.Header>
+              <Card.Title class="text-sm">{captura.titulo}</Card.Title>
+              {#if captura.descripcion}
+                <Card.Description>{captura.descripcion}</Card.Description>
+              {/if}
+            </Card.Header>
+          </Card.Root>
+        {/each}
+      </div>
+    </section>
+
+    <Separator />
+  {/if}
 
   <!-- INSTALACIÓN -->
   <section class="mx-auto max-w-5xl px-4 py-12">
