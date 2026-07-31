@@ -14,7 +14,7 @@
   import Socios from '$app/modules/comunidad/Socios.svelte'
   import Personas from '$app/modules/comunidad/Personas.svelte'
   import Movimientos from '$app/modules/tesoreria/Movimientos.svelte'
-  import Gobierno from '$app/modules/gobierno/Gobierno.svelte'
+  import Gobierno from '$app/modules/gobierno/AsambleasAutoridades.svelte'
 
   let ready = $state(false)
   let gristStatus = $state('none')
@@ -65,7 +65,7 @@
 {#if !ready}
   <div class="flex items-center justify-center min-h-screen">
     <div class="flex flex-col items-center gap-3">
-      <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+      <div class="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
       <p class="text-sm text-muted-foreground">Cargando…</p>
     </div>
   </div>

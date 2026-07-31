@@ -2,7 +2,7 @@ import { searchPersonas } from '$core/personas.js'
 
 /**
  * Composable reutilizable para búsqueda de personas con debounce.
- * Unifica la lógica duplicada en sociosStore, gobiernoStore y PersonaSearch.
+ * Unifica la lógica de búsqueda de personas en sociosStore y asambleasAutoridadesStore.
  *
  * @param {object} opts
  * @param {number} opts.minChars - Mínimo de caracteres para buscar (default 2)
