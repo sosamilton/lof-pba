@@ -32,11 +32,11 @@ ComunidadCoop es una SPA construida con **Svelte 5** que funciona como *Custom W
 
 ## Características
 
-- **Setup guiado** — wizard paso a paso con formateo en vivo de CUIT/CUE/teléfono/email/CBU, configuración de banco y kiosco, cargos del estatuto al mínimo legal, y color de marca de la cooperadora como tema de la app.
-- **Socios** — alta, edición y baja con búsqueda instantánea por apellido, DNI, CUIL, email o teléfono. Categoría de vínculo (socio, docente, directivo, proveedor, donante).
+- **Setup guiado** — wizard paso a paso con formateo en vivo de CUIT/CUE/teléfono/email/CBU, tres modos de gestión (solo PIA/nómina, gestión integral o por etapas), cargos del estatuto al mínimo legal, color de marca como tema de la app, y validación/bloqueo de datos institucionales y bancarios.
+- **Socios** — alta, edición y baja con búsqueda instantánea por apellido, DNI, CUIL, email o teléfono. Categoría de vínculo (socio, docente, directivo, proveedor, donante). Validación de mayoría de edad y habilitación electoral automática (activo + 30 días de antigüedad).
 - **Personas** — tabla unificada que vincula socios, autoridades, docentes y directivos sin duplicar datos.
-- **Movimientos** — entradas, salidas y traspasos con rubro/subrubro según PIA, destino bancario, socio asociado, y combobox con búsqueda para listas grandes.
-- **Gobierno** — comisión directiva y asambleas vinculadas al ejercicio. Inicializar comisión desde los cargos, registrar autoridades con vencimiento de mandato, gestionar ceses y reemplazos, historial completo, crear y editar asambleas con resoluciones.
+- **Movimientos** — entradas, salidas y traspasos con rubro/subrubro según PIA, destino bancario, socio asociado, y combobox con búsqueda para listas grandes. Dashboard con métricas de socios activos, altas/bajas y vencimientos próximos.
+- **Gobierno** — comisión directiva y asambleas vinculadas al ejercicio. Inicializar comisión desde los cargos, registrar autoridades con vencimiento de mandato, gestionar ceses y reemplazos, historial completo, crear y editar asambleas con resoluciones. Padrón electoral automático según estatuto modelo.
 - **100% offline** — sin dependencias externas. Todos los recursos bundleados localmente.
 - **Tema dinámico** — la app toma el color de marca de cada cooperadora como tema primario. Título de pestaña dinámico con el nombre de la institución.
 
