@@ -218,6 +218,12 @@
                 <Input id="email" type="email" bind:value={store.form.email} oninput={store.onEmailInput} aria-invalid={Boolean(store.emailWarning)} placeholder="nombre@ejemplo.com" inputmode="email" />
                 {#if store.emailWarning}<Field.FieldError>{store.emailWarning}</Field.FieldError>{/if}
               </Field.Field>
+              {#if store.form.tipo_persona !== 'Juridica'}
+                <Field.Field>
+                  <Field.FieldLabel for="fecha-nacimiento">Fecha de nacimiento</Field.FieldLabel>
+                  <Input id="fecha-nacimiento" type="date" bind:value={store.form.fecha_nacimiento} />
+                </Field.Field>
+              {/if}
             </Field.FieldGroup>
 
             <div class="flex gap-2">

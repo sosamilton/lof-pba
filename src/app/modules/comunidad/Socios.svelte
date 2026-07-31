@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte'
   import { sociosStore as store } from './sociosStore.svelte'
-  import { normalize, TIPOS_SOCIO, MOTIVOS_BAJA } from '$core/utils'
+  import { normalize, TIPOS_SOCIO, MOTIVOS_BAJA, daysSince, isAdult } from '$core/utils'
   import { personaLabel, isDniQuery, buildPrefill, localidadesItems } from '$core/personas'
   import { notifyAfter } from '$core/notify.svelte'
   import { Button } from '$lib/components/ui/button'
@@ -25,6 +25,7 @@
   let tipo = $state('')
 
   const isActivo = (/** @type {any} */ s) => !s.fecha_baja
+  const isElectoral = (/** @type {any} */ s) => s.tipo_socio === 'Activo' && !s.fecha_baja && (daysSince(s.fecha_alta) ?? 0) >= 30
 
   let filtered = $derived(
     store.records
@@ -116,6 +117,9 @@
               {:else}
                 <Badge variant="outline" class="mr-1 text-[10px]">Baja</Badge>
               {/if}
+              {#if s.tipo_socio && s.tipo_socio !== 'Activo'}
+                <Badge variant="outline" class="mr-1 text-[10px] text-muted-foreground">Sin voto</Badge>
+              {/if}
               DNI {s.dni || '-'} · {s.localidad || ''}
             </div>
           </button>
@@ -188,6 +192,11 @@
                   </Select.Content>
                 </Select.Root>
               </Field.Field>
+              <Field.Field data-invalid={Boolean(store.edadWarning)}>
+                <Field.FieldLabel for="fecha-nacimiento">Fecha de nacimiento</Field.FieldLabel>
+                <Input id="fecha-nacimiento" type="date" bind:value={store.form.fecha_nacimiento} oninput={store.onFechaNacimientoInput} aria-invalid={Boolean(store.edadWarning)} />
+                {#if store.edadWarning}<Field.FieldError>{store.edadWarning}</Field.FieldError>{/if}
+              </Field.Field>
               <Field.Field>
                 <Field.FieldLabel for="fecha-alta">Fecha alta</Field.FieldLabel>
                 <Input id="fecha-alta" type="date" bind:value={store.form.fecha_alta} />
@@ -229,6 +238,24 @@
                 </Field.Field>
               {/if}
             </Field.FieldGroup>
+
+            {#if store.form.id && store.form.tipo_socio === 'Activo' && !store.form.fecha_baja}
+              {#if (daysSince(store.form.fecha_alta) ?? 0) < 30}
+                <Alert.Root>
+                  <Alert.Title>Antigüedad insuficiente para votar</Alert.Title>
+                  <Alert.Description>
+                    Faltan {30 - (daysSince(store.form.fecha_alta) ?? 0)} días para alcanzar los 30 días mínimos.
+                  </Alert.Description>
+                </Alert.Root>
+              {:else}
+                <Alert.Root>
+                  <Alert.Title>Habilitado electoralmente</Alert.Title>
+                  <Alert.Description>
+                    Socio activo con antigüedad ≥ 30 días.
+                  </Alert.Description>
+                </Alert.Root>
+              {/if}
+            {/if}
 
             {#if store.form.id && store.showBaja}
               <Alert.Root variant="destructive">
