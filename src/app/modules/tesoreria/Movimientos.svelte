@@ -224,6 +224,7 @@
                       items={filteredRubros.map((r) => ({ value: r.id, label: `${r.codigo_rubro} · ${r.nombre_oficial}` }))}
                       placeholder="Elegir…"
                       searchPlaceholder="Buscar rubro…"
+                      popoverWidth="100%"
                       class="mt-1"
                       onchange={store.onRubroChange}
                     />
