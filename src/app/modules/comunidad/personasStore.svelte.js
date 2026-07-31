@@ -12,6 +12,7 @@ import {
   formatCuil,
   formatTelefono,
 } from '$core/format.js'
+import { dateToInput } from '$core/utils.js'
 import { useFieldWarnings } from '$core/useFieldWarnings.svelte.js'
 
 const base = createGristStore({
@@ -47,6 +48,7 @@ const select = (p) => {
     localidad: p.localidad || '',
     telefono: formatTelefono(p.telefono || ''),
     email: p.email || '',
+    fecha_nacimiento: dateToInput(p.fecha_nacimiento),
     categoria: p.categoria || '',
   }
 }
@@ -65,6 +67,7 @@ const nuevo = (prefill = {}) => {
     localidad: '',
     telefono: '',
     email: '',
+    fecha_nacimiento: '',
     categoria: prefill.categoria || '',
   }
 }

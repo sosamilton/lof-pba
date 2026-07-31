@@ -1,6 +1,6 @@
 import { createGristStore, extendStore } from '$core/stores/gristStore.svelte.js'
 import { fetchRecords, resolveTableId, gristReady } from '$core/grist.js'
-import { dateToInput } from '$core/utils.js'
+import { dateToInput, isAdult, daysSince } from '$core/utils.js'
 import {
   findOrCreatePersona,
   findPersonaByDni,
@@ -36,6 +36,7 @@ let showBaja = $state(false)
 let listOpen = $state(true)
 const ps = usePersonaSearch()
 let linkedPersona = $state(null)
+let edadWarning = $state('')
 
 const fw = useFieldWarnings({ getForm: () => form })
 
@@ -46,6 +47,7 @@ const select = (s) => {
   linkedPersona = null
   fw.reset()
   ps.reset()
+  edadWarning = ''
   form = {
     id: s.id,
     persona_id: s.persona_id || null,
@@ -58,6 +60,7 @@ const select = (s) => {
     telefono: formatTelefono(s.telefono || ''),
     email: s.email || '',
     tipo_socio: s.tipo_socio || 'Activo',
+    fecha_nacimiento: dateToInput(s.fecha_nacimiento),
     fecha_alta: dateToInput(s.fecha_alta),
     fecha_baja: dateToInput(s.fecha_baja),
     motivo_baja: s.motivo_baja || '',
@@ -70,6 +73,7 @@ const nuevo = (prefill = {}) => {
   linkedPersona = null
   ps.reset()
   fw.reset()
+  edadWarning = ''
   form = {
     persona_id: null,
     dni: formatDni(prefill.dni || ''),
@@ -81,6 +85,7 @@ const nuevo = (prefill = {}) => {
     telefono: '',
     email: '',
     tipo_socio: 'Activo',
+    fecha_nacimiento: '',
     fecha_alta: new Date().toISOString().slice(0, 10),
     fecha_baja: '',
     motivo_baja: '',
@@ -109,6 +114,7 @@ const selectPersona = (p) => {
   form.localidad = p.localidad || form.localidad
   form.telefono = formatTelefono(p.telefono || form.telefono)
   form.email = p.email || form.email
+  form.fecha_nacimiento = dateToInput(p.fecha_nacimiento) || form.fecha_nacimiento
 }
 
 const cancelar = () => {
@@ -118,6 +124,7 @@ const cancelar = () => {
   linkedPersona = null
   ps.reset()
   fw.reset()
+  edadWarning = ''
 }
 
 const unlinkPersona = () => {
@@ -174,6 +181,19 @@ const onDniInput = () => {
   })
 }
 
+const onFechaNacimientoInput = () => {
+  if (!form.fecha_nacimiento) {
+    edadWarning = ''
+    return
+  }
+  const adult = isAdult(form.fecha_nacimiento)
+  if (adult === false) {
+    edadWarning = 'Menor de 18 años: no se puede registrar como socio sin validación expresa.'
+  } else {
+    edadWarning = ''
+  }
+}
+
 const saveSocio = async () => {
   base.clearMessages()
   if (fw.hasBlockingWarnings()) {
@@ -194,6 +214,10 @@ const saveSocio = async () => {
     base.setError('La fecha de baja no puede ser anterior a la fecha de alta.')
     return null
   }
+  if (form.fecha_nacimiento && isAdult(form.fecha_nacimiento) === false) {
+    base.setError('La persona es menor de 18 años. No se puede registrar como socio sin validación expresa de la autoridad.')
+    return null
+  }
 
   try {
     const personaData = {}
@@ -207,6 +231,7 @@ const saveSocio = async () => {
     if (form.localidad) personaData.localidad = form.localidad
     if (form.telefono) personaData.telefono = normalizeTelefono(form.telefono)
     if (form.email) personaData.email = normalizeEmailField(form.email)
+    if (form.fecha_nacimiento) personaData.fecha_nacimiento = form.fecha_nacimiento
 
     let personaId = form.persona_id
     if (!personaId && (personaData.dni || personaData.apellido || personaData.nombre)) {
@@ -265,6 +290,7 @@ export const sociosStore = extendStore(base, {
   set personaSearch(v) { ps.query = v },
   get personaResults() { return ps.results },
   get personaSearching() { return ps.searching },
+  get edadWarning() { return edadWarning },
   get linkedPersona() { return linkedPersona },
   get dniWarning() { return fw.dniWarning },
   get cuilWarning() { return fw.cuilWarning },
@@ -281,6 +307,7 @@ export const sociosStore = extendStore(base, {
   toggleBaja,
   reactivar,
   onDniInput,
+  onFechaNacimientoInput,
   onCuilInput: fw.onCuilInput,
   onTelefonoInput: fw.onTelefonoInput,
   onEmailInput: fw.onEmailInput,
