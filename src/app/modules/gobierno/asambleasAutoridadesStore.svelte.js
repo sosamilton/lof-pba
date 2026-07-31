@@ -169,19 +169,17 @@ const crearAgeYCargar = async () => {
       bs.setError('No se encontró la tabla asambleas. Ejecutá "Actualizar schema" en Inicio.')
       return
     }
-    const today = new Date().toISOString().slice(0, 10)
-    const fields = normalizeFields({
-      fecha: today,
-      tipo_asamblea: 'AGE',
-      acta_numero: '',
-      acta_fojas: '',
-      ejercicio_id: ejercicio.id,
-    })
-    const res = await applyUserActions([['AddRecord', tAsambleas, null, fields]])
-    const asambleaId = extractRowId(res)
-    bs.setNotice('Asamblea Extraordinaria creada. Cargá las autoridades electas.')
-    await loadAsambleas()
-    openCargarAutoridades(asambleaId)
+    // Si ya existe una AGE pendiente (sin acta) en el ejercicio, reutilizarla
+    const pendiente = asambleas.find(
+      (a) => a.tipo_asamblea === 'AGE' && (!a.acta_numero || String(a.acta_numero).trim() === ''),
+    )
+    if (pendiente) {
+      openCargarAutoridades(pendiente.id)
+      bs.setNotice('Ya existe una asamblea extraordinaria pendiente. Cargá las autoridades electas.')
+      return
+    }
+    // No crear la AGE todavía; se crea al guardar autoridades
+    openCargarAutoridades(null, { needsAgeCreation: true })
   } catch (e) {
     bs.setError(e?.message || String(e))
   } finally {
@@ -372,10 +370,10 @@ const saveAsamblea = async () => {
 }
 
 // ---- Cargar autoridades desde una asamblea (AGO/AGE) ----
-const openCargarAutoridades = (asambleaId) => {
-  const a = asambleas.find((x) => Number(x.id) === Number(asambleaId)) || null
+const openCargarAutoridades = (asambleaId, opts = {}) => {
+  const a = asambleaId ? asambleas.find((x) => Number(x.id) === Number(asambleaId)) || null : null
   const fecha = dateToInput(a?.fecha) || new Date().toISOString().slice(0, 10)
-  const tipo = a?.tipo_asamblea || 'AGO'
+  const tipo = a?.tipo_asamblea || 'AGE'
   const filas = cargos
     .filter((c) => String(c.organismo) === 'CD' && (c.activo === true || c.cargo_obligatorio === true))
     .sort((x, y) => Number(x.orden || 0) - Number(y.orden || 0))
@@ -401,7 +399,7 @@ const openCargarAutoridades = (asambleaId) => {
         yaExiste: Boolean(existente),
       }
     })
-  cargarDraft = { asambleaId, asambleaFecha: fecha, tipo, filas }
+  cargarDraft = { asambleaId, asambleaFecha: fecha, tipo, filas, needsAgeCreation: opts.needsAgeCreation || false }
 }
 
 const closeCargarAutoridades = () => {
@@ -427,7 +425,23 @@ const saveAutoridadesFromAsamblea = async () => {
   bs.setBusy(true)
   try {
     if (!cargarDraft) return
-    const { asambleaId, asambleaFecha, tipo, filas } = cargarDraft
+    const { asambleaFecha, tipo, filas, needsAgeCreation } = cargarDraft
+    let asambleaId = cargarDraft.asambleaId
+
+    // Si es una AGE nueva, crearla recién ahora (solo si hay autoridades para guardar)
+    if (needsAgeCreation && !asambleaId) {
+      const today = new Date().toISOString().slice(0, 10)
+      const ageFields = normalizeFields({
+        fecha: today,
+        tipo_asamblea: 'AGE',
+        acta_numero: '',
+        acta_fojas: '',
+        ejercicio_id: ejercicio.id,
+      })
+      const res = await applyUserActions([['AddRecord', tAsambleas, null, ageFields]])
+      asambleaId = extractRowId(res)
+    }
+
     const tipoOrigen = tipo === 'RCD' ? 'ReunionCD' : 'Asamblea'
     const actions = []
     for (const f of filas) {
@@ -466,6 +480,7 @@ const saveAutoridadesFromAsamblea = async () => {
     }
     await applyUserActions(actions)
     bs.setNotice(`${actions.length} autoridad(es) registradas.`)
+    await loadAsambleas()
     await loadAutoridades()
     closeCargarAutoridades()
   } catch (e) {
