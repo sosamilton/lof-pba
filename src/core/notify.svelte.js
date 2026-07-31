@@ -40,6 +40,21 @@ export async function withNotify(loadingMsg, fn, opts = {}) {
 }
 
 /**
+ * Helper para mostrar notificación después de un save del store.
+ * Reemplaza el patrón duplicado: await store.saveX(); if (store.error) notify.error(...); else if (store.notice) notify.success(...)
+ *
+ * @param {object} store - Store con .error y .notice
+ * @param {Function} fn - Función async del store (ej: store.savePersona)
+ * @returns {Promise<any>} Resultado de fn
+ */
+export async function notifyAfter(store, fn) {
+  const result = await fn.call(store)
+  if (store.error) notify.error(store.error)
+  else if (store.notice) notify.success(store.notice)
+  return result
+}
+
+/**
  * Estado global del sistema (loading, error, online/offline).
  * Útil para mostrar un indicador en el AppShell.
  */
