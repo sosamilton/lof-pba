@@ -3,21 +3,18 @@
   import { router, navigate } from '$core/router.svelte'
   import { configStore } from '$core/stores/configStore.svelte'
   import { getActiveMenuItems } from '$core/utils'
-  import { Button } from '$lib/components/ui/button'
+  import * as Sidebar from '$lib/components/ui/sidebar'
   import { Separator } from '$lib/components/ui/separator'
-  import * as Sheet from '$lib/components/ui/sheet'
-  import MenuIcon from '@lucide/svelte/icons/menu'
   import HomeIcon from '@lucide/svelte/icons/home'
   import UsersIcon from '@lucide/svelte/icons/users'
   import ContactIcon from '@lucide/svelte/icons/contact'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import GavelIcon from '@lucide/svelte/icons/gavel'
   import SettingsIcon from '@lucide/svelte/icons/settings'
+  import BuildingIcon from '@lucide/svelte/icons/building-2'
 
   let { title = 'AppCoop', children } = $props()
 
-  let drawerOpen = $state(false)
-  let isSmall = $state(false)
   let menuItems = $state([{ route: 'inicio', label: 'Inicio' }])
   let brandTitle = $state(title)
   let brandSub = $state('Demo cooperadora')
@@ -31,27 +28,15 @@
     cooperadora: SettingsIcon,
   }
 
-  const syncSmall = () => {
-    isSmall = window.matchMedia('(max-width: 860px)').matches
-    if (!isSmall) drawerOpen = false
-  }
-
-  const go = (r) => {
-    navigate(r)
-    drawerOpen = false
-  }
+  const go = (r) => navigate(r)
 
   onMount(async () => {
-    syncSmall()
-    const onResize = () => syncSmall()
-    window.addEventListener('resize', onResize)
     try {
       const config = await configStore.load()
       if (config) {
         menuItems = getActiveMenuItems(config)
         if (config.cooperadora_nombre) brandTitle = config.cooperadora_nombre
         if (config.escuela_nombre) brandSub = config.escuela_nombre
-        // Actualizar el título de la pestaña del navegador
         if (config.cooperadora_nombre) {
           document.title = `${config.cooperadora_nombre} · AppCoop`
         }
@@ -59,71 +44,62 @@
     } catch {
       // keep defaults
     }
-    return () => window.removeEventListener('resize', onResize)
   })
 </script>
 
-<div class="grid min-h-screen bg-background text-foreground" style="grid-template-columns: {isSmall ? '1fr' : '260px 1fr'}">
-  {#if isSmall}
-    <div class="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-background/80 px-4 py-3 backdrop-blur-sm">
-      <Button variant="ghost" size="icon" aria-label="Abrir menú" onclick={() => (drawerOpen = true)}>
-        <MenuIcon class="size-5" />
-      </Button>
-      <span class="text-sm font-bold">{brandTitle}</span>
-    </div>
-  {/if}
+<Sidebar.Provider>
+  <Sidebar.Root collapsible="icon">
+    <Sidebar.Header>
+      <Sidebar.Menu>
+        <Sidebar.MenuItem>
+          <Sidebar.MenuButton size="lg" onclick={() => go('inicio')}>
+            <div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+              <BuildingIcon class="size-4" />
+            </div>
+            <div class="flex flex-col gap-0.5 leading-none">
+              <span class="text-sm font-bold truncate">{brandTitle}</span>
+              <span class="text-xs text-muted-foreground truncate">{brandSub}</span>
+            </div>
+          </Sidebar.MenuButton>
+        </Sidebar.MenuItem>
+      </Sidebar.Menu>
+    </Sidebar.Header>
+    <Sidebar.Separator />
+    <Sidebar.Content>
+      <Sidebar.Group>
+        <Sidebar.GroupLabel>Navegación</Sidebar.GroupLabel>
+        <Sidebar.GroupContent>
+          <Sidebar.Menu>
+            {#each menuItems as item (item.route)}
+              {@const Icon = iconMap[item.route]}
+              <Sidebar.MenuItem>
+                <Sidebar.MenuButton
+                  isActive={router.current === item.route}
+                  tooltipContent={item.label}
+                  onclick={() => go(item.route)}
+                >
+                  {#if Icon}
+                    <Icon />
+                  {/if}
+                  <span>{item.label}</span>
+                </Sidebar.MenuButton>
+              </Sidebar.MenuItem>
+            {/each}
+          </Sidebar.Menu>
+        </Sidebar.GroupContent>
+      </Sidebar.Group>
+    </Sidebar.Content>
+    <Sidebar.Rail />
+  </Sidebar.Root>
 
-  {#if isSmall}
-    <Sheet.Root bind:open={drawerOpen}>
-      <Sheet.Content side="left" class="w-[280px] p-0">
-        <Sheet.Header class="px-4 py-3">
-          <Sheet.Title class="text-sm font-bold">{brandTitle}</Sheet.Title>
-          <Sheet.Description class="text-xs text-muted-foreground">{brandSub}</Sheet.Description>
-        </Sheet.Header>
-        <Separator />
-        <nav class="flex flex-col gap-1 p-3">
-          {#each menuItems as item (item.route)}
-            {@const Icon = iconMap[item.route]}
-            <button
-              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground {router.current === item.route ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground'}"
-              onclick={() => go(item.route)}
-            >
-              {#if Icon}
-                <Icon class="size-4 shrink-0" />
-              {/if}
-              {item.label}
-            </button>
-          {/each}
-        </nav>
-      </Sheet.Content>
-    </Sheet.Root>
-  {/if}
-
-  {#if !isSmall}
-    <aside class="sticky top-0 h-screen border-r border-border bg-card/50 p-3 overflow-y-auto">
-      <div class="mb-3 px-2">
-        <div class="text-sm font-bold">{brandTitle}</div>
-        <div class="text-xs text-muted-foreground">{brandSub}</div>
-      </div>
-      <Separator class="mb-3" />
-      <nav class="flex flex-col gap-1">
-        {#each menuItems as item (item.route)}
-          {@const Icon = iconMap[item.route]}
-          <button
-            class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground {router.current === item.route ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground'}"
-            onclick={() => go(item.route)}
-          >
-            {#if Icon}
-              <Icon class="size-4 shrink-0" />
-            {/if}
-            {item.label}
-          </button>
-        {/each}
-      </nav>
-    </aside>
-  {/if}
-
-  <main class="box-border p-4 sm:p-6">
-    {@render children()}
-  </main>
-</div>
+  <Sidebar.Inset>
+    <header class="flex h-16 shrink-0 items-center gap-3 border-b border-border px-4 transition-[width,height] ease-linear">
+      <Sidebar.Trigger />
+      <Separator />
+      <span class="text-sm font-semibold truncate">{brandTitle}</span>
+    </header>
+    <main class="box-border flex-1 p-4 sm:p-6">
+      {@render children()}
+    </main>
+  </Sidebar.Inset>
+</Sidebar.Provider>
