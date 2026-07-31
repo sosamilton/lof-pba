@@ -79,8 +79,10 @@ const STYLE_ID = 'appcoop-brand-theme'
 /**
  * @param {string} primary
  * @param {string} fg
+ * @param {string} sidebarAccent
+ * @param {string} sidebarAccentFg
  */
-function varsBlock(primary, fg) {
+function varsBlock(primary, fg, sidebarAccent, sidebarAccentFg) {
   return `
   --primary: ${primary};
   --primary-foreground: ${fg};
@@ -88,7 +90,9 @@ function varsBlock(primary, fg) {
   --chart-1: ${primary};
   --sidebar-primary: ${primary};
   --sidebar-primary-foreground: ${fg};
-  --sidebar-ring: ${primary};`
+  --sidebar-ring: ${primary};
+  --sidebar-accent: ${sidebarAccent};
+  --sidebar-accent-foreground: ${sidebarAccentFg};`
 }
 
 /**
@@ -113,13 +117,21 @@ export function applyBrandTheme(colorPrimario) {
   const darkL = Math.min(0.82, Math.max(0.6, ok.L + 0.12))
   const darkHex = oklchToHex({ L: darkL, C: ok.C, H: ok.H })
 
+  // Sidebar accent: tinte suave del color de marca para hover/active.
+  // Light: fondo claro + foreground oscuro del mismo hue.
+  const lightAccent = `oklch(0.92 ${Math.min(0.06, ok.C * 0.4)} ${ok.H})`
+  const lightAccentFg = `oklch(0.35 ${ok.C} ${ok.H})`
+  // Dark: fondo oscuro + foreground claro del mismo hue.
+  const darkAccent = `oklch(0.28 ${Math.min(0.08, ok.C * 0.5)} ${ok.H})`
+  const darkAccentFg = `oklch(0.85 ${Math.min(0.06, ok.C * 0.5)} ${ok.H})`
+
   const css = `
-:root {${varsBlock(lightHex, foregroundFor(lightHex))}
+:root {${varsBlock(lightHex, foregroundFor(lightHex), lightAccent, lightAccentFg)}
 }
-.dark {${varsBlock(darkHex, foregroundFor(darkHex))}
+.dark {${varsBlock(darkHex, foregroundFor(darkHex), darkAccent, darkAccentFg)}
 }
 @media (prefers-color-scheme: dark) {
-  :root:not(.light) {${varsBlock(darkHex, foregroundFor(darkHex))}
+  :root:not(.light) {${varsBlock(darkHex, foregroundFor(darkHex), darkAccent, darkAccentFg)}
   }
 }`
 

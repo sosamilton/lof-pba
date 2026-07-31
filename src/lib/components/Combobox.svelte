@@ -73,9 +73,9 @@
             {#each filtered as item (item.value)}
               <Command.Item
                 onSelect={() => select(item.value)}
-                class="flex items-center gap-2"
+                class="flex items-center gap-2 {String(item.value) === String(value) ? 'text-primary font-medium' : ''}"
               >
-                <CheckIcon class="size-4 shrink-0 {String(item.value) === String(value) ? 'opacity-100' : 'opacity-0'}" />
+                <CheckIcon class="size-4 shrink-0 {String(item.value) === String(value) ? 'opacity-100 text-primary' : 'opacity-0'}" />
                 <span class="flex-1 truncate">{item.label}</span>
                 {#if item.badges}
                   <span class="flex shrink-0 gap-1">

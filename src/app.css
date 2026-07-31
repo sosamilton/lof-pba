@@ -177,3 +177,9 @@ body {
   color-scheme: light dark;
 }
 
+[data-slot="checkbox"][data-state="checked"] {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
