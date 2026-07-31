@@ -47,23 +47,25 @@
   ],
   "funciones": [
     {
-      "titulo": "Cooperadora",
-      "descripcion": "Datos de la escuela y la cooperadora, ejercicio en curso y cargos base.",
-      "icono": "building",
+      "titulo": "Setup guiado",
+      "descripcion": "Wizard paso a paso para configurar la cooperadora en minutos.",
+      "icono": "rocket",
       "items": [
-        "Configurar banco y kiosco/librería",
-        "Crear y activar ejercicios",
-        "Administrar cargos con duración en meses"
+        "Formateo en vivo de CUIT, CUE, teléfono, email y CBU",
+        "Configuración de banco, kiosco/librería y cuenta por defecto",
+        "Cargos del estatuto al mínimo legal + Federación opcional",
+        "Color de marca de la cooperadora como tema de la app"
       ]
     },
     {
-      "titulo": "Socios",
-      "descripcion": "Alta y edición con búsqueda rápida, sin fricción.",
+      "titulo": "Socios y Personas",
+      "descripcion": "Padrón de socios con tabla unificada de personas vinculadas.",
       "icono": "users",
       "items": [
-        "Buscar por apellido, DNI, CUIL, email o teléfono",
-        "Alta rápida y edición de datos",
-        "Baja como acción explícita y transparente"
+        "Búsqueda instantánea por apellido, DNI, CUIL, email o teléfono",
+        "Alta, edición y baja como acción explícita y transparente",
+        "Categoría de vínculo: socio, docente, directivo, proveedor, donante",
+        "Tabla única que vincula socios, autoridades y directivos sin duplicar"
       ]
     },
     {
@@ -73,7 +75,8 @@
       "items": [
         "Rubro y subrubro según PIA",
         "Destino bancario cuando corresponde",
-        "Asociar socio de forma opcional"
+        "Asociar socio o persona de forma opcional",
+        "Combobox con umbral de búsqueda para listas grandes"
       ]
     },
     {
@@ -81,12 +84,18 @@
       "descripcion": "Comisión directiva y asambleas vinculadas al ejercicio.",
       "icono": "gavel",
       "items": [
-        "Inicializar comisión desde los cargos",
-        "Registrar autoridades y vencimiento de mandato",
+        "Inicializar comisión desde los cargos del estatuto",
+        "Registrar autoridades con vencimiento de mandato",
+        "Gestionar ceses y reemplazos con historial completo",
         "Crear y editar asambleas con resoluciones"
       ]
     }
   ],
+  "capturas": {
+    "titulo": "Capturas y demos",
+    "subtitulo": "Una mirada rápida a la app en acción.",
+    "items": []
+  },
   "instalacion": {
     "titulo": "Cómo se instala",
     "subtitulo": "En menos de 2 minutos, la app se integra a tu documento como una página más.",
@@ -101,7 +110,7 @@
       },
       {
         "titulo": "Pegar la URL",
-        "descripcion": "Usá la URL de GitHub Pages de esta SPA."
+        "descripcion": "Usá la URL de GitHub Pages de esta SPA o una URL local para uso offline."
       },
       {
         "titulo": "Dar permisos",
@@ -109,16 +118,11 @@
       },
       {
         "titulo": "Inicializar la plantilla",
-        "descripcion": "Desde Inicio, la app crea las tablas y carga los datos base si faltan."
+        "descripcion": "El wizard guía la configuración inicial: escuela, ejercicio, cargos, banco y kiosco."
       }
     ]
   },
   "roadmap": [
-    {
-      "estado": "proximo",
-      "titulo": "Personas unificadas",
-      "descripcion": "Tabla única para vincular socios, autoridades, docentes y directivos sin duplicar datos."
-    },
     {
       "estado": "proximo",
       "titulo": "Adjuntos y actas",
