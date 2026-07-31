@@ -2,8 +2,8 @@
   import { onMount } from 'svelte'
   import { personasStore as store } from './personasStore.svelte'
   import { normalize, CATEGORIAS_VINCULO } from '$core/utils'
-  import { personaLabel } from '$core/personas'
-  import { notify } from '$core/notify.svelte'
+  import { personaLabel, isDniQuery, buildPrefill, localidadesItems } from '$core/personas'
+  import { notifyAfter } from '$core/notify.svelte'
   import { Button } from '$lib/components/ui/button'
   import * as Card from '$lib/components/ui/card'
   import { Badge } from '$lib/components/ui/badge'
@@ -19,25 +19,10 @@
   import SearchIcon from '@lucide/svelte/icons/search'
   import UsersIcon from '@lucide/svelte/icons/users'
   import BuildingIcon from '@lucide/svelte/icons/building-2'
-  import localidadesBA from '$core/data/localidades-buenos-aires.json'
-
   let q = $state('')
   let tipoFilter = $state('')
 
-  // Items para el Combobox de localidades (884 localidades de PBA)
-  const localidadesItems = localidadesBA.map((nombre) => ({ value: nombre, label: nombre }))
-
   const isJuridica = (/** @type {any} */ p) => p.tipo_persona === 'Juridica'
-
-  const isDniQuery = (/** @type {string} */ str) => /^\d+$/.test(str.trim())
-  const buildPrefill = (/** @type {string} */ str) => {
-    const trimmed = str.trim()
-    if (!trimmed) return {}
-    if (isDniQuery(trimmed)) return { dni: trimmed }
-    const parts = trimmed.split(/\s+/)
-    if (parts.length >= 2) return { apellido: parts[0], nombre: parts.slice(1).join(' ') }
-    return { nombre: trimmed }
-  }
 
   let filtered = $derived(
     store.records
@@ -57,14 +42,10 @@
       })
   )
 
-  const handleSave = async () => {
-    await store.savePersona()
-    if (store.error) notify.error(store.error)
-    else if (store.notice) notify.success(store.notice)
-  }
+  const handleSave = () => notifyAfter(store, store.savePersona)
 
   onMount(() => {
-    const unsub = store.subscribe(() => {})
+    const unsub = store.subscribe()
     store.load()
     return unsub
   })

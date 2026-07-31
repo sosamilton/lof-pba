@@ -1,5 +1,6 @@
 import { applyUserActions, fetchRecords, resolveTableId, withMultiplayerProtection } from './grist'
 import { TABLE_PREFERRED_IDS } from './utils'
+import localidadesBA from './data/localidades-buenos-aires.json'
 import {
   parseDni as _parseDni,
   parseCuil as _parseCuil,
@@ -142,3 +143,16 @@ export const personaLabel = (p) =>
       ? p.razon_social
       : `${p.apellido || ''}, ${p.nombre || ''}`.replace(/^,\s*/, '') || '(sin nombre)'
     : '(sin nombre)'
+
+export const isDniQuery = (str) => /^\d+$/.test(str.trim())
+
+export const buildPrefill = (str) => {
+  const trimmed = str.trim()
+  if (!trimmed) return {}
+  if (isDniQuery(trimmed)) return { dni: trimmed }
+  const parts = trimmed.split(/\s+/)
+  if (parts.length >= 2) return { apellido: parts[0], nombre: parts.slice(1).join(' ') }
+  return { nombre: trimmed }
+}
+
+export const localidadesItems = localidadesBA.map((nombre) => ({ value: nombre, label: nombre }))
