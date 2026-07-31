@@ -102,6 +102,7 @@
         { "id": "localidad", "fields": { "label": "Localidad", "type": "Text" } },
         { "id": "telefono", "fields": { "label": "Telefono", "type": "Text" } },
         { "id": "email", "fields": { "label": "Email", "type": "Text" } },
+        { "id": "fecha_nacimiento", "fields": { "label": "Fecha de nacimiento", "type": "Date" } },
         {
           "id": "categoria",
           "fields": {
@@ -151,6 +152,15 @@
             "type": "Bool",
             "isFormula": true,
             "formula": "$fecha_baja is None"
+          }
+        },
+        {
+          "id": "habilitado_electoral",
+          "fields": {
+            "label": "Habilitado electoral",
+            "type": "Bool",
+            "isFormula": true,
+            "formula": "$tipo_socio == 'Activo' and $fecha_baja is None and (datetime.date.today() - $fecha_alta).days >= 30"
           }
         }
       ]
