@@ -5,9 +5,6 @@ import {
   normalizeTelefono,
   normalizeEmailField,
   isValidDni,
-  isValidCuil,
-  isValidCuilChecksum,
-  isValidEmailField,
   findPersonaByDni,
 } from '$core/personas.js'
 import {
@@ -15,6 +12,7 @@ import {
   formatCuil,
   formatTelefono,
 } from '$core/format.js'
+import { useFieldWarnings } from '$core/useFieldWarnings.svelte.js'
 
 const base = createGristStore({
   tableKey: 'personas',
@@ -32,16 +30,11 @@ const base = createGristStore({
 
 let form = $state(null)
 let tipoFilter = $state('')
-let dniWarning = $state('')
-let cuilWarning = $state('')
-let telefonoWarning = $state('')
-let emailWarning = $state('')
+
+const fw = useFieldWarnings({ getForm: () => form })
 
 const select = (p) => {
-  dniWarning = ''
-  cuilWarning = ''
-  telefonoWarning = ''
-  emailWarning = ''
+  fw.reset()
   form = {
     id: p.id,
     tipo_persona: p.tipo_persona || 'Fisica',
@@ -59,10 +52,7 @@ const select = (p) => {
 }
 
 const nuevo = (prefill = {}) => {
-  dniWarning = ''
-  cuilWarning = ''
-  telefonoWarning = ''
-  emailWarning = ''
+  fw.reset()
   form = {
     id: null,
     tipo_persona: prefill.tipo_persona || 'Fisica',
@@ -81,80 +71,32 @@ const nuevo = (prefill = {}) => {
 
 const cancelar = () => {
   form = null
-  dniWarning = ''
-  cuilWarning = ''
-  telefonoWarning = ''
-  emailWarning = ''
+  fw.reset()
 }
 
 const onDniInput = () => {
   const d = normalizeDni(form.dni)
   form.dni = formatDni(d)
   if (d && !isValidDni(d)) {
-    dniWarning = 'DNI inválido (debe tener 7 u 8 dígitos)'
+    fw.setDniWarning('DNI inválido (debe tener 7 u 8 dígitos)')
   } else if (d && !form.id) {
-    dniWarning = 'Verificando DNI…'
+    fw.setDniWarning('Verificando DNI…')
     findPersonaByDni(d).then((existing) => {
       if (existing && existing.id !== form.id) {
-        dniWarning = `Ya existe una persona con DNI ${d}: ${existing.apellido || ''}, ${existing.nombre || existing.razon_social || ''}`
+        fw.setDniWarning(`Ya existe una persona con DNI ${d}: ${existing.apellido || ''}, ${existing.nombre || existing.razon_social || ''}`)
       } else {
-        dniWarning = ''
+        fw.setDniWarning('')
       }
     })
   } else {
-    dniWarning = ''
-  }
-}
-
-const onCuilInput = () => {
-  const c = normalizeCuil(form.cuil)
-  form.cuil = formatCuil(c)
-  if (c && isValidCuil(c) && !isValidCuilChecksum(c)) {
-    cuilWarning = 'CUIT/CUIL inválido (dígito verificador incorrecto)'
-  } else if (c && c.length > 0 && c.length < 11) {
-    cuilWarning = ''
-  } else {
-    cuilWarning = ''
-  }
-}
-
-const onTelefonoInput = () => {
-  const raw = form.telefono
-  const formatted = formatTelefono(raw)
-  form.telefono = formatted
-  const stored = normalizeTelefono(raw)
-  if (stored && stored.length < 10 && stored.length > 0) {
-    telefonoWarning = 'Teléfono incompleto'
-  } else {
-    telefonoWarning = ''
-  }
-}
-
-const onEmailInput = () => {
-  form.email = normalizeEmailField(form.email)
-  if (form.email && !isValidEmailField(form.email)) {
-    emailWarning = 'Email inválido'
-  } else {
-    emailWarning = ''
+    fw.setDniWarning('')
   }
 }
 
 const savePersona = async () => {
   base.clearMessages()
-  if (dniWarning && dniWarning !== 'Verificando DNI…') {
-    base.setError('Corregí el DNI antes de guardar.')
-    return null
-  }
-  if (cuilWarning) {
-    base.setError('Corregí el CUIT/CUIL antes de guardar.')
-    return null
-  }
-  if (telefonoWarning) {
-    base.setError('Corregí el teléfono antes de guardar.')
-    return null
-  }
-  if (emailWarning) {
-    base.setError('Corregí el email antes de guardar.')
+  if (fw.hasBlockingWarnings()) {
+    base.setError('Corregí los campos marcados antes de guardar.')
     return null
   }
   if (!form.apellido && !form.razon_social) {
@@ -174,7 +116,6 @@ const savePersona = async () => {
   try {
     const fields = { ...form }
     delete fields.id
-    // Guardar dígitos crudos (el formateo es solo visual)
     fields.dni = normalizeDni(form.dni) || null
     fields.cuil = normalizeCuil(form.cuil) || null
     fields.telefono = normalizeTelefono(form.telefono) || null
@@ -211,17 +152,17 @@ const savePersona = async () => {
 export const personasStore = extendStore(base, {
   get form() { return form },
   get tipoFilter() { return tipoFilter },
-  get dniWarning() { return dniWarning },
-  get cuilWarning() { return cuilWarning },
-  get telefonoWarning() { return telefonoWarning },
-  get emailWarning() { return emailWarning },
+  get dniWarning() { return fw.dniWarning },
+  get cuilWarning() { return fw.cuilWarning },
+  get telefonoWarning() { return fw.telefonoWarning },
+  get emailWarning() { return fw.emailWarning },
   set tipoFilter(v) { tipoFilter = v },
   select,
   nuevo,
   cancelar,
   onDniInput,
-  onCuilInput,
-  onTelefonoInput,
-  onEmailInput,
+  onCuilInput: fw.onCuilInput,
+  onTelefonoInput: fw.onTelefonoInput,
+  onEmailInput: fw.onEmailInput,
   savePersona,
 })
