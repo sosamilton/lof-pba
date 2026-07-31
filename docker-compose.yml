@@ -1,13 +1,49 @@
-# docker-compose.yml — entorno PRODUCTIVO
-# Sirve el build de la SPA con nginx. Imagen publicada en GHCR por el CI.
+# docker-compose.yml — entorno PRODUCTIVO: Grist + AppCoop SPA
+#
+# Levanta Grist (backend) y la SPA (frontend) listos para usar, 100% offline.
+# No requiere internet: ambos servicios corren en localhost.
 #
 # Uso:
-#   docker compose up -d              # usa la imagen de GHCR
-#   docker compose up -d --build      # construye localmente si no hay imagen
+#   docker compose up -d --build       # construye la SPA y levanta todo
+#   docker compose up -d               # usa imagen de GHCR si ya existe
 #
-# Ver docs/DOCKER.md para detalles.
+# Puertos:
+#   - Grist:   http://localhost:${GRIST_PORT:-8484}
+#   - AppCoop: http://localhost:${APP_PORT:-8080}
+#
+# Persistencia:
+#   - grist_data: documento Grist (SQLite), usuarios, sesiones.
+#
+# Ver docs/DOCKER.md y docs/OFFLINE.md para detalles.
 
 services:
+  grist:
+    image: gristlabs/grist:${GRIST_TAG:-latest}
+    container_name: grist
+    ports:
+      - "${GRIST_PORT:-8484}:8484"
+    volumes:
+      - grist_data:/persist
+      - grist_docs:/docs
+    environment:
+      # Permite registro de usuarios sin email (modo local/offline)
+      - GRIST_ORG_IN_PATH=true
+      # No requiere login para acceso local (simplifica el primer uso)
+      - GRIST_SINGLE_PORT=true
+      # Persistencia dentro del container
+      - GRIST_DATA_DIR=/persist
+      # Desactivar telemetría para uso offline
+      - GRIST_TELEMETRY_LEVEL=off
+      # URL pública de Grist (para emails/links; en local no es crítico)
+      - APP_HOME_URL=http://localhost:${GRIST_PORT:-8484}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8484/status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   appcoop:
     image: ghcr.io/${IMAGE_REPO:-sosamilton/spa-cooperadora}:${IMAGE_TAG:-latest}
     build:
@@ -23,3 +59,10 @@ services:
       timeout: 3s
       retries: 3
       start_period: 5s
+    depends_on:
+      grist:
+        condition: service_healthy
+
+volumes:
+  grist_data:
+  grist_docs:

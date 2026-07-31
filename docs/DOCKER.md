@@ -9,15 +9,25 @@ Guía completa de la dockerización de AppCoop. La app compila a **estáticos** 
 | `Dockerfile` | Imagen multi-stage: build con Node → runtime con nginx. |
 | `docker/nginx.conf` | Configuración de nginx (gzip, cache, SPA fallback). |
 | `.dockerignore` | Excluye `node_modules`, `dist`, `.git`, docs, etc. del contexto de build. |
-| `docker-compose.yml` | Compose de **producción** (nginx). |
+| `docker-compose.yml` | Compose de **producción** (Grist + nginx). |
 | `docker-compose.dev.yml` | Compose de **desarrollo** (Vite + HMR). |
 
 ## Producción
 
-### Construir y levantar localmente
+El `docker-compose.yml` levanta **Grist + AppCoop SPA** juntos, listos para usar y 100% offline.
+
+### Construir y levantar todo
 
 ```bash
 docker compose up -d --build
+# Grist en http://localhost:8484
+# AppCoop en http://localhost:8080
+```
+
+### Levantar solo la SPA (sin Grist)
+
+```bash
+docker compose up -d --build appcoop
 # App en http://localhost:8080
 ```
 
@@ -25,13 +35,39 @@ docker compose up -d --build
 
 | Variable | Default | Descripción |
 | --- | --- | --- |
-| `APP_PORT` | `8080` | Puerto del host mapeado al 80 del container. |
+| `APP_PORT` | `8080` | Puerto del host para la SPA. |
+| `GRIST_PORT` | `8484` | Puerto del host para Grist. |
+| `GRIST_TAG` | `latest` | Tag de la imagen oficial de Grist. |
 | `IMAGE_REPO` | `sosamilton/spa-cooperadora` | Repo de GHCR (para `image:`). |
-| `IMAGE_TAG` | `latest` | Tag de la imagen. |
+| `IMAGE_TAG` | `latest` | Tag de la imagen de la SPA. |
 
 ```bash
-APP_PORT=9000 docker compose up -d
+GRIST_PORT=9000 APP_PORT=8080 docker compose up -d --build
 ```
+
+### Configuración de Grist
+
+El servicio `grist` usa la imagen oficial `gristlabs/grist` con:
+
+- `GRIST_TELEMETRY_LEVEL=off` — sin telemetría (privacidad offline).
+- `GRIST_SINGLE_PORT=true` — modo single-port (simplifica acceso local).
+- `GRIST_ORG_IN_PATH=true` — URLs con org en el path (sin subdominios).
+- Volumen `grist_data` en `/persist` — documento SQLite, usuarios, sesiones.
+- Volumen `grist_docs` en `/docs` — documentos importados/exportados.
+- Healthcheck contra `/status`.
+- `depends_on: grist (healthy)` en `appcoop` — la SPA espera a que Grist esté listo.
+
+### Conectar la SPA con Grist
+
+Una vez levantados ambos servicios:
+
+1. Abrir `http://localhost:8484` (Grist).
+2. Crear un documento nuevo.
+3. `Add New` → `Add Widget to Page` → `Custom`.
+4. URL: `http://localhost:8080`.
+5. `Access level`: **Full document access**.
+
+> Para uso offline, ver [`docs/OFFLINE.md`](OFFLINE.md).
 
 ### Usar la imagen publicada en GHCR
 
@@ -127,11 +163,14 @@ Como la SPA usa paths relativos (`base: './'`) y hash routing, no hace falta con
 
 | | Producción (`docker-compose.yml`) | Dev (`docker-compose.dev.yml`) |
 | --- | --- | --- |
-| Imagen base | `nginx:1.27-alpine` (build local) | `node:24-alpine` |
-| Servidor | nginx | Vite dev server |
+| Servicios | Grist + SPA | Solo SPA (dev) |
+| Imagen base SPA | `nginx:1.27-alpine` (build local) | `node:24-alpine` |
+| Imagen Grist | `gristlabs/grist` | No incluye |
+| Servidor SPA | nginx | Vite dev server |
 | HMR | No (estáticos) | Sí |
-| Puerto interno | 80 | 5173 |
-| Puerto host default | 8080 | 5173 |
+| Puerto SPA | 80 → 8080 | 5173 |
+| Puerto Grist | 8484 | — |
 | Volumen código | No (copiado en build) | Sí (bind mount) |
+| Volumen datos | `grist_data`, `grist_docs` | `appcoop_node_modules` |
 | Healthcheck | Sí (wget) | No |
 | Reinicio | `unless-stopped` | `unless-stopped` |
