@@ -28,7 +28,7 @@
         <Label class="text-xs font-bold text-muted-foreground">CBU (22 dígitos)</Label>
         <Input bind:value={store.banco.cbu} oninput={() => store.onCbuInput()} placeholder="01400000-00000000000000" inputmode="numeric" />
         {#if store.cbuWarning}
-          <span class="text-xs {store.cbuWarning.includes('dígito verificador') ? 'text-yellow-600 dark:text-yellow-500' : 'text-destructive'}">{store.cbuWarning}</span>
+          <span class="text-xs {store.cbuWarning.includes('dígito verificador') ? 'text-yellow-600' : 'text-destructive'}">{store.cbuWarning}</span>
         {/if}
       </div>
       <div class="flex flex-col gap-1">
