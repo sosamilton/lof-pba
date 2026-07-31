@@ -11,28 +11,20 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 
-# Editor / SO
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-
-# Git / CI
-.git
-.gitignore
-.github
+# Todo lo que empieza con . (configs, IDE, CI, skills, etc.)
+.*/
 
 # Docker propio (no se copian al build)
 Dockerfile
-.dockerignore
 docker-compose*.yml
 # Nota: NO excluimos docker/ porque el Dockerfile copia docker/nginx.conf
 
-# Documentación y skills (no necesarios para el build)
+# Documentación (no necesaria para el build)
 docs
-.agents
-.skills
+
+# Archivos sueltos no necesarios
 skills-lock.json
 AGENTS.md
 README.md
