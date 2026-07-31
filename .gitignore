@@ -26,3 +26,9 @@ dist-ssr
 # Documentación local pesada (no se versiona)
 docs/modulos/
 docs/oficiales_abc/
+
+# GeoJSON crudos de cooperadoras (pesados, descargables).
+# Solo se versiona el JSON limpio generado por scripts/clean-cooperadoras.sh
+scripts/cooperadoras-geojson/*
+!scripts/cooperadoras-geojson/.gitkeep
+*.geojson
