@@ -247,6 +247,7 @@ const saveSocio = async () => {
 
     const fields = { ...form }
     delete fields.id
+    delete fields.fecha_nacimiento
     fields.persona_id = personaId || null
     fields.dni = normalizeDni(form.dni) || null
     fields.cuil = normalizeCuil(form.cuil) || null
