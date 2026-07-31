@@ -8,10 +8,17 @@
   import StepBancoKiosco from './steps/StepBancoKiosco.svelte'
   import StepEjercicioCargos from './steps/StepEjercicioCargos.svelte'
   import StepInstalar from './steps/StepInstalar.svelte'
+  import { applyBrandTheme } from '$core/theme'
 
   const store = new SetupStore()
+  const dev = import.meta.env.DEV
 
   onMount(() => store.init())
+
+  // Preview en vivo del color de marca elegido en el paso de escuela.
+  $effect(() => {
+    applyBrandTheme(store.schoolData.color_primario)
+  })
 </script>
 
 {#if store.loading}
@@ -60,6 +67,11 @@
     {/if}
 
     <div class="flex justify-end gap-2.5">
+      {#if dev && store.step < 4}
+        <Button variant="outline" class="mr-auto border-dashed text-muted-foreground" onclick={() => store.fillDemoData()} title="Solo en desarrollo: rellena este paso con datos de ejemplo">
+          Precargar datos demo
+        </Button>
+      {/if}
       {#if store.step > 0 && !store.installing}
         <Button variant="outline" onclick={() => store.step -= 1}>Atrás</Button>
       {/if}
