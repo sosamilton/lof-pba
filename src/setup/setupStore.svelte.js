@@ -23,24 +23,62 @@ import {
   isValidCbuChecksum,
 } from '$core/format'
 import localidadesData from '$core/data/localidades-buenos-aires.json'
+import { DEMO_MODULES, DEMO_SCHOOL, DEMO_BANCO, DEMO_KIOSCO, DEMO_EJERCICIO } from './demoData'
 
 const CUENTAS_OPCIONES = ['Banco', 'Efectivo', 'Caja Chica']
 const currentYear = new Date().getFullYear()
+
+/** @typedef {'gestion_completa' | 'kiosco' | 'tesoreria' | 'gobierno' | 'reportes'} ModuleKey */
+/** @typedef {'CD' | 'CRC' | 'Federacion'} Organismo */
+
+/**
+ * @typedef {Object} Cargo
+ * @property {number} _uid
+ * @property {Organismo} organismo
+ * @property {string} nombre_cargo
+ * @property {number} orden
+ * @property {number} duracion_meses
+ * @property {boolean} cargo_obligatorio
+ * @property {string} nivel
+ * @property {boolean} activo
+ */
+
+/**
+ * @typedef {Object} PersistedConfig
+ * @property {boolean} [instalado]
+ * @property {string} [escuela_nombre]
+ * @property {string} [escuela_numero]
+ * @property {string} [cooperadora_nombre]
+ */
+
+/**
+ * @typedef {Object} SchemaResult
+ * @property {number} created
+ * @property {number} addedColumns
+ * @property {number} repairedRefs
+ * @property {string[]} [errors]
+ */
+
+/**
+ * @typedef {Object} CuentaRecord
+ * @property {any} id
+ * @property {string} [nombre_cuenta]
+ */
 
 export class SetupStore {
   step = $state(0)
   loading = $state(true)
   installing = $state(false)
   error = $state('')
-  existingTables = $state([])
+  existingTables = $state(/** @type {string[]} */ ([]))
 
-  selectedModules = $state({
+  selectedModules = $state(/** @type {Record<ModuleKey, boolean>} */ ({
     gestion_completa: true,
     kiosco: false,
     tesoreria: true,
     gobierno: true,
     reportes: true
-  })
+  }))
 
   schoolData = $state({
     escuela_nombre: '',
@@ -84,8 +122,9 @@ export class SetupStore {
     anio_fin: currentYear + 1
   })
 
-  cargos = $state([])
+  cargos = $state(/** @type {Cargo[]} */ ([]))
   cargoUid = 0
+  federacionAdherida = $state(false)
 
   localidades = localidadesData.map((l) => ({ value: l, label: l }))
   steps = ['Módulos', 'Escuela y cooperadora', 'Banco y kiosco', 'Ejercicio y cargos', 'Instalar']
@@ -99,7 +138,7 @@ export class SetupStore {
     return tables.length
   }
 
-  toggleModule(key) {
+  toggleModule(/** @type {ModuleKey} */ key) {
     if (key === 'gestion_completa') {
       const newVal = !this.selectedModules.gestion_completa
       this.selectedModules.gestion_completa = newVal
@@ -168,13 +207,13 @@ export class SetupStore {
     }
   }
 
-  cargosPorOrganismo(org) {
+  cargosPorOrganismo(/** @type {Organismo} */ org) {
     return this.cargos
       .filter((c) => c.organismo === org)
       .sort((a, b) => a.orden - b.orden)
   }
 
-  reordenar(org, index, dir) {
+  reordenar(/** @type {Organismo} */ org, /** @type {number} */ index, /** @type {number} */ dir) {
     const grupo = this.cargosPorOrganismo(org)
     const newIndex = index + dir
     if (newIndex < 0 || newIndex >= grupo.length) return
@@ -186,7 +225,7 @@ export class SetupStore {
     this.cargos = [...this.cargos]
   }
 
-  addCargo(org) {
+  addCargo(/** @type {Organismo} */ org) {
     const grupo = this.cargosPorOrganismo(org)
     const nuevo = {
       _uid: ++this.cargoUid,
@@ -201,7 +240,7 @@ export class SetupStore {
     this.cargos = [...this.cargos, nuevo]
   }
 
-  removeCargo(uid) {
+  removeCargo(/** @type {number} */ uid) {
     const removed = this.cargos.find((c) => c._uid === uid)
     if (!removed || removed.cargo_obligatorio) return
     const grupo = this.cargosPorOrganismo(removed.organismo)
@@ -210,11 +249,35 @@ export class SetupStore {
     this.cargos = this.cargos.filter((c) => c._uid !== uid)
   }
 
+  // Oculta/muestra un cargo no obligatorio (toggle de `activo`).
+  // Los cargos ocultos no aparecen en el módulo gobierno pero se guardan en Grist
+  // para que la PIA pueda informarlos como nulo/sin designar.
+  toggleCargoActivo(/** @type {number} */ uid) {
+    this.cargos = this.cargos.map((c) =>
+      c._uid === uid && !c.cargo_obligatorio ? { ...c, activo: !c.activo } : c
+    )
+  }
+
+  // Sincroniza el estado `activo` de los cargos de Federación según la adhesión.
+  syncFederacionCargos() {
+    this.cargos = this.cargos.map((c) =>
+      c.organismo === 'Federacion'
+        ? { ...c, activo: this.federacionAdherida }
+        : c
+    )
+  }
+
+  toggleFederacion() {
+    this.federacionAdherida = !this.federacionAdherida
+    this.syncFederacionCargos()
+  }
+
   async loadDefaultCargos() {
     try {
       const csv = await loadSeedCsv('cargos')
       const rows = parseCsv(csv)
       const objs = csvToObjects(rows).map((o) => {
+        /** @type {Record<string, any>} */
         const out = {}
         for (const [k, v] of Object.entries(o)) {
           const nv = normalizeSeedValue(v)
@@ -234,11 +297,23 @@ export class SetupStore {
         activo: c.activo !== false
       }))
     } catch (e) {
+      // Mínimo del Estatuto Modelo (Decreto 4767/72) + cargos opcionales del PIA.
       this.cargos = [
-        { _uid: ++this.cargoUid, organismo: 'CD', nombre_cargo: 'Presidente', orden: 1, duracion_meses: 12, cargo_obligatorio: true, nivel: '', activo: true },
-        { _uid: ++this.cargoUid, organismo: 'CD', nombre_cargo: 'Vicepresidente', orden: 2, duracion_meses: 12, cargo_obligatorio: true, nivel: '', activo: true },
-        { _uid: ++this.cargoUid, organismo: 'CD', nombre_cargo: 'Secretario', orden: 3, duracion_meses: 12, cargo_obligatorio: true, nivel: '', activo: true },
-        { _uid: ++this.cargoUid, organismo: 'CD', nombre_cargo: 'Tesorero', orden: 4, duracion_meses: 12, cargo_obligatorio: true, nivel: '', activo: true },
+        { _uid: ++this.cargoUid, organismo: 'CD', nombre_cargo: 'Presidente/a', orden: 1, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Titular', activo: true },
+        { _uid: ++this.cargoUid, organismo: 'CD', nombre_cargo: 'Vicepresidente/a', orden: 2, duracion_meses: 12, cargo_obligatorio: false, nivel: 'Titular', activo: true },
+        { _uid: ++this.cargoUid, organismo: 'CD', nombre_cargo: 'Secretario/a', orden: 3, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Titular', activo: true },
+        { _uid: ++this.cargoUid, organismo: 'CD', nombre_cargo: 'Prosecretario/a', orden: 4, duracion_meses: 12, cargo_obligatorio: false, nivel: 'Titular', activo: true },
+        { _uid: ++this.cargoUid, organismo: 'CD', nombre_cargo: 'Tesorero/a', orden: 5, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Titular', activo: true },
+        { _uid: ++this.cargoUid, organismo: 'CD', nombre_cargo: 'Protesorero/a', orden: 6, duracion_meses: 12, cargo_obligatorio: false, nivel: 'Titular', activo: true },
+        { _uid: ++this.cargoUid, organismo: 'CD', nombre_cargo: 'Vocal Titular 1', orden: 7, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Titular', activo: true },
+        { _uid: ++this.cargoUid, organismo: 'CD', nombre_cargo: 'Vocal Titular 2', orden: 8, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Titular', activo: true },
+        { _uid: ++this.cargoUid, organismo: 'CD', nombre_cargo: 'Vocal Titular 3', orden: 9, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Titular', activo: true },
+        { _uid: ++this.cargoUid, organismo: 'CD', nombre_cargo: 'Vocal Suplente 1', orden: 10, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Suplente', activo: true },
+        { _uid: ++this.cargoUid, organismo: 'CD', nombre_cargo: 'Vocal Suplente 2', orden: 11, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Suplente', activo: true },
+        { _uid: ++this.cargoUid, organismo: 'CRC', nombre_cargo: 'Revisor/a Titular Docente', orden: 1, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Titular', activo: true },
+        { _uid: ++this.cargoUid, organismo: 'CRC', nombre_cargo: 'Revisor/a Titular Socio', orden: 2, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Titular', activo: true },
+        { _uid: ++this.cargoUid, organismo: 'CRC', nombre_cargo: 'Revisor/a Suplente', orden: 3, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Suplente', activo: true },
+        { _uid: ++this.cargoUid, organismo: 'CRC', nombre_cargo: 'Asesor/a', orden: 4, duracion_meses: 12, cargo_obligatorio: false, nivel: '', activo: true },
       ]
     }
   }
@@ -247,7 +322,7 @@ export class SetupStore {
     try {
       await gristReady()
       this.existingTables = await listTables()
-      const config = await loadConfig()
+      const config = /** @type {PersistedConfig} */ (await loadConfig())
       if (config?.instalado) {
         this.schoolData.escuela_nombre = config.escuela_nombre || ''
         this.schoolData.escuela_numero = config.escuela_numero || ''
@@ -255,9 +330,43 @@ export class SetupStore {
       }
       await this.loadDefaultCargos()
     } catch (e) {
-      this.error = e?.message || String(e)
+      this.error = (/** @type {Error} */ (e))?.message || String(e)
     } finally {
       this.loading = false
+    }
+  }
+
+  // Rellena los campos del paso actual con datos de ejemplo (solo desarrollo).
+  fillDemoData() {
+    switch (this.step) {
+      case 0: // Módulos
+        this.selectedModules = { ...DEMO_MODULES }
+        break
+      case 1: // Escuela y cooperadora
+        this.schoolData = { ...DEMO_SCHOOL }
+        this.onCueInput()
+        this.onCuitInput()
+        this.onTelefonoInput()
+        this.onEmailInput()
+        break
+      case 2: // Banco y kiosco
+        this.banco = { ...DEMO_BANCO }
+        this.onCbuInput()
+        this.cuentaDefault = 'Efectivo'
+        this.kiosco = { ...DEMO_KIOSCO(currentYear) }
+        break
+      case 3: // Ejercicio y cargos
+        this.ejercicio = { ...DEMO_EJERCICIO(currentYear) }
+        // Los cargos ya se cargan por defecto en init(); si están vacíos, forzamos la carga.
+        if (this.cargos.length === 0) {
+          this.loadDefaultCargos()
+        }
+        // Marcamos adhesión a la Federación para que se vean sus cargos en el demo.
+        this.federacionAdherida = true
+        this.syncFederacionCargos()
+        break
+      case 4: // Instalar (pantalla de revisión, nada que precargar)
+        break
     }
   }
 
@@ -279,7 +388,7 @@ export class SetupStore {
     if (this.step === 3) {
       if (!this.ejercicio.mes_inicio) return false
       if (Number(this.ejercicio.anio_fin) <= Number(this.ejercicio.anio_inicio)) return false
-      const sinNombre = this.cargos.some((c) => !c.cargo_obligatorio && !c.nombre_cargo.trim())
+      const sinNombre = this.cargos.some((c) => !c.cargo_obligatorio && c.activo && !c.nombre_cargo.trim())
       if (sinNombre) return false
       if (this.kiosco.posee && this.kiosco.modalidad === 'Licitado') {
         if (this.kiosco.contrato_desde && this.kiosco.contrato_hasta && this.kiosco.contrato_hasta < this.kiosco.contrato_desde) return false
@@ -295,9 +404,10 @@ export class SetupStore {
     try {
       const existingLower = new Set(this.existingTables.map((t) => String(t || '').toLowerCase()))
 
-      const schemaResult = await ensureSchema(existingLower)
-      if (schemaResult?.errors?.length > 0) {
-        this.error = `Errores de schema: ${schemaResult.errors.join(', ')}`
+      const schemaResult = /** @type {SchemaResult} */ (await ensureSchema(existingLower))
+      const schemaErrors = schemaResult?.errors
+      if (schemaErrors && schemaErrors.length > 0) {
+        this.error = `Errores de schema: ${schemaErrors.join(', ')}`
         return
       }
 
@@ -354,8 +464,9 @@ export class SetupStore {
         }
       }
 
+      /** @type {Record<string, boolean>} */
       const moduleFlags = {}
-      for (const key of Object.keys(MODULES)) {
+      for (const key of /** @type {ModuleKey[]} */ (Object.keys(MODULES))) {
         moduleFlags[`modulo_${key}`] = Boolean(this.selectedModules[key])
       }
 
@@ -363,7 +474,7 @@ export class SetupStore {
       const tCuentas = await resolveTableId(TABLE_PREFERRED_IDS.cuentas)
       if (tCuentas) {
         try {
-          const cuentasRecs = await fetchRecords(tCuentas)
+          const cuentasRecs = /** @type {CuentaRecord[]} */ (await fetchRecords(tCuentas))
           const match = cuentasRecs.find((c) => String(c.nombre_cuenta) === this.cuentaDefault)
           if (match) cuentaDefaultId = match.id
         } catch { /* empty */ }
@@ -430,7 +541,7 @@ export class SetupStore {
       await new Promise((resolve) => setTimeout(resolve, 1000))
       window.location.reload()
     } catch (e) {
-      this.error = e?.message || String(e)
+      this.error = (/** @type {Error} */ (e))?.message || String(e)
     } finally {
       this.installing = false
     }
