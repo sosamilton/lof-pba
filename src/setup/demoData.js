@@ -9,7 +9,7 @@ export const DEMO_MODULES = {
   reportes: false
 }
 
-export const DEMO_SCHOOL = {
+export const DEMO_ESC_COOP = {
   escuela_nombre: 'Escuela de Educación Secundaria N° 12',
   escuela_numero: '12',
   cue: '0601234500',
