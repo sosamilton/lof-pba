@@ -1,8 +1,8 @@
 {
   "identidad": {
     "nombre": "ComunidadCoop",
-    "slogan": "Tecnología al servicio del pueblo organizado",
-    "descripcion": "Una herramienta de gestión para cooperadoras escolares de la Provincia de Buenos Aires. Pensada desde el territorio, construida con software libre.",
+    "slogan": "Gestión cooperativa, simple y libre",
+    "descripcion": "Administrá socios, movimientos, autoridades y asambleas de tu cooperadora escolar. Sin instalar nada, sin depender de internet, sin que tus datos salgan de tu computadora.",
     "ubicacion": "Provincia de Buenos Aires, Argentina",
     "licencia": "AGPL-3.0",
     "enlaces": {
@@ -21,7 +21,7 @@
     },
     {
       "titulo": "Tecnología accesible",
-      "descripcion": "Pensada para compañeras y compañeros sin conocimientos técnicos. Si sabés usar una planilla, sabés usar esto.",
+      "descripcion": "Pensada para compañeras y compañeros sin conocimientos técnicos. Una interfaz simple y guiada, sin jerga ni planillas.",
       "icono": "accessibility"
     },
     {
@@ -99,15 +99,41 @@
   "capturas": {
     "titulo": "Capturas y demos",
     "subtitulo": "Una mirada rápida a la app en acción.",
-    "items": []
+    "items": [
+      {
+        "titulo": "Inicio",
+        "descripcion": "Panel principal con accesos rápidos a cada módulo.",
+        "imagen": "/img/screenshot/inicio.png"
+      },
+      {
+        "titulo": "Cooperadora",
+        "descripcion": "Datos de la institución, ejercicio y configuración general.",
+        "imagen": "/img/screenshot/cooperadora.png"
+      },
+      {
+        "titulo": "Socios",
+        "descripcion": "Padrón de socios con búsqueda, altas y bajas.",
+        "imagen": "/img/screenshot/socio.png"
+      },
+      {
+        "titulo": "Movimientos",
+        "descripcion": "Registro de entradas, salidas y traspasos con trazabilidad.",
+        "imagen": "/img/screenshot/movimiento.png"
+      },
+      {
+        "titulo": "Asambleas",
+        "descripcion": "Gestión de asambleas y resoluciones vinculadas al ejercicio.",
+        "imagen": "/img/screenshot/asamblea.png"
+      }
+    ]
   },
   "instalacion": {
     "titulo": "Cómo se instala",
-    "subtitulo": "En menos de 2 minutos, la app se integra a tu documento como una página más.",
+    "subtitulo": "En menos de 2 minutos, la app se integra a tu documento Grist como un widget personalizado.",
     "pasos": [
       {
         "titulo": "Crear o copiar tu documento",
-        "descripcion": "Idealmente una copia del template, o un documento nuevo en Grist."
+        "descripcion": "Creá un documento nuevo en Grist, vacío."
       },
       {
         "titulo": "Agregar el widget",
@@ -123,7 +149,100 @@
       },
       {
         "titulo": "Inicializar la plantilla",
-        "descripcion": "El wizard guía la configuración inicial: escuela, ejercicio, cargos, banco y kiosco."
+        "descripcion": "El wizard guía la configuración inicial: escuela, cooperadora, cargos, datos bancarios y personal."
+      }
+    ]
+  },
+  "guia_instalacion": {
+    "titulo": "Guía de instalación",
+    "subtitulo": "Paso a paso para integrar la app como Custom Widget en Grist.",
+    "pasos": [
+      {
+        "titulo": "Crear un documento nuevo",
+        "descripcion": "Necesitás tener un documento nuevo vacío en Grist. Al crearlo, se genera automáticamente una tabla llamada Table 1.",
+        "imagen": "/img/install/1-crear-documento.png"
+      },
+      {
+        "titulo": "Crear una nueva página",
+        "descripcion": "Dentro del documento, creá una nueva página donde se va a insertar la app.",
+        "imagen": "/img/install/2-creo-pagina.png"
+      },
+      {
+        "titulo": "Seleccionar Personalizado y tabla por defecto",
+        "descripcion": "En la creación de la página, seleccioná la opción 'Personalizado' (Custom). Luego marcá una tabla: elegí la que se crea por defecto, Table1.",
+        "imagen": "/img/install/3-selecciono-personalizado-y-tabla-default.png"
+      },
+      {
+        "titulo": "Pegar la URL de la app",
+        "descripcion": "En el paso siguiente te aparece para poner una URL. Si usás Grist Desktop, esta será la única opción disponible. En la versión Docker local o en la nube de getgrist.com (con límite de 5000 filas por tabla) también aparecerán widgets predefinidos. Pegá la URL de la app: https://sosamilton.github.io/spa-cooperadora/ o, si la levantás offline con Docker, http://localhost:8080",
+        "imagen": "/img/install/4-pego-url-app.png"
+      },
+      {
+        "titulo": "Confiar y confirmar",
+        "descripcion": "Grist te pide que confirmes que confías en la implementación. Aceptá para continuar.",
+        "imagen": "/img/install/5-confio-y-confirmo.png"
+      },
+      {
+        "titulo": "Dar acceso completo al documento",
+        "descripcion": "Necesitás dar Full Access al documento para que la app pueda crear las tablas y gestionar toda la información.",
+        "imagen": "/img/install/6-doy-permisos.png"
+      },
+      {
+        "titulo": "Comienza el setup inicial",
+        "descripcion": "Se inicia el wizard de configuración donde se carga la información de la escuela, cooperadora, cargos que tiene, datos bancarios, etc.",
+        "imagen": "/img/install/7-comienza-el-setup.png"
+      }
+    ],
+    "metodos_instalacion": [
+      {
+        "titulo": "Grist Desktop",
+        "descripcion": "Aplicación de escritorio, sin gestión de usuarios. La forma más simple de empezar.",
+        "modo": "offline",
+        "nota": "Descargá la versión correspondiente a tu sistema operativo desde la página de releases. Para uso offline, la app debe servirse localmente (ver guía offline).",
+        "enlace": "https://github.com/gristlabs/grist-desktop/releases",
+        "enlace_texto": "Descargar Grist Desktop"
+      },
+      {
+        "titulo": "Docker local (solo Grist)",
+        "descripcion": "Levantá Grist con un solo comando. Ideal para uso local o self-hosted.",
+        "modo": "offline",
+        "nota": "Necesitás instalar Docker primero. El comando levanta Grist en el puerto 8484 y guarda los datos en ~/grist. Para uso offline, la app debe servirse localmente.",
+        "comando": "docker run -p 8484:8484 -v ~/grist:/persist -it gristlabs/grist",
+        "enlace": "https://www.getgrist.com/product/self-hosted/",
+        "enlace_texto": "Ver documentación de self-hosted"
+      },
+      {
+        "titulo": "Docker Compose (Grist + AppCoop)",
+        "descripcion": "Levantá Grist y la app juntos con Docker Compose. La app queda disponible en el puerto 8080 y Grist en el 8484. Recomendado para uso 100% offline.",
+        "modo": "offline",
+        "nota": "Necesitás instalar Docker Desktop (Windows/Linux) o Docker Engine (Linux). Primero descargá el archivo docker-compose.yml con curl, luego levantá todo desde la misma carpeta.",
+        "comandos": [
+          "curl -O https://raw.githubusercontent.com/sosamilton/spa-cooperadora/refs/heads/main/docker-compose.yml",
+          "docker compose up -d --build"
+        ],
+        "enlace": "https://raw.githubusercontent.com/sosamilton/spa-cooperadora/refs/heads/main/docker-compose.yml",
+        "enlace_texto": "Ver docker-compose.yml",
+        "requisitos": [
+          {
+            "texto": "Docker Desktop para Windows",
+            "enlace": "https://docs.docker.com/desktop/setup/install/windows-install/"
+          },
+          {
+            "texto": "Docker Desktop para Linux",
+            "enlace": "https://docs.docker.com/desktop/setup/install/linux/"
+          },
+          {
+            "texto": "Docker Engine para Linux (Ubuntu)",
+            "enlace": "https://docs.docker.com/engine/install/ubuntu/"
+          }
+        ]
+      },
+      {
+        "titulo": "Nube (getgrist.com)",
+        "descripcion": "Usá la instancia alojada en la nube de Grist. Sin instalación, pero con un límite de 5000 filas por tabla en el plan gratuito.",
+        "modo": "online",
+        "enlace": "https://www.getgrist.com/",
+        "enlace_texto": "Ir a getgrist.com"
       }
     ]
   },

@@ -3,6 +3,7 @@
   import * as Card from '$lib/components/ui/card'
   import { Badge } from '$lib/components/ui/badge'
   import { Separator } from '$lib/components/ui/separator'
+  import * as Carousel from '$lib/components/ui/carousel'
   import { navigate } from '$core/router.svelte'
   import DatabaseIcon from '@lucide/svelte/icons/database'
   import AccessibilityIcon from '@lucide/svelte/icons/accessibility'
@@ -20,7 +21,6 @@
   import ImageIcon from '@lucide/svelte/icons/image'
   import MapPinIcon from '@lucide/svelte/icons/map-pin'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
-  import BookOpenIcon from '@lucide/svelte/icons/book-open'
   import DownloadIcon from '@lucide/svelte/icons/download'
   import GristIcon from '$lib/components/GristIcon.svelte'
   import data from './landing.json'
@@ -38,7 +38,7 @@
     rocket: RocketIcon,
   }
 
-  let { identidad, principios, funciones, capturas, instalacion, roadmap } = data
+  let { identidad, principios, funciones, capturas, roadmap } = data
   const enlaces = identidad.enlaces
 
   const roadmapGroups = {
@@ -94,21 +94,17 @@
           </p>
         </div>
         <div class="flex flex-wrap gap-3">
-          <Button variant="outline" size="lg" href={enlaces.repo} target="_blank" rel="noreferrer">
-            <CodeXmlIcon data-icon="inline-start" />
-            Ver repo / colaborar
-          </Button>
           <Button variant="secondary" size="lg" onclick={() => navigate('instalacion')}>
             <DownloadIcon data-icon="inline-start" />
             Guía de instalación
           </Button>
-          <Button variant="ghost" size="lg" href={enlaces.grist_docs} target="_blank" rel="noreferrer">
-            <GristIcon class="size-4" data-icon="inline-start" />
-            Documentación oficial de widgets
+          <Button variant="outline" size="lg" href={enlaces.repo} target="_blank" rel="noreferrer">
+            <CodeXmlIcon data-icon="inline-start" />
+            Ver repo / colaborar
           </Button>
         </div>
         <p class="text-sm text-muted-foreground">
-          Corre como Custom Widget dentro de Grist. Acá ves el proyecto, la documentación y lo que viene.
+          Software libre bajo AGPL-3.0. Funciona con Grist, una plataforma de datos libre y autoinstalable.
         </p>
       </div>
     </div>
@@ -195,52 +191,37 @@
         <h2 class="text-2xl font-bold tracking-tight">{capturas.titulo}</h2>
         <p class="text-sm text-muted-foreground max-w-prose">{capturas.subtitulo}</p>
       </div>
-      <div class="grid gap-4 sm:grid-cols-2">
-        {#each capturas.items as captura}
-          <Card.Root class="overflow-hidden">
-            <div class="aspect-video bg-muted flex items-center justify-center">
-              {#if captura.imagen}
-                <img src={captura.imagen} alt={captura.titulo} class="w-full h-full object-cover" />
-              {:else}
-                <ImageIcon class="size-12 text-muted-foreground/40" />
-              {/if}
-            </div>
-            <Card.Header>
-              <Card.Title class="text-sm">{captura.titulo}</Card.Title>
-              {#if captura.descripcion}
-                <Card.Description>{captura.descripcion}</Card.Description>
-              {/if}
-            </Card.Header>
-          </Card.Root>
-        {/each}
-      </div>
+      <Carousel.Root class="w-full">
+        <Carousel.Content>
+          {#each capturas.items as captura}
+            <Carousel.Item>
+              <div class="flex flex-col gap-3 p-1">
+                <div class="rounded-xl border border-border overflow-hidden bg-muted">
+                  {#if captura.imagen}
+                    <img src={captura.imagen} alt={captura.titulo} class="w-full h-auto object-contain" loading="lazy" />
+                  {:else}
+                    <div class="aspect-video flex items-center justify-center">
+                      <ImageIcon class="size-12 text-muted-foreground/40" />
+                    </div>
+                  {/if}
+                </div>
+                <div class="flex flex-col gap-1 px-1">
+                  <h3 class="text-base font-semibold tracking-tight">{captura.titulo}</h3>
+                  {#if captura.descripcion}
+                    <p class="text-sm text-muted-foreground">{captura.descripcion}</p>
+                  {/if}
+                </div>
+              </div>
+            </Carousel.Item>
+          {/each}
+        </Carousel.Content>
+        <Carousel.Previous />
+        <Carousel.Next />
+      </Carousel.Root>
     </section>
 
     <Separator />
   {/if}
-
-  <!-- INSTALACIÓN -->
-  <section class="mx-auto max-w-5xl px-4 py-12">
-    <div class="flex flex-col gap-2 mb-6">
-      <h2 class="text-2xl font-bold tracking-tight">{instalacion.titulo}</h2>
-      <p class="text-sm text-muted-foreground max-w-prose">{instalacion.subtitulo}</p>
-    </div>
-    <div class="flex flex-col gap-3">
-      {#each instalacion.pasos as paso, i}
-        <div class="flex items-start gap-4 rounded-lg border border-border bg-card p-4">
-          <div class="flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 font-bold text-primary text-sm">
-            {i + 1}
-          </div>
-          <div class="flex flex-col gap-1">
-            <div class="font-semibold text-sm">{paso.titulo}</div>
-            <div class="text-sm text-muted-foreground">{paso.descripcion}</div>
-          </div>
-        </div>
-      {/each}
-    </div>
-  </section>
-
-  <Separator />
 
   <!-- ROADMAP -->
   <section class="mx-auto max-w-5xl px-4 py-12">
