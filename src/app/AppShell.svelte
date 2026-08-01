@@ -18,6 +18,7 @@
   let menuItems = $state([{ route: 'inicio', label: 'Inicio' }])
   let brandTitle = $state(title)
   let brandSub = $state('Demo cooperadora')
+  let mainEl = $state(null)
 
   const iconMap = {
     inicio: HomeIcon,
@@ -30,6 +31,27 @@
 
   const go = (r) => navigate(r)
 
+  const skipToContent = (/** @type {MouseEvent} */ e) => {
+    e.preventDefault()
+    mainEl?.focus()
+  }
+
+  // Etiqueta accesible de la ruta actual (para título y anuncio de navegación)
+  let currentLabel = $derived(
+    menuItems.find((/** @type {any} */ m) => m.route === router.current)?.label
+    || router.current
+  )
+
+  // Al cambiar de ruta: actualiza el título del documento y mueve el foco al <main>
+  $effect(() => {
+    const route = router.current
+    if (!mainEl) return
+    const label = menuItems.find((/** @type {any} */ m) => m.route === route)?.label || route
+    document.title = `${brandTitle} · ${label} · AppCoop`
+    // Mueve el foco al contenido principal y anuncia el cambio de vista
+    mainEl.focus()
+  })
+
   onMount(async () => {
     try {
       const config = await configStore.load()
@@ -37,9 +59,6 @@
         menuItems = getActiveMenuItems(config)
         if (config.cooperadora_nombre) brandTitle = config.cooperadora_nombre
         if (config.escuela_nombre) brandSub = config.escuela_nombre
-        if (config.cooperadora_nombre) {
-          document.title = `${config.cooperadora_nombre} · AppCoop`
-        }
         if (config.color_primario) applyBrandTheme(config.color_primario)
       }
     } catch {
@@ -49,6 +68,13 @@
 </script>
 
 <Sidebar.Provider>
+  <a
+    href="#main-content"
+    onclick={skipToContent}
+    class="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:shadow-md"
+  >
+    Saltar al contenido
+  </a>
   <Sidebar.Root collapsible="icon">
     <Sidebar.Header>
       <Sidebar.Menu>
@@ -99,7 +125,13 @@
       <span class="flex-1 text-center text-sm font-semibold truncate">{brandTitle}</span>
       <span class="text-xs text-muted-foreground">AppCoop</span>
     </header>
-    <main class="box-border flex-1 p-4 sm:p-6">
+    <main
+      bind:this={mainEl}
+      id="main-content"
+      aria-label="{currentLabel}"
+      tabindex="-1"
+      class="box-border flex-1 p-4 sm:p-6 focus:outline-none"
+    >
       {@render children()}
     </main>
   </Sidebar.Inset>

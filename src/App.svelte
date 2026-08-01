@@ -8,6 +8,7 @@
 
   import Inicio from '$app/pages/Inicio.svelte'
   import Landing from '$landing/Landing.svelte'
+  import InstallGuide from '$landing/InstallGuide.svelte'
   import NeedsAccess from '$setup/NeedsAccess.svelte'
   import SetupWizard from '$setup/SetupWizard.svelte'
   import Cooperadora from '$app/pages/Cooperadora.svelte'
@@ -63,7 +64,7 @@
 </script>
 
 {#if !ready}
-  <div class="flex items-center justify-center min-h-screen">
+  <div class="flex items-center justify-center min-h-screen" role="status" aria-live="polite">
     <div class="flex flex-col items-center gap-3">
       <div class="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
       <p class="text-sm text-muted-foreground">Cargando…</p>
@@ -91,6 +92,8 @@
   </AppShell>
 {:else if gristStatus === 'no-access'}
   <NeedsAccess />
+{:else if router.current === 'instalacion'}
+  <InstallGuide />
 {:else}
   <Landing />
 {/if}

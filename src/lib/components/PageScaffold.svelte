@@ -17,6 +17,7 @@
   <h1 class="text-lg font-bold">{title}</h1>
   <p class="text-sm text-muted-foreground">Esta pantalla solo funciona dentro de Grist.</p>
 {:else if loading}
+  <div role="status" aria-live="polite" aria-label="Cargando contenido">
   {#if skeleton}
     {@render skeleton()}
   {:else}
@@ -32,6 +33,8 @@
       </div>
     </div>
   {/if}
+  </div>
+  <span class="sr-only">Cargando…</span>
 {:else}
   {@render children?.()}
 {/if}
