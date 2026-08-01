@@ -262,12 +262,12 @@
     <div class="mx-auto max-w-5xl px-4 py-8">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div class="flex flex-col gap-1">
-          <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2">
             <HeartHandshakeIcon class="size-5 text-primary" />
             <span class="font-bold">{identidad.nombre}</span>
           </div>
           <p class="text-sm text-muted-foreground max-w-prose">
-            {identidad.descripcion} Software libre bajo licencia {identidad.licencia}.
+            Software libre bajo licencia {identidad.licencia}.
           </p>
         </div>
         <div class="flex flex-wrap gap-3">
