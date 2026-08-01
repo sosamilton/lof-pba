@@ -267,7 +267,7 @@
             <span class="font-bold">{identidad.nombre}</span>
           </div>
           <p class="text-sm text-muted-foreground max-w-prose">
-            Software libre bajo licencia {identidad.licencia}.
+            Tecnología al servicio del pueblo organizado . {identidad.licencia} .
           </p>
         </div>
         <div class="flex flex-wrap gap-3">
