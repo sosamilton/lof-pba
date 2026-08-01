@@ -68,10 +68,10 @@
   <div class="mb-4 flex flex-wrap items-center gap-3">
     <div class="relative flex-1 min-w-[200px]">
       <SearchIcon class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input placeholder="Buscar (nombre, DNI, razón social…)" bind:value={q} class="pl-9" />
+      <Input placeholder="Buscar (nombre, DNI, razón social…)" bind:value={q} class="pl-9" aria-label="Buscar personas" />
     </div>
     <Select.Root type="single" bind:value={tipoFilter} allowDeselect={true}>
-      <Select.Trigger class="w-[140px]">
+      <Select.Trigger class="w-[140px]" aria-label="Filtrar por tipo de persona">
         <Select.Value placeholder="Todos los tipos" />
       </Select.Trigger>
       <Select.Content>
@@ -94,6 +94,7 @@
           <button
             class="w-full border-b border-border px-4 py-3 text-left transition-colors hover:bg-accent {store.form?.id === p.id ? 'bg-primary/10' : ''}"
             onclick={() => store.select(p)}
+            aria-pressed={store.form?.id === p.id}
           >
             <div class="font-semibold text-sm">
               {#if isJuridica(p)}

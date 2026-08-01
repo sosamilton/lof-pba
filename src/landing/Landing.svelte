@@ -3,6 +3,7 @@
   import * as Card from '$lib/components/ui/card'
   import { Badge } from '$lib/components/ui/badge'
   import { Separator } from '$lib/components/ui/separator'
+  import { navigate } from '$core/router.svelte'
   import DatabaseIcon from '@lucide/svelte/icons/database'
   import AccessibilityIcon from '@lucide/svelte/icons/accessibility'
   import EyeIcon from '@lucide/svelte/icons/eye'
@@ -19,6 +20,9 @@
   import ImageIcon from '@lucide/svelte/icons/image'
   import MapPinIcon from '@lucide/svelte/icons/map-pin'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
+  import BookOpenIcon from '@lucide/svelte/icons/book-open'
+  import DownloadIcon from '@lucide/svelte/icons/download'
+  import GristIcon from '$lib/components/GristIcon.svelte'
   import data from './landing.json'
 
   const iconMap = {
@@ -51,7 +55,7 @@
 
 <main class="min-h-screen bg-background text-foreground">
   <!-- NAVBAR -->
-  <nav class="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
+  <nav class="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm" aria-label="Navegación principal">
     <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
       <div class="flex items-center gap-2">
         <img src="./logo.svg" alt="{identidad.nombre}" class="size-7" />
@@ -59,11 +63,11 @@
         <Badge variant="secondary" class="hidden sm:inline-flex">{identidad.ubicacion}</Badge>
       </div>
       <div class="flex items-center gap-2">
-        <Button variant="ghost" size="sm" href={enlaces.repo} target="_blank" rel="noreferrer">
+        <Button variant="ghost" size="sm" href={enlaces.repo} target="_blank" rel="noreferrer" aria-label="Ver repositorio en GitHub">
           <CodeXmlIcon data-icon="inline-start" />
           <span class="hidden sm:inline">GitHub</span>
         </Button>
-        <Button variant="outline" size="sm" href={enlaces.grist} target="_blank" rel="noreferrer">
+        <Button variant="outline" size="sm" href={enlaces.grist} target="_blank" rel="noreferrer" aria-label="Abrir Grist">
           <span class="hidden sm:inline">Grist</span>
           <ExternalLinkIcon data-icon="inline-end" />
         </Button>
@@ -90,16 +94,17 @@
           </p>
         </div>
         <div class="flex flex-wrap gap-3">
-          <Button size="lg" href={enlaces.app} target="_blank" rel="noreferrer">
-            <ExternalLinkIcon data-icon="inline-start" />
-            Abrir {identidad.nombre}
-          </Button>
           <Button variant="outline" size="lg" href={enlaces.repo} target="_blank" rel="noreferrer">
             <CodeXmlIcon data-icon="inline-start" />
             Ver repo / colaborar
           </Button>
-          <Button variant="secondary" size="lg" href={enlaces.grist_docs} target="_blank" rel="noreferrer">
-            Cómo instalar
+          <Button variant="secondary" size="lg" onclick={() => navigate('instalacion')}>
+            <DownloadIcon data-icon="inline-start" />
+            Guía de instalación
+          </Button>
+          <Button variant="ghost" size="lg" href={enlaces.grist_docs} target="_blank" rel="noreferrer">
+            <GristIcon class="size-4" data-icon="inline-start" />
+            Documentación oficial de widgets
           </Button>
         </div>
         <p class="text-sm text-muted-foreground">
@@ -293,7 +298,8 @@
             Licencia
           </Button>
           <Button variant="ghost" size="sm" href={enlaces.grist_docs} target="_blank" rel="noreferrer">
-            Custom Widgets
+            <GristIcon class="size-4" data-icon="inline-start" />
+            Documentación oficial de widgets
           </Button>
         </div>
       </div>

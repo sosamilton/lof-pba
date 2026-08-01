@@ -94,10 +94,10 @@
   <div class="mb-4 flex flex-wrap items-center gap-3">
     <div class="relative flex-1 min-w-[200px]">
       <SearchIcon class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input placeholder="Buscar en detalle" bind:value={q} class="pl-9" />
+      <Input placeholder="Buscar en detalle" bind:value={q} class="pl-9" aria-label="Buscar movimientos" />
     </div>
     <Select.Root type="single" bind:value={tipo} allowDeselect={true}>
-      <Select.Trigger class="w-[120px]">
+      <Select.Trigger class="w-[120px]" aria-label="Filtrar por tipo de movimiento">
         <Select.Value placeholder="Todos" />
       </Select.Trigger>
       <Select.Content>
@@ -133,6 +133,7 @@
               <button
                 class="w-full border-b border-border px-4 py-3 text-left transition-colors hover:bg-accent {m.id === store.selectedId ? 'bg-primary/10' : ''}"
                 onclick={() => store.select(m)}
+                aria-pressed={m.id === store.selectedId}
               >
                 <div class="text-sm font-medium">{m.fecha} · {m.tipo_movimiento} · {formatARS(m.importe)}</div>
                 <div class="text-xs text-muted-foreground">
