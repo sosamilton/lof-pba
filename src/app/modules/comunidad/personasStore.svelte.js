@@ -87,8 +87,9 @@ const onDniInput = () => {
   } else if (d && !form.id) {
     fw.setDniWarning('Verificando DNI…')
     findPersonaByDni(d).then((existing) => {
-      if (!form) return
-      if (existing && existing.id !== form.id) {
+      const f = form
+      if (!f) return
+      if (existing && existing.id !== f.id) {
         fw.setDniWarning(`Ya existe una persona con DNI ${d}: ${existing.apellido || ''}, ${existing.nombre || existing.razon_social || ''}`)
       } else {
         fw.setDniWarning('')
