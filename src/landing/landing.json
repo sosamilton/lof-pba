@@ -103,27 +103,27 @@
       {
         "titulo": "Inicio",
         "descripcion": "Panel principal con accesos rápidos a cada módulo.",
-        "imagen": "/img/screenshot/inicio.png"
+        "imagen": "img/screenshot/inicio.png"
       },
       {
         "titulo": "Cooperadora",
         "descripcion": "Datos de la institución, ejercicio y configuración general.",
-        "imagen": "/img/screenshot/cooperadora.png"
+        "imagen": "img/screenshot/cooperadora.png"
       },
       {
         "titulo": "Socios",
         "descripcion": "Padrón de socios con búsqueda, altas y bajas.",
-        "imagen": "/img/screenshot/socio.png"
+        "imagen": "img/screenshot/socio.png"
       },
       {
         "titulo": "Movimientos",
         "descripcion": "Registro de entradas, salidas y traspasos con trazabilidad.",
-        "imagen": "/img/screenshot/movimiento.png"
+        "imagen": "img/screenshot/movimiento.png"
       },
       {
         "titulo": "Asambleas",
         "descripcion": "Gestión de asambleas y resoluciones vinculadas al ejercicio.",
-        "imagen": "/img/screenshot/asamblea.png"
+        "imagen": "img/screenshot/asamblea.png"
       }
     ]
   },
@@ -160,37 +160,37 @@
       {
         "titulo": "Crear un documento nuevo",
         "descripcion": "Necesitás tener un documento nuevo vacío en Grist. Al crearlo, se genera automáticamente una tabla llamada Table 1.",
-        "imagen": "/img/install/1-crear-documento.png"
+        "imagen": "img/install/1-crear-documento.png"
       },
       {
         "titulo": "Crear una nueva página",
         "descripcion": "Dentro del documento, creá una nueva página donde se va a insertar la app.",
-        "imagen": "/img/install/2-creo-pagina.png"
+        "imagen": "img/install/2-creo-pagina.png"
       },
       {
         "titulo": "Seleccionar Personalizado y tabla por defecto",
         "descripcion": "En la creación de la página, seleccioná la opción 'Personalizado' (Custom). Luego marcá una tabla: elegí la que se crea por defecto, Table1.",
-        "imagen": "/img/install/3-selecciono-personalizado-y-tabla-default.png"
+        "imagen": "img/install/3-selecciono-personalizado-y-tabla-default.png"
       },
       {
         "titulo": "Pegar la URL de la app",
         "descripcion": "En el paso siguiente te aparece para poner una URL. Si usás Grist Desktop, esta será la única opción disponible. En la versión Docker local o en la nube de getgrist.com (con límite de 5000 filas por tabla) también aparecerán widgets predefinidos. Pegá la URL de la app: https://sosamilton.github.io/spa-cooperadora/ o, si la levantás offline con Docker, http://localhost:8080",
-        "imagen": "/img/install/4-pego-url-app.png"
+        "imagen": "img/install/4-pego-url-app.png"
       },
       {
         "titulo": "Confiar y confirmar",
         "descripcion": "Grist te pide que confirmes que confías en la implementación. Aceptá para continuar.",
-        "imagen": "/img/install/5-confio-y-confirmo.png"
+        "imagen": "img/install/5-confio-y-confirmo.png"
       },
       {
         "titulo": "Dar acceso completo al documento",
         "descripcion": "Necesitás dar Full Access al documento para que la app pueda crear las tablas y gestionar toda la información.",
-        "imagen": "/img/install/6-doy-permisos.png"
+        "imagen": "img/install/6-doy-permisos.png"
       },
       {
         "titulo": "Comienza el setup inicial",
         "descripcion": "Se inicia el wizard de configuración donde se carga la información de la escuela, cooperadora, cargos que tiene, datos bancarios, etc.",
-        "imagen": "/img/install/7-comienza-el-setup.png"
+        "imagen": "img/install/7-comienza-el-setup.png"
       }
     ],
     "metodos_instalacion": [
