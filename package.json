@@ -15,6 +15,7 @@
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "mode-watcher": "^1.1.0",
     "svelte": "^5.56.4",
+    "svelte-check": "^4.7.4",
     "svelte-sonner": "^1.1.1",
     "vite": "^8.1.1",
     "vitest": "^3.2.7"
