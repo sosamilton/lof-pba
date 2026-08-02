@@ -3,6 +3,7 @@
   import { cooperadoraStore as store } from './cooperadoraStore.svelte'
   import { ORGANISMOS, ORGANISMO_LABELS, NIVELES_CARGO } from '$core/utils'
   import { navigate } from '$core/router.svelte'
+  import { emailInstitucionalAlias, parseEmailInstitucionalInput, EMAIL_INSTITUCIONAL_DOMAIN } from '$core/emailInstitucional'
   import { Button } from '$lib/components/ui/button'
   import { Input } from '$lib/components/ui/input'
   import { Label } from '$lib/components/ui/label'
@@ -23,34 +24,36 @@
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right'
 
   let emailEscuelaAlias = $state('')
+  let emailEscuelaDirty = $state(false)
   let escuelaDirty = $state(false)
   let kioscoDirty = $state(false)
 
+  // Sincroniza el alias desde el store solo en la carga inicial y tras guardar.
+  // Durante el tipeo, emailEscuelaDirty evita que el effect sobrescriba lo que el usuario edita.
   $effect(() => {
-    const full = store.escuela?.email_escuela || ''
-    if (full.endsWith('@abc.gob.ar')) {
-      emailEscuelaAlias = full.slice(0, -('@abc.gob.ar'.length))
-    } else if (full && !full.includes('@')) {
-      emailEscuelaAlias = full
-    } else {
-      emailEscuelaAlias = full
-    }
+    if (emailEscuelaDirty) return
+    emailEscuelaAlias = emailInstitucionalAlias(store.escuela?.email_escuela)
   })
 
-  const onEmailEscuelaInput = (e) => {
-    const val = String(e.target.value || '').replace(/@.*$/, '')
-    emailEscuelaAlias = val
-    store.escuela.email_escuela = val ? `${val}@abc.gob.ar` : ''
+  const onEmailEscuelaInput = (/** @type {Event} */ e) => {
+    const { alias, full } = parseEmailInstitucionalInput(/** @type {HTMLInputElement} */ (e.target)?.value)
+    emailEscuelaAlias = alias
+    store.escuela.email_escuela = full
+    emailEscuelaDirty = true
     escuelaDirty = true
   }
 
   const escuelaValidada = $derived(store.escuela?.datos_validados === true)
   const bancoValidado = $derived(store.banco?.banco_validado === true)
+  // El email institucional puede cargarse después de validar el resto de la escuela:
+  // si está vacío queda editable aunque los datos estén validados; al guardar queda bloqueado.
+  const emailEscuelaBloqueado = $derived(escuelaValidada && !emailEscuelaDirty && Boolean(emailEscuelaAlias))
 
   const handleSave = async () => {
     await store.saveCooperadora()
     escuelaDirty = false
     kioscoDirty = false
+    emailEscuelaDirty = false
   }
 
   onMount(() => {
@@ -95,11 +98,11 @@
               </div>
               <div>
                 <Label for="cue">CUE</Label>
-                <Input id="cue" bind:value={store.escuela.cue} disabled={escuelaValidada} oninput={() => escuelaDirty = true} class="mt-1" />
+                <Input id="cue" bind:value={store.escuela.cue} disabled={escuelaValidada} oninput={() => { store.onCueInput(); escuelaDirty = true }} placeholder="06-12345-00" inputmode="numeric" class="mt-1" />
               </div>
               <div>
                 <Label for="cuit">CUIT</Label>
-                <Input id="cuit" bind:value={store.escuela.cuit} disabled={escuelaValidada} oninput={() => escuelaDirty = true} class="mt-1" />
+                <Input id="cuit" bind:value={store.escuela.cuit} disabled={escuelaValidada} oninput={() => { store.onCuitInput(); escuelaDirty = true }} placeholder="20-12345678-9" inputmode="numeric" class="mt-1" />
               </div>
               <div>
                 <Label for="coop-nombre">Cooperadora</Label>
@@ -119,7 +122,7 @@
               </div>
               <div>
                 <Label for="coop-tel">Teléfono cooperadora</Label>
-                <Input id="coop-tel" bind:value={store.escuela.telefono_cooperadora} oninput={() => escuelaDirty = true} class="mt-1" />
+                <Input id="coop-tel" bind:value={store.escuela.telefono_cooperadora} oninput={() => { store.onTelefonoInput(); escuelaDirty = true }} placeholder="+54 9 11 1234-5678" inputmode="tel" class="mt-1" />
               </div>
               <div>
                 <Label for="email-escuela">Email institucional</Label>
@@ -128,16 +131,19 @@
                     id="email-escuela"
                     value={emailEscuelaAlias}
                     oninput={onEmailEscuelaInput}
-                    disabled={escuelaValidada}
+                    disabled={emailEscuelaBloqueado}
                     placeholder="escuela"
                     class="flex-1"
                   />
-                  <span class="text-sm text-muted-foreground whitespace-nowrap">@abc.gob.ar</span>
+                  <span class="text-sm text-muted-foreground whitespace-nowrap">{EMAIL_INSTITUCIONAL_DOMAIN}</span>
                 </div>
+                {#if escuelaValidada && !emailEscuelaBloqueado}
+                  <p class="mt-1 text-xs text-muted-foreground">Cargá el email institucional; al guardar queda bloqueado.</p>
+                {/if}
               </div>
               <div>
                 <Label for="color-primario">Color de marca</Label>
-                <Input id="color-primario" type="color" value={store.color_primario} oninput={(e) => { store.setColor_primario(e.target.value); escuelaDirty = true }} class="mt-1 h-10 w-16 p-1" />
+                <Input id="color-primario" type="color" value={store.color_primario} oninput={(/** @type {Event} */ e) => { store.setColor_primario(/** @type {HTMLInputElement} */ (e.target)?.value); escuelaDirty = true }} class="mt-1 h-10 w-16 p-1" />
               </div>
             </div>
             <div class="flex items-center justify-between">
@@ -170,7 +176,7 @@
               </div>
               <div>
                 <Label for="banco-cbu">CBU</Label>
-                <Input id="banco-cbu" bind:value={store.banco.cbu} disabled={bancoValidado} class="mt-1" />
+                <Input id="banco-cbu" bind:value={store.banco.cbu} disabled={bancoValidado} oninput={store.onCbuInput} placeholder="00000031-0000000000000001" inputmode="numeric" class="mt-1" />
               </div>
               <div>
                 <Label for="banco-cc">Cuenta</Label>

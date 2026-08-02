@@ -7,25 +7,45 @@ import {
   resolveTableId,
   subscribeRecords,
 } from '$core/grist'
-import { normalizeFields, TABLE_PREFERRED_IDS, ORGANISMOS } from '$core/utils'
+import { normalizeFields, TABLE_PREFERRED_IDS, ORGANISMOS, buildVigenteByCargo } from '$core/utils'
 import { loadConfig, saveConfig } from '$core/configuracion'
 import { applyBrandTheme } from '$core/theme'
 import { notify } from '$core/notify.svelte'
 import { createBaseState } from '$core/stores/gristStore.svelte'
+import {
+  formatCue,
+  formatCuil,
+  formatCbu,
+  formatTelefono,
+  parseCue,
+  parseCuil,
+  parseCbu,
+  normalizeTelefonoForStorage,
+} from '$core/format.js'
 
 const bs = createBaseState()
 
+/** @type {string | null} */
 let tEscuela = $state(null)
+/** @type {string | null} */
 let tBanco = $state(null)
+/** @type {string | null} */
 let tKiosco = $state(null)
+/** @type {string | null} */
 let tEjercicios = $state(null)
+/** @type {string | null} */
 let tCargos = $state(null)
+/** @type {string | null} */
 let tAutoridades = $state(null)
 
+/** @type {Record<string, any>} */
 let escuela = $state({})
+/** @type {Record<string, any>} */
 let banco = $state({})
+/** @type {Record<string, any>} */
 let kiosco = $state({})
 
+/** @type {any[]} */
 let ejercicios = $state([])
 let nuevoEj = $state({
   anio_inicio: '', anio_fin: '', mes_inicio: 'Marzo',
@@ -33,13 +53,17 @@ let nuevoEj = $state({
 })
 
 let organismo = $state('CD')
+/** @type {any[]} */
 let cargos = $state([])
 let nuevoCargo = $state({ nombre_cargo: '', nivel: 'Titular', orden: 10, duracion_meses: 12, cargo_obligatorio: false, activo: true })
 
+/** @type {any[]} */
 let autoridades = $state([])
+/** @type {Record<string, any> | null} */
 let ejercicioEnCurso = $state(null)
 let color_primario = $state('#16b378')
 
+/** @type {(() => void) | null} */
 let _unsub = null
 
 const load = async () => {
@@ -57,6 +81,11 @@ const load = async () => {
     escuela = (await ensureOneRow(tEscuela)) || {}
     banco = (await ensureOneRow(tBanco)) || {}
     kiosco = (await ensureOneRow(tKiosco)) || {}
+    // Formateo visual: los datos vienen como dígitos crudos desde Grist.
+    escuela.cue = formatCue(escuela.cue || '')
+    escuela.cuit = formatCuil(escuela.cuit || '')
+    escuela.telefono_cooperadora = formatTelefono(escuela.telefono_cooperadora || '')
+    banco.cbu = formatCbu(banco.cbu || '')
     ejercicios = await fetchRecords(tEjercicios)
     ejercicioEnCurso = ejercicios.find((e) => e.en_curso === true) || null
     const config = await loadConfig()
@@ -85,12 +114,7 @@ const comisionDirectiva = $derived.by(() => {
   const cargosOrg = cargos
     .filter((c) => c.activo === true || c.cargo_obligatorio === true)
     .sort((a, b) => Number(a.orden || 0) - Number(b.orden || 0))
-  const authOrg = autoridades.filter((a) => String(a.organismo) === organismo && a.activo !== false && !a.fecha_cese)
-  const vigenteByCargo = new Map()
-  for (const a of authOrg) {
-    const key = Number(a.cargo_id)
-    if (!vigenteByCargo.has(key)) vigenteByCargo.set(key, a)
-  }
+  const vigenteByCargo = buildVigenteByCargo(autoridades, organismo)
   return cargosOrg.map((c) => {
     const a = vigenteByCargo.get(Number(c.id)) || null
     return {
@@ -98,7 +122,7 @@ const comisionDirectiva = $derived.by(() => {
       cargoId: c.id,
       cargoNombre: c.nombre_cargo || '(sin nombre)',
       apellido_nombre: a?.apellido_nombre || '',
-      cuil: a?.cuil || '',
+      cuil: formatCuil(a?.cuil || ''),
       fecha_asuncion: a?.fecha_asuncion || '',
       fecha_vencimiento: a?.fecha_vencimiento || '',
     }
@@ -125,15 +149,22 @@ const saveCooperadora = async () => {
       bs.setError('Faltan tablas de configuración. Ejecutá "Actualizar schema" en Inicio.')
       notify.error(bs.error); return
     }
-    await _updateRecord(tEscuela, escuela)
-    await _updateRecord(tBanco, banco)
+    // Normalizamos a dígitos crudos para guardar en Grist (el formateo es solo visual).
+    const escuelaRaw = { ...escuela }
+    escuelaRaw.cue = parseCue(escuelaRaw.cue) || ''
+    escuelaRaw.cuit = parseCuil(escuelaRaw.cuit) || ''
+    escuelaRaw.telefono_cooperadora = normalizeTelefonoForStorage(escuelaRaw.telefono_cooperadora) || ''
+    const bancoRaw = { ...banco }
+    bancoRaw.cbu = parseCbu(bancoRaw.cbu) || ''
+    await _updateRecord(tEscuela, escuelaRaw)
+    await _updateRecord(tBanco, bancoRaw)
     await _updateRecord(tKiosco, kiosco)
     const config = await loadConfig()
     await saveConfig({
       ...config,
       cooperadora_nombre: escuela.cooperadora_nombre || '',
       email: escuela.email_cooperadora || '',
-      telefono: escuela.telefono_cooperadora || '',
+      telefono: normalizeTelefonoForStorage(escuela.telefono_cooperadora) || '',
       color_primario: color_primario || config?.color_primario || '#16b378',
     })
     bs.setNotice('Datos guardados.'); notify.success(bs.notice)
@@ -250,6 +281,12 @@ const setOrganismo = (v) => {
   loadCargos()
 }
 
+// Re-formateo en vivo mientras el usuario tipea. Los datos se guardan crudos.
+const onCueInput = () => { escuela.cue = formatCue(escuela.cue) }
+const onCuitInput = () => { escuela.cuit = formatCuil(escuela.cuit) }
+const onCbuInput = () => { banco.cbu = formatCbu(banco.cbu) }
+const onTelefonoInput = () => { escuela.telefono_cooperadora = formatTelefono(escuela.telefono_cooperadora) }
+
 const subscribe = () => {
   if (_unsub) _unsub()
   _unsub = subscribeRecords(() => { if (!bs.busy && !bs.loading) load() })
@@ -275,6 +312,10 @@ export const cooperadoraStore = {
   get color_primario() { return color_primario },
   setColor_primario: (v) => { color_primario = v; applyBrandTheme(v) },
   setOrganismo,
+  onCueInput,
+  onCuitInput,
+  onCbuInput,
+  onTelefonoInput,
   load,
   loadCargos,
   saveCooperadora,

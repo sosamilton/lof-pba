@@ -17,6 +17,7 @@ export const DEMO_ESC_COOP = {
   domicilio: 'Av. San Martín 1234',
   localidad: 'La Plata',
   email: 'cooperadora.ees12@gmail.com',
+  email_escuela: 'ees12@abc.gob.ar',
   telefono: '9 221 4567-8901',
   color_primario: '#16b378'
 }

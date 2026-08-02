@@ -8,6 +8,7 @@ import {
   TIPOS_ASAMBLEA,
   MOTIVOS_CESE,
   TIPOS_ORIGEN_AUTORIDAD,
+  buildVigenteByCargo,
 } from '$core/utils.js'
 import { extractRowId, findOrCreatePersona, personaLabel, normalizeDni, isValidDni } from '$core/personas.js'
 import { usePersonaSearch } from '$core/usePersonaSearch.svelte.js'
@@ -135,16 +136,7 @@ const rows = $derived.by(() => {
     .filter((c) => c.activo === true || c.cargo_obligatorio === true)
     .sort((a, b) => Number(a.orden || 0) - Number(b.orden || 0))
 
-  const authOrg = autoridades.filter((a) => String(a.organismo) === organismo)
-
-  // vigente = activo true y sin fecha_cese
-  const vigenteByCargo = new Map()
-  for (const a of authOrg) {
-    if (a.activo === false) continue
-    if (a.fecha_cese) continue
-    const key = Number(a.cargo_id)
-    if (!vigenteByCargo.has(key)) vigenteByCargo.set(key, a)
-  }
+  const vigenteByCargo = buildVigenteByCargo(autoridades, organismo)
 
   return cargosOrg.map((c) => {
     const a = vigenteByCargo.get(Number(c.id)) || null

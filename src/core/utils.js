@@ -1,5 +1,26 @@
 export const normalize = (s) => String(s || '').toLowerCase().trim()
 
+/**
+ * Construye un mapa de cargo_id → autoridad vigente para un organismo.
+ * "Vigente" = activo !== false y sin fecha_cese.
+ * Si hay múltiples autoridades para el mismo cargo, la primera encontrada gana.
+ *
+ * @param {any[]} autoridades - Lista de autoridades
+ * @param {string} organismo - Organismo a filtrar ('CD', 'CE', 'CT')
+ * @returns {Map<number, any>} Mapa de Number(cargo_id) → autoridad
+ */
+export const buildVigenteByCargo = (autoridades, organismo) => {
+  const map = new Map()
+  for (const a of autoridades) {
+    if (String(a.organismo) !== String(organismo)) continue
+    if (a.activo === false) continue
+    if (a.fecha_cese) continue
+    const key = Number(a.cargo_id)
+    if (!map.has(key)) map.set(key, a)
+  }
+  return map
+}
+
 export const normalizeFields = (obj) => {
   const out = {}
   for (const [k, v] of Object.entries(obj || {})) {

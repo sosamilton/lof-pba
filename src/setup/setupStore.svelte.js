@@ -23,6 +23,7 @@ import {
   isValidCbuChecksum,
 } from '$core/format'
 import localidadesData from '$core/data/localidades-buenos-aires.json'
+import { emailInstitucionalAlias, parseEmailInstitucionalInput } from '$core/emailInstitucional'
 import { DEMO_MODULES, DEMO_ESC_COOP, DEMO_BANCO, DEMO_KIOSCO, DEMO_EJERCICIO } from './demoData'
 
 const CUENTAS_OPCIONES = ['Banco', 'Efectivo', 'Caja Chica']
@@ -49,6 +50,7 @@ const currentYear = new Date().getFullYear()
  * @property {string} [escuela_nombre]
  * @property {string} [escuela_numero]
  * @property {string} [cooperadora_nombre]
+ * @property {string} [email_escuela]
  */
 
 /**
@@ -88,9 +90,13 @@ export class SetupStore {
     domicilio: '',
     localidad: '',
     email: '',
+    email_escuela: '',
     telefono: '',
     color_primario: '#16b378'
   })
+
+  // Alias del email institucional (sin @abc.gob.ar). El dominio es fijo por política.
+  emailEscuelaAlias = $state('')
 
   cueWarning = $state('')
   cuitWarning = $state('')
@@ -191,6 +197,13 @@ export class SetupStore {
     } else {
       this.emailWarning = ''
     }
+  }
+
+  // Email institucional: el usuario solo carga el alias; el dominio @abc.gob.ar es fijo.
+  onEmailEscuelaInput() {
+    const { alias, full } = parseEmailInstitucionalInput(this.emailEscuelaAlias)
+    this.emailEscuelaAlias = alias
+    this.schoolData.email_escuela = full
   }
 
   onCbuInput() {
@@ -325,6 +338,10 @@ export class SetupStore {
         this.schoolData.escuela_nombre = config.escuela_nombre || ''
         this.schoolData.escuela_numero = config.escuela_numero || ''
         this.schoolData.cooperadora_nombre = config.cooperadora_nombre || ''
+        if (config.email_escuela) {
+          this.schoolData.email_escuela = config.email_escuela
+          this.emailEscuelaAlias = emailInstitucionalAlias(config.email_escuela)
+        }
       }
       await this.loadDefaultCargos()
     } catch (e) {
@@ -342,10 +359,12 @@ export class SetupStore {
         break
       case 1: // Escuela y cooperadora
         this.schoolData = { ...DEMO_ESC_COOP }
+        this.emailEscuelaAlias = emailInstitucionalAlias(DEMO_ESC_COOP.email_escuela)
         this.onCueInput()
         this.onCuitInput()
         this.onTelefonoInput()
         this.onEmailInput()
+        this.onEmailEscuelaInput()
         break
       case 2: // Banco y kiosco
         this.banco = { ...DEMO_BANCO }
@@ -431,6 +450,7 @@ export class SetupStore {
             localidad: this.schoolData.localidad || '',
             email_cooperadora: normalizeEmail(this.schoolData.email) || '',
             telefono_cooperadora: telStored || '',
+            email_escuela: this.schoolData.email_escuela || '',
             datos_validados: escuelaValidada
           }]])
         }

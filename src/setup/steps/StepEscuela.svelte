@@ -5,6 +5,7 @@
   import * as InputGroup from '$lib/components/ui/input-group'
   import Combobox from '$lib/components/Combobox.svelte'
   import { cueSedeLabel } from '$core/format'
+  import { EMAIL_INSTITUCIONAL_DOMAIN } from '$core/emailInstitucional'
 
   let { store } = $props()
 </script>
@@ -55,6 +56,13 @@
         {#if store.emailWarning}
           <span class="text-xs text-destructive">{store.emailWarning}</span>
         {/if}
+      </div>
+      <div class="flex flex-col gap-1">
+        <Label class="text-xs font-bold text-muted-foreground">Email institucional</Label>
+        <InputGroup.Root>
+          <InputGroup.Input bind:value={store.emailEscuelaAlias} oninput={() => store.onEmailEscuelaInput()} placeholder="escuela12" inputmode="email" />
+          <InputGroup.Addon class="font-bold text-sm">{EMAIL_INSTITUCIONAL_DOMAIN}</InputGroup.Addon>
+        </InputGroup.Root>
       </div>
       <div class="flex flex-col gap-1">
         <Label class="text-xs font-bold text-muted-foreground">Teléfono</Label>
