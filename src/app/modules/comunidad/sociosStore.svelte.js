@@ -245,18 +245,13 @@ const saveSocio = async () => {
       form.persona_id = personaId
     }
 
+    // La normalización de dni/cuil/telefono/email y el limpiado de vacíos
+    // los hace beforeSave del store; aquí solo seteamos persona_id y reglas de baja.
     const fields = { ...form }
     delete fields.id
     delete fields.fecha_nacimiento
     fields.persona_id = personaId || null
-    fields.dni = normalizeDni(form.dni) || null
-    fields.cuil = normalizeCuil(form.cuil) || null
-    if (form.telefono) fields.telefono = normalizeTelefono(form.telefono) || null
-    if (form.email) fields.email = normalizeEmailField(form.email) || null
 
-    Object.keys(fields).forEach((k) => {
-      if (fields[k] === '' || fields[k] === null) delete fields[k]
-    })
     if (!showBaja) {
       delete fields.fecha_baja
       delete fields.motivo_baja

@@ -21,7 +21,7 @@ import {
  *
  * @param {object} opts
  * @param {Function} opts.getForm - Función que devuelve el form actual
- * @returns {object} { dniWarning, cuilWarning, telefonoWarning, emailWarning, onCuilInput, onTelefonoInput, onEmailInput, reset, hasBlockingWarnings, setDniWarning }
+ * @returns {{ dniWarning: string, cuilWarning: string, telefonoWarning: string, emailWarning: string, onCuilInput: () => void, onTelefonoInput: () => void, onEmailInput: () => void, reset: () => void, hasBlockingWarnings: () => boolean, setDniWarning: (v: string) => void }}
  */
 export function useFieldWarnings({ getForm = () => null } = {}) {
   let dniWarning = $state('')
