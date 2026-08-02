@@ -220,15 +220,20 @@ export const suggestEmailDomain = (raw) => {
 }
 
 // ---------- CUE (Clave Única de Establecimiento) ----------
-// Provincia de Buenos Aires: 9 dígitos, empieza con "06".
-// Estructura: 06 + 5 dígitos de establecimiento + 2 dígitos de sede/anexo (00 = sede central).
-// Guardamos: 9 dígitos crudos. Mostramos: 06-12345-00
+// Provincia de Buenos Aires: empieza con "06".
+// Dos variantes según la fuente/reglamentación:
+//   - 8 dígitos: 06 + 5 establecimiento + 1 anexo  (formato del registro oficial
+//     mapaescolar.abc.gob.ar / cueanexo). Anexo '0' = sede central.
+//   - 9 dígitos: 06 + 5 establecimiento + 2 anexos  (formato histórico de la app).
+//     Anexo '00' = sede central.
+// Aceptamos ambas; guardamos los dígitos crudos tal cual se ingresan.
+// Mostramos: 06-12345-0  (8) o 06-12345-00 (9).
 export const parseCue = (raw) => onlyDigits(raw).slice(0, 9)
 
 export const formatCue = (raw) => {
   const c = parseCue(raw)
   if (!c) return ''
-  // Formateo progresivo: XX-XXXXX-XX
+  // Formateo progresivo: XX-XXXXX[-X|-XX]
   if (c.length <= 2) return c
   if (c.length <= 7) return `${c.slice(0, 2)}-${c.slice(2)}`
   return `${c.slice(0, 2)}-${c.slice(2, 7)}-${c.slice(7)}`
@@ -236,15 +241,28 @@ export const formatCue = (raw) => {
 
 export const isValidCue = (raw) => {
   const c = parseCue(raw)
-  return c.length === 9 && c.startsWith('06')
+  return (c.length === 8 || c.length === 9) && c.startsWith('06')
 }
 
-// Etiqueta de sede/anexo según los últimos 2 dígitos
+// Etiqueta de sede/anexo según los últimos dígitos (1 si CUE de 8, 2 si de 9).
 export const cueSedeLabel = (raw) => {
   const c = parseCue(raw)
-  if (c.length !== 9) return ''
+  if (c.length !== 8 && c.length !== 9) return ''
   const suf = c.slice(7)
-  return suf === '00' ? 'Sede central' : `Anexo ${suf}`
+  const sede = c.length === 8 ? '0' : '00'
+  return suf === sede ? 'Sede central' : `Anexo ${suf}`
+}
+
+// Normaliza un CUE a su forma canónica de 8 dígitos para lookup cruzado
+// entre el registro oficial (cueanexo, 8) y un CUE ingresado de 9 dígitos.
+// Si el CUE tiene 9 dígitos y el último es '0', se asume sede central y se
+// trunca a 8 (06-XXXXX-00 -> 06-XXXXX-0). Si no, se devuelve tal cual.
+// Esto permite matchear "061832700" (app) con "06183270" (dataset) cuando
+// ambos representan la sede central.
+export const normalizeCueForLookup = (raw) => {
+  const c = parseCue(raw)
+  if (c.length === 9 && c.endsWith('0')) return c.slice(0, 8)
+  return c
 }
 
 // ---------- CBU (Clave Bancaria Uniforme) ----------

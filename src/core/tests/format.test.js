@@ -21,6 +21,7 @@ import {
   formatCue,
   isValidCue,
   cueSedeLabel,
+  normalizeCueForLookup,
   parseCbu,
   formatCbu,
   isValidCbu,
@@ -226,6 +227,9 @@ describe('formatCue', () => {
   it('formats complete 9-digit CUE', () => {
     expect(formatCue('061234500')).toBe('06-12345-00')
   })
+  it('formats complete 8-digit CUE (registro oficial)', () => {
+    expect(formatCue('06123450')).toBe('06-12345-0')
+  })
   it('formats progressively while typing', () => {
     expect(formatCue('0')).toBe('0')
     expect(formatCue('06')).toBe('06')
@@ -250,10 +254,13 @@ describe('isValidCue', () => {
   it('validates 9-digit CUE starting with 06', () => {
     expect(isValidCue('061234500')).toBe(true)
   })
+  it('validates 8-digit CUE starting with 06 (registro oficial)', () => {
+    expect(isValidCue('06123450')).toBe(true)
+  })
   it('rejects CUE not starting with 06', () => {
     expect(isValidCue('071234500')).toBe(false)
   })
-  it('rejects CUE with less than 9 digits', () => {
+  it('rejects CUE with less than 8 digits', () => {
     expect(isValidCue('0612345')).toBe(false)
   })
   it('rejects empty', () => {
@@ -262,14 +269,32 @@ describe('isValidCue', () => {
 })
 
 describe('cueSedeLabel', () => {
-  it('labels 00 as sede central', () => {
+  it('labels 00 as sede central (9 dígitos)', () => {
     expect(cueSedeLabel('061234500')).toBe('Sede central')
   })
-  it('labels non-00 as anexo', () => {
+  it('labels non-00 as anexo (9 dígitos)', () => {
     expect(cueSedeLabel('061234501')).toBe('Anexo 01')
+  })
+  it('labels 0 as sede central (8 dígitos, registro oficial)', () => {
+    expect(cueSedeLabel('06123450')).toBe('Sede central')
+  })
+  it('labels non-0 as anexo (8 dígitos)', () => {
+    expect(cueSedeLabel('06123451')).toBe('Anexo 1')
   })
   it('returns empty for invalid CUE', () => {
     expect(cueSedeLabel('06123')).toBe('')
+  })
+})
+
+describe('normalizeCueForLookup', () => {
+  it('truncates 9-digit CUE ending in 0 to 8 (sede central)', () => {
+    expect(normalizeCueForLookup('061234500')).toBe('06123450')
+  })
+  it('keeps 8-digit CUE as-is', () => {
+    expect(normalizeCueForLookup('06123450')).toBe('06123450')
+  })
+  it('keeps 9-digit CUE not ending in 0 as-is (anexo real)', () => {
+    expect(normalizeCueForLookup('061234501')).toBe('061234501')
   })
 })
 

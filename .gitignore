@@ -27,8 +27,8 @@ dist-ssr
 docs/modulos/
 docs/oficiales_abc/
 
-# GeoJSON crudos de cooperadoras (pesados, descargables).
-# Solo se versiona el JSON limpio generado por scripts/clean-cooperadoras.sh
-scripts/cooperadoras-geojson/*
-!scripts/cooperadoras-geojson/.gitkeep
+# CSV crudos de cooperadoras (pesados, descargables).
+# Solo se versiona el índice JSON generado por scripts/build-cooperadoras-index.sh
+scripts/cooperadoras-csv/*
+!scripts/cooperadoras-csv/.gitkeep
 *.geojson
