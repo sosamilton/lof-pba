@@ -48,6 +48,12 @@
       "skillPath": "skills/svelte-design/SKILL.md",
       "computedHash": "af4ae37461cfd2c8131d45fc7be8ba1277e323d7650ba0f61c0e0980f6018346"
     },
+    "svelte-expert": {
+      "source": "oimiragieo/agent-studio",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/svelte-expert/SKILL.md",
+      "computedHash": "a682cb63b34e6785596320dfb5ece9196addb2a7e01cd671120b9dfcfb07f7ac"
+    },
     "svelte5-best-practices": {
       "source": "ejirocodes/agent-skills",
       "sourceType": "github",
