@@ -85,6 +85,7 @@ const load = async () => {
     escuela.cue = formatCue(escuela.cue || '')
     escuela.cuit = formatCuil(escuela.cuit || '')
     escuela.telefono_cooperadora = formatTelefono(escuela.telefono_cooperadora || '')
+    escuela.telefono_escuela = formatTelefono(escuela.telefono_escuela || '')
     banco.cbu = formatCbu(banco.cbu || '')
     ejercicios = await fetchRecords(tEjercicios)
     ejercicioEnCurso = ejercicios.find((e) => e.en_curso === true) || null
@@ -154,6 +155,7 @@ const saveCooperadora = async () => {
     escuelaRaw.cue = parseCue(escuelaRaw.cue) || ''
     escuelaRaw.cuit = parseCuil(escuelaRaw.cuit) || ''
     escuelaRaw.telefono_cooperadora = normalizeTelefonoForStorage(escuelaRaw.telefono_cooperadora) || ''
+    escuelaRaw.telefono_escuela = normalizeTelefonoForStorage(escuelaRaw.telefono_escuela) || ''
     const bancoRaw = { ...banco }
     bancoRaw.cbu = parseCbu(bancoRaw.cbu) || ''
     await _updateRecord(tEscuela, escuelaRaw)
@@ -163,8 +165,6 @@ const saveCooperadora = async () => {
     await saveConfig({
       ...config,
       cooperadora_nombre: escuela.cooperadora_nombre || '',
-      email: escuela.email_cooperadora || '',
-      telefono: normalizeTelefonoForStorage(escuela.telefono_cooperadora) || '',
       color_primario: color_primario || config?.color_primario || '#16b378',
     })
     bs.setNotice('Datos guardados.'); notify.success(bs.notice)
@@ -286,6 +286,7 @@ const onCueInput = () => { escuela.cue = formatCue(escuela.cue) }
 const onCuitInput = () => { escuela.cuit = formatCuil(escuela.cuit) }
 const onCbuInput = () => { banco.cbu = formatCbu(banco.cbu) }
 const onTelefonoInput = () => { escuela.telefono_cooperadora = formatTelefono(escuela.telefono_cooperadora) }
+const onTelefonoEscuelaInput = () => { escuela.telefono_escuela = formatTelefono(escuela.telefono_escuela) }
 
 const subscribe = () => {
   if (_unsub) _unsub()
@@ -316,6 +317,7 @@ export const cooperadoraStore = {
   onCuitInput,
   onCbuInput,
   onTelefonoInput,
+  onTelefonoEscuelaInput,
   load,
   loadCargos,
   saveCooperadora,

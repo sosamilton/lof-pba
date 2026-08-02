@@ -27,6 +27,24 @@
   let emailEscuelaDirty = $state(false)
   let escuelaDirty = $state(false)
   let kioscoDirty = $state(false)
+  let telefonoMismoQueEscuela = $state(false)
+
+  // Inicializa el checkbox si ambos teléfonos coinciden al cargar.
+  $effect(() => {
+    if (!escuelaDirty) {
+      const te = store.escuela?.telefono_escuela || ''
+      const tc = store.escuela?.telefono_cooperadora || ''
+      telefonoMismoQueEscuela = Boolean(te) && te === tc
+    }
+  })
+
+  const toggleTelefonoMismoQueEscuela = () => {
+    telefonoMismoQueEscuela = !telefonoMismoQueEscuela
+    if (telefonoMismoQueEscuela) {
+      store.escuela.telefono_cooperadora = store.escuela.telefono_escuela || ''
+      escuelaDirty = true
+    }
+  }
 
   // Sincroniza el alias desde el store solo en la carga inicial y tras guardar.
   // Durante el tipeo, emailEscuelaDirty evita que el effect sobrescriba lo que el usuario edita.
@@ -122,7 +140,11 @@
               </div>
               <div>
                 <Label for="coop-tel">Teléfono cooperadora</Label>
-                <Input id="coop-tel" bind:value={store.escuela.telefono_cooperadora} oninput={() => { store.onTelefonoInput(); escuelaDirty = true }} placeholder="+54 9 11 1234-5678" inputmode="tel" class="mt-1" />
+                <Input id="coop-tel" bind:value={store.escuela.telefono_cooperadora} oninput={() => { store.onTelefonoInput(); escuelaDirty = true }} disabled={telefonoMismoQueEscuela} placeholder="+54 9 11 1234-5678" inputmode="tel" class="mt-1" />
+                <label class="flex items-center gap-2 mt-1 text-xs text-muted-foreground cursor-pointer">
+                  <Checkbox checked={telefonoMismoQueEscuela} onCheckedChange={() => toggleTelefonoMismoQueEscuela()} />
+                  Mismo que la escuela
+                </label>
               </div>
               <div>
                 <Label for="email-escuela">Email institucional</Label>
@@ -140,6 +162,10 @@
                 {#if escuelaValidada && !emailEscuelaBloqueado}
                   <p class="mt-1 text-xs text-muted-foreground">Cargá el email institucional; al guardar queda bloqueado.</p>
                 {/if}
+              </div>
+              <div>
+                <Label for="tel-escuela">Teléfono escuela</Label>
+                <Input id="tel-escuela" bind:value={store.escuela.telefono_escuela} disabled={escuelaValidada} oninput={() => { store.onTelefonoEscuelaInput(); escuelaDirty = true }} placeholder="+54 9 11 1234-5678" inputmode="tel" class="mt-1" />
               </div>
               <div>
                 <Label for="color-primario">Color de marca</Label>
