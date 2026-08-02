@@ -18,7 +18,7 @@ import { useFieldWarnings } from '$core/useFieldWarnings.svelte.js'
 const base = createGristStore({
   tableKey: 'personas',
   fetchOptions: {},
-  beforeSave: (fields) => {
+  beforeSave: (/** @type {Record<string, any>} */ fields) => {
     const out = { ...fields }
     out.dni = normalizeDni(out.dni) || null
     out.cuil = normalizeCuil(out.cuil) || null
@@ -29,12 +29,13 @@ const base = createGristStore({
   },
 })
 
+/** @type {Record<string, any> | null} */
 let form = $state(null)
 let tipoFilter = $state('')
 
 const fw = useFieldWarnings({ getForm: () => form })
 
-const select = (p) => {
+const select = (/** @type {Record<string, any>} */ p) => {
   fw.reset()
   form = {
     id: p.id,
@@ -53,7 +54,7 @@ const select = (p) => {
   }
 }
 
-const nuevo = (prefill = {}) => {
+const nuevo = (/** @type {Record<string, any>} */ prefill = {}) => {
   fw.reset()
   form = {
     id: null,
@@ -78,6 +79,7 @@ const cancelar = () => {
 }
 
 const onDniInput = () => {
+  if (!form) return
   const d = normalizeDni(form.dni)
   form.dni = formatDni(d)
   if (d && !isValidDni(d)) {
@@ -85,6 +87,7 @@ const onDniInput = () => {
   } else if (d && !form.id) {
     fw.setDniWarning('Verificando DNI…')
     findPersonaByDni(d).then((existing) => {
+      if (!form) return
       if (existing && existing.id !== form.id) {
         fw.setDniWarning(`Ya existe una persona con DNI ${d}: ${existing.apellido || ''}, ${existing.nombre || existing.razon_social || ''}`)
       } else {
@@ -97,6 +100,7 @@ const onDniInput = () => {
 }
 
 const savePersona = async () => {
+  if (!form) return null
   base.clearMessages()
   if (fw.hasBlockingWarnings()) {
     base.setError('Corregí los campos marcados antes de guardar.')
@@ -117,17 +121,10 @@ const savePersona = async () => {
   }
 
   try {
+    // La normalización de dni/cuil/telefono/email y el limpiado de vacíos
+    // los hace beforeSave del store; aquí solo aplicamos reglas de tipo_persona.
     const fields = { ...form }
     delete fields.id
-    fields.dni = normalizeDni(form.dni) || null
-    fields.cuil = normalizeCuil(form.cuil) || null
-    fields.telefono = normalizeTelefono(form.telefono) || null
-    fields.email = normalizeEmailField(form.email) || null
-
-    Object.keys(fields).forEach((k) => {
-      if (fields[k] === '' || fields[k] === null) delete fields[k]
-    })
-
     if (form.tipo_persona === 'Juridica') {
       delete fields.apellido
       delete fields.nombre
@@ -146,7 +143,7 @@ const savePersona = async () => {
       form = null
     }
     return result
-  } catch (e) {
+  } catch (/** @type {any} */ e) {
     base.setError(e?.message || String(e))
     return null
   }

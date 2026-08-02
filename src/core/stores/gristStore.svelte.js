@@ -16,7 +16,15 @@ import { TABLE_PREFERRED_IDS, normalizeFields } from '$core/utils'
  * @param {object} [config.fetchOptions] - Opciones de fetchRecords (columns, sort, filter, limit)
  * @param {function} [config.beforeSave] - Hook para transformar fields antes de guardar (recibe record, devuelve fields)
  * @param {function} [config.afterSave] - Hook que se ejecuta después de guardar (recibe record, tableId)
- * @returns {object} Store reactivo con records, loading, error, notice, y métodos load/save/remove/refresh
+ * @returns {{
+ *   records: any[], loading: boolean, error: string, notice: string, tableId: string | null,
+ *   setError: (v: string) => void, setNotice: (v: string) => void, clearMessages: () => void,
+ *   load: () => Promise<void>, refresh: () => Promise<void>,
+ *   save: (record: Record<string, any>) => Promise<any>,
+ *   remove: (id: number) => Promise<void>,
+ *   subscribe: (onExternalChange?: () => void) => () => void,
+ *   exec: (actions: any[]) => Promise<any>,
+ * }}
  */
 export function createGristStore(config) {
   const { tableKey, fetchOptions = {}, beforeSave, afterSave } = config
@@ -224,6 +232,11 @@ export function extendStore(base, extra) {
 /**
  * Factory: crea solo el estado base reactivo (loading, error, notice, busy) + setters.
  * Para stores que manejan múltiples tablas y no encajan en createGristStore.
+ * @returns {{
+ *   loading: boolean, error: string, notice: string, busy: boolean,
+ *   setLoading: (v: boolean) => void, setError: (v: string) => void,
+ *   setNotice: (v: string) => void, setBusy: (v: boolean) => void, clearMessages: () => void,
+ * }}
  */
 export function createBaseState() {
   let loading = $state(false)
