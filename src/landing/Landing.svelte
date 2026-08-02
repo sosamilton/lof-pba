@@ -73,7 +73,7 @@
   <nav class="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm" aria-label="Navegación principal">
     <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
       <div class="flex items-center gap-2">
-        <img src="/logo.svg" alt="{identidad.nombre}" class="size-7" />
+        <img src="./logo.svg" alt="{identidad.nombre}" class="size-7" />
         <span class="text-lg font-bold tracking-tight">{identidad.nombre}</span>
         <Badge variant="secondary" class="hidden sm:inline-flex">{identidad.ubicacion}</Badge>
       </div>
@@ -96,7 +96,7 @@
     <div class="relative mx-auto max-w-5xl px-4 py-12 sm:py-16">
       <div class="flex flex-col gap-6">
         <div class="flex flex-col gap-3">
-          <img src="/logo.svg" alt="{identidad.nombre}" class="size-16" />
+          <img src="./logo.svg" alt="{identidad.nombre}" class="size-16" />
           <Badge class="w-fit" variant="outline">
             <MapPinIcon data-icon="inline-start" />
             {identidad.ubicacion}
@@ -205,7 +205,7 @@
               <div class="flex flex-col gap-3 p-1">
                 <div class="rounded-xl border border-border overflow-hidden bg-muted">
                   {#if captura.imagen}
-                    <img src={captura.imagen} alt={captura.titulo} class="w-full h-auto object-contain" loading="lazy" />
+                    <img src={'./' + captura.imagen} alt={captura.titulo} class="w-full h-auto object-contain" loading="lazy" />
                   {:else}
                     <div class="aspect-video flex items-center justify-center">
                       <ImageIcon class="size-12 text-muted-foreground/40" />
