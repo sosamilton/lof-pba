@@ -192,6 +192,8 @@ export const resolveTableId = async (preferredIds) => {
   return null
 }
 
+/** @param {any} data */
+/** @returns {Record<string, any>[]} */
 export const tableDataToRecords = (data) => {
   if (!data || !Array.isArray(data.id)) return []
   const cols = Object.keys(data).filter((k) => k !== 'id')
@@ -204,6 +206,11 @@ export const tableDataToRecords = (data) => {
   return out
 }
 
+/**
+ * @param {string} tableId
+ * @param {object} [options]
+ * @returns {Promise<Record<string, any>[]>}
+ */
 export const fetchRecords = async (tableId, options = {}) => {
   await ensureGristPluginLoaded()
   if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
@@ -300,6 +307,7 @@ export const withMultiplayerProtection = async (verify, write) => {
   return true
 }
 
+/** @param {string} tableId @returns {Promise<Record<string, any> | null>} */
 export const ensureOneRow = async (tableId) => {
   const recs = await fetchRecords(tableId)
   if (recs.length > 0) return recs[0]

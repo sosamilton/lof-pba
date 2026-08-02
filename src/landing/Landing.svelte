@@ -1,10 +1,4 @@
-<script>
-  import { Button } from '$lib/components/ui/button'
-  import * as Card from '$lib/components/ui/card'
-  import { Badge } from '$lib/components/ui/badge'
-  import { Separator } from '$lib/components/ui/separator'
-  import * as Carousel from '$lib/components/ui/carousel'
-  import { navigate } from '$core/router.svelte'
+<script module>
   import DatabaseIcon from '@lucide/svelte/icons/database'
   import AccessibilityIcon from '@lucide/svelte/icons/accessibility'
   import EyeIcon from '@lucide/svelte/icons/eye'
@@ -15,15 +9,6 @@
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import GavelIcon from '@lucide/svelte/icons/gavel'
   import RocketIcon from '@lucide/svelte/icons/rocket'
-  import CodeXmlIcon from '@lucide/svelte/icons/code-xml'
-  import ExternalLinkIcon from '@lucide/svelte/icons/external-link'
-  import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
-  import ImageIcon from '@lucide/svelte/icons/image'
-  import MapPinIcon from '@lucide/svelte/icons/map-pin'
-  import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
-  import DownloadIcon from '@lucide/svelte/icons/download'
-  import GristIcon from '$lib/components/GristIcon.svelte'
-  import data from './landing.json'
 
   const iconMap = {
     database: DatabaseIcon,
@@ -38,22 +23,52 @@
     rocket: RocketIcon,
   }
 
-  let { identidad, principios, funciones, capturas, roadmap } = data
-  const enlaces = identidad.enlaces
-
-  const roadmapGroups = {
-    proximo: { label: 'Próximo', variant: 'default', items: [] },
-    despues: { label: 'Después', variant: 'secondary', items: [] },
-    futuro: { label: 'A futuro', variant: 'outline', items: [] },
-  }
-
-  for (const item of roadmap) {
-    const key = item.estado
-    if (roadmapGroups[key]) roadmapGroups[key].items.push(item)
+  const ROADMAP_GROUPS = {
+    proximo: { label: 'Próximo', variant: 'default' },
+    despues: { label: 'Después', variant: 'secondary' },
+    futuro: { label: 'A futuro', variant: 'outline' },
   }
 </script>
 
+<script>
+  import { Button } from '$lib/components/ui/button'
+  import * as Card from '$lib/components/ui/card'
+  import { Badge } from '$lib/components/ui/badge'
+  import { Separator } from '$lib/components/ui/separator'
+  import * as Carousel from '$lib/components/ui/carousel'
+  import { navigate } from '$core/router.svelte'
+  import CodeXmlIcon from '@lucide/svelte/icons/code-xml'
+  import ExternalLinkIcon from '@lucide/svelte/icons/external-link'
+  import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
+  import ImageIcon from '@lucide/svelte/icons/image'
+  import MapPinIcon from '@lucide/svelte/icons/map-pin'
+  import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
+  import DownloadIcon from '@lucide/svelte/icons/download'
+  import GristIcon from '$lib/components/GristIcon.svelte'
+  import data from './landing.json'
+
+  const { identidad, principios, funciones, capturas, roadmap } = data
+  const enlaces = identidad.enlaces
+
+  const roadmapGroups = $derived(
+    Object.fromEntries(
+      Object.entries(ROADMAP_GROUPS).map(([key, group]) => [
+        key,
+        { ...group, items: roadmap.filter((item) => item.estado === key) },
+      ])
+    )
+  )
+</script>
+
 <main class="min-h-screen bg-background text-foreground">
+  {#snippet iconBadge(/** @type {any} */ Icon)}
+    <div class="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+      {#if Icon}
+        <Icon class="size-5" />
+      {/if}
+    </div>
+  {/snippet}
+
   <!-- NAVBAR -->
   <nav class="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm" aria-label="Navegación principal">
     <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
@@ -63,11 +78,11 @@
         <Badge variant="secondary" class="hidden sm:inline-flex">{identidad.ubicacion}</Badge>
       </div>
       <div class="flex items-center gap-2">
-        <Button variant="ghost" size="sm" href={enlaces.repo} target="_blank" rel="noreferrer" aria-label="Ver repositorio en GitHub">
+        <Button variant="ghost" size="sm" href={enlaces.repo} target="_blank" rel="noopener noreferrer" aria-label="Ver repositorio en GitHub">
           <CodeXmlIcon data-icon="inline-start" />
           <span class="hidden sm:inline">GitHub</span>
         </Button>
-        <Button variant="outline" size="sm" href={enlaces.grist} target="_blank" rel="noreferrer" aria-label="Abrir Grist">
+        <Button variant="outline" size="sm" href={enlaces.grist} target="_blank" rel="noopener noreferrer" aria-label="Abrir Grist">
           <span class="hidden sm:inline">Grist</span>
           <ExternalLinkIcon data-icon="inline-end" />
         </Button>
@@ -98,7 +113,7 @@
             <DownloadIcon data-icon="inline-start" />
             Guía de instalación
           </Button>
-          <Button variant="outline" size="lg" href={enlaces.repo} target="_blank" rel="noreferrer">
+          <Button variant="outline" size="lg" href={enlaces.repo} target="_blank" rel="noopener noreferrer">
             <CodeXmlIcon data-icon="inline-start" />
             Ver repo / colaborar
           </Button>
@@ -111,9 +126,9 @@
   </section>
 
   <!-- PRINCIPIOS -->
-  <section class="mx-auto max-w-5xl px-4 py-12">
+  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="principios-heading">
     <div class="flex flex-col gap-2 mb-6">
-      <h2 class="text-2xl font-bold tracking-tight">Nuestros principios</h2>
+      <h2 id="principios-heading" class="text-2xl font-bold tracking-tight">Nuestros principios</h2>
       <p class="text-sm text-muted-foreground max-w-prose">
         Los que guían cada decisión de diseño y desarrollo de esta herramienta.
       </p>
@@ -124,11 +139,7 @@
         <Card.Root>
           <Card.Header>
             <div class="flex items-center gap-3">
-              <div class="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                {#if Icon}
-                  <Icon class="size-5" />
-                {/if}
-              </div>
+              {@render iconBadge(Icon)}
               <Card.Title class="text-base">{p.titulo}</Card.Title>
             </div>
           </Card.Header>
@@ -143,9 +154,9 @@
   <Separator />
 
   <!-- FUNCIONES -->
-  <section class="mx-auto max-w-5xl px-4 py-12">
+  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="funciones-heading">
     <div class="flex flex-col gap-2 mb-6">
-      <h2 class="text-2xl font-bold tracking-tight">Qué podés hacer hoy</h2>
+      <h2 id="funciones-heading" class="text-2xl font-bold tracking-tight">Qué podés hacer hoy</h2>
       <p class="text-sm text-muted-foreground max-w-prose">
         Cuatro módulos pensados para la gestión diaria de tu cooperadora escolar.
       </p>
@@ -156,11 +167,7 @@
         <Card.Root>
           <Card.Header>
             <div class="flex items-center gap-3">
-              <div class="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                {#if Icon}
-                  <Icon class="size-5" />
-                {/if}
-              </div>
+              {@render iconBadge(Icon)}
               <div class="flex flex-col">
                 <Card.Title class="text-base">{f.titulo}</Card.Title>
                 <Card.Description>{f.descripcion}</Card.Description>
@@ -186,19 +193,19 @@
 
   <!-- CAPTURAS -->
   {#if capturas?.items?.length > 0}
-    <section class="mx-auto max-w-5xl px-4 py-12">
+    <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="capturas-heading">
       <div class="flex flex-col gap-2 mb-6">
-        <h2 class="text-2xl font-bold tracking-tight">{capturas.titulo}</h2>
+        <h2 id="capturas-heading" class="text-2xl font-bold tracking-tight">{capturas.titulo}</h2>
         <p class="text-sm text-muted-foreground max-w-prose">{capturas.subtitulo}</p>
       </div>
-      <Carousel.Root class="w-full">
+      <Carousel.Root class="w-full" aria-labelledby="capturas-heading">
         <Carousel.Content>
           {#each capturas.items as captura}
             <Carousel.Item>
               <div class="flex flex-col gap-3 p-1">
                 <div class="rounded-xl border border-border overflow-hidden bg-muted">
                   {#if captura.imagen}
-                    <img src={captura.imagen} alt={captura.titulo} class="w-full h-auto object-contain" loading="lazy" />
+                    <img src={'./' + captura.imagen} alt={captura.titulo} class="w-full h-auto object-contain" loading="lazy" />
                   {:else}
                     <div class="aspect-video flex items-center justify-center">
                       <ImageIcon class="size-12 text-muted-foreground/40" />
@@ -224,9 +231,9 @@
   {/if}
 
   <!-- ROADMAP -->
-  <section class="mx-auto max-w-5xl px-4 py-12">
+  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="roadmap-heading">
     <div class="flex flex-col gap-2 mb-8">
-      <h2 class="text-2xl font-bold tracking-tight">Lo que viene</h2>
+      <h2 id="roadmap-heading" class="text-2xl font-bold tracking-tight">Lo que viene</h2>
       <p class="text-sm text-muted-foreground max-w-prose">
         Menos planillas, más trazabilidad. Esto es lo que estamos construyendo.
       </p>
@@ -267,18 +274,18 @@
             <span class="font-bold">{identidad.nombre}</span>
           </div>
           <p class="text-sm text-muted-foreground max-w-prose">
-            Tecnología al servicio del pueblo organizado . {identidad.licencia} .
+            Tecnología al servicio del pueblo organizado. {identidad.licencia}.
           </p>
         </div>
         <div class="flex flex-wrap gap-3">
-          <Button variant="ghost" size="sm" href={enlaces.repo} target="_blank" rel="noreferrer">
+          <Button variant="ghost" size="sm" href={enlaces.repo} target="_blank" rel="noopener noreferrer">
             <CodeXmlIcon data-icon="inline-start" />
             Contribuir
           </Button>
-          <Button variant="ghost" size="sm" href={enlaces.licencia} target="_blank" rel="noreferrer">
+          <Button variant="ghost" size="sm" href={enlaces.licencia} target="_blank" rel="noopener noreferrer">
             Licencia
           </Button>
-          <Button variant="ghost" size="sm" href={enlaces.grist_docs} target="_blank" rel="noreferrer">
+          <Button variant="ghost" size="sm" href={enlaces.grist_docs} target="_blank" rel="noopener noreferrer">
             <GristIcon class="size-4" data-icon="inline-start" />
             Documentación oficial de widgets
           </Button>
