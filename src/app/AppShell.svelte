@@ -42,13 +42,19 @@
     || router.current
   )
 
-  // Al cambiar de ruta: actualiza el título del documento y mueve el foco al <main>
+  // Título del documento: se actualiza al cambiar la ruta, el brand o el menú.
+  $effect(() => {
+    const label = currentLabel
+    document.title = `${brandTitle} · ${label} · AppCoop`
+  })
+
+  // Foco al <main>: SOLO al cambiar de ruta, no cuando se carga la config
+  // (menuItems/brandTitle se actualizan en onMount y dispararían el foco de más).
+  let _lastFocusedRoute = ''
   $effect(() => {
     const route = router.current
-    if (!mainEl) return
-    const label = menuItems.find((/** @type {any} */ m) => m.route === route)?.label || route
-    document.title = `${brandTitle} · ${label} · AppCoop`
-    // Mueve el foco al contenido principal y anuncia el cambio de vista
+    if (!mainEl || route === _lastFocusedRoute) return
+    _lastFocusedRoute = route
     mainEl.focus()
   })
 
