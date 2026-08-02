@@ -209,7 +209,7 @@ const repairSchema = async () => {
   repairResult = null
   try {
     await withNotify('Reparando schema…', async () => {
-      repairResult = await ensureSchema(new Set((status?.tables || []).map((t) => String(t || '').toLowerCase())))
+      repairResult = await ensureSchema()
     }, { success: 'Schema reparado', error: 'Error al reparar' })
     await check()
   } catch (e) {

@@ -1,6 +1,7 @@
 import { applyUserActions, fetchRecords, resolveTableId } from './grist'
 import { TABLE_PREFERRED_IDS, MODULES } from './utils'
 
+/** @returns {Promise<Record<string, any> | null>} */
 export const loadConfig = async () => {
   const tableId = await resolveTableId(TABLE_PREFERRED_IDS.configuracion)
   if (!tableId) return null

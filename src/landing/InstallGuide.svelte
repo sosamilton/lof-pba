@@ -88,7 +88,7 @@
           <Accordion.Trigger class="text-base font-semibold">
             <div class="flex items-center gap-2">
               {#if metodo.titulo.includes('Docker')}
-                <img src="/img/docker.svg" alt="Docker" class="size-5 shrink-0" />
+                <img src="./img/docker.svg" alt="Docker" class="size-5 shrink-0" />
               {:else if metodo.titulo.includes('Grist')}
                 <GristIcon class="size-5 shrink-0" />
               {/if}
@@ -213,7 +213,7 @@
               </div>
               <div class="rounded-xl border border-border overflow-hidden bg-muted">
                 <img
-                  src={paso.imagen}
+                  src={'./' + paso.imagen}
                   alt={paso.titulo}
                   class="w-full h-auto object-contain"
                   loading="lazy"

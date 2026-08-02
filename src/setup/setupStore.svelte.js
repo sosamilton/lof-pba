@@ -23,6 +23,15 @@ import {
   isValidCbuChecksum,
 } from '$core/format'
 import localidadesData from '$core/data/localidades-buenos-aires.json'
+import { emailInstitucionalAlias, parseEmailInstitucionalInput } from '$core/emailInstitucional'
+import {
+  findEscuelaByCue,
+  buildPrefillFromFicha,
+  cueSearchState,
+  fechaDescargaOficial,
+  loadEscuelasIndex,
+  isIndexLoaded,
+} from '$core/escuelas'
 import { DEMO_MODULES, DEMO_ESC_COOP, DEMO_BANCO, DEMO_KIOSCO, DEMO_EJERCICIO } from './demoData'
 
 const CUENTAS_OPCIONES = ['Banco', 'Efectivo', 'Caja Chica']
@@ -47,8 +56,8 @@ const currentYear = new Date().getFullYear()
  * @typedef {Object} PersistedConfig
  * @property {boolean} [instalado]
  * @property {string} [escuela_nombre]
- * @property {string} [escuela_numero]
  * @property {string} [cooperadora_nombre]
+ * @property {string} [color_primario]
  */
 
 /**
@@ -83,18 +92,31 @@ export class SetupStore {
     escuela_nombre: '',
     escuela_numero: '',
     cue: '06',
+    distrito: '',
     cooperadora_nombre: '',
     cuit: '',
     domicilio: '',
     localidad: '',
     email: '',
+    email_escuela: '',
+    telefono_escuela: '',
     telefono: '',
     color_primario: '#16b378'
   })
 
+  // Alias del email institucional (sin @abc.gob.ar). El dominio es fijo por política.
+  emailEscuelaAlias = $state('')
+
+  // Si la cooperadora usa el mismo teléfono que la escuela, el campo de cooperadora
+  // se bloquea y copia el valor del teléfono de la escuela.
+  telefonoMismoQueEscuela = $state(false)
+
   cueWarning = $state('')
+  cueState = $state('idle') // 'idle' | 'typing' | 'found' | 'not_found' | 'loading'
+  escuelaOficial = $state(null) // ficha del índice oficial si se encontró
   cuitWarning = $state('')
   telefonoWarning = $state('')
+  telefonoEscuelaWarning = $state('')
   emailWarning = $state('')
   cbuWarning = $state('')
 
@@ -153,14 +175,46 @@ export class SetupStore {
   onCueInput() {
     this.schoolData.cue = formatCue(this.schoolData.cue)
     const c = this.schoolData.cue.replace(/\D/g, '')
-    if (c && !isValidCue(c)) {
-      this.cueWarning = c.length === 9
-        ? 'CUE inválido: debe empezar con 06 (Provincia de Buenos Aires)'
-        : `CUE incompleto: ${c.length}/9 dígitos`
-    } else if (c && isValidCue(c)) {
+    const state = cueSearchState(c)
+    this.cueState = state
+
+    if (state === 'loading') {
+      this.cueWarning = 'Cargando registro oficial…'
+      this.escuelaOficial = null
+      return
+    }
+    if (state === 'idle') {
+      this.cueWarning = ''
+      this.escuelaOficial = null
+      return
+    }
+    if (state === 'typing') {
+      this.cueWarning = `CUE incompleto: ${c.length}/8-9 dígitos`
+      this.escuelaOficial = null
+      return
+    }
+    // CUE completo (8 o 9 dígitos válidos)
+    if (!c.startsWith('06')) {
+      this.cueWarning = 'CUE inválido: debe empezar con 06 (Provincia de Buenos Aires)'
+      this.escuelaOficial = null
+      return
+    }
+    if (state === 'found') {
+      const ficha = findEscuelaByCue(c)
+      this.escuelaOficial = ficha
+      // Precargar campos de la escuela con datos oficiales.
+      const prefill = buildPrefillFromFicha(ficha)
+      this.schoolData.escuela_nombre = prefill.escuela_nombre
+      this.schoolData.escuela_numero = prefill.escuela_numero
+      this.schoolData.distrito = prefill.distrito
+      this.schoolData.localidad = prefill.localidad
+      this.schoolData.domicilio = prefill.domicilio
       this.cueWarning = cueSedeLabel(c)
     } else {
-      this.cueWarning = ''
+      // not_found: CUE válido pero no está en el índice oficial.
+      this.escuelaOficial = null
+      const fecha = fechaDescargaOficial() || 'fecha actual'
+      this.cueWarning = `Establecimiento no registrado en el registro oficial a la fecha (${fecha}). Cargá la información igualmente.`
     }
   }
 
@@ -174,13 +228,44 @@ export class SetupStore {
     }
   }
 
+  onTelefonoEscuelaInput() {
+    this.schoolData.telefono_escuela = formatTelefonoNational(this.schoolData.telefono_escuela)
+    const stored = normalizeTelefonoNationalForStorage(this.schoolData.telefono_escuela)
+    if (stored && !isValidTelefonoNational(this.schoolData.telefono_escuela) && this.schoolData.telefono_escuela.replace(/\D/g, '').length > 0) {
+      this.telefonoEscuelaWarning = 'Teléfono incompleto'
+    } else {
+      this.telefonoEscuelaWarning = ''
+    }
+    // Si la cooperadora usa el mismo teléfono, se sincroniza automáticamente.
+    if (this.telefonoMismoQueEscuela) {
+      this.schoolData.telefono = this.schoolData.telefono_escuela
+      this.telefonoWarning = this.telefonoEscuelaWarning
+    }
+  }
+
   onTelefonoInput() {
+    if (this.telefonoMismoQueEscuela) {
+      // El teléfono de cooperadora está bloqueado y copia al de la escuela.
+      this.schoolData.telefono = this.schoolData.telefono_escuela
+      return
+    }
     this.schoolData.telefono = formatTelefonoNational(this.schoolData.telefono)
     const stored = normalizeTelefonoNationalForStorage(this.schoolData.telefono)
     if (stored && !isValidTelefonoNational(this.schoolData.telefono) && this.schoolData.telefono.replace(/\D/g, '').length > 0) {
       this.telefonoWarning = 'Teléfono incompleto'
     } else {
       this.telefonoWarning = ''
+    }
+  }
+
+  // Toggle del checkbox "mismo que la escuela" para el teléfono de cooperadora.
+  toggleTelefonoMismoQueEscuela() {
+    this.telefonoMismoQueEscuela = !this.telefonoMismoQueEscuela
+    if (this.telefonoMismoQueEscuela) {
+      this.schoolData.telefono = this.schoolData.telefono_escuela
+      this.telefonoWarning = this.telefonoEscuelaWarning
+    } else {
+      this.onTelefonoInput()
     }
   }
 
@@ -191,6 +276,16 @@ export class SetupStore {
     } else {
       this.emailWarning = ''
     }
+  }
+
+  // Email institucional: el usuario solo carga el alias; el dominio @abc.gob.ar es fijo.
+  // Lee el valor del input (event) en vez del estado, porque con `value` (one-way binding)
+  // el estado no se actualiza automáticamente al tipear.
+  onEmailEscuelaInput(/** @type {Event} */ e) {
+    const raw = /** @type {HTMLInputElement} */ (e?.target)?.value ?? ''
+    const { alias, full } = parseEmailInstitucionalInput(raw)
+    this.emailEscuelaAlias = alias
+    this.schoolData.email_escuela = full
   }
 
   onCbuInput() {
@@ -322,11 +417,39 @@ export class SetupStore {
       this.existingTables = await listTables()
       const config = /** @type {PersistedConfig} */ (await loadConfig())
       if (config?.instalado) {
+        // Cache de UI desde configuracion (arranque rápido).
         this.schoolData.escuela_nombre = config.escuela_nombre || ''
-        this.schoolData.escuela_numero = config.escuela_numero || ''
         this.schoolData.cooperadora_nombre = config.cooperadora_nombre || ''
+        this.schoolData.color_primario = config.color_primario || '#16b378'
+        // Datos operacionales desde la tabla escuela (source of truth).
+        const tEscuela = await resolveTableId(TABLE_PREFERRED_IDS.escuela)
+        if (tEscuela) {
+          try {
+            const recs = await fetchRecords(tEscuela)
+            if (recs.length > 0) {
+              const esc = recs[0]
+              this.schoolData.escuela_numero = esc.escuela_numero || ''
+              this.schoolData.cue = esc.cue || ''
+              this.schoolData.distrito = esc.distrito || ''
+              this.schoolData.cuit = esc.cuit || ''
+              this.schoolData.domicilio = esc.domicilio || ''
+              this.schoolData.localidad = esc.localidad || ''
+              this.schoolData.email = esc.email_cooperadora || ''
+              this.schoolData.email_escuela = esc.email_escuela || ''
+              this.schoolData.telefono_escuela = esc.telefono_escuela || ''
+              this.schoolData.telefono = esc.telefono_cooperadora || ''
+              if (esc.email_escuela) {
+                this.emailEscuelaAlias = emailInstitucionalAlias(esc.email_escuela)
+              }
+            }
+          } catch { /* tabla escuela puede no existir todavía */ }
+        }
       }
       await this.loadDefaultCargos()
+      // Pre-cargar el índice de escuelas en segundo plano (code-split chunk).
+      // Se carga mientras el usuario está en el step 0; al llegar al step 1
+      // ya debería estar disponible para el lookup por CUE.
+      loadEscuelasIndex().catch(() => { /* índice opcional, no bloquea el setup */ })
     } catch (e) {
       this.error = (/** @type {Error} */ (e))?.message || String(e)
     } finally {
@@ -342,8 +465,11 @@ export class SetupStore {
         break
       case 1: // Escuela y cooperadora
         this.schoolData = { ...DEMO_ESC_COOP }
+        this.emailEscuelaAlias = emailInstitucionalAlias(DEMO_ESC_COOP.email_escuela)
+        this.telefonoMismoQueEscuela = false
         this.onCueInput()
         this.onCuitInput()
+        this.onTelefonoEscuelaInput()
         this.onTelefonoInput()
         this.onEmailInput()
         break
@@ -369,15 +495,27 @@ export class SetupStore {
   }
 
   hasFieldErrors() {
-    return (this.cueWarning && !cueSedeLabel(this.schoolData.cue)) ||
+    // CUE: solo es error si está en estado 'typing' (incompleto) o si es
+    // inválido (no empieza con 06). 'not_found' NO es error: el usuario puede
+    // cargar manualmente. 'found' tampoco: datos oficiales precargados.
+    const cueIsError = this.cueState === 'typing' ||
+      (this.cueState === 'not_found' && !this.schoolData.cue.replace(/\D/g, '').startsWith('06'))
+    return cueIsError ||
       this.cuitWarning ||
+      this.telefonoEscuelaWarning ||
       this.telefonoWarning ||
       this.emailWarning
   }
 
   canNext() {
     if (this.step === 0) return this.selectedModuleKeys.some((k) => !MODULES[k]?.optional)
-    if (this.step === 1) return !this.hasFieldErrors()
+    if (this.step === 1) {
+      // El CUE debe estar resuelto (found o not_found); no se avanza si está
+      // idle o typing. Si not_found, debe haber al menos nombre de escuela.
+      if (this.cueState !== 'found' && this.cueState !== 'not_found') return false
+      if (this.cueState === 'not_found' && !String(this.schoolData.escuela_nombre || '').trim()) return false
+      return !this.hasFieldErrors()
+    }
     if (this.step === 2) {
       const cbuDigits = this.banco.cbu.replace(/\D/g, '')
       if (cbuDigits && cbuDigits.length !== 22) return false
@@ -400,9 +538,10 @@ export class SetupStore {
     this.installing = true
     this.error = ''
     try {
-      const existingLower = new Set(this.existingTables.map((t) => String(t || '').toLowerCase()))
+      // Invalidar cache de tablas para que ensureSchema vea el estado real de Grist.
+      invalidateTablesCache()
 
-      const schemaResult = /** @type {SchemaResult} */ (await ensureSchema(existingLower))
+      const schemaResult = /** @type {SchemaResult} */ (await ensureSchema())
       const schemaErrors = schemaResult?.errors
       if (schemaErrors && schemaErrors.length > 0) {
         this.error = `Errores de schema: ${schemaErrors.join(', ')}`
@@ -416,23 +555,38 @@ export class SetupStore {
         if (existingEscuela.length === 0) {
           const cueDigits = this.schoolData.cue.replace(/\D/g, '')
           const cuitDigits = this.schoolData.cuit.replace(/\D/g, '')
+          const telEscuelaStored = normalizeTelefonoNationalForStorage(this.schoolData.telefono_escuela)
           const telStored = normalizeTelefonoNationalForStorage(this.schoolData.telefono)
-          const escuelaValidada = Boolean(
-            String(this.schoolData.escuela_nombre || '').trim() &&
-            cueDigits && isValidCue(cueDigits)
-          )
-          await applyUserActions([['AddRecord', tEscuela, null, {
-            escuela_nombre: this.schoolData.escuela_nombre || '',
-            escuela_numero: this.schoolData.escuela_numero || '',
-            cue: cueDigits || '',
-            cooperadora_nombre: this.schoolData.cooperadora_nombre || '',
-            cuit: cuitDigits || '',
-            domicilio: this.schoolData.domicilio || '',
-            localidad: this.schoolData.localidad || '',
-            email_cooperadora: normalizeEmail(this.schoolData.email) || '',
-            telefono_cooperadora: telStored || '',
-            datos_validados: escuelaValidada
-          }]])
+          // datos_validados = true solo si la escuela se encontró en el índice
+          // oficial (CUE matcheado). Si se cargó manualmente (not_found), false.
+          const escuelaValidada = this.cueState === 'found'
+          try {
+            await applyUserActions([['AddRecord', tEscuela, null, {
+              escuela_nombre: this.schoolData.escuela_nombre || '',
+              escuela_numero: this.schoolData.escuela_numero || '',
+              cue: cueDigits || '',
+              distrito: this.schoolData.distrito || '',
+              cooperadora_nombre: this.schoolData.cooperadora_nombre || '',
+              cuit: cuitDigits || '',
+              domicilio: this.schoolData.domicilio || '',
+              localidad: this.schoolData.localidad || '',
+              email_cooperadora: normalizeEmail(this.schoolData.email) || '',
+              telefono_cooperadora: telStored || '',
+              email_escuela: this.schoolData.email_escuela || '',
+              telefono_escuela: telEscuelaStored || '',
+              datos_validados: escuelaValidada
+            }]])
+          } catch (recErr) {
+            const msg = String(recErr?.message || recErr || '')
+            if (msg.includes('KeyError')) {
+              throw new Error(
+                `No se pudo crear el registro de escuela porque faltan columnas en la tabla de Grist. ` +
+                `Abrí el documento de Grist, andá a la tabla "escuela" y agregá manualmente las columnas ` +
+                `que falten (ej: email_escuela, telefono_escuela). Detalle: ${msg}`
+              )
+            }
+            throw recErr
+          }
         }
       }
 
@@ -487,11 +641,11 @@ export class SetupStore {
 
       await saveConfig({
         ...moduleFlags,
-        ...this.schoolData,
-        cue: this.schoolData.cue.replace(/\D/g, ''),
-        cuit: this.schoolData.cuit.replace(/\D/g, ''),
-        telefono: normalizeTelefonoNationalForStorage(this.schoolData.telefono),
-        email: normalizeEmail(this.schoolData.email),
+        // Solo cache de UI: lo que AppShell necesita al arranque sin cargar
+        // la tabla escuela completa. Los datos operacionales viven en escuela.
+        escuela_nombre: this.schoolData.escuela_nombre || '',
+        cooperadora_nombre: this.schoolData.cooperadora_nombre || '',
+        color_primario: this.schoolData.color_primario || '#16b378',
         cuenta_default_id: cuentaDefaultId,
         instalado: true,
         fecha_instalacion: new Date().toISOString()
