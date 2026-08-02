@@ -12,12 +12,14 @@ export const DEMO_ESC_COOP = {
   escuela_nombre: 'Escuela de Educación Secundaria N° 12',
   escuela_numero: '12',
   cue: '0601234500',
+  distrito: 'La Plata',
   cooperadora_nombre: 'Cooperadora Escolar EES N° 12',
   cuit: '30123456781',
   domicilio: 'Av. San Martín 1234',
   localidad: 'La Plata',
   email: 'cooperadora.ees12@gmail.com',
   email_escuela: 'ees12@abc.gob.ar',
+  telefono_escuela: '9 221 4567-8901',
   telefono: '9 221 4567-8901',
   color_primario: '#16b378'
 }
