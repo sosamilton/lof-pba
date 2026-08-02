@@ -43,14 +43,17 @@ const getSelfRefColumns = (tableId, columns) => {
   })
 }
 
-export const ensureSchema = async (existingTablesLower) => {
+export const ensureSchema = async () => {
   const schema = await loadAppCoopSchema()
-  const missing = (schema.tables || []).filter((t) => !existingTablesLower.has(String(t.id).toLowerCase()))
+
+  // Consultar directamente a Grist (source of truth) en vez de usar una lista
+  // cacheada de tablas, que puede estar stale y provocar duplicados.
+  let diff = await getSchemaDiff()
 
   // Excluir self-references del AddTable: Grist las saltea silenciosamente
   // porque la tabla no existe todavía cuando se procesa la definición.
   // Se agregan después con AddColumn, cuando la tabla ya existe.
-  const payloadTables = missing.map((t) => {
+  const payloadTables = (diff.missingTables || []).map((t) => {
     const selfRefs = new Set(getSelfRefColumns(t.id, t.columns).map((c) => c.id))
     return {
       id: t.id,
@@ -65,9 +68,8 @@ export const ensureSchema = async (existingTablesLower) => {
     // Dar tiempo a Grist a sincronizar sus tablas internas
     // (_grist_Tables_column) antes de comparar el schema.
     await new Promise((resolve) => setTimeout(resolve, 500))
+    diff = await getSchemaDiff()
   }
-
-  let diff = await getSchemaDiff()
 
   const actualTableIds = new Map()
   for (const [lower, actual] of Object.entries(diff.actualTableIds || {})) {
@@ -82,11 +84,12 @@ export const ensureSchema = async (existingTablesLower) => {
     }
   }
   if (actions.length > 0) {
+    console.log('[ensureSchema] AddColumn actions:', actions.map(a => [a[1], a[2]]))
     await applyUserActions(actions)
     // Verificar una segunda vez después de agregar columnas faltantes,
     // por si quedaron columnas que no se detectaron en el primer check
     // (timing de _grist_Tables_column).
-    await new Promise((resolve) => setTimeout(resolve, 300))
+    await new Promise((resolve) => setTimeout(resolve, 500))
     diff = await getSchemaDiff()
     const secondActions = []
     for (const item of diff.missingColumns) {
@@ -98,6 +101,9 @@ export const ensureSchema = async (existingTablesLower) => {
     if (secondActions.length > 0) {
       await applyUserActions(secondActions)
     }
+    // Esperar a que el sandbox de Grist sincronice las columnas nuevas
+    // antes de que el caller intente hacer AddRecord con esas columnas.
+    await new Promise((resolve) => setTimeout(resolve, 500))
   }
 
   const repairActions = await getRefRepairActions(diff, schema)
@@ -105,7 +111,21 @@ export const ensureSchema = async (existingTablesLower) => {
     await applyUserActions(repairActions)
   }
 
-  return { created: payloadTables.length, addedColumns: actions.length, repairedRefs: repairActions.length }
+  // Verificación final: si todavía hay columnas faltantes, las reportamos
+  // para que el caller no intente AddRecord con columnas inexistentes.
+  const finalDiff = await getSchemaDiff()
+  const stillMissing = (finalDiff.missingColumns || []).flatMap((item) =>
+    item.columns.map((c) => `${item.tableId}.${c.id}`)
+  )
+
+  return {
+    created: payloadTables.length,
+    addedColumns: actions.length,
+    repairedRefs: repairActions.length,
+    errors: stillMissing.length > 0
+      ? [`Columnas que no se pudieron agregar: ${stillMissing.join(', ')}`]
+      : undefined,
+  }
 }
 
 export const seedIfEmpty = async ({ tableId, seedName, batchSize = 100 }) => {
