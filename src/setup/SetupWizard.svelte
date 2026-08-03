@@ -67,7 +67,7 @@
     {/if}
 
     <div class="flex justify-end gap-2.5">
-      {#if dev && store.step < 4}
+      {#if dev && store.step < 4 && !store.precargarDemoPorDefecto}
         <Button variant="outline" class="mr-auto border-dashed text-muted-foreground" onclick={() => store.fillDemoData()} title="Solo en desarrollo: rellena este paso con datos de ejemplo">
           Precargar datos demo
         </Button>
@@ -76,7 +76,7 @@
         <Button variant="outline" onclick={() => store.step -= 1}>Atrás</Button>
       {/if}
       {#if store.step < store.steps.length - 1}
-        <Button onclick={() => store.step += 1} disabled={!store.canNext()}>Siguiente</Button>
+        <Button onclick={() => store.next()} disabled={!store.canNext()}>Siguiente</Button>
       {:else}
         <Button onclick={() => store.doInstall()} disabled={store.installing}>
           {store.installing ? 'Instalando…' : 'Instalar ahora'}

@@ -147,6 +147,24 @@ export class SetupStore {
   cargoUid = 0
   federacionAdherida = $state(false)
 
+  // Solo dev: cargar datos de prueba (personas, socios, movimientos) tras instalar.
+  isDev = import.meta.env.DEV
+  cargarDatosPrueba = $state(false)
+  datosPruebaProgress = $state('')
+
+  // Solo dev: precargar datos demo en todos los pasos automáticamente (reemplaza
+  // el botón "Precargar datos demo" que aparece en cada paso).
+  precargarDemoPorDefecto = $state(false)
+
+  // Solo dev: configuración de cantidades para el generador de datos de prueba.
+  // Valores por defecto = los que usa generarDatosPrueba si no se pasa config.
+  datosPruebaConfig = $state({
+    cantPersonas: 500,
+    cantSocios: 400,
+    cantMovimientos: 2000,
+    batchSize: 100,
+  })
+
   localidades = localidadesData.map((l) => ({ value: l, label: l }))
   steps = ['Módulos', 'Escuela y cooperadora', 'Banco y kiosco', 'Ejercicio y cargos', 'Instalar']
 
@@ -494,9 +512,33 @@ export class SetupStore {
     }
   }
 
+  // Rellena TODOS los pasos (0-3) con datos de ejemplo de una sola vez.
+  // Se usa cuando el usuario activa "precargar datos demo por defecto" en el
+  // primer paso (dev), reemplazando al botón "Precargar datos demo" por paso.
+  // El salto al paso 4 (Instalar) lo maneja el onchange del checkbox en StepModulos.
+  fillAllDemoData() {
+    const stepActual = this.step
+    for (let s = 0; s <= 3; s++) {
+      this.step = s
+      this.fillDemoData()
+    }
+    this.step = stepActual
+  }
+
+  // Avanza al siguiente paso. Si precargarDemoPorDefecto está activo, salta
+  // directo al último paso (Instalar) porque los pasos intermedios ya están
+  // rellenados con datos demo.
+  next() {
+    if (this.precargarDemoPorDefecto) {
+      this.step = this.steps.length - 1
+    } else {
+      this.step += 1
+    }
+  }
+
   hasFieldErrors() {
-    // CUE: solo es error si está en estado 'typing' (incompleto) o si es
-    // inválido (no empieza con 06). 'not_found' NO es error: el usuario puede
+    // CUE: solo es error si está en estado 'typing' (incompleto) o si
+    // es inválido (no empieza con 06). 'not_found' NO es error: el usuario puede
     // cargar manualmente. 'found' tampoco: datos oficiales precargados.
     const cueIsError = this.cueState === 'typing' ||
       (this.cueState === 'not_found' && !this.schoolData.cue.replace(/\D/g, '').startsWith('06'))
@@ -703,6 +745,24 @@ export class SetupStore {
       }
       if (seeds.length > 0) {
         await initDemoData(seeds)
+      }
+
+      // Solo dev: generar datos de prueba si el usuario lo solicitó.
+      if (import.meta.env.DEV && this.cargarDatosPrueba) {
+        this.datosPruebaProgress = 'Generando datos de prueba...'
+        try {
+          const { generarDatosPrueba } = await import('./generadorDemo')
+          await generarDatosPrueba({
+            cantPersonas: Number(this.datosPruebaConfig.cantPersonas) || 500,
+            cantSocios: Number(this.datosPruebaConfig.cantSocios) || 400,
+            cantMovimientos: Number(this.datosPruebaConfig.cantMovimientos) || 2000,
+            batchSize: Number(this.datosPruebaConfig.batchSize) || 100,
+            onProgress: (msg) => { this.datosPruebaProgress = msg },
+          })
+        } catch (e) {
+          console.error('[demo] Error generando datos de prueba:', e)
+          this.error = `Datos de prueba: ${/** @type {Error} */ (e)?.message || String(e)}`
+        }
       }
 
       invalidateTablesCache()
