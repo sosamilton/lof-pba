@@ -74,7 +74,7 @@ function foregroundFor(bgHex) {
   return relativeLuminance(rgb) > 0.42 ? 'oklch(0.21 0.02 0)' : 'oklch(0.99 0.01 0)'
 }
 
-const STYLE_ID = 'appcoop-brand-theme'
+const STYLE_ID = 'lof-brand-theme'
 
 /**
  * @param {string} primary

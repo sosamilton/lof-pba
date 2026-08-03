@@ -1,10 +1,10 @@
 # Arquitectura
 
-Este documento describe la arquitectura de AppCoop, las capas de la aplicación, el flujo de datos y los mecanismos de integración con Grist.
+Este documento describe la arquitectura de LOF, las capas de la aplicación, el flujo de datos y los mecanismos de integración con Grist.
 
 ## Visión general
 
-AppCoop es una **SPA sin backend propio**. Toda la persistencia vive en un **documento Grist**: la app se ejecuta dentro de un iframe de Grist como *Custom Widget* y se comunica con el documento a través de `grist-plugin-api`. No hay servidor de aplicación, base de datos propia ni API intermedia: Grist **es** el backend.
+LOF es una **SPA sin backend propio**. Toda la persistencia vive en un **documento Grist**: la app se ejecuta dentro de un iframe de Grist como *Custom Widget* y se comunica con el documento a través de `grist-plugin-api`. No hay servidor de aplicación, base de datos propia ni API intermedia: Grist **es** el backend.
 
 ```
 ┌─────────────────────────── Grist Document (host) ───────────────────────────┐
@@ -12,7 +12,7 @@ AppCoop es una **SPA sin backend propio**. Toda la persistencia vive en un **doc
 │          autoridades, asambleas, resoluciones, cuentas, rubros_pia, ...     │
 │                                                                             │
 │   ┌──────────────────────── iframe: Custom Widget ─────────────────────┐    │
-│   │  AppCoop SPA (Svelte 5 + Vite)                                      │    │
+│   │  LOF SPA (Svelte 5 + Vite)                                          │    │
 │   │                                                                     │    │
 │   │  UI ────────────► Stores (runes) ──────► core/grist.js ─────► API   │    │
 │   │  (modules)        createGristStore()    fetchRecords/applyUserActions│   │
@@ -31,7 +31,7 @@ Vista pública que se muestra cuando la app corre fuera de Grist. El contenido (
 ### 2. Setup — `src/setup/`
 
 - **`SetupWizard.svelte`** — wizard guiado de inicialización del documento.
-- **`initAppCoop.js`** — crea las tablas faltantes (a partir de `schema.json`) y carga los datos semilla (`public/seeds/*.csv`).
+- **`initLof.js`** — crea las tablas faltantes (a partir de `schema.json`) y carga los datos semilla (`public/seeds/*.csv`).
 - **`migracion.js`** — aplica migraciones incrementales al schema del documento cuando cambian las tablas/columnas.
 - **`NeedsAccess.svelte`** — pantalla que se muestra cuando el widget no tiene permisos suficientes.
 
@@ -122,7 +122,7 @@ Componentes **shadcn-svelte** (basados en **bits-ui**): button, card, dialog, sh
 
 ## Schema y migraciones
 
-`schema.json` describe cada tabla con sus columnas y tipos. `initAppCoop.js` crea las tablas faltantes con `AddTable` y carga los seeds CSV. `migracion.js` aplica cambios incrementales (nuevas columnas, tablas) comparando el schema declarado contra el documento existente. `invalidateTablesCache()` se invoca tras `AddTable` para que `resolveTableId` vuelva a consultar.
+`schema.json` describe cada tabla con sus columnas y tipos. `initLof.js` crea las tablas faltantes con `AddTable` y carga los seeds CSV. `migracion.js` aplica cambios incrementales (nuevas columnas, tablas) comparando el schema declarado contra el documento existente. `invalidateTablesCache()` se invoca tras `AddTable` para que `resolveTableId` vuelva a consultar.
 
 ## Despliegue
 

@@ -9,7 +9,7 @@ import {
   subscribeRecords,
 } from '$core/grist'
 import { REQUIRED_TABLES } from '$core/schema'
-import { getSchemaDiff, ensureSchema } from '$setup/initAppCoop'
+import { getSchemaDiff, ensureSchema } from '$setup/initLof'
 import { deduplicatePersonas } from '$setup/migracion'
 import { TABLE_PREFERRED_IDS, MESES } from '$core/utils'
 import { loadConfig, saveConfig } from '$core/configuracion'

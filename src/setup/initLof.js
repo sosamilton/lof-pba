@@ -4,7 +4,7 @@ import schemaJson from '$core/schema.json'
 
 const base = () => String(import.meta.env.BASE_URL || '/')
 
-export const loadAppCoopSchema = async () => schemaJson
+export const loadLofSchema = async () => schemaJson
 
 export const loadSeedCsv = async (name) => {
   const url = `${base()}seeds/${name}.csv`
@@ -44,7 +44,7 @@ const getSelfRefColumns = (tableId, columns) => {
 }
 
 export const ensureSchema = async () => {
-  const schema = await loadAppCoopSchema()
+  const schema = await loadLofSchema()
 
   // Consultar directamente a Grist (source of truth) en vez de usar una lista
   // cacheada de tablas, que puede estar stale y provocar duplicados.
@@ -172,7 +172,7 @@ export const initDemoData = async (tables) => {
 }
 
 export const getSchemaDiff = async () => {
-  const schema = await loadAppCoopSchema()
+  const schema = await loadLofSchema()
   const tablesMeta = await fetchTableData('_grist_Tables')
   const colsMeta = await fetchTableData('_grist_Tables_column')
 

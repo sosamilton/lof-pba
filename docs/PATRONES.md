@@ -1,6 +1,6 @@
 # Patrones de código
 
-Patrones y convenciones usados en AppCoop. El proyecto usa **Svelte 5 con runes** (sin stores de Svelte 4) y **JavaScript + JSDoc** (sin TypeScript en runtime).
+Patrones y convenciones usados en LOF. El proyecto usa **Svelte 5 con runes** (sin stores de Svelte 4) y **JavaScript + JSDoc** (sin TypeScript en runtime).
 
 ## 1. Runes: cuándo usar cada uno
 
@@ -65,7 +65,7 @@ Devuelve `{ records, loading, error, notice, tableId, load, save, remove, refres
 - Para contenido proyectado usamos **snippets** (`{#snippet ...}` / `{@render ...}`) en lugar de slots.
 
 ```svelte
-<AppShell title="AppCoop">
+<AppShell title={identidad.nombre}>
   {#snippet children()}
     <Socios />
   {/snippet}
