@@ -111,6 +111,17 @@ export const ensureSchema = async () => {
     await applyUserActions(repairActions)
   }
 
+  // Migrar columnas existentes a fórmulas (ej: campos denormalizados de
+  // socios/autoridades que ahora se calculan desde $persona_id).
+  const formulaActions = (diff.formulaMigrations || []).map((m) =>
+    ['ModifyColumn', m.tableId, m.colId, m.fields]
+  )
+  if (formulaActions.length > 0) {
+    console.log('[ensureSchema] Formula migrations:', formulaActions.map(a => [a[1], a[2]]))
+    await applyUserActions(formulaActions)
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  }
+
   // Verificación final: si todavía hay columnas faltantes, las reportamos
   // para que el caller no intente AddRecord con columnas inexistentes.
   const finalDiff = await getSchemaDiff()
@@ -122,6 +133,7 @@ export const ensureSchema = async () => {
     created: payloadTables.length,
     addedColumns: actions.length,
     repairedRefs: repairActions.length,
+    migratedFormulas: formulaActions.length,
     errors: stillMissing.length > 0
       ? [`Columnas que no se pudieron agregar: ${stillMissing.join(', ')}`]
       : undefined,
@@ -173,12 +185,20 @@ export const getSchemaDiff = async () => {
   }
 
   const colsByTableId = new Map()
+  // Mapa de "tableId:colId" → { isFormula, formula } para detectar columnas
+  // que existen pero necesitan convertirse a fórmulas.
+  const colFormulaState = new Map()
   for (let i = 0; i < (colsMeta?.id?.length || 0); i += 1) {
     const tableId = tableIdByRef.get(colsMeta.parentId[i])
     if (!tableId) continue
     const key = String(tableId)
+    const colId = String(colsMeta.colId[i] || '')
     if (!colsByTableId.has(key)) colsByTableId.set(key, new Set())
-    colsByTableId.get(key).add(String(colsMeta.colId[i] || ''))
+    colsByTableId.get(key).add(colId)
+    colFormulaState.set(`${key}:${colId.toLowerCase()}`, {
+      isFormula: Boolean(colsMeta.isFormula?.[i]),
+      formula: String(colsMeta.formula?.[i] || ''),
+    })
   }
 
   const existingTablesLower = new Set()
@@ -218,7 +238,28 @@ export const getSchemaDiff = async () => {
     }
   }
 
-  return { missingTables, missingColumns, actualTableIds, refColumns }
+  // Detectar columnas que existen pero necesitan convertirse a fórmulas
+  // (ej: campos denormalizados de socios/autoridades que ahora pull de $persona_id).
+  const formulaMigrations = []
+  for (const t of schema.tables || []) {
+    const actualTableId = tableIdLowerToActual.get(String(t.id).toLowerCase())
+    if (!actualTableId) continue
+    for (const c of t.columns || []) {
+      const fields = c.fields || {}
+      if (!fields.isFormula) continue
+      const state = colFormulaState.get(`${actualTableId}:${String(c.id).toLowerCase()}`)
+      if (!state) continue // columna no existe todavía, se creará como fórmula
+      if (!state.isFormula || state.formula !== String(fields.formula || '')) {
+        formulaMigrations.push({
+          tableId: actualTableId,
+          colId: c.id,
+          fields: { label: fields.label, type: fields.type, isFormula: true, formula: fields.formula },
+        })
+      }
+    }
+  }
+
+  return { missingTables, missingColumns, actualTableIds, refColumns, formulaMigrations }
 }
 
 const getRefRepairActions = async (diff, schema) => {

@@ -5,6 +5,7 @@
   import * as Tabs from '$lib/components/ui/tabs'
   import EmptyState from '$lib/components/EmptyState.svelte'
   import { ORGANISMOS, ORGANISMO_LABELS } from '$core/utils'
+  import { formatFecha } from '$core/format'
   import HistoryIcon from '@lucide/svelte/icons/history'
 
   let { store } = $props()
@@ -63,8 +64,8 @@
                     {/if}
                   </div>
                 </Table.Cell>
-                <Table.Cell><span class="text-xs">{r.fecha_asuncion || '-'}</span></Table.Cell>
-                <Table.Cell><span class="text-xs">{r.fecha_cese || '-'}</span></Table.Cell>
+                <Table.Cell><span class="text-xs">{formatFecha(r.fecha_asuncion) || '-'}</span></Table.Cell>
+                <Table.Cell><span class="text-xs">{formatFecha(r.fecha_cese) || '-'}</span></Table.Cell>
                 <Table.Cell><span class="text-xs">{r.motivo_cese || '-'}</span></Table.Cell>
                 <Table.Cell>
                   {#if r.tipo_origen === 'ReunionCD'}

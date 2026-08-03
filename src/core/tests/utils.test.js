@@ -44,6 +44,19 @@ describe('dateToInput', () => {
     expect(dateToInput(null)).toBe('')
     expect(dateToInput('')).toBe('')
   })
+  it('converts Grist Date timestamp (seconds since epoch)', () => {
+    // 2024-03-15 00:00:00 UTC = 1710460800 segundos
+    expect(dateToInput(1710460800)).toBe('2024-03-15')
+  })
+  it('converts Grist encoded Date array ["d", timestamp]', () => {
+    expect(dateToInput(['d', 1710460800])).toBe('2024-03-15')
+  })
+  it('converts Grist encoded DateTime array ["D", timestamp, tz]', () => {
+    expect(dateToInput(['D', 1710460800, 'UTC'])).toBe('2024-03-15')
+  })
+  it('handles plain YYYY-MM-DD string', () => {
+    expect(dateToInput('2024-03-15')).toBe('2024-03-15')
+  })
 })
 
 describe('addMonths', () => {

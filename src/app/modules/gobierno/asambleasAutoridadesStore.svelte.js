@@ -450,14 +450,13 @@ const saveAutoridadesFromAsamblea = async () => {
       }
       const fechaAsuncion = f.fecha_asuncion || asambleaFecha
       const fechaVenc = fechaAsuncion ? addMonths(fechaAsuncion, f.duracionMeses) : ''
+      // apellido_nombre, dni, cuil, domicilio, localidad son columnas formula
+      // en Grist (pull de $persona_id). No se guardan directamente en autoridades.
       const fields = normalizeFields({
         organismo: 'CD',
         cargo_id: f.cargoId,
         ejercicio_id: ejercicio.id,
         persona_id: personaId || '',
-        apellido_nombre: String(f.apellido_nombre || '').trim(),
-        dni: String(f.dni || '').trim(),
-        cuil: String(f.cuil || '').trim(),
         fecha_asuncion: fechaAsuncion || '',
         fecha_vencimiento: fechaVenc || '',
         tipo_origen: tipoOrigen,
@@ -606,9 +605,6 @@ const saveReemplazo = async () => {
       cargo_id: nuevo.cargoId,
       ejercicio_id: ejercicio.id,
       persona_id: personaId || '',
-      apellido_nombre: String(nuevo.apellido_nombre || '').trim(),
-      dni: String(nuevo.dni || '').trim(),
-      cuil: String(nuevo.cuil || '').trim(),
       fecha_asuncion: fechaAsuncion || '',
       fecha_vencimiento: fechaVenc || '',
       tipo_origen: tipoOrigen,

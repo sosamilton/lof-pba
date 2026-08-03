@@ -298,3 +298,14 @@ export const isValidCbuChecksum = (raw) => {
   if (c.length !== 22) return false
   return verificarBloque(c.slice(0, 8), CBU_PESOS_1) && verificarBloque(c.slice(8), CBU_PESOS_2)
 }
+
+// Formatea una fecha ISO (YYYY-MM-DD o YYYY-MM-DDTHH:MM:SS) a DD/MM/YYYY.
+// Acepta null/undefined/vacío y devuelve ''.
+/** @param {string|Date|null|undefined} raw @returns {string} */
+export const formatFecha = (raw) => {
+  if (!raw) return ''
+  const s = String(raw).slice(0, 10)
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!m) return s
+  return `${m[3]}/${m[2]}/${m[1]}`
+}

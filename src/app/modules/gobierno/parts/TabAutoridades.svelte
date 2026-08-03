@@ -8,6 +8,7 @@
   import * as Field from '$lib/components/ui/field'
   import EmptyState from '$lib/components/EmptyState.svelte'
   import { ORGANISMOS, ORGANISMO_LABELS } from '$core/utils'
+  import { formatFecha } from '$core/format'
   import UserXIcon from '@lucide/svelte/icons/user-x'
   import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
   import AlertCircleIcon from '@lucide/svelte/icons/alert-circle'
@@ -95,8 +96,8 @@
                     <span class="text-xs text-muted-foreground italic">Vacante</span>
                   {/if}
                 </Table.Cell>
-                <Table.Cell><span class="text-xs">{r.fecha_asuncion || '-'}</span></Table.Cell>
-                <Table.Cell><span class="text-xs">{r.fecha_vencimiento || '-'}</span></Table.Cell>
+                <Table.Cell><span class="text-xs">{formatFecha(r.fecha_asuncion) || '-'}</span></Table.Cell>
+                <Table.Cell><span class="text-xs">{formatFecha(r.fecha_vencimiento) || '-'}</span></Table.Cell>
                 <Table.Cell>
                   {#if r.tipo_origen === 'ReunionCD'}
                     <Badge variant="outline">RCD</Badge>
