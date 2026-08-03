@@ -14,9 +14,10 @@
   import WifiOffIcon from '@lucide/svelte/icons/wifi-off'
   import WifiIcon from '@lucide/svelte/icons/wifi'
   import FileTextIcon from '@lucide/svelte/icons/file-text'
+  import { identidad } from '$core/identidad'
   import data from './landing.json'
 
-  let { identidad, guia_instalacion } = data
+  let { guia_instalacion } = data
   const enlaces = identidad.enlaces
 
   const modoConfig = {

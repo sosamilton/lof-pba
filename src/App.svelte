@@ -5,6 +5,7 @@
   import { initRouter, router, navigate } from '$core/router.svelte'
   import { detectGrist, getGristStatus, getWidgetOptions, isInGrist, subscribeAccess, listTables } from '$core/grist'
   import { isInstalled } from '$core/configuracion'
+  import { identidad } from '$core/identidad'
 
   import Inicio from '$app/pages/Inicio.svelte'
   import Landing from '$landing/Landing.svelte'
@@ -73,7 +74,7 @@
 {:else if gristStatus === 'ready' && needsSetup}
   <SetupWizard />
 {:else if gristStatus === 'ready'}
-  <AppShell title="LOF">
+  <AppShell title={identidad.nombre}>
     {#snippet children()}
       {#if router.current === 'cooperadora'}
         <Cooperadora />
