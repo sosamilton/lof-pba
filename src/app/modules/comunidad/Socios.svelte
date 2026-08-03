@@ -15,6 +15,7 @@
   import Combobox from '$lib/components/Combobox.svelte'
   import EmptyState from '$lib/components/EmptyState.svelte'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
+  import { useInfiniteScroll } from '$lib/useInfiniteScroll.svelte.js'
   import { Skeleton } from '$lib/components/ui/skeleton'
   import UserPlusIcon from '@lucide/svelte/icons/user-plus'
   import SearchIcon from '@lucide/svelte/icons/search'
@@ -46,6 +47,8 @@
       .sort((/** @type {any} */ a, /** @type {any} */ b) => normalize(a.apellido).localeCompare(normalize(b.apellido)) || normalize(a.nombre).localeCompare(normalize(b.nombre)))
   )
 
+  const scroll = useInfiniteScroll(() => filtered)
+
   const handleSave = () => notifyAfter(store, store.saveSocio)
 
   onMount(() => {
@@ -72,7 +75,7 @@
   <div class="mb-4 flex flex-wrap items-center gap-3">
     <div class="relative flex-1 min-w-[200px]">
       <SearchIcon class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input placeholder="Buscar (apellido, nombre, DNI…)" bind:value={q} class="pl-9" aria-label="Buscar socios" />
+      <Input placeholder="Buscar (apellido, nombre, DNI…)" bind:value={q} class="pl-9" aria-label="Buscar socios" data-shortcut="search" />
     </div>
     <Select.Root type="single" bind:value={estado}>
       <Select.Trigger class="w-[120px]" aria-label="Filtrar por estado">
@@ -94,7 +97,7 @@
         {/each}
       </Select.Content>
     </Select.Root>
-    <Button onclick={() => store.nuevo(buildPrefill(q))}>
+    <Button data-shortcut="new" onclick={() => store.nuevo(buildPrefill(q))}>
       <UserPlusIcon data-icon="inline-start" />
       Nuevo socio
     </Button>
@@ -104,8 +107,8 @@
 
   <div class="grid gap-4" style="grid-template-columns: {filtered.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
     {#if filtered.length > 0}
-      <div class="max-h-[calc(100vh-200px)] overflow-y-auto rounded-lg border border-border bg-card">
-        {#each filtered as s (s.id)}
+      <div bind:this={scroll.scrollEl} onscroll={scroll.onScroll} class="max-h-[calc(100vh-200px)] overflow-y-auto rounded-lg border border-border bg-card">
+        {#each scroll.visible as s (s.id)}
           <button
             class="w-full border-b border-border px-4 py-3 text-left transition-colors hover:bg-accent {store.form?.id === s.id ? 'bg-primary/10' : ''}"
             onclick={() => store.select(s)}
@@ -125,6 +128,9 @@
             </div>
           </button>
         {/each}
+        {#if scroll.hasMore}
+          <div class="py-3 text-center text-xs text-muted-foreground">Cargando más…</div>
+        {/if}
       </div>
     {/if}
 
