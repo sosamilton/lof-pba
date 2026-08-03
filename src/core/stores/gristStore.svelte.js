@@ -264,11 +264,10 @@ export function createBaseState() {
  */
 export async function resolveTableIds(tableKeys) {
   await gristReady()
-  const out = {}
-  for (const key of tableKeys) {
-    out[key] = await resolveTableId(TABLE_PREFERRED_IDS[key])
-  }
-  return out
+  const entries = await Promise.all(
+    tableKeys.map(async (key) => [key, await resolveTableId(TABLE_PREFERRED_IDS[key])])
+  )
+  return Object.fromEntries(entries)
 }
 
 /**
@@ -278,11 +277,10 @@ export async function resolveTableIds(tableKeys) {
  * @returns {Promise<object>} Mapa de tableKey → records[]
  */
 export async function fetchRelated(tableIds, optionsMap = {}) {
-  const out = {}
-  for (const [key, tid] of Object.entries(tableIds)) {
-    if (tid) {
-      out[key] = await fetchRecords(tid, optionsMap[key] || {})
-    }
-  }
-  return out
+  const entries = await Promise.all(
+    Object.entries(tableIds)
+      .filter(([_, tid]) => tid)
+      .map(async ([key, tid]) => [key, await fetchRecords(tid, optionsMap[key] || {})])
+  )
+  return Object.fromEntries(entries)
 }

@@ -13,9 +13,10 @@
   import EmptyState from '$lib/components/EmptyState.svelte'
   import Combobox from '$lib/components/Combobox.svelte'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
+  import { useInfiniteScroll } from '$lib/useInfiniteScroll.svelte.js'
+  import { keyboard } from '$core/keyboard.svelte'
   import SearchIcon from '@lucide/svelte/icons/search'
   import PlusIcon from '@lucide/svelte/icons/plus'
-  import RefreshIcon from '@lucide/svelte/icons/refresh-cw'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
 
   let q = $state('')
@@ -32,7 +33,9 @@
       .sort((/** @type {any} */ a, /** @type {any} */ b) => String(b.fecha || '').localeCompare(String(a.fecha || '')))
   )
 
-  let showList = $derived(store.listOpen && filtered.length > 0)
+  let showList = $derived(filtered.length > 0)
+
+  const scroll = useInfiniteScroll(() => filtered)
 
   let rubroById = $derived(new Map(store.rubros.map((/** @type {any} */ r) => [Number(r.id), r])))
   let filteredRubros = $derived(
@@ -71,9 +74,11 @@
 
   const handleSave = () => notifyAfter(store, store.saveMovimiento)
 
-  onMount(() => {
+  onMount(async () => {
     const unsub = store.subscribe()
-    store.loadAll()
+    await store.loadAll()
+    const pending = keyboard.consumePendingAction()
+    if (pending) pending.action()
     return unsub
   })
 </script>
@@ -94,7 +99,7 @@
   <div class="mb-4 flex flex-wrap items-center gap-3">
     <div class="relative flex-1 min-w-[200px]">
       <SearchIcon class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input placeholder="Buscar en detalle" bind:value={q} class="pl-9" aria-label="Buscar movimientos" />
+      <Input placeholder="Buscar en detalle" bind:value={q} class="pl-9" aria-label="Buscar movimientos" data-shortcut="search" />
     </div>
     <Select.Root type="single" bind:value={tipo} allowDeselect={true}>
       <Select.Trigger class="w-[120px]" aria-label="Filtrar por tipo de movimiento">
@@ -106,14 +111,11 @@
         <Select.Item value="Traspaso">Traspaso</Select.Item>
       </Select.Content>
     </Select.Root>
-    <Button onclick={store.nuevo}>
+    <Button data-shortcut="new" onclick={store.nuevo}>
       <PlusIcon data-icon="inline-start" />
       Nuevo movimiento
     </Button>
-    <Button variant="outline" onclick={store.loadAll}>
-      <RefreshIcon data-icon="inline-start" />
-      Recargar
-    </Button>
+    <button data-shortcut="cuota" onclick={store.nuevoCuotaSocietaria} class="hidden" aria-hidden="true" tabindex="-1"></button>
     <span class="text-sm text-muted-foreground">{filtered.length} movimientos</span>
   </div>
 
@@ -123,28 +125,27 @@
       sub="Activá un ejercicio en Cooperadora para registrar movimientos."
     />
   {:else}
-    <div class="grid gap-4" style="grid-template-columns: {showList ? 'minmax(280px, 380px) 1fr' : '1fr'}">
-      {#if showList}
-        <div class="max-h-[calc(100vh-200px)] overflow-y-auto rounded-lg border border-border bg-card">
-          {#if filtered.length === 0}
-            <div class="p-6 text-center text-sm text-muted-foreground">No hay movimientos</div>
-          {:else}
-            {#each filtered as m (m.id)}
-              <button
-                class="w-full border-b border-border px-4 py-3 text-left transition-colors hover:bg-accent {m.id === store.selectedId ? 'bg-primary/10' : ''}"
-                onclick={() => store.select(m)}
-                aria-pressed={m.id === store.selectedId}
-              >
-                <div class="text-sm font-medium">{m.fecha} · {m.tipo_movimiento} · {formatARS(m.importe)}</div>
-                <div class="text-xs text-muted-foreground">
-                  {#if m.tipo_movimiento === 'Traspaso'}
-                    {cuentaById.get(Number(m.cuenta_id))?.nombre_cuenta || ''} → {cuentaById.get(Number(m.cuenta_destino_id))?.nombre_cuenta || ''}
-                  {:else}
-                    {rubroById.get(Number(m.rubro_id))?.codigo_rubro || ''} · {m.detalle || ''}
-                  {/if}
-                </div>
-              </button>
-            {/each}
+    <div class="grid gap-4" style="grid-template-columns: {filtered.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
+      {#if filtered.length > 0}
+        <div bind:this={scroll.scrollEl} onscroll={scroll.onScroll} class="max-h-[calc(100vh-200px)] overflow-y-auto rounded-lg border border-border bg-card">
+          {#each scroll.visible as m (m.id)}
+            <button
+              class="w-full border-b border-border px-4 py-3 text-left transition-colors hover:bg-accent {m.id === store.selectedId ? 'bg-primary/10' : ''}"
+              onclick={() => store.select(m)}
+              aria-pressed={m.id === store.selectedId}
+            >
+              <div class="text-sm font-medium">{m.fecha} · {m.tipo_movimiento} · {formatARS(m.importe)}</div>
+              <div class="text-xs text-muted-foreground">
+                {#if m.tipo_movimiento === 'Traspaso'}
+                  {cuentaById.get(Number(m.cuenta_id))?.nombre_cuenta || ''} → {cuentaById.get(Number(m.cuenta_destino_id))?.nombre_cuenta || ''}
+                {:else}
+                  {rubroById.get(Number(m.rubro_id))?.codigo_rubro || ''} · {m.detalle || ''}
+                {/if}
+              </div>
+            </button>
+          {/each}
+          {#if scroll.hasMore}
+            <div class="py-3 text-center text-xs text-muted-foreground">Cargando más…</div>
           {/if}
         </div>
       {/if}
@@ -158,8 +159,8 @@
                   {store.form.id ? 'Editar movimiento' : 'Nuevo movimiento'}
                 </Card.Title>
                 <div class="flex gap-2">
-                  {#if showList}
-                    <Button variant="outline" size="sm" onclick={() => store.setListOpen(false)}>Ocultar lista</Button>
+                  {#if !store.form.id}
+                    <Button variant="ghost" size="sm" onclick={store.cancelar}>Cancelar</Button>
                   {/if}
                   <Button onclick={handleSave}>Guardar</Button>
                 </div>

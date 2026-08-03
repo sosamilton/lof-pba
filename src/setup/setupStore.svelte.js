@@ -671,16 +671,6 @@ export class SetupStore {
         moduleFlags[`modulo_${key}`] = Boolean(this.selectedModules[key])
       }
 
-      let cuentaDefaultId = null
-      const tCuentas = await resolveTableId(TABLE_PREFERRED_IDS.cuentas)
-      if (tCuentas) {
-        try {
-          const cuentasRecs = /** @type {CuentaRecord[]} */ (await fetchRecords(tCuentas))
-          const match = cuentasRecs.find((c) => String(c.nombre_cuenta) === this.cuentaDefault)
-          if (match) cuentaDefaultId = match.id
-        } catch { /* empty */ }
-      }
-
       await saveConfig({
         ...moduleFlags,
         // Solo cache de UI: lo que AppShell necesita al arranque sin cargar
@@ -688,7 +678,7 @@ export class SetupStore {
         escuela_nombre: this.schoolData.escuela_nombre || '',
         cooperadora_nombre: this.schoolData.cooperadora_nombre || '',
         color_primario: this.schoolData.color_primario || '#16b378',
-        cuenta_default_id: cuentaDefaultId,
+        cuenta_default_id: null,
         instalado: true,
         fecha_instalacion: new Date().toISOString(),
         // Versión del bundle que se instaló: permite comparar contra la versión
@@ -750,6 +740,20 @@ export class SetupStore {
       }
       if (seeds.length > 0) {
         await initDemoData(seeds)
+      }
+
+      // Buscar la cuenta default ahora que los seeds ya cargaron las cuentas
+      if (this.cuentaDefault) {
+        try {
+          const tCuentas = await resolveTableId(TABLE_PREFERRED_IDS.cuentas)
+          if (tCuentas) {
+            const cuentasRecs = /** @type {CuentaRecord[]} */ (await fetchRecords(tCuentas))
+            const match = cuentasRecs.find((c) => String(c.nombre_cuenta) === this.cuentaDefault)
+            if (match) {
+              await saveConfig({ cuenta_default_id: match.id })
+            }
+          }
+        } catch { /* empty */ }
       }
 
       // Solo dev: generar datos de prueba si el usuario lo solicitó.
