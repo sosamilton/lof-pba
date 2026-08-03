@@ -44,34 +44,6 @@ let reemplazoTarget = $state(null) // autoridad row a reemplazar
 const ps = usePersonaSearch()
 let searchTarget = $state(null) // 'cargar:<idx>' | 'reemplazo'
 
-const TIPO_MAP_MIGRACION = { AnualOrdinaria: 'AGO', Extraordinaria: 'AGE' }
-
-const migrateLegacyTipos = async () => {
-  if (!tAsambleas) return
-  try {
-    const all = await fetchRecords(tAsambleas)
-    const toUpdate = all
-      .filter((a) => a.tipo_asamblea && TIPO_MAP_MIGRACION[a.tipo_asamblea])
-      .map((a) => ['UpdateRecord', tAsambleas, a.id, { tipo_asamblea: TIPO_MAP_MIGRACION[a.tipo_asamblea] }])
-    if (toUpdate.length > 0) await applyUserActions(toUpdate)
-  } catch {
-    // migración best-effort, no bloquea la carga
-  }
-}
-
-const migrateLegacyOrigen = async () => {
-  if (!tAutoridades) return
-  try {
-    const all = await fetchRecords(tAutoridades)
-    const toUpdate = all
-      .filter((a) => a.tipo_origen == null || a.tipo_origen === '')
-      .map((a) => ['UpdateRecord', tAutoridades, a.id, { tipo_origen: 'Asamblea' }])
-    if (toUpdate.length > 0) await applyUserActions(toUpdate)
-  } catch {
-    // best-effort
-  }
-}
-
 const load = async () => {
   bs.setLoading(true)
   bs.clearMessages()
@@ -82,9 +54,6 @@ const load = async () => {
     tAutoridades = tIds.autoridades
     tAsambleas = tIds.asambleas
     tResoluciones = tIds.resoluciones
-
-    await migrateLegacyTipos()
-    await migrateLegacyOrigen()
 
     // Cargar ejercicios primero para saber cuál está en curso
     ejercicios = await fetchRecords(tEjercicios)
