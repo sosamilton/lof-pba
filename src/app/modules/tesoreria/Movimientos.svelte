@@ -13,6 +13,7 @@
   import EmptyState from '$lib/components/EmptyState.svelte'
   import Combobox from '$lib/components/Combobox.svelte'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
+  import { useInfiniteScroll } from '$lib/useInfiniteScroll.svelte.js'
   import SearchIcon from '@lucide/svelte/icons/search'
   import PlusIcon from '@lucide/svelte/icons/plus'
   import RefreshIcon from '@lucide/svelte/icons/refresh-cw'
@@ -33,6 +34,8 @@
   )
 
   let showList = $derived(store.listOpen && filtered.length > 0)
+
+  const scroll = useInfiniteScroll(() => filtered)
 
   let rubroById = $derived(new Map(store.rubros.map((/** @type {any} */ r) => [Number(r.id), r])))
   let filteredRubros = $derived(
@@ -125,26 +128,25 @@
   {:else}
     <div class="grid gap-4" style="grid-template-columns: {showList ? 'minmax(280px, 380px) 1fr' : '1fr'}">
       {#if showList}
-        <div class="max-h-[calc(100vh-200px)] overflow-y-auto rounded-lg border border-border bg-card">
-          {#if filtered.length === 0}
-            <div class="p-6 text-center text-sm text-muted-foreground">No hay movimientos</div>
-          {:else}
-            {#each filtered as m (m.id)}
-              <button
-                class="w-full border-b border-border px-4 py-3 text-left transition-colors hover:bg-accent {m.id === store.selectedId ? 'bg-primary/10' : ''}"
-                onclick={() => store.select(m)}
-                aria-pressed={m.id === store.selectedId}
-              >
-                <div class="text-sm font-medium">{m.fecha} · {m.tipo_movimiento} · {formatARS(m.importe)}</div>
-                <div class="text-xs text-muted-foreground">
-                  {#if m.tipo_movimiento === 'Traspaso'}
-                    {cuentaById.get(Number(m.cuenta_id))?.nombre_cuenta || ''} → {cuentaById.get(Number(m.cuenta_destino_id))?.nombre_cuenta || ''}
-                  {:else}
-                    {rubroById.get(Number(m.rubro_id))?.codigo_rubro || ''} · {m.detalle || ''}
-                  {/if}
-                </div>
-              </button>
-            {/each}
+        <div bind:this={scroll.scrollEl} onscroll={scroll.onScroll} class="max-h-[calc(100vh-200px)] overflow-y-auto rounded-lg border border-border bg-card">
+          {#each scroll.visible as m (m.id)}
+            <button
+              class="w-full border-b border-border px-4 py-3 text-left transition-colors hover:bg-accent {m.id === store.selectedId ? 'bg-primary/10' : ''}"
+              onclick={() => store.select(m)}
+              aria-pressed={m.id === store.selectedId}
+            >
+              <div class="text-sm font-medium">{m.fecha} · {m.tipo_movimiento} · {formatARS(m.importe)}</div>
+              <div class="text-xs text-muted-foreground">
+                {#if m.tipo_movimiento === 'Traspaso'}
+                  {cuentaById.get(Number(m.cuenta_id))?.nombre_cuenta || ''} → {cuentaById.get(Number(m.cuenta_destino_id))?.nombre_cuenta || ''}
+                {:else}
+                  {rubroById.get(Number(m.rubro_id))?.codigo_rubro || ''} · {m.detalle || ''}
+                {/if}
+              </div>
+            </button>
+          {/each}
+          {#if scroll.hasMore}
+            <div class="py-3 text-center text-xs text-muted-foreground">Cargando más…</div>
           {/if}
         </div>
       {/if}

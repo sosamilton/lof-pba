@@ -15,6 +15,7 @@
   import Combobox from '$lib/components/Combobox.svelte'
   import EmptyState from '$lib/components/EmptyState.svelte'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
+  import { useInfiniteScroll } from '$lib/useInfiniteScroll.svelte.js'
   import UserPlusIcon from '@lucide/svelte/icons/user-plus'
   import SearchIcon from '@lucide/svelte/icons/search'
   import UsersIcon from '@lucide/svelte/icons/users'
@@ -43,6 +44,8 @@
         return la.localeCompare(lb)
       })
   )
+
+  const scroll = useInfiniteScroll(() => filtered)
 
   const handleSave = () => notifyAfter(store, store.savePersona)
 
@@ -100,8 +103,8 @@
 
   <div class="grid gap-4" style="grid-template-columns: {filtered.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
     {#if filtered.length > 0}
-      <div class="max-h-[calc(100vh-200px)] overflow-y-auto rounded-lg border border-border bg-card">
-        {#each filtered as p (p.id)}
+      <div bind:this={scroll.scrollEl} onscroll={scroll.onScroll} class="max-h-[calc(100vh-200px)] overflow-y-auto rounded-lg border border-border bg-card">
+        {#each scroll.visible as p (p.id)}
           <button
             class="w-full border-b border-border px-4 py-3 text-left transition-colors hover:bg-accent {store.form?.id === p.id ? 'bg-primary/10' : ''}"
             onclick={() => store.select(p)}
@@ -126,6 +129,9 @@
             </div>
           </button>
         {/each}
+        {#if scroll.hasMore}
+          <div class="py-3 text-center text-xs text-muted-foreground">Cargando más…</div>
+        {/if}
       </div>
     {/if}
 
