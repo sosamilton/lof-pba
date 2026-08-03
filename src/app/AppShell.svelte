@@ -15,6 +15,10 @@
 
   let { title = 'AppCoop', children } = $props()
 
+  // Versión del bundle (horneada en build time via Vite define).
+  const versionActual = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
+  const shaActual = typeof __APP_SHA__ !== 'undefined' ? __APP_SHA__ : 'dev'
+
   let menuItems = $state([{ route: 'inicio', label: 'Inicio' }])
   let brandTitle = $state(title)
   let brandSub = $state('Demo cooperadora')
@@ -123,13 +127,18 @@
       </Sidebar.Group>
     </Sidebar.Content>
     <Sidebar.Rail />
+    <Sidebar.Footer>
+      <div class="px-2 py-1 text-[11px] text-muted-foreground/80 select-none">
+        AppCoop v{versionActual}{#if shaActual && shaActual !== 'dev'} · {shaActual}{/if}
+      </div>
+    </Sidebar.Footer>
   </Sidebar.Root>
 
   <Sidebar.Inset>
     <header class="flex h-12 shrink-0 items-center px-4">
       <Sidebar.Trigger />
       <span class="flex-1 text-center text-sm font-semibold truncate">{brandTitle}</span>
-      <span class="text-xs text-muted-foreground">AppCoop</span>
+      <span class="text-xs text-muted-foreground">v{versionActual}</span>
     </header>
     <main
       bind:this={mainEl}

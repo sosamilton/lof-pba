@@ -690,7 +690,12 @@ export class SetupStore {
         color_primario: this.schoolData.color_primario || '#16b378',
         cuenta_default_id: cuentaDefaultId,
         instalado: true,
-        fecha_instalacion: new Date().toISOString()
+        fecha_instalacion: new Date().toISOString(),
+        // Versión del bundle que se instaló: permite comparar contra la versión
+        // actual (horneada en el bundle que corre) y detectar si la app instalada
+        // quedó desactualizada respecto del deploy más reciente.
+        version_instalada: typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev',
+        sha_instalado: typeof __APP_SHA__ !== 'undefined' ? __APP_SHA__ : 'dev'
       })
 
       const needsEjercicio = this.selectedModules.gestion_integral || this.selectedModules.solo_pia
