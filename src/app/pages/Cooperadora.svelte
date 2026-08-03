@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import { cooperadoraStore as store } from './cooperadoraStore.svelte'
   import { ORGANISMOS, ORGANISMO_LABELS, NIVELES_CARGO } from '$core/utils'
+  import { formatFecha } from '$core/format'
   import { navigate } from '$core/router.svelte'
   import { emailInstitucionalAlias, parseEmailInstitucionalInput, EMAIL_INSTITUCIONAL_DOMAIN } from '$core/emailInstitucional'
   import { Button } from '$lib/components/ui/button'
@@ -313,8 +314,8 @@
                         </Table.Cell>
                         <Table.Cell class="text-sm">{fila.apellido_nombre || '—'}</Table.Cell>
                         <Table.Cell class="text-sm">{fila.cuil || '—'}</Table.Cell>
-                        <Table.Cell class="text-sm">{fila.fecha_asuncion || '—'}</Table.Cell>
-                        <Table.Cell class="text-sm">{fila.fecha_vencimiento || '—'}</Table.Cell>
+                        <Table.Cell class="text-sm">{formatFecha(fila.fecha_asuncion) || '—'}</Table.Cell>
+                        <Table.Cell class="text-sm">{formatFecha(fila.fecha_vencimiento) || '—'}</Table.Cell>
                         {#if !escuelaValidada}
                           <Table.Cell>
                             <Input type="number" bind:value={fila.cargo.orden} class="h-8 text-sm" />
