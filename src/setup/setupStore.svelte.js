@@ -1,5 +1,5 @@
 import { gristReady, listTables, resolveTableId, applyUserActions, invalidateTablesCache, fetchRecords, addRecords } from '$core/grist'
-import { ensureSchema, initDemoData, loadSeedCsv } from './initAppCoop'
+import { ensureSchema, initDemoData, loadSeedCsv } from './initLof'
 import { TABLE_PREFERRED_IDS, MODULES, MESES, ORGANISMOS, ORGANISMO_LABELS } from '$core/utils'
 import { loadConfig, saveConfig, getTablesForModules } from '$core/configuracion'
 import { parseCsv, csvToObjects, normalizeSeedValue } from '$core/csv'

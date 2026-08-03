@@ -1,10 +1,10 @@
-# Uso offline de AppCoop
+# Uso offline de LOF
 
-AppCoop está diseñado para funcionar **100% sin conexión a internet**. Esta guía detalla por qué es posible, qué escenarios existen y cómo configurar cada uno.
+LOF está diseñado para funcionar **100% sin conexión a internet**. Esta guía detalla por qué es posible, qué escenarios existen y cómo configurar cada uno.
 
 ---
 
-## Por qué AppCoop funciona offline
+## Por qué LOF funciona offline
 
 El análisis del código confirma que **no hay ninguna dependencia de red externa**:
 
@@ -46,7 +46,7 @@ docker compose up -d --build
 ```
 
 - **Grist**: `http://localhost:8484`
-- **AppCoop SPA**: `http://localhost:8080`
+- **LOF SPA**: `http://localhost:8080`
 - **Persistencia**: volumen Docker `grist_data` (SQLite del documento)
 
 Pasos post-levantado:
@@ -76,7 +76,7 @@ Grist Desktop es una aplicación de escritorio (Electron) que guarda el document
 2. Levantar la SPA localmente:
    ```bash
    # Opción A: Docker
-   docker run -d -p 8080:80 --name appcoop ghcr.io/sosamilton/spa-cooperadora:latest
+   docker run -d -p 8080:80 --name lof ghcr.io/sosamilton/spa-cooperadora:latest
 
    # Opción B: build local + servidor estático
    npm run build && npx serve dist -p 8080
@@ -151,7 +151,7 @@ Para confirmar que tu instalación es 100% offline:
 1. **Desconectar internet** (apagar Wi-Fi / desenchufar cable de red).
 2. Verificar que Grist carga: `http://localhost:8484` (o el puerto configurado).
 3. Verificar que la SPA carga: `http://localhost:8080` (o el puerto configurado).
-4. Abrir el documento Grist con el widget AppCoop.
+4. Abrir el documento Grist con el widget LOF.
 5. Navegar por los módulos (Socios, Movimientos, Gobierno, etc.).
 6. Crear/editar registros y confirmar que persisten al refrescar.
 
@@ -161,7 +161,7 @@ Si todos los pasos funcionan sin internet, la instalación es 100% offline.
 
 ## Telemetría y privacidad
 
-El `docker-compose.yml` configura `GRIST_TELEMETRY_LEVEL=off` para desactivar cualquier telemetría de Grist. AppCoop no envía datos a ningún servicio externo.
+El `docker-compose.yml` configura `GRIST_TELEMETRY_LEVEL=off` para desactivar cualquier telemetría de Grist. LOF no envía datos a ningún servicio externo.
 
 ---
 

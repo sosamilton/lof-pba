@@ -1,4 +1,4 @@
-# docker-compose.yml — entorno PRODUCTIVO: Grist + AppCoop SPA
+# docker-compose.yml — entorno PRODUCTIVO: Grist + LOF SPA
 #
 # Levanta Grist (backend) y la SPA (frontend) listos para usar, 100% offline.
 # No requiere internet: ambos servicios corren en localhost.
@@ -8,8 +8,8 @@
 #   docker compose up -d               # usa imagen de GHCR si ya existe
 #
 # Puertos:
-#   - Grist:   http://localhost:${GRIST_PORT:-8484}
-#   - AppCoop: http://localhost:${APP_PORT:-8080}
+#   - Grist: http://localhost:${GRIST_PORT:-8484}
+#   - LOF:   http://localhost:${APP_PORT:-8080}
 #
 # Persistencia:
 #   - grist_data: documento Grist (SQLite), usuarios, sesiones.
@@ -44,12 +44,12 @@ services:
       retries: 3
       start_period: 10s
 
-  appcoop:
+  lof:
     image: ghcr.io/${IMAGE_REPO:-sosamilton/spa-cooperadora}:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: appcoop
+    container_name: lof
     ports:
       - "${APP_PORT:-8080}:80"
     restart: unless-stopped

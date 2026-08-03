@@ -1,6 +1,6 @@
 # Tecnologías y decisiones
 
-Justificación del stack y de las decisiones técnicas de AppCoop.
+Justificación del stack y de las decisiones técnicas de LOF.
 
 ## Stack
 

@@ -1,6 +1,6 @@
 # Docker
 
-Guía completa de la dockerización de AppCoop. La app compila a **estáticos** y se sirve con **nginx** en producción, o con **Vite dev server** en desarrollo.
+Guía completa de la dockerización de LOF. La app compila a **estáticos** y se sirve con **nginx** en producción, o con **Vite dev server** en desarrollo.
 
 ## Archivos
 
@@ -14,20 +14,20 @@ Guía completa de la dockerización de AppCoop. La app compila a **estáticos** 
 
 ## Producción
 
-El `docker-compose.yml` levanta **Grist + AppCoop SPA** juntos, listos para usar y 100% offline.
+El `docker-compose.yml` levanta **Grist + LOF SPA** juntos, listos para usar y 100% offline.
 
 ### Construir y levantar todo
 
 ```bash
 docker compose up -d --build
 # Grist en http://localhost:8484
-# AppCoop en http://localhost:8080
+# LOF en http://localhost:8080
 ```
 
 ### Levantar solo la SPA (sin Grist)
 
 ```bash
-docker compose up -d --build appcoop
+docker compose up -d --build lof
 # App en http://localhost:8080
 ```
 
@@ -55,7 +55,7 @@ El servicio `grist` usa la imagen oficial `gristlabs/grist` con:
 - Volumen `grist_data` en `/persist` — documento SQLite, usuarios, sesiones.
 - Volumen `grist_docs` en `/docs` — documentos importados/exportados.
 - Healthcheck contra `/status`.
-- `depends_on: grist (healthy)` en `appcoop` — la SPA espera a que Grist esté listo.
+- `depends_on: grist (healthy)` en `lof` — la SPA espera a que Grist esté listo.
 
 ### Conectar la SPA con Grist
 
@@ -75,7 +75,7 @@ El CI publica automáticamente en `ghcr.io/<owner>/<repo>`:
 
 ```bash
 docker pull ghcr.io/sosamilton/spa-cooperadora:latest
-docker run -d -p 8080:80 --name appcoop ghcr.io/sosamilton/spa-cooperadora:latest
+docker run -d -p 8080:80 --name lof ghcr.io/sosamilton/spa-cooperadora:latest
 ```
 
 Tags generados por el workflow:
@@ -126,7 +126,7 @@ El servicio de dev:
 
 - Usa `node:24-alpine` directamente (sin Dockerfile propio).
 - Monta el directorio del proyecto en `/app` (volumen en vivo → HMR).
-- Mantiene `node_modules` en un **volumen anónimo** (`appcoop_node_modules`) para no pisar el del host ni tener conflictos de plataforma.
+- Mantiene `node_modules` en un **volumen anónimo** (`lof_node_modules`) para no pisar el del host ni tener conflictos de plataforma.
 - Ejecuta `npm install && npm run dev -- --host 0.0.0.0` en cada arranque.
 
 | Variable | Default | Descripción |
@@ -154,7 +154,7 @@ Permisos requeridos en el token del workflow: `contents: read`, `pages: write`, 
 El container expone el puerto 80. Para servirlo en un dominio con TLS, poner un reverse proxy (Caddy, Traefik, nginx) delante:
 
 ```
-proxy.example.com → appcoop:80
+proxy.example.com → lof:80
 ```
 
 Como la SPA usa paths relativos (`base: './'`) y hash routing, no hace falta configurar `base` ni reescribir paths.
@@ -171,6 +171,6 @@ Como la SPA usa paths relativos (`base: './'`) y hash routing, no hace falta con
 | Puerto SPA | 80 → 8080 | 5173 |
 | Puerto Grist | 8484 | — |
 | Volumen código | No (copiado en build) | Sí (bind mount) |
-| Volumen datos | `grist_data`, `grist_docs` | `appcoop_node_modules` |
+| Volumen datos | `grist_data`, `grist_docs` | `lof_node_modules` |
 | Healthcheck | Sí (wget) | No |
 | Reinicio | `unless-stopped` | `unless-stopped` |
