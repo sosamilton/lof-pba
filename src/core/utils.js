@@ -30,7 +30,32 @@ export const normalizeFields = (obj) => {
   return out
 }
 
-export const dateToInput = (v) => (v ? String(v).slice(0, 10) : '')
+// Convierte un valor de fecha de Grist a YYYY-MM-DD para inputs type="date".
+// Grist devuelve fechas Date/DateTime como números (segundos desde epoch) cuando
+// keepEncoded es true (default de fetchTable). También acepta strings ISO.
+export const dateToInput = (v) => {
+  if (!v && v !== 0) return ''
+  // Número: timestamp en segundos desde epoch (formato Grist Date/DateTime).
+  if (typeof v === 'number') {
+    const d = new Date(v * 1000)
+    return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10)
+  }
+  // Array encoded de Grist: ["d", timestamp] o ["D", timestamp, timezone].
+  if (Array.isArray(v) && v.length >= 2 && typeof v[1] === 'number') {
+    const d = new Date(v[1] * 1000)
+    return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10)
+  }
+  // String ISO o YYYY-MM-DD.
+  const s = String(v)
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10)
+  // String numérico (timestamp en segundos): fallback.
+  const n = Number(s)
+  if (Number.isFinite(n) && n > 0) {
+    const d = new Date(n * 1000)
+    return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10)
+  }
+  return ''
+}
 
 export const todayISO = () => new Date().toISOString().slice(0, 10)
 
