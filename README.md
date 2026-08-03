@@ -80,6 +80,10 @@ En entorno de desarrollo, el primer paso del setup wizard incluye dos checkboxes
 
 Si no se seleccionan los checkboxes, cada paso muestra un botón **"Precargar datos demo"** que rellena solo ese paso, permitiendo editar los valores o ajustar configuraciones antes de continuar. El seeder solo está disponible cuando `import.meta.env.DEV` es true y no viaja en el bundle de producción.
 
+<p align="center">
+  <img src="public/img/install/local-dev/setup-paso1.png" alt="Setup paso 1 con seeder de datos de prueba en dev" width="600" />
+</p>
+
 ## Documentación
 
 | Documento | Contenido |
