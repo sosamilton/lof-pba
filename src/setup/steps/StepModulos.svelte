@@ -134,7 +134,7 @@
 
 <Card.Root class="mb-4">
   <Card.Content class="pt-6">
-    <h2 class="text-[17px] font-bold mb-1.5">¿Cómo vas a usar AppCoop?</h2>
+    <h2 class="text-[17px] font-bold mb-1.5">¿Cómo vas a usar LOF?</h2>
     <p class="text-[13px] text-muted-foreground mb-4">Elegí el tipo de gestión. Podés cambiarlo más adelante.</p>
 
     <div class="flex flex-col gap-2.5">

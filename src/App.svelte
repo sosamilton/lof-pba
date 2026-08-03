@@ -73,7 +73,7 @@
 {:else if gristStatus === 'ready' && needsSetup}
   <SetupWizard />
 {:else if gristStatus === 'ready'}
-  <AppShell title="AppCoop">
+  <AppShell title="LOF">
     {#snippet children()}
       {#if router.current === 'cooperadora'}
         <Cooperadora />
