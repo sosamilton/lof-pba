@@ -73,7 +73,7 @@
   <div class="mb-4 flex flex-wrap items-center gap-3">
     <div class="relative flex-1 min-w-[200px]">
       <SearchIcon class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input placeholder="Buscar (nombre, DNI, razón social…)" bind:value={q} class="pl-9" aria-label="Buscar personas" />
+      <Input placeholder="Buscar (nombre, DNI, razón social…)" bind:value={q} class="pl-9" aria-label="Buscar personas" data-shortcut="search" />
     </div>
     <Select.Root type="single" bind:value={tipoFilter} allowDeselect={true}>
       <Select.Trigger class="w-[140px]" aria-label="Filtrar por tipo de persona">
@@ -94,7 +94,7 @@
         {/each}
       </Select.Content>
     </Select.Root>
-    <Button onclick={() => store.nuevo(buildPrefill(q))}>
+    <Button data-shortcut="new" onclick={() => store.nuevo(buildPrefill(q))}>
       <UserPlusIcon data-icon="inline-start" />
       Nueva persona
     </Button>
