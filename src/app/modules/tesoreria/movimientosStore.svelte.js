@@ -66,7 +66,14 @@ const loadAll = async () => {
 
     try {
       const config = await loadConfig()
-      cuentaDefaultId = config?.cuenta_default_id ? String(config.cuenta_default_id) : ''
+      if (config?.cuenta_default_id) {
+        cuentaDefaultId = String(config.cuenta_default_id)
+      } else if (cuentas.length > 0) {
+        // Fallback: si la config no tiene cuenta_default_id (instalaciones previas al fix),
+        // buscar por nombre. Priorizar 'Efectivo', luego la primera cuenta disponible.
+        const fallback = cuentas.find((c) => String(c.nombre_cuenta) === 'Efectivo') || cuentas[0]
+        cuentaDefaultId = fallback ? String(fallback.id) : ''
+      }
     } catch { /* config opcional */ }
   } catch (e) {
     base.setError(e?.message || String(e))
@@ -94,7 +101,7 @@ const select = (m) => {
 
 const nuevo = () => {
   selectedId = null
-  listOpen = false
+  listOpen = true
   const today = new Date().toISOString().slice(0, 10)
   form = {
     id: null,
@@ -110,6 +117,24 @@ const nuevo = () => {
     socio_id: '',
     persona_id: '',
   }
+}
+
+// Atajo: formulario pre-cargado para cargar una cuota societaria
+const nuevoCuotaSocietaria = () => {
+  const rubroCuota = rubros.find((r) => {
+    const nombre = normalize(r.nombre_oficial || '')
+    return nombre.includes('cuota') || nombre.includes('socio') || nombre.includes('societ') || nombre.includes('aporte socio')
+  })
+  nuevo()
+  if (rubroCuota) {
+    form.rubro_id = String(rubroCuota.id)
+    form.detalle = 'Cuota societaria'
+  }
+}
+
+const cancelar = () => {
+  form = null
+  selectedId = null
 }
 
 const validate = () => {
@@ -168,7 +193,6 @@ const saveMovimiento = async () => {
       if (updated) select(updated)
     } else {
       form = null
-      listOpen = true
     }
     return result
   } catch (e) {
@@ -310,6 +334,8 @@ export const movimientosStore = extendStore(base, {
   loadAll,
   select,
   nuevo,
+  nuevoCuotaSocietaria,
+  cancelar,
   saveMovimiento,
   onTipoChange,
   onRubroChange,

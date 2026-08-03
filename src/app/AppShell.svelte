@@ -4,7 +4,10 @@
   import { configStore } from '$core/stores/configStore.svelte'
   import { getActiveMenuItems } from '$core/utils'
   import { applyBrandTheme } from '$core/theme'
+  import { keyboard, NAV_SHORTCUTS, triggerContextAction } from '$core/keyboard.svelte'
   import * as Sidebar from '$lib/components/ui/sidebar'
+  import CommandPalette from '$lib/components/CommandPalette.svelte'
+  import KeyboardHelp from '$lib/components/KeyboardHelp.svelte'
   import HomeIcon from '@lucide/svelte/icons/home'
   import UsersIcon from '@lucide/svelte/icons/users'
   import ContactIcon from '@lucide/svelte/icons/contact'
@@ -12,6 +15,7 @@
   import GavelIcon from '@lucide/svelte/icons/gavel'
   import SettingsIcon from '@lucide/svelte/icons/settings'
   import BuildingIcon from '@lucide/svelte/icons/building-2'
+  import CommandIcon from '@lucide/svelte/icons/command'
 
   let { title = 'AppCoop', children } = $props()
 
@@ -33,11 +37,92 @@
     cooperadora: SettingsIcon,
   }
 
+  const shortcutLabels = {
+    inicio: 'Ctrl+I',
+    socios: 'Ctrl+S',
+    personas: 'Ctrl+P',
+    movimientos: 'Ctrl+M',
+    gobierno: 'Ctrl+A',
+    cooperadora: 'Ctrl+C',
+  }
+
   const go = (r) => navigate(r)
 
   const skipToContent = (/** @type {MouseEvent} */ e) => {
     e.preventDefault()
     mainEl?.focus()
+  }
+
+  // Atajos de teclado globales
+  const onKeyDown = (/** @type {KeyboardEvent} */ e) => {
+    // Ctrl+K → abrir/cerrar paleta de comandos
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault()
+      keyboard.toggle()
+      return
+    }
+
+    // Si la paleta está abierta, no procesar más atajos (ella maneja su propio teclado)
+    if (keyboard.open) return
+
+    // Ctrl+N → nuevo registro (context-aware)
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
+      e.preventDefault()
+      triggerContextAction('new')
+      return
+    }
+
+    // Ctrl+F → buscar en la página actual (context-aware)
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+      e.preventDefault()
+      triggerContextAction('search')
+      return
+    }
+
+    // Ctrl+1 → cuota societaria rápida (navega a movimientos y abre form pre-cargado)
+    if ((e.ctrlKey || e.metaKey) && e.key === '1') {
+      e.preventDefault()
+      if (router.current === 'movimientos') {
+        triggerContextAction('cuota')
+      } else {
+        keyboard.setPendingAction({
+          id: 'cuota-societaria',
+          action: () => triggerContextAction('cuota'),
+        })
+        navigate('movimientos')
+      }
+      return
+    }
+
+    // Atajos de navegación: Ctrl+Letra
+    if (e.ctrlKey || e.metaKey) {
+      const key = e.key.toLowerCase()
+      const nav = NAV_SHORTCUTS[key]
+      if (nav) {
+        e.preventDefault()
+        navigate(nav.route)
+        return
+      }
+    }
+
+    // '?' → mostrar ayuda de atajos (solo si no se está escribiendo en un input)
+    if (e.key === '?' && !isTypingTarget(e.target)) {
+      e.preventDefault()
+      keyboard.toggleHelp()
+      return
+    }
+
+    // '/' → enfocar búsqueda (solo si no se está escribiendo en un input)
+    if (e.key === '/' && !isTypingTarget(e.target)) {
+      e.preventDefault()
+      triggerContextAction('search')
+    }
+  }
+
+  const isTypingTarget = (el) => {
+    if (!el) return false
+    const tag = el.tagName
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
   }
 
   // Etiqueta accesible de la ruta actual (para título y anuncio de navegación)
@@ -109,16 +194,22 @@
           <Sidebar.Menu>
             {#each menuItems as item (item.route)}
               {@const Icon = iconMap[item.route]}
-              <Sidebar.MenuItem>
+              {@const sc = shortcutLabels[item.route]}
+              <Sidebar.MenuItem class="py-0.5">
                 <Sidebar.MenuButton
                   isActive={router.current === item.route}
                   tooltipContent={item.label}
                   onclick={() => go(item.route)}
+                  aria-keyshortcuts={sc ? sc.replace('Ctrl', 'Control') : undefined}
+                  class="h-auto min-h-8"
                 >
                   {#if Icon}
-                    <Icon />
+                    <Icon class="shrink-0" />
                   {/if}
-                  <span>{item.label}</span>
+                  <span class="flex-1 leading-tight">{item.label}</span>
+                  {#if sc}
+                    <kbd class="ml-auto shrink-0 text-[10px] font-mono text-muted-foreground/70 group-data-[collapsible=icon]:hidden">{sc}</kbd>
+                  {/if}
                 </Sidebar.MenuButton>
               </Sidebar.MenuItem>
             {/each}
@@ -135,9 +226,18 @@
   </Sidebar.Root>
 
   <Sidebar.Inset>
-    <header class="flex h-12 shrink-0 items-center px-4">
+    <header class="flex h-12 shrink-0 items-center gap-2 px-4">
       <Sidebar.Trigger />
       <span class="flex-1 text-center text-sm font-semibold truncate">{brandTitle}</span>
+      <button
+        type="button"
+        onclick={() => keyboard.toggle()}
+        class="inline-flex items-center justify-center rounded-md border border-input bg-background p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        aria-label="Abrir paleta de comandos (Ctrl+K)"
+        title="Paleta de comandos (Ctrl+K)"
+      >
+        <CommandIcon class="size-4" />
+      </button>
       <span class="text-xs text-muted-foreground">v{versionActual}</span>
     </header>
     <main
@@ -151,3 +251,9 @@
     </main>
   </Sidebar.Inset>
 </Sidebar.Provider>
+
+<svelte:window onkeydown={onKeyDown} />
+
+<CommandPalette {menuItems} />
+
+<KeyboardHelp />
