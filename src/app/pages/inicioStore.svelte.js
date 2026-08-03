@@ -42,6 +42,14 @@ let showNuevoEjercicio = $state(false)
 let nuevoEj = $state({ anio_inicio: '', anio_fin: '', mes_inicio: 'Marzo', saldo_inicial_banco: 0, saldo_inicial_efectivo: 0, saldo_inicial_caja_chica: 0 })
 let ejercicioProximoVencer = $state(false)
 
+// Versión instalada (guardada en configuracion al final del setup) vs versión
+// actual del bundle que corre (horneada en build time). Si difieren, la app
+// instalada en este Grist quedó desactualizada respecto del deploy más reciente.
+let versionInstalada = $state(null)
+let shaInstalado = $state(null)
+const versionActual = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
+const shaActual = typeof __APP_SHA__ !== 'undefined' ? __APP_SHA__ : 'dev'
+
 let _unsub = null
 
 const toKey = (s) => String(s || '').toLowerCase()
@@ -134,6 +142,8 @@ const loadDashboard = async () => {
     const config = await loadConfig()
     generarPeriodosAuto = Boolean(config?.generar_periodos_automatico)
     periodosAutoLoaded = true
+    versionInstalada = config?.version_instalada || null
+    shaInstalado = config?.sha_instalado || null
   } catch {
     // Dashboard errors are non-fatal
   } finally {
@@ -254,6 +264,11 @@ export const inicioStore = {
   get showNuevoEjercicio() { return showNuevoEjercicio },
   get nuevoEj() { return nuevoEj },
   get ejercicioProximoVencer() { return ejercicioProximoVencer },
+  get versionInstalada() { return versionInstalada },
+  get shaInstalado() { return shaInstalado },
+  get versionActual() { return versionActual },
+  get shaActual() { return shaActual },
+  get versionActualizada() { return Boolean(versionInstalada) && versionInstalada === versionActual },
   onPeriodosAutoChange,
   setShowNuevoEjercicio,
   init,
