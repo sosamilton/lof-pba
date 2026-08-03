@@ -34,7 +34,7 @@
 <div class="flex flex-col gap-4">
   <div class="flex items-center gap-2">
     <DatabaseIcon class="size-5 text-primary" />
-    <h1 class="text-lg font-bold">AppCoop</h1>
+    <h1 class="text-lg font-bold">LOF</h1>
   </div>
 
   {#if isInGrist()}
@@ -208,7 +208,7 @@
 
             <div class="flex items-center gap-2">
               <CheckCircleIcon class="size-5 text-primary" />
-              <span class="text-sm font-semibold">Plantilla AppCoop instalada y sincronizada</span>
+              <span class="text-sm font-semibold">Plantilla LOF instalada y sincronizada</span>
             </div>
 
             <Separator />

@@ -27,7 +27,7 @@
       <ShieldCheckIcon class="size-[22px]" />
     </div>
 
-    <h1 class="text-xl font-bold leading-tight mb-2">AppCoop necesita acceso al documento</h1>
+    <h1 class="text-xl font-bold leading-tight mb-2">LOF necesita acceso al documento</h1>
 
     <p class="text-sm text-muted-foreground leading-relaxed mb-4">
       El widget está cargado dentro de Grist, pero todavía no tiene permisos

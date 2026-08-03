@@ -28,7 +28,7 @@
 {:else}
   <main class="max-w-[680px] mx-auto px-4 py-6">
     <div class="mb-5">
-      <h1 class="text-[22px] font-bold mb-1.5">Configuración inicial de AppCoop</h1>
+      <h1 class="text-[22px] font-bold mb-1.5">Configuración inicial de LOF</h1>
       <p class="text-sm text-muted-foreground leading-relaxed">Elegí qué módulos instalar, configurá los datos de tu escuela y cooperadora, el ejercicio en curso y los cargos del estatuto.</p>
     </div>
 

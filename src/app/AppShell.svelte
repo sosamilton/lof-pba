@@ -17,7 +17,7 @@
   import BuildingIcon from '@lucide/svelte/icons/building-2'
   import CommandIcon from '@lucide/svelte/icons/command'
 
-  let { title = 'AppCoop', children } = $props()
+  let { title = 'LOF', children } = $props()
 
   // Versión del bundle (horneada en build time via Vite define).
   const versionActual = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
@@ -134,7 +134,7 @@
   // Título del documento: se actualiza al cambiar la ruta, el brand o el menú.
   $effect(() => {
     const label = currentLabel
-    document.title = `${brandTitle} · ${label} · AppCoop`
+    document.title = `${brandTitle} · ${label} · LOF`
   })
 
   // Foco al <main>: SOLO al cambiar de ruta, no cuando se carga la config
@@ -220,7 +220,7 @@
     <Sidebar.Rail />
     <Sidebar.Footer>
       <div class="px-2 py-1 text-[11px] text-muted-foreground/80 select-none">
-        AppCoop v{versionActual}{#if shaActual && shaActual !== 'dev'} · {shaActual}{/if}
+        LOF v{versionActual}{#if shaActual && shaActual !== 'dev'} · {shaActual}{/if}
       </div>
     </Sidebar.Footer>
   </Sidebar.Root>
