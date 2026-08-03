@@ -4,6 +4,7 @@ import { dateToInput, isAdult, daysSince } from '$core/utils.js'
 import {
   findOrCreatePersona,
   findPersonaByDni,
+  updatePersona,
   isValidDni,
   normalizeDni,
   normalizeCuil,
@@ -234,7 +235,10 @@ const saveSocio = async () => {
     if (form.fecha_nacimiento) personaData.fecha_nacimiento = form.fecha_nacimiento
 
     let personaId = form.persona_id
-    if (!personaId && (personaData.dni || personaData.apellido || personaData.nombre)) {
+    if (personaId) {
+      // Persona ya vinculada: actualizar sus datos si cambiaron.
+      await updatePersona(personaId, personaData)
+    } else if (personaData.dni || personaData.apellido || personaData.nombre) {
       const persona = await findOrCreatePersona(personaData)
       if (!persona || !persona.id) {
         base.setError('No se pudo crear/vincular la persona. Intentá nuevamente.')
@@ -245,11 +249,13 @@ const saveSocio = async () => {
       form.persona_id = personaId
     }
 
-    // La normalización de dni/cuil/telefono/email y el limpiado de vacíos
-    // los hace beforeSave del store; aquí solo seteamos persona_id y reglas de baja.
+    // Los campos dni/cuil/apellido/nombre/domicilio/localidad/telefono/email
+    // son columnas formula en Grist (pull de $persona_id). No se guardan
+    // directamente en socios; se calculan automáticamente desde personas.
+    const SOCIO_FORMULA_FIELDS = ['dni', 'cuil', 'apellido', 'nombre', 'domicilio', 'localidad', 'telefono', 'email', 'fecha_nacimiento']
     const fields = { ...form }
     delete fields.id
-    delete fields.fecha_nacimiento
+    for (const f of SOCIO_FORMULA_FIELDS) delete fields[f]
     fields.persona_id = personaId || null
 
     if (!showBaja) {
