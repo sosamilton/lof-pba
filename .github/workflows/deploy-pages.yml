@@ -3,6 +3,7 @@ name: Deploy SPA to GitHub Pages
 on:
   push:
     branches: ["main", "master"]
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
@@ -26,6 +27,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Compute version
+        id: ver
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=dev" >> "$GITHUB_OUTPUT"
+          fi
+          echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
@@ -37,6 +48,9 @@ jobs:
         run: npm ci
 
       - name: Build
+        env:
+          APP_VERSION: ${{ steps.ver.outputs.version }}
+          APP_SHA: ${{ steps.ver.outputs.sha }}
         run: npm run build
 
       - name: Upload artifact
@@ -64,6 +78,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Compute version
+        id: ver
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=dev" >> "$GITHUB_OUTPUT"
+          fi
+          echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -84,9 +108,11 @@ jobs:
         with:
           images: ${{ steps.repo.outputs.name }}
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
             type=sha,format=short
             type=ref,event=branch
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') || github.ref_name == 'main' }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -96,5 +122,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ steps.ver.outputs.version }}
+            APP_SHA=${{ steps.ver.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
