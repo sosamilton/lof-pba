@@ -25,6 +25,8 @@
   import TrendingUpIcon from '@lucide/svelte/icons/trending-up'
   import AlertCircleIcon from '@lucide/svelte/icons/alert-circle'
   import SettingsIcon from '@lucide/svelte/icons/settings'
+  import TagIcon from '@lucide/svelte/icons/tag'
+  import ArrowUpCircleIcon from '@lucide/svelte/icons/arrow-up-circle'
 
   onMount(() => store.init())
 </script>
@@ -208,6 +210,35 @@
               <CheckCircleIcon class="size-5 text-primary" />
               <span class="text-sm font-semibold">Plantilla AppCoop instalada y sincronizada</span>
             </div>
+
+            <Separator />
+
+            <div class="flex flex-wrap items-center gap-2 text-xs">
+              <TagIcon class="size-4 text-muted-foreground" />
+              <span class="text-muted-foreground">Versión actual:</span>
+              <Badge variant="secondary" class="font-mono">v{store.versionActual}</Badge>
+              {#if store.shaActual && store.shaActual !== 'dev'}
+                <span class="text-muted-foreground font-mono">({store.shaActual})</span>
+              {/if}
+            </div>
+            {#if store.versionInstalada}
+              <div class="flex flex-wrap items-center gap-2 text-xs">
+                <span class="text-muted-foreground">Instalada en este documento:</span>
+                <Badge variant="secondary" class="font-mono">v{store.versionInstalada}</Badge>
+                {#if store.shaInstalado && store.shaInstalado !== 'dev'}
+                  <span class="text-muted-foreground font-mono">({store.shaInstalado})</span>
+                {/if}
+                {#if store.versionActualizada}
+                  <Badge variant="default" class="ml-1"><CheckCircleIcon class="size-3" /> Actualizada</Badge>
+                {:else}
+                  <Badge variant="destructive" class="ml-1"><ArrowUpCircleIcon class="size-3" /> Desactualizada</Badge>
+                  <span class="text-muted-foreground">Refrescá o reinstalá para actualizar a v{store.versionActual}</span>
+                {/if}
+              </div>
+            {:else}
+              <div class="text-xs text-muted-foreground">Sin versión instalada registrada (instalación previa al versionado).</div>
+            {/if}
+
             <div class="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onclick={store.check} disabled={store.creating}>
                 <RefreshIcon data-icon="inline-start" />

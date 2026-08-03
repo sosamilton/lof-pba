@@ -355,6 +355,8 @@
         { "id": "color_primario", "fields": { "label": "Color primario (cache UI)", "type": "Text" } },
         { "id": "instalado", "fields": { "label": "Instalado", "type": "Bool" } },
         { "id": "fecha_instalacion", "fields": { "label": "Fecha instalacion", "type": "DateTime" } },
+        { "id": "version_instalada", "fields": { "label": "Version instalada", "type": "Text" } },
+        { "id": "sha_instalado", "fields": { "label": "SHA instalado", "type": "Text" } },
         { "id": "cuenta_default_id", "fields": { "label": "Cuenta/caja por defecto", "type": "Ref:cuentas" } },
         { "id": "generar_periodos_automatico", "fields": { "label": "Generar periodos automatico", "type": "Bool" } }
       ]
