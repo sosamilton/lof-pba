@@ -49,7 +49,6 @@
 
   const { identidad, principios, funciones, capturas, roadmap } = data
   const enlaces = identidad.enlaces
-
   const roadmapGroups = $derived(
     Object.fromEntries(
       Object.entries(ROADMAP_GROUPS).map(([key, group]) => [
@@ -96,13 +95,20 @@
     <div class="relative mx-auto max-w-5xl px-4 py-12 sm:py-16">
       <div class="flex flex-col gap-6">
         <div class="flex flex-col gap-3">
-          <img src="./logo.svg" alt="{identidad.nombre}" class="size-16" />
+          <!-- Marca: logo (demo, a reemplazar por archivo) + nombre + lema -->
+          <div class="flex items-center gap-3">
+            <img src="./logo.svg" alt="{identidad.nombre}" class="size-14" />
+            <div class="flex flex-col">
+              <span class="text-2xl font-bold leading-none tracking-tight sm:text-3xl">{identidad.nombre}</span>
+              <span class="text-sm font-medium text-primary sm:text-base">{identidad.lema}</span>
+            </div>
+          </div>
           <Badge class="w-fit" variant="outline">
             <MapPinIcon data-icon="inline-start" />
             {identidad.ubicacion}
           </Badge>
-          <h1 class="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
-            {identidad.slogan}
+          <h1 class="text-2xl font-bold leading-tight tracking-tight sm:text-3xl md:text-4xl">
+            {identidad.apertura}
           </h1>
           <p class="max-w-2xl text-base text-muted-foreground sm:text-lg">
             {identidad.descripcion}
@@ -158,7 +164,7 @@
     <div class="flex flex-col gap-2 mb-6">
       <h2 id="funciones-heading" class="text-2xl font-bold tracking-tight">Qué podés hacer hoy</h2>
       <p class="text-sm text-muted-foreground max-w-prose">
-        Cuatro módulos pensados para la gestión diaria de tu cooperadora escolar.
+        Cuatro áreas para la gestión diaria de tu cooperadora, alineadas con el estatuto modelo y la PIA.
       </p>
     </div>
     <div class="grid gap-4 sm:grid-cols-2">
@@ -274,7 +280,7 @@
             <span class="font-bold">{identidad.nombre}</span>
           </div>
           <p class="text-sm text-muted-foreground max-w-prose">
-            Tecnología al servicio del pueblo organizado. {identidad.licencia}.
+            {identidad.lema}. Software libre bajo {identidad.licencia}.
           </p>
         </div>
         <div class="flex flex-wrap gap-3">
