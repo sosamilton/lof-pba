@@ -68,6 +68,29 @@
       </div>
     </div>
 
+    {#if store.isDev}
+      <div class="mt-4 p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/5">
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            bind:checked={store.cargarDatosPrueba}
+            class="mt-0.5 size-4 accent-amber-600 shrink-0"
+          />
+            <div>
+            <div class="font-bold text-[13px] text-amber-700 dark:text-amber-400">Cargar datos de prueba (dev)</div>
+            <p class="text-[12px] text-muted-foreground mt-0.5 m-0">
+              Genera {store.datosPruebaConfig.cantPersonas} personas, {store.datosPruebaConfig.cantSocios} socios, {store.datosPruebaConfig.cantMovimientos} movimientos, 1 asamblea AGO y
+              autoridades de CD/CRC con Refs resueltas para probar performance de listados
+              y filtros. Solo disponible en desarrollo.
+            </p>
+          </div>
+        </label>
+        {#if store.datosPruebaProgress}
+          <div class="mt-2 text-[12px] text-amber-700 dark:text-amber-400">{store.datosPruebaProgress}</div>
+        {/if}
+      </div>
+    {/if}
+
     {#if store.installing}
       <div class="flex items-center gap-3 mt-4 p-3.5 rounded-xl border border-primary/30 bg-primary/5">
         <div class="size-5 rounded-full border-[3px] border-primary/20 border-t-primary animate-spin shrink-0"></div>
