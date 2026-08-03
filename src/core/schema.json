@@ -131,6 +131,7 @@
         { "id": "localidad", "fields": { "label": "Localidad", "type": "Text", "isFormula": true, "formula": "$persona_id.localidad if $persona_id else None" } },
         { "id": "telefono", "fields": { "label": "Telefono", "type": "Text", "isFormula": true, "formula": "$persona_id.telefono if $persona_id else None" } },
         { "id": "email", "fields": { "label": "Email", "type": "Text", "isFormula": true, "formula": "$persona_id.email if $persona_id else None" } },
+        { "id": "fecha_nacimiento", "fields": { "label": "Fecha de nacimiento", "type": "Date", "isFormula": true, "formula": "$persona_id.fecha_nacimiento if $persona_id else None" } },
         {
           "id": "tipo_socio",
           "fields": {
