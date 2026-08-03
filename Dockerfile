@@ -5,6 +5,14 @@
 # ---------------------------------------------------------------------------
 FROM node:24-alpine AS build
 
+# Versión y SHA que se "hornean" en el bundle via Vite `define`.
+# Los pasa CI desde el git tag (APP_VERSION) y el commit (APP_SHA).
+# En builds locales sin CI, caen a 'dev'.
+ARG APP_VERSION=dev
+ARG APP_SHA=dev
+ENV APP_VERSION=$APP_VERSION
+ENV APP_SHA=$APP_SHA
+
 WORKDIR /app
 
 # Instalar dependencias aprovechando la cache de Docker
