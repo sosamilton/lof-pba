@@ -21,12 +21,14 @@
   import BuildingIcon from '@lucide/svelte/icons/building-2'
   let q = $state('')
   let tipoFilter = $state('')
+  let categoriaFilter = $state('')
 
   const isJuridica = (/** @type {any} */ p) => p.tipo_persona === 'Juridica'
 
   let filtered = $derived(
     store.records
       .filter((/** @type {any} */ p) => (tipoFilter ? (p.tipo_persona || 'Fisica') === tipoFilter : true))
+      .filter((/** @type {any} */ p) => (categoriaFilter ? (p.categoria || '') === categoriaFilter : true))
       .filter((/** @type {any} */ p) => {
         const t = normalize(q)
         if (!t) return true
@@ -79,11 +81,20 @@
         <Select.Item value="Juridica">Jurídica</Select.Item>
       </Select.Content>
     </Select.Root>
+    <Select.Root type="single" bind:value={categoriaFilter} allowDeselect={true}>
+      <Select.Trigger class="w-[160px]" aria-label="Filtrar por categoría / vínculo">
+        <Select.Value placeholder="Categoría / vínculo" />
+      </Select.Trigger>
+      <Select.Content>
+        {#each CATEGORIAS_VINCULO as cat}
+          <Select.Item value={cat}>{cat}</Select.Item>
+        {/each}
+      </Select.Content>
+    </Select.Root>
     <Button onclick={() => store.nuevo(buildPrefill(q))}>
       <UserPlusIcon data-icon="inline-start" />
       Nueva persona
     </Button>
-    <Button variant="outline" onclick={store.load}>Recargar</Button>
     <span class="text-sm text-muted-foreground">{filtered.length} personas</span>
   </div>
 
