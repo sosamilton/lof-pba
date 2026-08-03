@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import { isInGrist } from '$core/grist'
   import { MESES } from '$core/utils'
+  import { identidad } from '$core/identidad'
   import { inicioStore as store } from './inicioStore.svelte.js'
   import { Button } from '$lib/components/ui/button'
   import * as Card from '$lib/components/ui/card'
@@ -34,7 +35,7 @@
 <div class="flex flex-col gap-4">
   <div class="flex items-center gap-2">
     <DatabaseIcon class="size-5 text-primary" />
-    <h1 class="text-lg font-bold">LOF</h1>
+    <h1 class="text-lg font-bold">{identidad.nombre}</h1>
   </div>
 
   {#if isInGrist()}
@@ -208,7 +209,7 @@
 
             <div class="flex items-center gap-2">
               <CheckCircleIcon class="size-5 text-primary" />
-              <span class="text-sm font-semibold">Plantilla LOF instalada y sincronizada</span>
+              <span class="text-sm font-semibold">Plantilla {identidad.nombre} instalada y sincronizada</span>
             </div>
 
             <Separator />

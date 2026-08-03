@@ -5,6 +5,7 @@
   import { Input } from '$lib/components/ui/input'
   import { Badge } from '$lib/components/ui/badge'
   import { MODULES } from '../setupStore.svelte'
+  import { identidad } from '$core/identidad'
 
   let { store } = $props()
 
@@ -134,7 +135,7 @@
 
 <Card.Root class="mb-4">
   <Card.Content class="pt-6">
-    <h2 class="text-[17px] font-bold mb-1.5">¿Cómo vas a usar LOF?</h2>
+    <h2 class="text-[17px] font-bold mb-1.5">¿Cómo vas a usar {identidad.nombre}?</h2>
     <p class="text-[13px] text-muted-foreground mb-4">Elegí el tipo de gestión. Podés cambiarlo más adelante.</p>
 
     <div class="flex flex-col gap-2.5">

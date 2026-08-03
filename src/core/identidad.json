@@ -1,0 +1,15 @@
+{
+  "nombre": "LOF",
+  "lema": "Lazos que Organizan el Futuro",
+  "apertura": "Las escuelas públicas se sostienen gracias a las personas que se organizan.",
+  "descripcion": "En la Provincia de Buenos Aires, más de 9.000 cooperadoras escolares administran socios, autoridades, asambleas y recursos para acompañar a sus escuelas. LOF es una plataforma de software libre creada para acompañar esa organización: preservar su memoria, facilitar su gestión y fortalecer la transparencia — alineada con el estatuto modelo y la PIA.",
+  "ubicacion": "Provincia de Buenos Aires, Argentina",
+  "licencia": "AGPL-3.0",
+  "enlaces": {
+    "repo": "https://github.com/sosamilton/spa-cooperadora",
+    "app": "https://sosamilton.github.io/spa-cooperadora/",
+    "grist_docs": "https://support.getgrist.com/widget-custom/",
+    "grist": "https://www.getgrist.com/",
+    "licencia": "https://github.com/sosamilton/spa-cooperadora/blob/main/LICENSE"
+  }
+}

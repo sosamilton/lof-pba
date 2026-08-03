@@ -45,9 +45,10 @@
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
   import DownloadIcon from '@lucide/svelte/icons/download'
   import GristIcon from '$lib/components/GristIcon.svelte'
+  import { identidad } from '$core/identidad'
   import data from './landing.json'
 
-  const { identidad, principios, funciones, capturas, roadmap } = data
+  const { principios, funciones, capturas, roadmap } = data
   const enlaces = identidad.enlaces
   const roadmapGroups = $derived(
     Object.fromEntries(
@@ -125,7 +126,7 @@
           </Button>
         </div>
         <p class="text-sm text-muted-foreground">
-          Software libre bajo AGPL-3.0. Funciona con Grist, una plataforma de datos libre y autoinstalable.
+          Software libre bajo {identidad.licencia}. Funciona con Grist, una plataforma de datos libre y autoinstalable.
         </p>
       </div>
     </div>
