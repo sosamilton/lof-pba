@@ -9,6 +9,7 @@ import {
   MOTIVOS_CESE,
   TIPOS_ORIGEN_AUTORIDAD,
   buildVigenteByCargo,
+  buildMapById,
 } from '$core/utils.js'
 import { extractRowId, findOrCreatePersona, personaLabel, normalizeDni, isValidDni } from '$core/personas.js'
 import { usePersonaSearch } from '$core/usePersonaSearch.svelte.js'
@@ -150,7 +151,7 @@ const crearAgeYCargar = async () => {
 
 // ---- Histórico: todos los mandatos del ejercicio (vigentes + cesados) ----
 const rowsHistorico = $derived.by(() => {
-  const cargoById = new Map(cargos.map((c) => [Number(c.id), c]))
+  const cargoById = buildMapById(cargos)
   return autoridades
     .filter((a) => String(a.organismo) === organismo)
     .map((a) => {

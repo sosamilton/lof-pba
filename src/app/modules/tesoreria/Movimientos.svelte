@@ -1,21 +1,22 @@
 <script>
   import { onMount } from 'svelte'
   import { movimientosStore as store } from './movimientosStore.svelte'
-  import { normalize, monthKey, formatARS, CATEGORIAS_VINCULO } from '$core/utils'
+  import { normalize, monthKey, formatARS, CATEGORIAS_VINCULO, buildMapById } from '$core/utils'
+  import { filterBySearch } from '$core/useListFilter.svelte.js'
   import { notifyAfter } from '$core/notify.svelte'
   import { Button } from '$lib/components/ui/button'
   import * as Card from '$lib/components/ui/card'
   import { Input } from '$lib/components/ui/input'
   import { Textarea } from '$lib/components/ui/textarea'
   import * as Select from '$lib/components/ui/select'
-  import { Skeleton } from '$lib/components/ui/skeleton'
   import * as Field from '$lib/components/ui/field'
   import EmptyState from '$lib/components/EmptyState.svelte'
   import Combobox from '$lib/components/Combobox.svelte'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
+  import SearchInput from '$lib/components/SearchInput.svelte'
+  import ListSkeleton from '$lib/components/ListSkeleton.svelte'
   import { useInfiniteScroll } from '$lib/useInfiniteScroll.svelte.js'
   import { keyboard } from '$core/keyboard.svelte'
-  import SearchIcon from '@lucide/svelte/icons/search'
   import PlusIcon from '@lucide/svelte/icons/plus'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
@@ -25,21 +26,18 @@
   let tipo = $state('')
 
   let filtered = $derived(
-    store.records
-      .filter((/** @type {any} */ m) => (tipo ? String(m.tipo_movimiento || '') === tipo : true))
-      .filter((/** @type {any} */ m) => {
-        const t = normalize(q)
-        if (!t) return true
-        return normalize(m.detalle).includes(t)
-      })
-      .sort((/** @type {any} */ a, /** @type {any} */ b) => String(b.fecha || '').localeCompare(String(a.fecha || '')))
+    filterBySearch(
+      store.records.filter((/** @type {any} */ m) => (tipo ? String(m.tipo_movimiento || '') === tipo : true)),
+      q,
+      (/** @type {any} */ m) => [m.detalle],
+    ).sort((/** @type {any} */ a, /** @type {any} */ b) => String(b.fecha || '').localeCompare(String(a.fecha || ''))),
   )
 
   let showList = $derived(filtered.length > 0)
 
   const scroll = useInfiniteScroll(() => filtered)
 
-  let rubroById = $derived(new Map(store.rubros.map((/** @type {any} */ r) => [Number(r.id), r])))
+  let rubroById = $derived(buildMapById(store.rubros))
   let filteredRubros = $derived(
     store.form?.tipo_movimiento === 'Entrada' || store.form?.tipo_movimiento === 'Salida'
       ? store.rubros.filter((/** @type {any} */ r) => String(r.tipo_rubro || '') === store.form.tipo_movimiento)
@@ -58,7 +56,7 @@
     }
     return map
   })
-  let cuentaById = $derived(new Map(store.cuentas.map((/** @type {any} */ c) => [Number(c.id), c])))
+  let cuentaById = $derived(buildMapById(store.cuentas))
 
   // Valor actual del campo persona/socio vinculado
   let personaVinculadaValue = $derived(
@@ -95,22 +93,10 @@
     </Alert.Root>
   {/if}
   {#snippet skeleton()}
-    <div class="flex flex-col gap-4">
-      <div class="flex gap-3">
-        <Skeleton class="h-9 flex-1" />
-        <Skeleton class="h-9 w-32" />
-      </div>
-      <div class="grid gap-4" style="grid-template-columns: 320px 1fr">
-        <Skeleton class="h-96" />
-        <Skeleton class="h-96" />
-      </div>
-    </div>
+    <ListSkeleton filters={1} />
   {/snippet}
   <div class="mb-4 flex flex-wrap items-center gap-3">
-    <div class="relative flex-1 min-w-[200px]">
-      <SearchIcon class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input placeholder="Buscar en detalle" bind:value={q} class="pl-9" aria-label="Buscar movimientos" data-shortcut="search" />
-    </div>
+    <SearchInput bind:value={q} placeholder="Buscar en detalle" ariaLabel="Buscar movimientos" />
     <Select.Root type="single" bind:value={tipo} allowDeselect={true}>
       <Select.Trigger class="w-[120px]" aria-label="Filtrar por tipo de movimiento">
         <Select.Value placeholder="Todos" />

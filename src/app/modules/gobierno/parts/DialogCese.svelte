@@ -6,18 +6,15 @@
   import * as Field from '$lib/components/ui/field'
   import { MOTIVOS_CESE, TIPOS_ASAMBLEA_CORTO } from '$core/utils'
   import { notifyAfter } from '$core/notify.svelte'
+  import ControlledDialog from '$lib/components/ControlledDialog.svelte'
 
   let { store } = $props()
-
-  const open = $derived(Boolean(store.ceseTarget))
-  const handleOpenChange = (v) => { if (!v) store.closeCese() }
 
   const handleSave = () => notifyAfter(store, store.saveCese)
 </script>
 
-<Dialog.Root {open} onOpenChange={handleOpenChange}>
-  <Dialog.Content class="sm:max-w-md">
-    <Dialog.Header>
+<ControlledDialog open={Boolean(store.ceseTarget)} onClose={store.closeCese} class="sm:max-w-md">
+  <Dialog.Header>
       <Dialog.Title>Registrar cese / renuncia</Dialog.Title>
       <Dialog.Description class="text-xs">
         {#if store.ceseTarget}
@@ -85,5 +82,4 @@
       <Button variant="outline" onclick={store.closeCese}>Cancelar</Button>
       <Button onclick={handleSave} disabled={store.busy}>Registrar cese</Button>
     </Dialog.Footer>
-  </Dialog.Content>
-</Dialog.Root>
+  </ControlledDialog>

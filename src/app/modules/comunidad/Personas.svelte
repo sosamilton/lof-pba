@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import { personasStore as store } from './personasStore.svelte'
   import { normalize, CATEGORIAS_VINCULO } from '$core/utils'
+  import { filterBySearch } from '$core/useListFilter.svelte.js'
   import { personaLabel, isDniQuery, buildPrefill, localidadesItems } from '$core/personas'
   import { notifyAfter } from '$core/notify.svelte'
   import { Button } from '$lib/components/ui/button'
@@ -10,14 +11,13 @@
   import { Input } from '$lib/components/ui/input'
   import { Separator } from '$lib/components/ui/separator'
   import * as Select from '$lib/components/ui/select'
-  import { Skeleton } from '$lib/components/ui/skeleton'
   import * as Field from '$lib/components/ui/field'
   import Combobox from '$lib/components/Combobox.svelte'
   import EmptyState from '$lib/components/EmptyState.svelte'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
+  import SearchInput from '$lib/components/SearchInput.svelte'
   import { useInfiniteScroll } from '$lib/useInfiniteScroll.svelte.js'
   import UserPlusIcon from '@lucide/svelte/icons/user-plus'
-  import SearchIcon from '@lucide/svelte/icons/search'
   import UsersIcon from '@lucide/svelte/icons/users'
   import BuildingIcon from '@lucide/svelte/icons/building-2'
   let q = $state('')
@@ -27,22 +27,13 @@
   const isJuridica = (/** @type {any} */ p) => p.tipo_persona === 'Juridica'
 
   let filtered = $derived(
-    store.records
-      .filter((/** @type {any} */ p) => (tipoFilter ? (p.tipo_persona || 'Fisica') === tipoFilter : true))
-      .filter((/** @type {any} */ p) => (categoriaFilter ? (p.categoria || '') === categoriaFilter : true))
-      .filter((/** @type {any} */ p) => {
-        const t = normalize(q)
-        if (!t) return true
-        const hay = [p.dni, p.cuil, p.apellido, p.nombre, p.razon_social, p.email, p.telefono, p.localidad]
-          .map((/** @type {any} */ v) => normalize(v))
-          .join(' ')
-        return hay.includes(t)
-      })
-      .sort((/** @type {any} */ a, /** @type {any} */ b) => {
-        const la = normalize(personaLabel(a))
-        const lb = normalize(personaLabel(b))
-        return la.localeCompare(lb)
-      })
+    filterBySearch(
+      store.records
+        .filter((/** @type {any} */ p) => (tipoFilter ? (p.tipo_persona || 'Fisica') === tipoFilter : true))
+        .filter((/** @type {any} */ p) => (categoriaFilter ? (p.categoria || '') === categoriaFilter : true)),
+      q,
+      (/** @type {any} */ p) => [p.dni, p.cuil, p.apellido, p.nombre, p.razon_social, p.email, p.telefono, p.localidad],
+    ).sort((/** @type {any} */ a, /** @type {any} */ b) => normalize(personaLabel(a)).localeCompare(normalize(personaLabel(b)))),
   )
 
   const scroll = useInfiniteScroll(() => filtered)
@@ -57,24 +48,8 @@
 </script>
 
 <PageScaffold title="Personas" loading={store.loading} error={store.error} notice={store.notice}>
-  {#snippet skeleton()}
-    <div class="flex flex-col gap-4">
-      <div class="flex gap-3">
-        <Skeleton class="h-9 flex-1" />
-        <Skeleton class="h-9 w-32" />
-        <Skeleton class="h-9 w-32" />
-      </div>
-      <div class="grid gap-4" style="grid-template-columns: 320px 1fr">
-        <Skeleton class="h-96" />
-        <Skeleton class="h-96" />
-      </div>
-    </div>
-  {/snippet}
   <div class="mb-4 flex flex-wrap items-center gap-3">
-    <div class="relative flex-1 min-w-[200px]">
-      <SearchIcon class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input placeholder="Buscar (nombre, DNI, razón social…)" bind:value={q} class="pl-9" aria-label="Buscar personas" data-shortcut="search" />
-    </div>
+    <SearchInput bind:value={q} placeholder="Buscar (nombre, DNI, razón social…)" ariaLabel="Buscar personas" />
     <Select.Root type="single" bind:value={tipoFilter} allowDeselect={true}>
       <Select.Trigger class="w-[140px]" aria-label="Filtrar por tipo de persona">
         <Select.Value placeholder="Todos los tipos" />

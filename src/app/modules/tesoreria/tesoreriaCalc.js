@@ -84,16 +84,6 @@ export function totalesDesdeDetalle(movimientos, periodoKey) {
 }
 
 /**
- * Suma ingresos/egresos del mes en curso (YYYY-MM actual).
- * @param {any[]} movimientos
- * @param {string} mesKey - 'YYYY-MM'
- * @returns {{ingresos: number, egresos: number}}
- */
-export function totalesMesEnCurso(movimientos, mesKey) {
-  return totalesDesdeDetalle(movimientos, mesKey)
-}
-
-/**
  * True si los 3 saldos iniciales están en 0 pero hay movimientos.
  * @param {Record<string, any>|null} ejercicio
  * @param {any[]} movimientos

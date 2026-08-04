@@ -7,12 +7,10 @@
   import * as Field from '$lib/components/ui/field'
   import { TIPOS_ASAMBLEA_CORTO } from '$core/utils'
   import { notifyAfter } from '$core/notify.svelte'
+  import ControlledDialog from '$lib/components/ControlledDialog.svelte'
   import PersonaPicker from './PersonaPicker.svelte'
 
   let { store } = $props()
-
-  const open = $derived(Boolean(store.reemplazoTarget))
-  const handleOpenChange = (v) => { if (!v) store.closeReemplazo() }
 
   const handleSave = () => notifyAfter(store, store.saveReemplazo)
 
@@ -26,9 +24,8 @@
   )
 </script>
 
-<Dialog.Root {open} onOpenChange={handleOpenChange}>
-  <Dialog.Content class="sm:max-w-lg">
-    <Dialog.Header>
+<ControlledDialog open={Boolean(store.reemplazoTarget)} onClose={store.closeReemplazo} class="sm:max-w-lg">
+  <Dialog.Header>
       <Dialog.Title>Registrar reemplazo</Dialog.Title>
       <Dialog.Description class="text-xs">
         Cesar al integrante actual y designar a su reemplazante. El nuevo mandato quedará vinculado al anterior para trazabilidad.
@@ -118,5 +115,4 @@
       <Button variant="outline" onclick={store.closeReemplazo}>Cancelar</Button>
       <Button onclick={handleSave} disabled={store.busy}>Registrar reemplazo</Button>
     </Dialog.Footer>
-  </Dialog.Content>
-</Dialog.Root>
+  </ControlledDialog>
