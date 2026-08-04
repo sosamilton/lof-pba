@@ -28,6 +28,11 @@ let ejercicios = $state([])
 let ejercicio = $state(null)
 let userName = $state('SPA')
 let cuentaDefaultId = $state('')
+// Cierres mensuales manuales (para advertencia al cargar detalle en
+// un período que ya tiene un total declarado manualmente — regla "detalle gana").
+let cierres = $state([])
+// Advertencia pendiente de mostrar al usuario (no bloquea el guardado).
+let advertenciaCierreManual = $state('')
 
 // UI state
 let selectedId = $state(null)
@@ -44,7 +49,7 @@ const loadAll = async () => {
 
   try {
     const tIds = await resolveTableIds([
-      'ejercicios', 'rubros_pia', 'subrubros', 'cuentas', 'socios', 'personas',
+      'ejercicios', 'rubros_pia', 'subrubros', 'cuentas', 'socios', 'personas', 'cierres_mensuales',
     ])
 
     const data = await fetchRelated(tIds, {
@@ -54,6 +59,7 @@ const loadAll = async () => {
       cuentas: { sort: (a, b) => Number(a.orden || 0) - Number(b.orden || 0) },
       socios: { sort: (a, b) => normalize(a.apellido).localeCompare(normalize(b.apellido)) || normalize(a.nombre).localeCompare(normalize(b.nombre)) },
       personas: { sort: (a, b) => normalize(a.apellido || a.razon_social || '').localeCompare(normalize(b.apellido || b.razon_social || '')) },
+      cierres_mensuales: {},
     })
 
     rubros = data.rubros_pia || []
@@ -63,6 +69,7 @@ const loadAll = async () => {
     personas = data.personas || []
     ejercicios = data.ejercicios || []
     ejercicio = ejercicios.find((e) => e.en_curso === true) || null
+    cierres = data.cierres_mensuales || []
 
     try {
       const config = await loadConfig()
@@ -155,6 +162,7 @@ const validate = () => {
 
 const saveMovimiento = async () => {
   base.clearMessages()
+  advertenciaCierreManual = ''
   const v = validate()
   if (v) {
     base.setError(v)
@@ -165,6 +173,21 @@ const saveMovimiento = async () => {
     const cuentaById = new Map(cuentas.map((c) => [Number(c.id), c]))
     const cuenta = cuentaById.get(Number(form.cuenta_id))
     const isBanco = String(cuenta?.nombre_cuenta || '') === 'Banco'
+
+    // Fix F-H3: advertencia si el período del movimiento tiene un total
+    // declarado manualmente. No bloquea el guardado — solo informa que el
+    // total manual dejará de usarse (regla "detalle gana").
+    const periodoMov = String(form.fecha || '').slice(0, 7) // YYYY-MM
+    const ejId = ejercicio ? Number(ejercicio.id) : null
+    const cierreManual = cierres.find(
+      (c) => Number(c.ejercicio_id) === ejId
+        && String(c.periodo || '') === periodoMov
+        && c.es_carga_manual === true
+    )
+    if (cierreManual) {
+      advertenciaCierreManual =
+        'Este período tenía un total declarado manualmente. Al cargar este movimiento, ese total se dejará de usar y el período se calculará desde el detalle.'
+    }
 
     const fields = {
       ...form,
@@ -322,6 +345,7 @@ export const movimientosStore = extendStore(base, {
   get ejercicio() { return ejercicio },
   get userName() { return userName },
   get cuentaDefaultId() { return cuentaDefaultId },
+  get advertenciaCierreManual() { return advertenciaCierreManual },
   get selectedId() { return selectedId },
   get form() { return form },
   get listOpen() { return listOpen },

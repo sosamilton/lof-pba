@@ -18,6 +18,8 @@
   import SearchIcon from '@lucide/svelte/icons/search'
   import PlusIcon from '@lucide/svelte/icons/plus'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
+  import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
+  import * as Alert from '$lib/components/ui/alert'
 
   let q = $state('')
   let tipo = $state('')
@@ -84,6 +86,13 @@
 </script>
 
 <PageScaffold title="Movimientos" loading={store.loading} error={store.error} notice={store.notice}>
+  {#if store.advertenciaCierreManual}
+    <Alert.Root variant="default" class="mb-4 border-yellow-500/45 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400">
+      <AlertTriangleIcon data-icon="inline-start" />
+      <Alert.Title>Atención</Alert.Title>
+      <Alert.Description>{store.advertenciaCierreManual}</Alert.Description>
+    </Alert.Root>
+  {/if}
   {#snippet skeleton()}
     <div class="flex flex-col gap-4">
       <div class="flex gap-3">
