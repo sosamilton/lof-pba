@@ -1,6 +1,5 @@
 import { loadSeedCsv } from './initLof'
 import { parseCsv, csvToObjects, normalizeSeedValue } from '$core/csv'
-import { currentYear } from './setupConstants'
 
 /**
  * Gestión de cargos de gobierno: CRUD, reordenamiento, federación.

@@ -1,4 +1,4 @@
-import { dateToInput, normalizeFields, buildMapById } from '$core/utils.js'
+import { dateToInput, buildMapById, normalize } from '$core/utils.js'
 
 /**
  * Lógica CRUD individual de movimientos: seleccionar, nuevo, validar, guardar,
@@ -9,7 +9,6 @@ import { dateToInput, normalizeFields, buildMapById } from '$core/utils.js'
  * @param {object} deps.relatedData - Datos relacionados (rubros, cuentas, ejercicio, etc.)
  * @param {object} deps.base - Store base (records, save, setError, clearMessages)
  * @param {object} deps.cierresService - Servicio de cierres (buscarCierreManual)
- * @param {object} deps.personasSelector - Selector de personas (isRubroPagoSocietario)
  * @returns {{
  *   select: (m: any) => void, nuevo: () => void,
  *   nuevoCuotaSocietaria: () => void, cancelar: () => void,
@@ -17,7 +16,7 @@ import { dateToInput, normalizeFields, buildMapById } from '$core/utils.js'
  *   onTipoChange: () => void, onRubroChange: () => void,
  * }}
  */
-export function createFormLogic({ formState, relatedData, base, cierresService, personasSelector }) {
+export function createFormLogic({ formState, relatedData, base, cierresService }) {
   const select = (m) => {
     formState.setSelectedId(m?.id || null)
     formState.setListOpen(true)
@@ -60,8 +59,7 @@ export function createFormLogic({ formState, relatedData, base, cierresService, 
   // Atajo: formulario pre-cargado para cargar una cuota societaria
   const nuevoCuotaSocietaria = () => {
     const rubroCuota = relatedData.rubros.find((r) => {
-      const nombre = (r.nombre_oficial || '').toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      const nombre = normalize(r.nombre_oficial || '')
       return nombre.includes('cuota') || nombre.includes('socio') || nombre.includes('societ') || nombre.includes('aporte socio')
     })
     nuevo()
