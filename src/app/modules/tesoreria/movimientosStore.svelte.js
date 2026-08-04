@@ -23,7 +23,7 @@ const relatedData = createRelatedData({ base })
 const formState = createFormState()
 const cierresService = createCierresService({ relatedData, base })
 const personasSelector = createPersonasSelector({ relatedData, formState })
-const formLogic = createFormLogic({ formState, relatedData, base, cierresService, personasSelector })
+const formLogic = createFormLogic({ formState, relatedData, base, cierresService })
 const cargaPIAService = createCargaPIAService({ relatedData, base, cierresService })
 
 let _relatedUnsub = null

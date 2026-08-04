@@ -1,6 +1,5 @@
 import {
   formatCue,
-  isValidCue,
   cueSedeLabel,
   formatCuil,
   isValidCuil,
@@ -19,7 +18,7 @@ import {
   cueSearchState,
   fechaDescargaOficial,
 } from '$core/escuelas'
-import { emailInstitucionalAlias, parseEmailInstitucionalInput } from '$core/emailInstitucional'
+import { parseEmailInstitucionalInput } from '$core/emailInstitucional'
 
 /**
  * Handlers de input para datos de escuela/cooperadora/banco.
