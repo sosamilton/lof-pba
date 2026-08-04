@@ -2,9 +2,8 @@
 // Consumidos por SetupStore.fillDemoData() para precargar la UI de cada paso.
 
 export const DEMO_MODULES = {
-  solo_pia: false,
+  carga_consolidada: false,
   gestion_integral: true,
-  gestion_etapas: false,
   kiosco: false
 }
 

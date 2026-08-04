@@ -20,6 +20,7 @@
   let fecha = $state('')
   // Filas: una por rubro PIA. { rubro_id, nombre, tipo, grupo, importe, cuenta_id, detalle }
   let filas = $state([])
+  let cargandoPeriodo = $state(false)
 
   // Agrupar rubros por grupo para mostrar secciones.
   let grupos = $derived.by(() => {
@@ -40,25 +41,59 @@
   const periodoKey = $derived(String(fecha || '').slice(0, 7))
   let firmado = $derived(periodoKey ? store.periodoFirmado(periodoKey) : false)
 
-  const abrir = (fechaInicial) => {
+  /**
+   * Construye las filas base (una por rubro PIA) y las precarga con los
+   * movimientos existentes del período si los hay.
+   * @param {string} fechaInicial
+   */
+  const abrir = async (fechaInicial) => {
     fecha = fechaInicial || new Date().toISOString().slice(0, 10)
-    // Construir filas: una por rubro PIA, ordenadas por grupo + nombre.
-    const cuentaDefault = store.cuentaDefaultId || (store.cuentas[0]?.id ?? '')
-    filas = [...store.rubros]
-      .sort((a, b) => normalize(a.grupo_rubro || '').localeCompare(normalize(b.grupo_rubro || ''))
-        || normalize(a.nombre_oficial || '').localeCompare(normalize(b.nombre_oficial || '')))
-      .map((r) => ({
-        rubro_id: r.id,
-        nombre: r.nombre_oficial || '(sin nombre)',
-        codigo: r.codigo_rubro || '',
-        tipo: r.tipo_rubro || 'Entrada',
-        grupo: r.grupo_rubro || 'Otros',
-        importe: '',
-        cuenta_id: cuentaDefault,
-        detalle: '',
-      }))
     abierto = true
+    await cargarFilas()
   }
+
+  /**
+   * Reconstruye las filas con los rubros PIA y precarga los importes
+   * desde los movimientos existentes del período seleccionado.
+   */
+  const cargarFilas = async () => {
+    if (!periodoKey) return
+    cargandoPeriodo = true
+    try {
+      const cuentaDefault = store.cuentaDefaultId || (store.cuentas[0]?.id ?? '')
+      const existentes = await store.getMovimientosPorRubro(periodoKey)
+      filas = [...store.rubros]
+        .sort((a, b) => normalize(a.grupo_rubro || '').localeCompare(normalize(b.grupo_rubro || ''))
+          || normalize(a.nombre_oficial || '').localeCompare(normalize(b.nombre_oficial || '')))
+        .map((r) => {
+          const existente = existentes.get(Number(r.id))
+          return {
+            rubro_id: r.id,
+            nombre: r.nombre_oficial || '(sin nombre)',
+            codigo: r.codigo_rubro || '',
+            tipo: r.tipo_rubro || 'Entrada',
+            grupo: r.grupo_rubro || 'Otros',
+            importe: existente ? String(existente.importe || '') : '',
+            cuenta_id: existente?.cuenta_id ? String(existente.cuenta_id) : cuentaDefault,
+            detalle: existente?.detalle || '',
+          }
+        })
+    } catch (e) {
+      console.error('[CargaPIAMatrix] Error al precargar filas:', e)
+    } finally {
+      cargandoPeriodo = false
+    }
+  }
+
+  // Cuando cambia el período (fecha), recargar las filas con los datos
+  // existentes del nuevo período. Solo si el diálogo está abierto.
+  let lastPeriodo = ''
+  $effect(() => {
+    const pk = periodoKey
+    if (!abierto || !pk || pk === lastPeriodo) return
+    lastPeriodo = pk
+    cargarFilas()
+  })
 
   const cerrar = () => { abierto = false }
 
@@ -72,7 +107,10 @@
         detalle: f.detalle || '',
       }))
     const ok = await store.guardarCargaPIA({ fecha, filas: validas })
-    if (ok) abierto = false
+    if (ok) {
+      // Recargar las filas para reflejar el estado guardado (upsert).
+      await cargarFilas()
+    }
   }
 
   const firmar = async () => {
@@ -81,7 +119,7 @@
     // No cerramos el diálogo: el usuario puede seguir viendo la matriz (read-only).
   }
 
-  // Exponer abrir para que Movimientos.svelte lo invoque.
+  // Exponer abrir para que ResumenMensual.svelte lo invoque.
   export { abrir }
 </script>
 
@@ -90,7 +128,7 @@
     <Dialog.Header>
       <Dialog.Title>Carga PIA por rubro</Dialog.Title>
       <Dialog.Description>
-        Un movimiento por rubro PIA para el período seleccionado. Solo se guardan las filas con importe &gt; 0.
+        Un movimiento por rubro PIA para el período seleccionado. Si ya hay movimientos cargados para ese período, se muestran y se actualizan al guardar. Solo se guardan las filas con importe &gt; 0.
       </Dialog.Description>
     </Dialog.Header>
 
@@ -221,8 +259,8 @@
           <LockIcon data-icon="inline-start" />
           Firmar período
         </Button>
-        <Button onclick={guardar} disabled={store.busy || !periodoKey}>
-          {#if store.busy}Guardando…{:else}<PlusIcon data-icon="inline-start" />Guardar movimientos{/if}
+        <Button onclick={guardar} disabled={store.busy || !periodoKey || cargandoPeriodo}>
+          {#if store.busy}Guardando…{:else}<PlusIcon data-icon="inline-start" />Guardar{/if}
         </Button>
       {/if}
     </Dialog.Footer>

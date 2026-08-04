@@ -19,9 +19,7 @@
   import PlusIcon from '@lucide/svelte/icons/plus'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
-  import TableIcon from '@lucide/svelte/icons/table'
   import * as Alert from '$lib/components/ui/alert'
-  import CargaPIAMatrix from './CargaPIAMatrix.svelte'
 
   let q = $state('')
   let tipo = $state('')
@@ -54,6 +52,7 @@
       if (!map.has(k)) map.set(k, [])
       map.get(k).push(s)
     }
+
     for (const arr of map.values()) {
       arr.sort((/** @type {any} */ a, /** @type {any} */ b) => normalize(a.nombre_subrubro).localeCompare(normalize(b.nombre_subrubro)))
     }
@@ -77,20 +76,6 @@
   }
 
   const handleSave = () => notifyAfter(store, store.saveMovimiento)
-
-  // Referencia al componente CargaPIAMatrix (para invocar abrir()).
-  let cargaPIAMatrix = $state(null)
-
-  // En gestion_etapas, "Nuevo" abre la matriz PIA; en gestion_integral,
-  // el formulario uno-por-uno actual.
-  const esModoEtapas = $derived(store.modoGestion === 'gestion_etapas')
-  const onNuevo = () => {
-    if (esModoEtapas) {
-      cargaPIAMatrix?.abrir()
-    } else {
-      store.nuevo()
-    }
-  }
 
   onMount(async () => {
     const unsub = store.subscribe()
@@ -136,14 +121,9 @@
         <Select.Item value="Traspaso">Traspaso</Select.Item>
       </Select.Content>
     </Select.Root>
-    <Button data-shortcut="new" onclick={onNuevo}>
-      {#if esModoEtapas}
-        <TableIcon data-icon="inline-start" />
-        Carga PIA por rubro
-      {:else}
-        <PlusIcon data-icon="inline-start" />
-        Nuevo movimiento
-      {/if}
+    <Button data-shortcut="new" onclick={() => store.nuevo()}>
+      <PlusIcon data-icon="inline-start" />
+      Nuevo movimiento
     </Button>
     <button data-shortcut="cuota" onclick={store.nuevoCuotaSocietaria} class="hidden" aria-hidden="true" tabindex="-1"></button>
     <span class="text-sm text-muted-foreground">{filtered.length} movimientos</span>
@@ -152,7 +132,7 @@
   {#if !store.ejercicio}
     <EmptyState
       title="No hay ejercicio en curso"
-      sub="Activá un ejercicio en Cooperadora para registrar movimientos."
+      sub="Activá un ejercicio en Inicio → Información institucional para registrar movimientos."
     />
   {:else}
     <div class="grid gap-4" style="grid-template-columns: {filtered.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
@@ -348,9 +328,9 @@
         {:else if filtered.length === 0}
           <EmptyState
             title="Listo para cargar movimientos"
-            sub={esModoEtapas ? "Cargá los rubros PIA del período con la matriz." : "Creá el primer movimiento para empezar."}
-            actionLabel={esModoEtapas ? "Carga PIA por rubro" : "Nuevo movimiento"}
-            onaction={onNuevo}
+            sub="Creá el primer movimiento para empezar."
+            actionLabel="Nuevo movimiento"
+            onaction={() => store.nuevo()}
           >
             {#snippet actionIcon()}
               <PlusIcon data-icon="inline-start" />
@@ -367,6 +347,3 @@
   {/if}
 
 </PageScaffold>
-
-<!-- Matriz de carga PIA (solo visible en gestion_etapas, montada siempre) -->
-<CargaPIAMatrix bind:this={cargaPIAMatrix} />

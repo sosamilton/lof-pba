@@ -374,9 +374,10 @@
       "id": "configuracion",
       "title": "Configuracion",
       "columns": [
-        { "id": "modulo_solo_pia", "fields": { "label": "Solo PIA/Nomina", "type": "Bool" } },
+        { "id": "modulo_solo_pia", "fields": { "label": "Solo PIA/Nomina (legacy)", "type": "Bool" } },
         { "id": "modulo_gestion_integral", "fields": { "label": "Gestion integral", "type": "Bool" } },
-        { "id": "modulo_gestion_etapas", "fields": { "label": "Gestion por etapas", "type": "Bool" } },
+        { "id": "modulo_gestion_etapas", "fields": { "label": "Gestion por etapas (legacy)", "type": "Bool" } },
+        { "id": "modulo_carga_consolidada", "fields": { "label": "Carga consolidada", "type": "Bool" } },
         { "id": "modulo_kiosco", "fields": { "label": "Kiosco/libreria", "type": "Bool" } },
         { "id": "escuela_nombre", "fields": { "label": "Nombre escuela (cache UI)", "type": "Text" } },
         { "id": "cooperadora_nombre", "fields": { "label": "Nombre cooperadora (cache UI)", "type": "Text" } },

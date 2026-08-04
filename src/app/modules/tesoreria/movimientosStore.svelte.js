@@ -29,7 +29,7 @@ let ejercicio = $state(null)
 let userName = $state('SPA')
 let cuentaDefaultId = $state('')
 // Modo de gestión activo (para cambiar el flujo de "Nuevo").
-let modoGestion = $state('gestion_integral') // 'gestion_integral' | 'gestion_etapas' | 'solo_pia'
+let modoGestion = $state('gestion_integral') // 'gestion_integral' | 'carga_consolidada'
 // Cierres mensuales manuales (para advertencia al cargar detalle en
 // un período que ya tiene un total declarado manualmente — regla "detalle gana").
 let cierres = $state([])
@@ -84,8 +84,8 @@ const loadAll = async () => {
         cuentaDefaultId = fallback ? String(fallback.id) : ''
       }
       // Detectar modo de gestión para cambiar el flujo de "Nuevo".
-      if (config?.modulo_gestion_etapas) modoGestion = 'gestion_etapas'
-      else if (config?.modulo_solo_pia) modoGestion = 'solo_pia'
+      if (config?.modulo_carga_consolidada || config?.modulo_gestion_etapas || config?.modulo_solo_pia) modoGestion = 'carga_consolidada'
+      
       else modoGestion = 'gestion_integral'
     } catch { /* config opcional */ }
   } catch (e) {
@@ -337,12 +337,40 @@ const personasSeleccionables = $derived.by(() => {
   }
 })
 
-// --- Carga PIA por matriz (modo gestion_etapas) ---
+// --- Carga PIA por matriz (modo carga_consolidada) ---
+
+/**
+ * Obtiene los movimientos existentes del ejercicio en curso para un período
+ * dado, indexados por rubro_id. Usado por CargaPIAMatrix para precargar
+ * filas y para hacer upsert al guardar.
+ * @param {string} periodoKey - 'YYYY-MM'
+ * @returns {Promise<Map<number, any>>} Mapa rubro_id (Number) → movimiento
+ */
+const getMovimientosPorRubro = async (periodoKey) => {
+  if (!ejercicio || !periodoKey) return new Map()
+  const tMov = await resolveTableIds(['movimientos'])
+  const tableId = tMov.movimientos
+  if (!tableId) return new Map()
+  const ejId = Number(ejercicio.id)
+  const recs = await fetchRecords(tableId, {
+    filter: (m) => Number(m.ejercicio_id) === ejId && String(String(m.fecha || '').slice(0, 7)) === periodoKey,
+  })
+  const map = new Map()
+  for (const m of recs) {
+    const rid = Number(m.rubro_id)
+    if (rid) map.set(rid, m)
+  }
+  return map
+}
 
 /**
  * Guarda múltiples movimientos en batch, uno por rubro PIA con importe > 0.
  * Todos comparten la misma fecha/período. Usado por la matriz de carga PIA
- * en modo gestion_etapas.
+ * en modo carga_consolidada.
+ *
+ * Upsert: si ya existe un movimiento para ese rubro+período, lo actualiza;
+ * si no, lo crea. No duplica.
+ *
  * @param {{fecha: string, filas: Array<{rubro_id: number, importe: number, cuenta_id: number, detalle: string}>}} payload
  * @returns {Promise<boolean|null>}
  */
@@ -374,6 +402,9 @@ const guardarCargaPIA = async ({ fecha, filas }) => {
     const tableId = tMov.movimientos
     if (!tableId) { base.setError('No se encontró la tabla movimientos.'); return null }
 
+    // Obtener movimientos existentes del período para upsert.
+    const existentes = await getMovimientosPorRubro(periodoKey)
+
     // Mapear rubro → tipo_movimiento (Entrada/Salida) desde el rubro PIA.
     const rubroById = new Map(rubros.map((r) => [Number(r.id), r]))
     const actions = validas.map((f) => {
@@ -390,11 +421,19 @@ const guardarCargaPIA = async ({ fecha, filas }) => {
         creado_por: userName,
         creado_el: new Date().toISOString(),
       })
+      const existente = existentes.get(Number(f.rubro_id))
+      if (existente) {
+        // Update: actualizar el movimiento existente.
+        return ['UpdateRecord', tableId, existente.id, fields]
+      }
+      // Insert: crear nuevo.
       return ['AddRecord', tableId, null, fields]
     })
     await applyUserActions(actions)
     await base.load()
-    base.setNotice(`${validas.length} movimiento(s) cargado(s) para ${periodoKey}.`)
+    const actualizados = validas.filter((f) => existentes.has(Number(f.rubro_id))).length
+    const nuevos = validas.length - actualizados
+    base.setNotice(`${nuevos} nuevo(s) + ${actualizados} actualizado(s) para ${periodoKey}.`)
     return true
   } catch (e) {
     base.setError(e?.message || String(e))
@@ -489,6 +528,7 @@ export const movimientosStore = extendStore(base, {
   cancelar,
   saveMovimiento,
   guardarCargaPIA,
+  getMovimientosPorRubro,
   firmarPeriodo,
   periodoFirmado,
   onTipoChange,
