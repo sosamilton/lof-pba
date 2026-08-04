@@ -22,9 +22,6 @@ const base = createGristStore({
     const out = { ...fields }
     out.dni = normalizeDni(out.dni) || null
     out.cuil = normalizeCuil(out.cuil) || null
-    Object.keys(out).forEach((k) => {
-      if (out[k] === '' || out[k] === null) delete out[k]
-    })
     return out
   },
 })

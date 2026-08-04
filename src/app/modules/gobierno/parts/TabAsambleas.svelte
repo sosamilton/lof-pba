@@ -9,6 +9,7 @@
   import * as Field from '$lib/components/ui/field'
   import EmptyState from '$lib/components/EmptyState.svelte'
   import { TIPOS_ASAMBLEA, TIPOS_ASAMBLEA_CORTO, normalize } from '$core/utils'
+  import { filterBySearch } from '$core/useListFilter.svelte.js'
   import { notifyAfter } from '$core/notify.svelte'
   import PlusIcon from '@lucide/svelte/icons/plus'
   import RefreshIcon from '@lucide/svelte/icons/refresh-cw'
@@ -24,14 +25,11 @@
   const tipoVariant = (t) => (t === 'AGO' ? 'default' : t === 'AGE' ? 'secondary' : 'outline')
 
   let filtered = $derived(
-    store.asambleas.filter((a) => {
-      const t = normalize(q)
-      if (!t) return true
-      const hay = [a.fecha, a.tipo_asamblea, a.acta_numero, TIPOS_ASAMBLEA_CORTO[a.tipo_asamblea]]
-        .map((v) => normalize(v))
-        .join(' ')
-      return hay.includes(t)
-    }),
+    filterBySearch(
+      store.asambleas,
+      q,
+      (a) => [a.fecha, a.tipo_asamblea, a.acta_numero, TIPOS_ASAMBLEA_CORTO[a.tipo_asamblea]],
+    ),
   )
 
   const handleSave = () => notifyAfter(store, store.saveAsamblea)

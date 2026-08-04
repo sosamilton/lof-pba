@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import { sociosStore as store } from './sociosStore.svelte'
   import { normalize, TIPOS_SOCIO, MOTIVOS_BAJA, daysSince, isAdult } from '$core/utils'
+  import { filterBySearch, sortByFields } from '$core/useListFilter.svelte.js'
   import { personaLabel, isDniQuery, buildPrefill, localidadesItems } from '$core/personas'
   import { notifyAfter } from '$core/notify.svelte'
   import { Button } from '$lib/components/ui/button'
@@ -15,10 +16,9 @@
   import Combobox from '$lib/components/Combobox.svelte'
   import EmptyState from '$lib/components/EmptyState.svelte'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
+  import SearchInput from '$lib/components/SearchInput.svelte'
   import { useInfiniteScroll } from '$lib/useInfiniteScroll.svelte.js'
-  import { Skeleton } from '$lib/components/ui/skeleton'
   import UserPlusIcon from '@lucide/svelte/icons/user-plus'
-  import SearchIcon from '@lucide/svelte/icons/search'
   import LinkIcon from '@lucide/svelte/icons/link'
   import UsersIcon from '@lucide/svelte/icons/users'
   let q = $state('')
@@ -29,22 +29,20 @@
   const isElectoral = (/** @type {any} */ s) => s.tipo_socio === 'Activo' && !s.fecha_baja && (daysSince(s.fecha_alta) ?? 0) >= 30
 
   let filtered = $derived(
-    store.records
-      .filter((/** @type {any} */ s) => {
-        if (estado === 'activos') return isActivo(s)
-        if (estado === 'bajas') return !isActivo(s)
-        return true
-      })
-      .filter((/** @type {any} */ s) => (tipo ? String(s.tipo_socio || '') === tipo : true))
-      .filter((/** @type {any} */ s) => {
-        const t = normalize(q)
-        if (!t) return true
-        const hay = [s.apellido, s.nombre, s.dni, s.cuil, s.email, s.telefono, s.localidad, s.domicilio]
-          .map((/** @type {any} */ v) => normalize(v))
-          .join(' ')
-        return hay.includes(t)
-      })
-      .sort((/** @type {any} */ a, /** @type {any} */ b) => normalize(a.apellido).localeCompare(normalize(b.apellido)) || normalize(a.nombre).localeCompare(normalize(b.nombre)))
+    sortByFields(
+      filterBySearch(
+        store.records
+          .filter((/** @type {any} */ s) => {
+            if (estado === 'activos') return isActivo(s)
+            if (estado === 'bajas') return !isActivo(s)
+            return true
+          })
+          .filter((/** @type {any} */ s) => (tipo ? String(s.tipo_socio || '') === tipo : true)),
+        q,
+        (/** @type {any} */ s) => [s.apellido, s.nombre, s.dni, s.cuil, s.email, s.telefono, s.localidad, s.domicilio],
+      ),
+      (/** @type {any} */ s) => [s.apellido, s.nombre],
+    ),
   )
 
   const scroll = useInfiniteScroll(() => filtered)
@@ -59,24 +57,8 @@
 </script>
 
 <PageScaffold title="Socios" loading={store.loading} error={store.error} notice={store.notice}>
-  {#snippet skeleton()}
-    <div class="flex flex-col gap-4">
-      <div class="flex gap-3">
-        <Skeleton class="h-9 flex-1" />
-        <Skeleton class="h-9 w-32" />
-        <Skeleton class="h-9 w-32" />
-      </div>
-      <div class="grid gap-4" style="grid-template-columns: 320px 1fr">
-        <Skeleton class="h-96" />
-        <Skeleton class="h-96" />
-      </div>
-    </div>
-  {/snippet}
   <div class="mb-4 flex flex-wrap items-center gap-3">
-    <div class="relative flex-1 min-w-[200px]">
-      <SearchIcon class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input placeholder="Buscar (apellido, nombre, DNI…)" bind:value={q} class="pl-9" aria-label="Buscar socios" data-shortcut="search" />
-    </div>
+    <SearchInput bind:value={q} placeholder="Buscar (apellido, nombre, DNI…)" ariaLabel="Buscar socios" />
     <Select.Root type="single" bind:value={estado}>
       <Select.Trigger class="w-[120px]" aria-label="Filtrar por estado">
         <Select.Value placeholder="Estado" />

@@ -1,19 +1,16 @@
 import { createGristStore, extendStore, resolveTableIds, fetchRelated } from '$core/stores/gristStore.svelte.js'
 import { fetchRecords, applyUserActions } from '$core/grist.js'
 import { loadConfig } from '$core/configuracion.js'
-import { normalize, dateToInput, monthKey, CATEGORIAS_VINCULO, normalizeFields } from '$core/utils.js'
+import { normalize, dateToInput, monthKey, CATEGORIAS_VINCULO, normalizeFields, buildMapById } from '$core/utils.js'
 
 const base = createGristStore({
   tableKey: 'movimientos',
   fetchOptions: {
     sort: (a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')),
   },
-  beforeSave: (fields, record) => {
+  beforeSave: (fields) => {
     const out = { ...fields }
     out.importe = Number(out.importe)
-    Object.keys(out).forEach((k) => {
-      if (out[k] === '') delete out[k]
-    })
     return out
   },
 })
@@ -176,7 +173,7 @@ const saveMovimiento = async () => {
   }
 
   try {
-    const cuentaById = new Map(cuentas.map((c) => [Number(c.id), c]))
+    const cuentaById = buildMapById(cuentas)
     const cuenta = cuentaById.get(Number(form.cuenta_id))
     const isBanco = String(cuenta?.nombre_cuenta || '') === 'Banco'
 
@@ -210,9 +207,6 @@ const saveMovimiento = async () => {
     }
 
     delete fields.id
-    Object.keys(fields).forEach((k) => {
-      if (fields[k] === '') delete fields[k]
-    })
 
     const record = { ...form, ...fields }
     const result = await base.save(record)
@@ -406,7 +400,7 @@ const guardarCargaPIA = async ({ fecha, filas }) => {
     const existentes = await getMovimientosPorRubro(periodoKey)
 
     // Mapear rubro → tipo_movimiento (Entrada/Salida) desde el rubro PIA.
-    const rubroById = new Map(rubros.map((r) => [Number(r.id), r]))
+    const rubroById = buildMapById(rubros)
     const actions = validas.map((f) => {
       const rubro = rubroById.get(Number(f.rubro_id))
       const tipo = rubro?.tipo_rubro || 'Entrada'

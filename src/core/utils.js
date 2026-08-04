@@ -24,7 +24,7 @@ export const buildVigenteByCargo = (autoridades, organismo) => {
 export const normalizeFields = (obj) => {
   const out = {}
   for (const [k, v] of Object.entries(obj || {})) {
-    if (v === '') continue
+    if (v === '' || v === null) continue
     out[k] = v
   }
   return out
@@ -74,6 +74,14 @@ export const addMonths = (dateStr, months) => {
 }
 
 export const monthKey = (iso) => String(iso || '').slice(0, 7)
+
+/**
+ * Construye un Map de Number(item.id) → item a partir de un array de registros.
+ * Útil para lookups O(1) por id numérico (los ids de Grist son números).
+ * @param {any[]} arr - Array de registros con propiedad `id`
+ * @returns {Map<number, any>}
+ */
+export const buildMapById = (arr) => new Map((arr || []).map((item) => [Number(item.id), item]))
 
 export const formatARS = (amount) => {
   const n = Number(amount || 0)

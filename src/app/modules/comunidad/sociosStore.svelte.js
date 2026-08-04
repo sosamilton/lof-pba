@@ -18,15 +18,12 @@ import { useFieldWarnings } from '$core/useFieldWarnings.svelte.js'
 const base = createGristStore({
   tableKey: 'socios',
   fetchOptions: {},
-  beforeSave: (fields, record) => {
+  beforeSave: (fields) => {
     const out = { ...fields }
     out.dni = normalizeDni(out.dni) || null
     out.cuil = normalizeCuil(out.cuil) || null
     if (out.telefono) out.telefono = normalizeTelefono(out.telefono) || null
     if (out.email) out.email = normalizeEmailField(out.email) || null
-    Object.keys(out).forEach((k) => {
-      if (out[k] === '' || out[k] === null) delete out[k]
-    })
     return out
   },
 })

@@ -3,7 +3,7 @@ import { isInGrist } from '$core/grist.js'
 import {
   calcularSaldosPorCuenta,
   calcularSaldoTotal,
-  totalesMesEnCurso,
+  totalesDesdeDetalle,
   saldosInicialesEnCero as _saldosInicialesEnCero,
 } from './tesoreriaCalc.js'
 
@@ -80,7 +80,7 @@ const mesEnCursoKey = $derived.by(() => {
   return `${y}-${mo}`
 })
 
-const _mesTotales = $derived.by(() => totalesMesEnCurso(movimientos, mesEnCursoKey))
+const _mesTotales = $derived.by(() => totalesDesdeDetalle(movimientos, mesEnCursoKey))
 const ingresosMes = $derived.by(() => _mesTotales.ingresos)
 const egresosMes = $derived.by(() => _mesTotales.egresos)
 
