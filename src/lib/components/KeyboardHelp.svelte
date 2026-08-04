@@ -8,7 +8,6 @@
     personas: 'Ctrl+P',
     movimientos: 'Ctrl+M',
     gobierno: 'Ctrl+A',
-    cooperadora: 'Ctrl+C',
   }
 
   const actionShortcuts = [

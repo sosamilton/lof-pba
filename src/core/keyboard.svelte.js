@@ -80,7 +80,6 @@ export const NAV_SHORTCUTS = {
   m: { route: 'movimientos', label: 'Movimientos' },
   r: { route: 'resumen', label: 'Resumen' },
   a: { route: 'gobierno', label: 'Asambleas y Autoridades' },
-  c: { route: 'cooperadora', label: 'Cooperadora' },
 }
 
 /**
