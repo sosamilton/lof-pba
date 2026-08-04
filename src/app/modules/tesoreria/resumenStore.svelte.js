@@ -184,6 +184,16 @@ const periodoTieneDetalle = (periodo) => periodosConDetalle.has(String(periodo))
 // Devuelve el cierre manual de un período (o null) para precargar el dialog.
 const cierreDePeriodo = (periodo) => cierresPorPeriodo.get(String(periodo)) || null
 
+// True si un período está firmado (no editable).
+const periodoFirmado = (periodoKey) => {
+  if (!ejercicio) return false
+  const c = cierres.find(
+    (cl) => Number(cl.ejercicio_id) === Number(ejercicio.id)
+      && String(cl.periodo || '') === String(periodoKey)
+  )
+  return c?.firmado === true
+}
+
 export const resumenStore = {
   get loading() { return bs.loading },
   get error() { return bs.error },
@@ -206,6 +216,7 @@ export const resumenStore = {
   setSelectedEjercicio,
   setVista,
   periodoTieneDetalle,
+  periodoFirmado,
   cierreDePeriodo,
   guardarCierreManual,
   load,
