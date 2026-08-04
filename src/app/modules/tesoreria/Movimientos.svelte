@@ -19,7 +19,9 @@
   import PlusIcon from '@lucide/svelte/icons/plus'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
+  import TableIcon from '@lucide/svelte/icons/table'
   import * as Alert from '$lib/components/ui/alert'
+  import CargaPIAMatrix from './CargaPIAMatrix.svelte'
 
   let q = $state('')
   let tipo = $state('')
@@ -76,6 +78,20 @@
 
   const handleSave = () => notifyAfter(store, store.saveMovimiento)
 
+  // Referencia al componente CargaPIAMatrix (para invocar abrir()).
+  let cargaPIAMatrix = $state(null)
+
+  // En gestion_etapas, "Nuevo" abre la matriz PIA; en gestion_integral,
+  // el formulario uno-por-uno actual.
+  const esModoEtapas = $derived(store.modoGestion === 'gestion_etapas')
+  const onNuevo = () => {
+    if (esModoEtapas) {
+      cargaPIAMatrix?.abrir()
+    } else {
+      store.nuevo()
+    }
+  }
+
   onMount(async () => {
     const unsub = store.subscribe()
     await store.loadAll()
@@ -120,9 +136,14 @@
         <Select.Item value="Traspaso">Traspaso</Select.Item>
       </Select.Content>
     </Select.Root>
-    <Button data-shortcut="new" onclick={store.nuevo}>
-      <PlusIcon data-icon="inline-start" />
-      Nuevo movimiento
+    <Button data-shortcut="new" onclick={onNuevo}>
+      {#if esModoEtapas}
+        <TableIcon data-icon="inline-start" />
+        Carga PIA por rubro
+      {:else}
+        <PlusIcon data-icon="inline-start" />
+        Nuevo movimiento
+      {/if}
     </Button>
     <button data-shortcut="cuota" onclick={store.nuevoCuotaSocietaria} class="hidden" aria-hidden="true" tabindex="-1"></button>
     <span class="text-sm text-muted-foreground">{filtered.length} movimientos</span>
@@ -327,9 +348,9 @@
         {:else if filtered.length === 0}
           <EmptyState
             title="Listo para cargar movimientos"
-            sub="Creá el primer movimiento para empezar."
-            actionLabel="Nuevo movimiento"
-            onaction={store.nuevo}
+            sub={esModoEtapas ? "Cargá los rubros PIA del período con la matriz." : "Creá el primer movimiento para empezar."}
+            actionLabel={esModoEtapas ? "Carga PIA por rubro" : "Nuevo movimiento"}
+            onaction={onNuevo}
           >
             {#snippet actionIcon()}
               <PlusIcon data-icon="inline-start" />
@@ -346,3 +367,6 @@
   {/if}
 
 </PageScaffold>
+
+<!-- Matriz de carga PIA (solo visible en gestion_etapas, montada siempre) -->
+<CargaPIAMatrix bind:this={cargaPIAMatrix} />

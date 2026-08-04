@@ -1,7 +1,7 @@
 import { createGristStore, extendStore, resolveTableIds, fetchRelated } from '$core/stores/gristStore.svelte.js'
-import { fetchRecords } from '$core/grist.js'
+import { fetchRecords, applyUserActions } from '$core/grist.js'
 import { loadConfig } from '$core/configuracion.js'
-import { normalize, dateToInput, monthKey, CATEGORIAS_VINCULO } from '$core/utils.js'
+import { normalize, dateToInput, monthKey, CATEGORIAS_VINCULO, normalizeFields } from '$core/utils.js'
 
 const base = createGristStore({
   tableKey: 'movimientos',
@@ -28,6 +28,8 @@ let ejercicios = $state([])
 let ejercicio = $state(null)
 let userName = $state('SPA')
 let cuentaDefaultId = $state('')
+// Modo de gestión activo (para cambiar el flujo de "Nuevo").
+let modoGestion = $state('gestion_integral') // 'gestion_integral' | 'gestion_etapas' | 'solo_pia'
 // Cierres mensuales manuales (para advertencia al cargar detalle en
 // un período que ya tiene un total declarado manualmente — regla "detalle gana").
 let cierres = $state([])
@@ -81,6 +83,10 @@ const loadAll = async () => {
         const fallback = cuentas.find((c) => String(c.nombre_cuenta) === 'Efectivo') || cuentas[0]
         cuentaDefaultId = fallback ? String(fallback.id) : ''
       }
+      // Detectar modo de gestión para cambiar el flujo de "Nuevo".
+      if (config?.modulo_gestion_etapas) modoGestion = 'gestion_etapas'
+      else if (config?.modulo_solo_pia) modoGestion = 'solo_pia'
+      else modoGestion = 'gestion_integral'
     } catch { /* config opcional */ }
   } catch (e) {
     base.setError(e?.message || String(e))
@@ -331,6 +337,126 @@ const personasSeleccionables = $derived.by(() => {
   }
 })
 
+// --- Carga PIA por matriz (modo gestion_etapas) ---
+
+/**
+ * Guarda múltiples movimientos en batch, uno por rubro PIA con importe > 0.
+ * Todos comparten la misma fecha/período. Usado por la matriz de carga PIA
+ * en modo gestion_etapas.
+ * @param {{fecha: string, filas: Array<{rubro_id: number, importe: number, cuenta_id: number, detalle: string}>}} payload
+ * @returns {Promise<boolean|null>}
+ */
+const guardarCargaPIA = async ({ fecha, filas }) => {
+  base.clearMessages()
+  advertenciaCierreManual = ''
+  if (!ejercicio) { base.setError('No hay ejercicio en curso.'); return null }
+  if (!fecha) { base.setError('Faltó la fecha del período.'); return null }
+
+  const periodoKey = String(fecha).slice(0, 7)
+  // Verificar si el período ya está firmado.
+  const cierre = cierres.find(
+    (c) => Number(c.ejercicio_id) === Number(ejercicio.id)
+      && String(c.periodo || '') === periodoKey
+  )
+  if (cierre?.firmado === true) {
+    base.setError(`El período ${periodoKey} está firmado. No se pueden agregar movimientos.`)
+    return null
+  }
+
+  const validas = filas.filter((f) => Number(f.importe) > 0 && f.rubro_id)
+  if (validas.length === 0) {
+    base.setError('No hay filas con importe > 0 para guardar.')
+    return null
+  }
+
+  try {
+    const tMov = await resolveTableIds(['movimientos'])
+    const tableId = tMov.movimientos
+    if (!tableId) { base.setError('No se encontró la tabla movimientos.'); return null }
+
+    // Mapear rubro → tipo_movimiento (Entrada/Salida) desde el rubro PIA.
+    const rubroById = new Map(rubros.map((r) => [Number(r.id), r]))
+    const actions = validas.map((f) => {
+      const rubro = rubroById.get(Number(f.rubro_id))
+      const tipo = rubro?.tipo_rubro || 'Entrada'
+      const fields = normalizeFields({
+        fecha: String(fecha),
+        tipo_movimiento: tipo,
+        rubro_id: Number(f.rubro_id),
+        importe: Number(f.importe),
+        cuenta_id: Number(f.cuenta_id),
+        detalle: f.detalle || '',
+        ejercicio_id: Number(ejercicio.id),
+        creado_por: userName,
+        creado_el: new Date().toISOString(),
+      })
+      return ['AddRecord', tableId, null, fields]
+    })
+    await applyUserActions(actions)
+    await base.load()
+    base.setNotice(`${validas.length} movimiento(s) cargado(s) para ${periodoKey}.`)
+    return true
+  } catch (e) {
+    base.setError(e?.message || String(e))
+    return null
+  }
+}
+
+/**
+ * Firma un período: marca el cierre mensual como firmado, bloqueando
+ * la edición/carga de movimientos en ese período.
+ * @param {string} periodoKey - 'YYYY-MM'
+ * @returns {Promise<boolean|null>}
+ */
+const firmarPeriodo = async (periodoKey) => {
+  base.clearMessages()
+  if (!ejercicio) { base.setError('No hay ejercicio en curso.'); return null }
+  try {
+    const tCierres = await resolveTableIds(['cierres_mensuales'])
+    const tableId = tCierres.cierres_mensuales
+    if (!tableId) { base.setError('No se encontró la tabla cierres_mensuales.'); return null }
+    const ejId = Number(ejercicio.id)
+    const existente = cierres.find(
+      (c) => Number(c.ejercicio_id) === ejId && String(c.periodo || '') === String(periodoKey)
+    )
+    const fields = normalizeFields({
+      periodo: String(periodoKey),
+      ejercicio_id: ejId,
+      firmado: true,
+      firmado_por: userName,
+      firmado_el: new Date().toISOString(),
+    })
+    if (existente) {
+      await applyUserActions([['UpdateRecord', tableId, existente.id, fields]])
+    } else {
+      await applyUserActions([['AddRecord', tableId, null, fields]])
+    }
+    // Recargar cierres.
+    const tIds = await resolveTableIds(['cierres_mensuales'])
+    const data = await fetchRelated(tIds, { cierres_mensuales: {} })
+    cierres = data.cierres_mensuales || []
+    base.setNotice(`Período ${periodoKey} firmado.`)
+    return true
+  } catch (e) {
+    base.setError(e?.message || String(e))
+    return null
+  }
+}
+
+/**
+ * Devuelve true si un período está firmado (no editable).
+ * @param {string} periodoKey - 'YYYY-MM'
+ * @returns {boolean}
+ */
+const periodoFirmado = (periodoKey) => {
+  if (!ejercicio) return false
+  const c = cierres.find(
+    (cl) => Number(cl.ejercicio_id) === Number(ejercicio.id)
+      && String(cl.periodo || '') === String(periodoKey)
+  )
+  return c?.firmado === true
+}
+
 export const movimientosStore = extendStore(base, {
   get rubros() { return rubros },
   get subrubros() { return subrubros },
@@ -345,6 +471,7 @@ export const movimientosStore = extendStore(base, {
   get ejercicio() { return ejercicio },
   get userName() { return userName },
   get cuentaDefaultId() { return cuentaDefaultId },
+  get modoGestion() { return modoGestion },
   get advertenciaCierreManual() { return advertenciaCierreManual },
   get selectedId() { return selectedId },
   get form() { return form },
@@ -361,6 +488,9 @@ export const movimientosStore = extendStore(base, {
   nuevoCuotaSocietaria,
   cancelar,
   saveMovimiento,
+  guardarCargaPIA,
+  firmarPeriodo,
+  periodoFirmado,
   onTipoChange,
   onRubroChange,
   subscribe,

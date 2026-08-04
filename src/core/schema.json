@@ -312,6 +312,9 @@
         { "id": "egresos_efectivo", "fields": { "label": "Egresos efectivo", "type": "Numeric" } },
         { "id": "egresos_caja_chica", "fields": { "label": "Egresos caja chica", "type": "Numeric" } },
         { "id": "es_carga_manual", "fields": { "label": "Es carga manual", "type": "Bool" } },
+        { "id": "firmado", "fields": { "label": "Firmado", "type": "Bool" } },
+        { "id": "firmado_por", "fields": { "label": "Firmado por", "type": "Text" } },
+        { "id": "firmado_el", "fields": { "label": "Fecha de firma", "type": "DateTime" } },
         {
           "id": "total_ingresos_calc",
           "fields": {
