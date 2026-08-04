@@ -14,6 +14,7 @@
   import * as Table from '$lib/components/ui/table'
   import * as Accordion from '$lib/components/ui/accordion'
   import * as Alert from '$lib/components/ui/alert'
+  import * as Dialog from '$lib/components/ui/dialog'
   import { Badge } from '$lib/components/ui/badge'
   import { Checkbox } from '$lib/components/ui/checkbox'
   import { Switch } from '$lib/components/ui/switch'
@@ -23,6 +24,37 @@
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right'
+  import PencilIcon from '@lucide/svelte/icons/pencil'
+
+  // Diálogo de edición de saldos iniciales de un ejercicio.
+  let dialogSaldosAbierto = $state(false)
+  let ejercicioEditandoId = $state(null)
+
+  const abrirEditarSaldos = (e) => {
+    store.setEditandoSaldos(e)
+    ejercicioEditandoId = e.id
+    dialogSaldosAbierto = true
+  }
+
+  const cerrarEditarSaldos = () => {
+    dialogSaldosAbierto = false
+    store.cancelarEdicionSaldos()
+    ejercicioEditandoId = null
+  }
+
+  // Confirma el guardado: si el ejercicio tiene movimientos, avisa antes.
+  const confirmarGuardarSaldos = async () => {
+    if (!store.ejercicioEditando) return
+    const tiene = await store.tieneMovimientos(ejercicioEditandoId)
+    if (tiene) {
+      const ok = window.confirm(
+        'Modificar el saldo inicial recalculará los saldos de todos los períodos. ¿Continuar?'
+      )
+      if (!ok) return
+    }
+    await store.saveSaldosEjercicio()
+    if (!store.error) dialogSaldosAbierto = false
+  }
 
   let emailEscuelaAlias = $state('')
   let emailEscuelaDirty = $state(false)
@@ -389,13 +421,24 @@
           <div class="flex flex-col gap-2">
             {#each store.ejercicios as e (e.id)}
               <div class="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
-                <div>
+                <div class="flex flex-col gap-0.5">
                   <div class="text-sm font-semibold">{e.anio_inicio}-{e.anio_fin} · {e.mes_inicio}</div>
-                  <div class="text-xs text-muted-foreground">{e.en_curso ? 'En curso' : 'Inactivo'}</div>
+                  <div class="text-xs text-muted-foreground">
+                    {e.en_curso ? 'En curso' : 'Inactivo'}
+                    {#if e.saldo_inicial_total != null}
+                      · Saldo inicial: <span class="font-semibold text-foreground">${Number(e.saldo_inicial_total).toLocaleString('es-AR')}</span>
+                    {/if}
+                  </div>
                 </div>
-                {#if e.en_curso}
-                  <Badge variant="default">En curso</Badge>
-                {/if}
+                <div class="flex items-center gap-2">
+                  {#if e.en_curso}
+                    <Badge variant="default">En curso</Badge>
+                    <Button variant="outline" size="sm" onclick={() => abrirEditarSaldos(e)}>
+                      <PencilIcon data-icon="inline-start" />
+                      Editar saldos
+                    </Button>
+                  {/if}
+                </div>
               </div>
             {/each}
           </div>
@@ -405,3 +448,46 @@
   </div>
 
 </PageScaffold>
+
+<!-- Diálogo: editar saldos iniciales de un ejercicio -->
+<Dialog.Root bind:open={dialogSaldosAbierto}>
+  <Dialog.Content class="sm:max-w-[480px]">
+    <Dialog.Header>
+      <Dialog.Title>Editar saldos iniciales</Dialog.Title>
+      <Dialog.Description>
+        Modificá el saldo inicial del ejercicio. Si hay movimientos cargados, se pedirá confirmación al guardar.
+      </Dialog.Description>
+    </Dialog.Header>
+    {#if store.ejercicioEditando}
+      <div class="flex flex-col gap-4 py-2">
+        <div class="grid gap-3 sm:grid-cols-3">
+          <div class="flex flex-col gap-1">
+            <Label class="text-xs font-bold text-muted-foreground" for="edit_saldo_banco">Banco</Label>
+            <Input id="edit_saldo_banco" type="number" bind:value={store.ejercicioEditando.saldo_inicial_banco} placeholder="0" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <Label class="text-xs font-bold text-muted-foreground" for="edit_saldo_efectivo">Efectivo</Label>
+            <Input id="edit_saldo_efectivo" type="number" bind:value={store.ejercicioEditando.saldo_inicial_efectivo} placeholder="0" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <Label class="text-xs font-bold text-muted-foreground" for="edit_saldo_caja">Caja chica</Label>
+            <Input id="edit_saldo_caja" type="number" bind:value={store.ejercicioEditando.saldo_inicial_caja_chica} placeholder="0" />
+          </div>
+        </div>
+        {#if store.error}
+          <Alert.Root variant="destructive">
+            <AlertTriangleIcon data-icon="inline-start" />
+            <Alert.Title>Error</Alert.Title>
+            <Alert.Description>{store.error}</Alert.Description>
+          </Alert.Root>
+        {/if}
+      </div>
+    {/if}
+    <Dialog.Footer>
+      <Button variant="outline" onclick={cerrarEditarSaldos} disabled={store.busy}>Cancelar</Button>
+      <Button onclick={confirmarGuardarSaldos} disabled={store.busy}>
+        {#if store.busy}Guardando…{:else}Guardar{/if}
+      </Button>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>

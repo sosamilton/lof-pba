@@ -303,8 +303,36 @@
         { "id": "saldo_banco", "fields": { "label": "Saldo banco", "type": "Numeric" } },
         { "id": "saldo_efectivo", "fields": { "label": "Saldo efectivo", "type": "Numeric" } },
         { "id": "saldo_caja_chica", "fields": { "label": "Saldo caja chica", "type": "Numeric" } },
-        { "id": "total_ingresos", "fields": { "label": "Total ingresos", "type": "Numeric" } },
-        { "id": "total_egresos", "fields": { "label": "Total egresos", "type": "Numeric" } },
+        { "id": "total_ingresos", "fields": { "label": "Total ingresos (legacy)", "type": "Numeric" } },
+        { "id": "total_egresos", "fields": { "label": "Total egresos (legacy)", "type": "Numeric" } },
+        { "id": "ingresos_banco", "fields": { "label": "Ingresos banco", "type": "Numeric" } },
+        { "id": "ingresos_efectivo", "fields": { "label": "Ingresos efectivo", "type": "Numeric" } },
+        { "id": "ingresos_caja_chica", "fields": { "label": "Ingresos caja chica", "type": "Numeric" } },
+        { "id": "egresos_banco", "fields": { "label": "Egresos banco", "type": "Numeric" } },
+        { "id": "egresos_efectivo", "fields": { "label": "Egresos efectivo", "type": "Numeric" } },
+        { "id": "egresos_caja_chica", "fields": { "label": "Egresos caja chica", "type": "Numeric" } },
+        { "id": "es_carga_manual", "fields": { "label": "Es carga manual", "type": "Bool" } },
+        { "id": "firmado", "fields": { "label": "Firmado", "type": "Bool" } },
+        { "id": "firmado_por", "fields": { "label": "Firmado por", "type": "Text" } },
+        { "id": "firmado_el", "fields": { "label": "Fecha de firma", "type": "DateTime" } },
+        {
+          "id": "total_ingresos_calc",
+          "fields": {
+            "label": "Total ingresos (calc)",
+            "type": "Numeric",
+            "isFormula": true,
+            "formula": "($ingresos_banco or 0) + ($ingresos_efectivo or 0) + ($ingresos_caja_chica or 0)"
+          }
+        },
+        {
+          "id": "total_egresos_calc",
+          "fields": {
+            "label": "Total egresos (calc)",
+            "type": "Numeric",
+            "isFormula": true,
+            "formula": "($egresos_banco or 0) + ($egresos_efectivo or 0) + ($egresos_caja_chica or 0)"
+          }
+        },
         { "id": "cerrado_por", "fields": { "label": "Cerrado por", "type": "Text" } },
         { "id": "cerrado_el", "fields": { "label": "Fecha de cierre", "type": "DateTime" } },
         { "id": "motivo_reapertura", "fields": { "label": "Motivo de reapertura", "type": "Text" } },

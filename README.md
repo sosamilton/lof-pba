@@ -51,7 +51,7 @@ docker compose up -d --build
 | Servicio | URL | Rol |
 | --- | --- | --- |
 | **Grist** | `http://localhost:8484` | Backend — documento SQLite con todas las tablas |
-| **AppCoop** | `http://localhost:8080` | Frontend — la SPA servida por nginx |
+| **LOF** | `http://localhost:8080` | Frontend — la SPA servida por nginx |
 
 **Pasos:** abrir Grist → crear documento → `Add New` → `Add Widget to Page` → `Custom` → pegar URL `http://localhost:8080` → `Full document access` → completar wizard.
 

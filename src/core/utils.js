@@ -194,14 +194,16 @@ export const MODULES = {
   },
   gestion_etapas: {
     label: 'Gestión por etapas',
-    description: 'Carga consolidada por período (semanal, mensual, bimestral o semestral). Próximamente.',
-    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'rubros_pia', 'planillas_generadas', 'configuracion'],
+    description: 'Carga consolidada por período (semanal, mensual, bimestral o semestral).',
+    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'rubros_pia', 'planillas_generadas', 'configuracion', 'movimientos', 'cuentas', 'cierres_mensuales'],
     menuItems: [
       { route: 'inicio', label: 'Inicio' },
       { route: 'socios', label: 'Socios' },
-      { route: 'personas', label: 'Personas' }
+      { route: 'personas', label: 'Personas' },
+      { route: 'movimientos', label: 'Movimientos' },
+      { route: 'resumen', label: 'Resumen' }
     ],
-    implemented: false
+    implemented: true
   },
   kiosco: {
     label: 'Kiosco / Librería',
@@ -223,9 +225,14 @@ export const getActiveMenuItems = (config) => {
     items.push({ route: 'gobierno', label: 'Asambleas y Autoridades' })
     items.push({ route: 'socios', label: 'Socios' })
     items.push({ route: 'personas', label: 'Personas' })
+    items.push({ route: 'resumen', label: 'Resumen' })
   } else if (config.modulo_solo_pia || config.modulo_gestion_etapas) {
     items.push({ route: 'socios', label: 'Socios' })
     items.push({ route: 'personas', label: 'Personas' })
+    if (config.modulo_gestion_etapas) {
+      items.push({ route: 'movimientos', label: 'Movimientos' })
+      items.push({ route: 'resumen', label: 'Resumen' })
+    }
   }
 
   return items

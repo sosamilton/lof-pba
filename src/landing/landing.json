@@ -1,98 +1,83 @@
 {
-  "identidad": {
-    "nombre": "ComunidadCoop",
-    "slogan": "Gestión cooperativa, simple y libre",
-    "descripcion": "Administrá socios, movimientos, autoridades y asambleas de tu cooperadora escolar. Sin instalar nada, sin depender de internet, sin que tus datos salgan de tu computadora.",
-    "ubicacion": "Provincia de Buenos Aires, Argentina",
-    "licencia": "AGPL-3.0",
-    "enlaces": {
-      "repo": "https://github.com/sosamilton/spa-cooperadora",
-      "app": "https://sosamilton.github.io/spa-cooperadora/",
-      "grist_docs": "https://support.getgrist.com/widget-custom/",
-      "grist": "https://www.getgrist.com/",
-      "licencia": "https://github.com/sosamilton/spa-cooperadora/blob/main/LICENSE"
-    }
-  },
   "principios": [
     {
-      "titulo": "Soberanía de datos",
-      "descripcion": "Tus datos son tuyos. El documento es un archivo SQLite exportable, respaldable y auditable. Sin plataformas intermedias, sin lock-in.",
-      "icono": "database"
-    },
-    {
-      "titulo": "Tecnología accesible",
-      "descripcion": "Pensada para compañeras y compañeros sin conocimientos técnicos. Una interfaz simple y guiada, sin jerga ni planillas.",
-      "icono": "accessibility"
-    },
-    {
-      "titulo": "Transparencia operativa",
-      "descripcion": "Cada movimiento, cada decisión, cada acta queda registrada. Fórmulas visibles, historial completo, nada oculto.",
-      "icono": "eye"
-    },
-    {
-      "titulo": "Software libre como bandera",
-      "descripcion": "Código abierto bajo AGPL-3.0. La comunidad puede auditar, modificar y distribuir. El conocimiento es un bien común.",
-      "icono": "flag"
-    },
-    {
-      "titulo": "Construcción colectiva",
-      "descripcion": "Pensado para comisiones, tesorerías y asambleas. Facilita el trabajo en equipo sin jerarquías técnicas.",
+      "titulo": "Comunidad",
+      "descripcion": "La tecnología debe fortalecer los vínculos entre las personas. Una cooperadora no es solo una asociación que administra recursos: es una comunidad que sostiene colectivamente la escuela pública.",
       "icono": "users"
     },
     {
-      "titulo": "Independencia tecnológica",
-      "descripcion": "No dependemos de corporaciones ni servicios pagos. Grist es libre y autoinstalable. La herramienta trabaja para vos, no al revés.",
+      "titulo": "Transparencia",
+      "descripcion": "Cada ingreso, cada gasto, cada decisión y cada autoridad pueden ser registrados y auditados. Fórmulas visibles, historial completo, nada oculto.",
+      "icono": "eye"
+    },
+    {
+      "titulo": "Memoria",
+      "descripcion": "Las personas cambian, las comisiones se renuevan, la memoria institucional permanece. LOF sostiene digitalmente los libros obligatorios que la normativa manda preservar.",
+      "icono": "database"
+    },
+    {
+      "titulo": "Autonomía",
+      "descripcion": "Las cooperadoras deben poder gestionar su información sin depender de empresas privadas ni de servicios en la nube. Sin telemetría, sin publicidad, sin lock-in.",
       "icono": "shield"
+    },
+    {
+      "titulo": "Soberanía tecnológica",
+      "descripcion": "Software libre bajo AGPL-3.0, construido sobre Grist. El conocimiento, los datos y el software pertenecen a la comunidad que los utiliza.",
+      "icono": "flag"
+    },
+    {
+      "titulo": "Escuela pública",
+      "descripcion": "LOF existe para fortalecer una institución fundamental de la democracia. Pensado para las cooperadoras de la Provincia de Buenos Aires, alineado con su marco normativo.",
+      "icono": "building"
     }
   ],
   "funciones": [
     {
-      "titulo": "Setup guiado",
-      "descripcion": "Wizard paso a paso para configurar la cooperadora en minutos.",
+      "titulo": "Configuración inicial",
+      "descripcion": "Wizard guiado paso a paso para dejar la cooperadora lista en minutos, con los cargos del estatuto modelo.",
       "icono": "rocket",
       "items": [
-        "Formateo en vivo de CUIT, CUE, teléfono, email y CBU",
+        "Datos de la escuela, la cooperadora y el ejercicio",
+        "Cargos del estatuto al mínimo legal (Decreto 4767/72) + Federación opcional",
         "Tres modos de gestión: solo PIA/nómina, gestión integral o por etapas",
-        "Cargos del estatuto al mínimo legal + Federación opcional",
-        "Color de marca de la cooperadora como tema de la app",
-        "Validación y bloqueo de datos institucionales y bancarios"
+        "Formateo en vivo de CUIT, CUE, teléfono, email y CBU",
+        "Color de marca de la cooperadora como tema de la app"
       ]
     },
     {
-      "titulo": "Socios y Personas",
-      "descripcion": "Padrón de socios con tabla unificada de personas vinculadas.",
+      "titulo": "Comunidad",
+      "descripcion": "Padrón de socios con tabla unificada de personas vinculadas, sin duplicar datos.",
       "icono": "users",
       "items": [
         "Búsqueda instantánea por apellido, DNI, CUIL, email o teléfono",
         "Alta, edición y baja como acción explícita y transparente",
         "Categoría de vínculo: socio, docente, directivo, proveedor, donante",
         "Tabla única que vincula socios, autoridades y directivos sin duplicar",
-        "Fecha de nacimiento con validación de mayoría de edad al registrar",
         "Habilitación electoral automática: socio activo con 30 días de antigüedad"
       ]
     },
     {
-      "titulo": "Movimientos",
-      "descripcion": "Registro de entradas, salidas y traspasos con trazabilidad.",
-      "icono": "arrow-left-right",
+      "titulo": "Gobierno",
+      "descripcion": "Comisión Directiva, Comisión Revisora de Cuentas y asambleas vinculadas al ejercicio.",
+      "icono": "gavel",
       "items": [
-        "Rubro y subrubro según PIA",
-        "Destino bancario cuando corresponde",
-        "Asociar socio o persona de forma opcional",
-        "Combobox con umbral de búsqueda para listas grandes",
-        "Dashboard con métricas: socios activos, altas/bajas, vencimientos"
+        "Comisión Directiva inicializada desde los cargos del estatuto",
+        "Comisión Revisora de Cuentas (titular docente, titular socio, suplente) y Asesoría",
+        "Registrar autoridades con vencimiento de mandato",
+        "Gestionar ceses y reemplazos con historial completo",
+        "Crear y editar asambleas con resoluciones"
       ]
     },
     {
-      "titulo": "Gobierno",
-      "descripcion": "Comisión directiva y asambleas vinculadas al ejercicio.",
-      "icono": "gavel",
+      "titulo": "Tesorería",
+      "descripcion": "Registro de ingresos, egresos y traspasos con trazabilidad, alineado a la PIA.",
+      "icono": "arrow-left-right",
       "items": [
-        "Inicializar comisión desde los cargos del estatuto",
-        "Registrar autoridades con vencimiento de mandato",
-        "Gestionar ceses y reemplazos con historial completo",
-        "Crear y editar asambleas con resoluciones",
-        "Padrón electoral automático según estatuto modelo"
+        "Rubro y subrubro según la PIA",
+        "Destino bancario cuando corresponde",
+        "Asociar socio o persona de forma opcional",
+        "Combobox con umbral de búsqueda para listas grandes",
+        "Dashboard con métricas: socios activos, altas/bajas, vencimientos, ejercicio en curso"
       ]
     }
   ],
@@ -212,7 +197,7 @@
         "enlace_texto": "Ver documentación de self-hosted"
       },
       {
-        "titulo": "Docker Compose (Grist + AppCoop)",
+        "titulo": "Docker Compose (Grist + LOF)",
         "descripcion": "Levantá Grist y la app juntos con Docker Compose. La app queda disponible en el puerto 8080 y Grist en el 8484. Recomendado para uso 100% offline.",
         "modo": "offline",
         "nota": "Necesitás instalar Docker Desktop (Windows/Linux) o Docker Engine (Linux). Primero descargá el archivo docker-compose.yml con curl, luego levantá todo desde la misma carpeta.",
@@ -249,18 +234,23 @@
   "roadmap": [
     {
       "estado": "proximo",
-      "titulo": "Adjuntos y actas",
-      "descripcion": "Carga guiada de comprobantes, actas y archivos con trazabilidad completa."
+      "titulo": "Tesorería avanzada",
+      "descripcion": "Saldos iniciales por ejercicio, resúmenes semanales y mensuales, y un tablero de caja que muestre cuánto hay, cuánto se debe, cuánto ingresó y cuánto salió."
+    },
+    {
+      "estado": "proximo",
+      "titulo": "Actas y adjuntos",
+      "descripcion": "Carga guiada de actas de Comisión Directiva y asambleas, comprobantes y archivos adjuntos con trazabilidad completa."
     },
     {
       "estado": "despues",
       "titulo": "Cierres y reportes",
-      "descripcion": "Cierres mensuales, saldos y exportables para PIA, nómina y controles."
+      "descripcion": "Cierres mensuales con saldos y exportables para PIA, nómina de autoridades y controles. Generación del balance de tesorería según modelo oficial."
     },
     {
       "estado": "despues",
       "titulo": "Accesos y roles",
-      "descripcion": "Reglas de permisos para tesorería, comisión, asesoría y lectura comunitaria."
+      "descripcion": "Reglas de permisos por función: tesorería, comisión, asesoría y lectura comunitaria."
     },
     {
       "estado": "futuro",
@@ -270,7 +260,7 @@
     {
       "estado": "futuro",
       "titulo": "Integraciones",
-      "descripcion": "Conexión con sistemas de la DIPREGEP y herramientas de gestión escolar."
+      "descripcion": "Conexión con sistemas de la DIPREGEP y autocompletado de datos de la escuela desde el padrón oficial del Mapa Escolar (CUE, distrito, región, dirección)."
     }
   ]
 }

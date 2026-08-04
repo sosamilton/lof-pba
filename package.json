@@ -1,8 +1,9 @@
 {
-  "name": "spa-app",
+  "name": "lof-pba",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.0-dev",
   "type": "module",
+  "maintainers": ["Milton Sosa <milton.sosa.22@gmail.com>"],
   "scripts": {
     "dev": "vite",
     "build": "vite build",

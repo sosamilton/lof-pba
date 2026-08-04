@@ -5,6 +5,7 @@
   import { initRouter, router, navigate } from '$core/router.svelte'
   import { detectGrist, getGristStatus, getWidgetOptions, isInGrist, subscribeAccess, listTables } from '$core/grist'
   import { isInstalled } from '$core/configuracion'
+  import { identidad } from '$core/identidad'
 
   import Inicio from '$app/pages/Inicio.svelte'
   import Landing from '$landing/Landing.svelte'
@@ -15,6 +16,7 @@
   import Socios from '$app/modules/comunidad/Socios.svelte'
   import Personas from '$app/modules/comunidad/Personas.svelte'
   import Movimientos from '$app/modules/tesoreria/Movimientos.svelte'
+  import ResumenMensual from '$app/modules/tesoreria/ResumenMensual.svelte'
   import Gobierno from '$app/modules/gobierno/AsambleasAutoridades.svelte'
 
   let ready = $state(false)
@@ -73,7 +75,7 @@
 {:else if gristStatus === 'ready' && needsSetup}
   <SetupWizard />
 {:else if gristStatus === 'ready'}
-  <AppShell title="AppCoop">
+  <AppShell title={identidad.nombre}>
     {#snippet children()}
       {#if router.current === 'cooperadora'}
         <Cooperadora />
@@ -83,6 +85,8 @@
         <Personas />
       {:else if router.current === 'movimientos'}
         <Movimientos />
+      {:else if router.current === 'resumen'}
+        <ResumenMensual />
       {:else if router.current === 'gobierno'}
         <Gobierno />
       {:else}

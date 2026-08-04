@@ -9,12 +9,13 @@ import {
   subscribeRecords,
 } from '$core/grist'
 import { REQUIRED_TABLES } from '$core/schema'
-import { getSchemaDiff, ensureSchema } from '$setup/initAppCoop'
+import { getSchemaDiff, ensureSchema } from '$setup/initLof'
 import { deduplicatePersonas } from '$setup/migracion'
 import { TABLE_PREFERRED_IDS, MESES } from '$core/utils'
 import { loadConfig, saveConfig } from '$core/configuracion'
 import { notify, withNotify } from '$core/notify.svelte'
 import { createBaseState } from '$core/stores/gristStore.svelte'
+import { saldosStore } from '$app/modules/tesoreria/saldosStore.svelte.js'
 
 const bs = createBaseState()
 
@@ -29,6 +30,8 @@ let savingConfig = $state(false)
 let periodosAutoLoaded = $state(false)
 
 let dashLoading = $state(false)
+let moduloGestionIntegral = $state(false)
+let tableroError = $state('') // Fix F6: avisa si falla la carga del tablero de caja.
 let sociosActivos = $state(0)
 let altasUltimoAnio = $state(0)
 let bajasUltimoAnio = $state(0)
@@ -117,6 +120,32 @@ const loadDashboard = async () => {
       }
     }
 
+    // Tablero de caja (Fase 2): cargar cuentas + movimientos del ejercicio
+    // en curso y delegar el cálculo de saldos a saldosStore via loadFromData
+    // (sin fetchs duplicados). Solo si el módulo de gestión integral está activo.
+    tableroError = ''
+    const config = await loadConfig()
+    if (config?.modulo_gestion_integral) {
+      const tCuentas = await resolveTableId(TABLE_PREFERRED_IDS.cuentas)
+      const tMovimientos = await resolveTableId(TABLE_PREFERRED_IDS.movimientos)
+      let cuentasData = []
+      let movimientosData = []
+      // Fix F6: capturar errores para mostrar aviso en lugar de silenciar.
+      if (tCuentas) {
+        try { cuentasData = await fetchRecords(tCuentas) }
+        catch (e) { tableroError = `No se pudieron cargar las cuentas: ${e?.message || e}` }
+      }
+      if (tMovimientos) {
+        try { movimientosData = await fetchRecords(tMovimientos) }
+        catch (e) { tableroError = `No se pudieron cargar los movimientos: ${e?.message || e}` }
+      }
+      saldosStore.loadFromData({
+        movimientos: movimientosData,
+        ejercicio: ejercicioEnCurso,
+        cuentas: cuentasData,
+      })
+    }
+
     if (tCargos && tAutoridades && ejercicioEnCurso) {
       const allCargos = await fetchRecords(tCargos)
       const obligatorios = allCargos.filter((c) => c.cargo_obligatorio === true && c.activo !== false)
@@ -139,8 +168,8 @@ const loadDashboard = async () => {
     const now = new Date()
     alertaAsamblea = now.getMonth() === 4 && now.getDate() >= 15
 
-    const config = await loadConfig()
     generarPeriodosAuto = Boolean(config?.generar_periodos_automatico)
+    moduloGestionIntegral = Boolean(config?.modulo_gestion_integral)
     periodosAutoLoaded = true
     versionInstalada = config?.version_instalada || null
     shaInstalado = config?.sha_instalado || null
@@ -253,6 +282,8 @@ export const inicioStore = {
   get generarPeriodosAuto() { return generarPeriodosAuto },
   set generarPeriodosAuto(v) { generarPeriodosAuto = v },
   get dashLoading() { return dashLoading },
+  get moduloGestionIntegral() { return moduloGestionIntegral },
+  get tableroError() { return tableroError },
   get sociosActivos() { return sociosActivos },
   get altasUltimoAnio() { return altasUltimoAnio },
   get bajasUltimoAnio() { return bajasUltimoAnio },
@@ -269,6 +300,7 @@ export const inicioStore = {
   get versionActual() { return versionActual },
   get shaActual() { return shaActual },
   get versionActualizada() { return Boolean(versionInstalada) && versionInstalada === versionActual },
+  get saldos() { return saldosStore },
   onPeriodosAutoChange,
   setShowNuevoEjercicio,
   init,

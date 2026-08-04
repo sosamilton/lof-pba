@@ -37,6 +37,8 @@ let tEjercicios = $state(null)
 let tCargos = $state(null)
 /** @type {string | null} */
 let tAutoridades = $state(null)
+/** @type {string | null} */
+let tMovimientos = $state(null)
 
 /** @type {Record<string, any>} */
 let escuela = $state({})
@@ -63,6 +65,13 @@ let autoridades = $state([])
 let ejercicioEnCurso = $state(null)
 let color_primario = $state('#16b378')
 
+// Edición de saldos iniciales de un ejercicio (desde Cooperadora).
+// `ejercicioEditando` es una copia del ejercicio que se está editando;
+// los inputs del panel/dialog hacen bind sobre sus campos sin tocar el
+// registro real hasta que se guarda.
+/** @type {Record<string, any> | null} */
+let ejercicioEditando = $state(null)
+
 /** @type {(() => void) | null} */
 let _unsub = null
 
@@ -78,6 +87,7 @@ const load = async () => {
     tEjercicios = await resolveTableId(TABLE_PREFERRED_IDS.ejercicios)
     tCargos = await resolveTableId(TABLE_PREFERRED_IDS.cargos)
     tAutoridades = await resolveTableId(TABLE_PREFERRED_IDS.autoridades)
+    tMovimientos = await resolveTableId(TABLE_PREFERRED_IDS.movimientos)
     escuela = (await ensureOneRow(tEscuela)) || {}
     banco = (await ensureOneRow(tBanco)) || {}
     kiosco = (await ensureOneRow(tKiosco)) || {}
@@ -233,6 +243,67 @@ const setEjercicioEnCurso = async (id) => {
   } catch (e) { bs.setError(e?.message || String(e)) } finally { bs.setBusy(false) }
 }
 
+// --- Edición de saldos iniciales de un ejercicio ---
+
+// Fix F5: callback que se ejecuta después de guardar saldos iniciales,
+// para que stores derivados (saldosStore, resumenStore) puedan recargar.
+// Se setea desde los componentes que usan esos stores (ej: Inicio, Resumen).
+let _onSaldosChanged = null
+const setOnSaldosChanged = (fn) => { _onSaldosChanged = fn }
+
+// Clona el ejercicio a editar para que los inputs del panel operen sobre
+// una copia y no sobre el registro real hasta que se confirme el guardado.
+const setEditandoSaldos = (e) => {
+  ejercicioEditando = e ? {
+    id: e.id,
+    anio_inicio: e.anio_inicio,
+    anio_fin: e.anio_fin,
+    mes_inicio: e.mes_inicio,
+    saldo_inicial_banco: Number(e.saldo_inicial_banco) || 0,
+    saldo_inicial_efectivo: Number(e.saldo_inicial_efectivo) || 0,
+    saldo_inicial_caja_chica: Number(e.saldo_inicial_caja_chica) || 0,
+  } : null
+}
+
+const cancelarEdicionSaldos = () => { ejercicioEditando = null }
+
+// Verifica si un ejercicio tiene al menos un movimiento detallado.
+// Usa limit:1 para no cargar todos los registros. Evita importar
+// movimientosStore desde aquí (no acoplar módulos).
+const tieneMovimientos = async (ejercicioId) => {
+  if (!tMovimientos || ejercicioId == null) return false
+  try {
+    const rows = await fetchRecords(tMovimientos, {
+      filter: (m) => Number(m.ejercicio_id) === Number(ejercicioId),
+      limit: 1,
+    })
+    return rows.length > 0
+  } catch { return false }
+}
+
+const saveSaldosEjercicio = async () => {
+  bs.clearMessages()
+  bs.setBusy(true)
+  try {
+    if (!tEjercicios) { bs.setError('No se encontró la tabla ejercicios.'); return }
+    if (!ejercicioEditando) return
+    const fields = normalizeFields({
+      saldo_inicial_banco: Number(ejercicioEditando.saldo_inicial_banco) || 0,
+      saldo_inicial_efectivo: Number(ejercicioEditando.saldo_inicial_efectivo) || 0,
+      saldo_inicial_caja_chica: Number(ejercicioEditando.saldo_inicial_caja_chica) || 0,
+    })
+    await applyUserActions([['UpdateRecord', tEjercicios, ejercicioEditando.id, fields]])
+    ejercicios = await fetchRecords(tEjercicios)
+    ejercicioEnCurso = ejercicios.find((e) => e.en_curso === true) || null
+    ejercicioEditando = null
+    // Fix F5: notificar a stores derivados para que recarguen.
+    if (typeof _onSaldosChanged === 'function') {
+      try { await _onSaldosChanged(ejercicioEnCurso) } catch { /* no-op */ }
+    }
+    bs.setNotice('Saldos iniciales guardados.'); notify.success(bs.notice)
+  } catch (e) { bs.setError(e?.message || String(e)) } finally { bs.setBusy(false) }
+}
+
 const saveCargo = async (c) => {
   bs.clearMessages()
   bs.setBusy(true)
@@ -310,6 +381,7 @@ export const cooperadoraStore = {
   get comisionDirectiva() { return comisionDirectiva },
   get tieneAutoridadesVigentes() { return tieneAutoridadesVigentes },
   get ejercicioEnCurso() { return ejercicioEnCurso },
+  get ejercicioEditando() { return ejercicioEditando },
   get color_primario() { return color_primario },
   setColor_primario: (v) => { color_primario = v; applyBrandTheme(v) },
   setOrganismo,
@@ -327,5 +399,10 @@ export const cooperadoraStore = {
   setEjercicioEnCurso,
   saveCargo,
   addCargo,
+  setEditandoSaldos,
+  cancelarEdicionSaldos,
+  tieneMovimientos,
+  saveSaldosEjercicio,
+  setOnSaldosChanged,
   subscribe,
 }

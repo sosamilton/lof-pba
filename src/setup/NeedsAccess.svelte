@@ -4,6 +4,7 @@
   import { Button } from '$lib/components/ui/button'
   import { Alert, AlertDescription } from '$lib/components/ui/alert'
   import ShieldCheckIcon from '@lucide/svelte/icons/shield-check'
+  import { identidad } from '$core/identidad'
 
   let status = $state(getGristStatus())
   let retrying = $state(false)
@@ -27,7 +28,7 @@
       <ShieldCheckIcon class="size-[22px]" />
     </div>
 
-    <h1 class="text-xl font-bold leading-tight mb-2">AppCoop necesita acceso al documento</h1>
+    <h1 class="text-xl font-bold leading-tight mb-2">{identidad.nombre} necesita acceso al documento</h1>
 
     <p class="text-sm text-muted-foreground leading-relaxed mb-4">
       El widget está cargado dentro de Grist, pero todavía no tiene permisos
