@@ -1,32 +1,22 @@
 <script>
   import { onMount } from 'svelte'
   import { cooperadoraStore as store } from './cooperadoraStore.svelte'
-  import { ORGANISMOS, ORGANISMO_LABELS, NIVELES_CARGO } from '$core/utils'
-  import { formatFecha } from '$core/format'
-  import { navigate } from '$core/router.svelte'
-  import { emailInstitucionalAlias, parseEmailInstitucionalInput, EMAIL_INSTITUCIONAL_DOMAIN } from '$core/emailInstitucional'
   import { Button } from '$lib/components/ui/button'
   import { Input } from '$lib/components/ui/input'
   import { Label } from '$lib/components/ui/label'
-  import { Separator } from '$lib/components/ui/separator'
   import * as Select from '$lib/components/ui/select'
-  import * as Tabs from '$lib/components/ui/tabs'
-  import * as Table from '$lib/components/ui/table'
   import * as Accordion from '$lib/components/ui/accordion'
-  import * as Alert from '$lib/components/ui/alert'
-  import * as Dialog from '$lib/components/ui/dialog'
   import { Badge } from '$lib/components/ui/badge'
-  import { Checkbox } from '$lib/components/ui/checkbox'
-  import { Switch } from '$lib/components/ui/switch'
   import { Skeleton } from '$lib/components/ui/skeleton'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
   import LockIcon from '@lucide/svelte/icons/lock'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
-  import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
-  import ArrowRightIcon from '@lucide/svelte/icons/arrow-right'
   import PencilIcon from '@lucide/svelte/icons/pencil'
+  import { emailInstitucionalAlias, parseEmailInstitucionalInput } from '$core/emailInstitucional'
+  import FormEscuela from './parts/FormEscuela.svelte'
+  import TablaCargos from './parts/TablaCargos.svelte'
+  import DialogEditarSaldos from './parts/DialogEditarSaldos.svelte'
 
-  // Diálogo de edición de saldos iniciales de un ejercicio.
   let dialogSaldosAbierto = $state(false)
   let ejercicioEditandoId = $state(null)
 
@@ -42,7 +32,6 @@
     ejercicioEditandoId = null
   }
 
-  // Confirma el guardado: si el ejercicio tiene movimientos, avisa antes.
   const confirmarGuardarSaldos = async () => {
     if (!store.ejercicioEditando) return
     const tiene = await store.tieneMovimientos(ejercicioEditandoId)
@@ -62,7 +51,6 @@
   let kioscoDirty = $state(false)
   let telefonoMismoQueEscuela = $state(false)
 
-  // Inicializa el checkbox si ambos teléfonos coinciden al cargar.
   $effect(() => {
     if (!escuelaDirty) {
       const te = store.escuela?.telefono_escuela || ''
@@ -79,8 +67,6 @@
     }
   }
 
-  // Sincroniza el alias desde el store solo en la carga inicial y tras guardar.
-  // Durante el tipeo, emailEscuelaDirty evita que el effect sobrescriba lo que el usuario edita.
   $effect(() => {
     if (emailEscuelaDirty) return
     emailEscuelaAlias = emailInstitucionalAlias(store.escuela?.email_escuela)
@@ -96,8 +82,6 @@
 
   const escuelaValidada = $derived(store.escuela?.datos_validados === true)
   const bancoValidado = $derived(store.banco?.banco_validado === true)
-  // El email institucional puede cargarse después de validar el resto de la escuela:
-  // si está vacío queda editable aunque los datos estén validados; al guardar queda bloqueado.
   const emailEscuelaBloqueado = $derived(escuelaValidada && !emailEscuelaDirty && Boolean(emailEscuelaAlias))
 
   const handleSave = async () => {
@@ -133,88 +117,26 @@
           {/if}
         </Accordion.Trigger>
         <Accordion.Content>
-          <div class="flex flex-col gap-4">
-            <div class="grid gap-3 sm:grid-cols-2">
-              <div>
-                <Label for="distrito">Distrito</Label>
-                <Input id="distrito" bind:value={store.escuela.distrito} disabled={escuelaValidada} oninput={() => escuelaDirty = true} class="mt-1" />
-              </div>
-              <div>
-                <Label for="escuela-nombre">Escuela</Label>
-                <Input id="escuela-nombre" bind:value={store.escuela.escuela_nombre} disabled={escuelaValidada} oninput={() => escuelaDirty = true} class="mt-1" />
-              </div>
-              <div>
-                <Label for="escuela-numero">Número</Label>
-                <Input id="escuela-numero" bind:value={store.escuela.escuela_numero} disabled={escuelaValidada} oninput={() => escuelaDirty = true} class="mt-1" />
-              </div>
-              <div>
-                <Label for="cue">CUE</Label>
-                <Input id="cue" bind:value={store.escuela.cue} disabled={escuelaValidada} oninput={() => { store.onCueInput(); escuelaDirty = true }} placeholder="06-12345-00" inputmode="numeric" class="mt-1" />
-              </div>
-              <div>
-                <Label for="cuit">CUIT</Label>
-                <Input id="cuit" bind:value={store.escuela.cuit} disabled={escuelaValidada} oninput={() => { store.onCuitInput(); escuelaDirty = true }} placeholder="20-12345678-9" inputmode="numeric" class="mt-1" />
-              </div>
-              <div>
-                <Label for="coop-nombre">Cooperadora</Label>
-                <Input id="coop-nombre" bind:value={store.escuela.cooperadora_nombre} oninput={() => escuelaDirty = true} class="mt-1" />
-              </div>
-              <div>
-                <Label for="coop-dom">Domicilio</Label>
-                <Input id="coop-dom" bind:value={store.escuela.domicilio} disabled={escuelaValidada} oninput={() => escuelaDirty = true} class="mt-1" />
-              </div>
-              <div>
-                <Label for="coop-loc">Localidad</Label>
-                <Input id="coop-loc" bind:value={store.escuela.localidad} disabled={escuelaValidada} oninput={() => escuelaDirty = true} class="mt-1" />
-              </div>
-              <div>
-                <Label for="coop-email">Email cooperadora</Label>
-                <Input id="coop-email" bind:value={store.escuela.email_cooperadora} oninput={() => escuelaDirty = true} class="mt-1" />
-              </div>
-              <div>
-                <Label for="coop-tel">Teléfono cooperadora</Label>
-                <Input id="coop-tel" bind:value={store.escuela.telefono_cooperadora} oninput={() => { store.onTelefonoInput(); escuelaDirty = true }} disabled={telefonoMismoQueEscuela} placeholder="+54 9 11 1234-5678" inputmode="tel" class="mt-1" />
-                <label class="flex items-center gap-2 mt-1 text-xs text-muted-foreground cursor-pointer">
-                  <Checkbox checked={telefonoMismoQueEscuela} onCheckedChange={() => toggleTelefonoMismoQueEscuela()} />
-                  Mismo que la escuela
-                </label>
-              </div>
-              <div>
-                <Label for="email-escuela">Email institucional</Label>
-                <div class="flex items-center gap-1 mt-1">
-                  <Input
-                    id="email-escuela"
-                    value={emailEscuelaAlias}
-                    oninput={onEmailEscuelaInput}
-                    disabled={emailEscuelaBloqueado}
-                    placeholder="escuela"
-                    class="flex-1"
-                  />
-                  <span class="text-sm text-muted-foreground whitespace-nowrap">{EMAIL_INSTITUCIONAL_DOMAIN}</span>
-                </div>
-                {#if escuelaValidada && !emailEscuelaBloqueado}
-                  <p class="mt-1 text-xs text-muted-foreground">Cargá el email institucional; al guardar queda bloqueado.</p>
-                {/if}
-              </div>
-              <div>
-                <Label for="tel-escuela">Teléfono escuela</Label>
-                <Input id="tel-escuela" bind:value={store.escuela.telefono_escuela} disabled={escuelaValidada} oninput={() => { store.onTelefonoEscuelaInput(); escuelaDirty = true }} placeholder="+54 9 11 1234-5678" inputmode="tel" class="mt-1" />
-              </div>
-              <div>
-                <Label for="color-primario">Color de marca</Label>
-                <Input id="color-primario" type="color" value={store.color_primario} oninput={(/** @type {Event} */ e) => { store.setColor_primario(/** @type {HTMLInputElement} */ (e.target)?.value); escuelaDirty = true }} class="mt-1 h-10 w-16 p-1" />
-              </div>
-            </div>
-            <div class="flex items-center justify-between">
-              {#if !escuelaValidada}
-                <Button variant="outline" size="sm" onclick={store.validarDatos} disabled={store.busy}>
-                  <CheckCircleIcon data-icon="inline-start" />
-                  Validar y bloquear
-                </Button>
-              {/if}
-              <Button onclick={handleSave} disabled={store.busy || (escuelaValidada && !escuelaDirty)} class="ml-auto">Guardar</Button>
-            </div>
-          </div>
+          <FormEscuela
+            escuela={store.escuela}
+            {escuelaValidada}
+            {escuelaDirty}
+            {emailEscuelaAlias}
+            {emailEscuelaBloqueado}
+            {telefonoMismoQueEscuela}
+            colorPrimario={store.color_primario}
+            busy={store.busy}
+            onCueInput={store.onCueInput}
+            onCuitInput={store.onCuitInput}
+            onTelefonoInput={store.onTelefonoInput}
+            onTelefonoEscuelaInput={store.onTelefonoEscuelaInput}
+            onEmailEscuelaInput={onEmailEscuelaInput}
+            onColorChange={(v) => { store.setColor_primario(v); escuelaDirty = true }}
+            onDirty={() => { escuelaDirty = true }}
+            onToggleTelefono={toggleTelefonoMismoQueEscuela}
+            onValidar={store.validarDatos}
+            onSave={handleSave}
+          />
         </Accordion.Content>
       </Accordion.Item>
 
@@ -309,106 +231,7 @@
           {/if}
         </Accordion.Trigger>
         <Accordion.Content>
-          <div class="flex flex-col gap-4">
-            <Tabs.Root value={store.organismo} onValueChange={store.setOrganismo}>
-              <Tabs.List>
-                {#each ORGANISMOS as org}<Tabs.Trigger value={org}>{ORGANISMO_LABELS[org]}</Tabs.Trigger>{/each}
-              </Tabs.List>
-            </Tabs.Root>
-
-            {#if store.comisionDirectiva.length > 0}
-              <div class="overflow-x-auto rounded-lg border border-border">
-                <Table.Root>
-                  <Table.Header>
-                    <Table.Row>
-                      <Table.Head>Cargo</Table.Head>
-                      <Table.Head>Titular</Table.Head>
-                      <Table.Head>CUIL</Table.Head>
-                      <Table.Head class="w-[90px]">Asunción</Table.Head>
-                      <Table.Head class="w-[90px]">Vence</Table.Head>
-                      {#if !escuelaValidada}
-                        <Table.Head class="w-[64px]">Orden</Table.Head>
-                        <Table.Head class="w-[80px]">Duración</Table.Head>
-                        <Table.Head class="w-[70px]">Oblig.</Table.Head>
-                        <Table.Head class="w-[90px]"></Table.Head>
-                      {/if}
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {#each store.comisionDirectiva as fila (fila.cargoId)}
-                      <Table.Row>
-                        <Table.Cell class="text-sm font-medium">
-                          {#if !escuelaValidada}
-                            <Input bind:value={fila.cargo.nombre_cargo} class="h-8 text-sm" />
-                          {:else}
-                            {fila.cargoNombre}
-                          {/if}
-                        </Table.Cell>
-                        <Table.Cell class="text-sm">{fila.apellido_nombre || '—'}</Table.Cell>
-                        <Table.Cell class="text-sm">{fila.cuil || '—'}</Table.Cell>
-                        <Table.Cell class="text-sm">{formatFecha(fila.fecha_asuncion) || '—'}</Table.Cell>
-                        <Table.Cell class="text-sm">{formatFecha(fila.fecha_vencimiento) || '—'}</Table.Cell>
-                        {#if !escuelaValidada}
-                          <Table.Cell>
-                            <Input type="number" bind:value={fila.cargo.orden} class="h-8 text-sm" />
-                          </Table.Cell>
-                          <Table.Cell>
-                            <Input type="number" bind:value={fila.cargo.duracion_meses} class="h-8 text-sm" />
-                          </Table.Cell>
-                          <Table.Cell>
-                            <Checkbox bind:checked={fila.cargo.cargo_obligatorio} />
-                          </Table.Cell>
-                          <Table.Cell>
-                            <Button variant="outline" size="sm" onclick={() => store.saveCargo(fila.cargo)}>Guardar</Button>
-                          </Table.Cell>
-                        {/if}
-                      </Table.Row>
-                    {/each}
-                  </Table.Body>
-                </Table.Root>
-              </div>
-            {:else}
-              <p class="text-sm text-muted-foreground">No hay cargos cargados para este organismo.</p>
-            {/if}
-
-            {#if !escuelaValidada}
-              <Separator />
-              <div class="text-sm font-semibold">Agregar cargo</div>
-              <div class="grid gap-3 sm:grid-cols-3">
-                <div><Label for="nc-nombre">Nombre</Label><Input id="nc-nombre" bind:value={store.nuevoCargo.nombre_cargo} class="mt-1" /></div>
-                <div><Label for="nc-duracion">Duración (meses)</Label><Input id="nc-duracion" type="number" bind:value={store.nuevoCargo.duracion_meses} class="mt-1" /></div>
-                <div>
-                  <Label for="nc-nivel">Nivel</Label>
-                  <Select.Root type="single" bind:value={store.nuevoCargo.nivel}>
-                    <Select.Trigger id="nc-nivel" class="mt-1 w-full">
-                      <Select.Value placeholder="Elegir…" />
-                    </Select.Trigger>
-                    <Select.Content>
-                      {#each NIVELES_CARGO as n}<Select.Item value={n}>{n}</Select.Item>{/each}
-                    </Select.Content>
-                  </Select.Root>
-                </div>
-                <div><Label for="nc-orden">Orden</Label><Input id="nc-orden" type="number" bind:value={store.nuevoCargo.orden} class="mt-1" /></div>
-                <div class="flex flex-col gap-1"><Label class="text-xs font-medium text-muted-foreground">Obligatorio</Label><Checkbox bind:checked={store.nuevoCargo.cargo_obligatorio} class="mt-1" /></div>
-                <div class="flex flex-col gap-1"><Label class="text-xs font-medium text-muted-foreground">Activo</Label><Switch bind:checked={store.nuevoCargo.activo} disabled={store.nuevoCargo.cargo_obligatorio} class="mt-1" /></div>
-              </div>
-              <div class="flex justify-end"><Button size="sm" onclick={store.addCargo} disabled={store.busy}>Agregar</Button></div>
-            {/if}
-
-            {#if !store.tieneAutoridadesVigentes}
-              <div class="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/40">
-                <AlertTriangleIcon class="size-5 shrink-0 text-amber-600 dark:text-amber-400" />
-                <div class="flex flex-col gap-1">
-                  <span class="text-sm font-semibold text-amber-900 dark:text-amber-200">Sin autoridades designadas</span>
-                  <span class="text-sm text-amber-700 dark:text-amber-300">No hay autoridades vigentes para el ejercicio en curso.</span>
-                  <Button variant="outline" size="sm" class="mt-1 w-fit" onclick={() => navigate('gobierno')}>
-                    Ir a Asambleas y Autoridades
-                    <ArrowRightIcon data-icon="inline-end" />
-                  </Button>
-                </div>
-              </div>
-            {/if}
-          </div>
+          <TablaCargos {store} {escuelaValidada} tieneAutoridadesVigentes={store.tieneAutoridadesVigentes} />
         </Accordion.Content>
       </Accordion.Item>
 
@@ -449,45 +272,11 @@
 
 </PageScaffold>
 
-<!-- Diálogo: editar saldos iniciales de un ejercicio -->
-<Dialog.Root bind:open={dialogSaldosAbierto}>
-  <Dialog.Content class="sm:max-w-[480px]">
-    <Dialog.Header>
-      <Dialog.Title>Editar saldos iniciales</Dialog.Title>
-      <Dialog.Description>
-        Modificá el saldo inicial del ejercicio. Si hay movimientos cargados, se pedirá confirmación al guardar.
-      </Dialog.Description>
-    </Dialog.Header>
-    {#if store.ejercicioEditando}
-      <div class="flex flex-col gap-4 py-2">
-        <div class="grid gap-3 sm:grid-cols-3">
-          <div class="flex flex-col gap-1">
-            <Label class="text-xs font-bold text-muted-foreground" for="edit_saldo_banco">Banco</Label>
-            <Input id="edit_saldo_banco" type="number" bind:value={store.ejercicioEditando.saldo_inicial_banco} placeholder="0" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <Label class="text-xs font-bold text-muted-foreground" for="edit_saldo_efectivo">Efectivo</Label>
-            <Input id="edit_saldo_efectivo" type="number" bind:value={store.ejercicioEditando.saldo_inicial_efectivo} placeholder="0" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <Label class="text-xs font-bold text-muted-foreground" for="edit_saldo_caja">Caja chica</Label>
-            <Input id="edit_saldo_caja" type="number" bind:value={store.ejercicioEditando.saldo_inicial_caja_chica} placeholder="0" />
-          </div>
-        </div>
-        {#if store.error}
-          <Alert.Root variant="destructive">
-            <AlertTriangleIcon data-icon="inline-start" />
-            <Alert.Title>Error</Alert.Title>
-            <Alert.Description>{store.error}</Alert.Description>
-          </Alert.Root>
-        {/if}
-      </div>
-    {/if}
-    <Dialog.Footer>
-      <Button variant="outline" onclick={cerrarEditarSaldos} disabled={store.busy}>Cancelar</Button>
-      <Button onclick={confirmarGuardarSaldos} disabled={store.busy}>
-        {#if store.busy}Guardando…{:else}Guardar{/if}
-      </Button>
-    </Dialog.Footer>
-  </Dialog.Content>
-</Dialog.Root>
+<DialogEditarSaldos
+  bind:open={dialogSaldosAbierto}
+  ejercicioEditando={store.ejercicioEditando}
+  error={store.error}
+  busy={store.busy}
+  onClose={cerrarEditarSaldos}
+  onSave={confirmarGuardarSaldos}
+/>
