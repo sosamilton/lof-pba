@@ -4,6 +4,7 @@
   import { MESES } from '$core/utils'
   import { identidad } from '$core/identidad'
   import { inicioStore as store } from './inicioStore.svelte.js'
+  import { cooperadoraStore } from '$app/pages/cooperadoraStore.svelte.js'
   import { Button } from '$lib/components/ui/button'
   import * as Card from '$lib/components/ui/card'
   import { Badge } from '$lib/components/ui/badge'
@@ -28,8 +29,25 @@
   import SettingsIcon from '@lucide/svelte/icons/settings'
   import TagIcon from '@lucide/svelte/icons/tag'
   import ArrowUpCircleIcon from '@lucide/svelte/icons/arrow-up-circle'
+  import WalletIcon from '@lucide/svelte/icons/wallet'
 
-  onMount(() => store.init())
+  // Tablero de caja (Fase 2): saldos derivados del ejercicio en curso.
+  const saldos = $derived(store.saldos)
+
+  onMount(() => {
+    // Fix F5: cuando se editan saldos desde Cooperadora, recargar el
+    // tablero de caja para que refleje los nuevos saldos iniciales.
+    cooperadoraStore.setOnSaldosChanged(async (ejercicioActualizado) => {
+      if (ejercicioActualizado && store.moduloGestionIntegral) {
+        store.saldos.loadFromData({
+          movimientos: store.saldos.movimientos,
+          ejercicio: ejercicioActualizado,
+          cuentas: store.saldos.cuentas,
+        })
+      }
+    })
+    return store.init()
+  })
 </script>
 
 <div class="flex flex-col gap-4">
@@ -100,6 +118,58 @@
               {/if}
             </Card.Content>
           </Card.Root>
+
+          {#if store.moduloGestionIntegral}
+            <Card.Root class="sm:col-span-2 lg:col-span-3">
+              <Card.Content class="flex flex-col gap-3 pt-4">
+                <div class="flex items-center gap-2 text-muted-foreground">
+                  <WalletIcon class="size-4" />
+                  <span class="text-xs font-medium">Tablero de caja</span>
+                </div>
+                {#if store.dashLoading}
+                  <Skeleton class="h-8 w-40" />
+                {:else}
+                  <div class="flex flex-col gap-3">
+                    {#if store.tableroError}
+                      <div class="flex items-center gap-2 rounded-md border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-700 dark:text-yellow-400">
+                        <AlertTriangleIcon class="size-4 shrink-0" />
+                        {store.tableroError}
+                      </div>
+                    {/if}
+                    <div>
+                      <div class="text-xs text-muted-foreground">Saldo total</div>
+                      <div class="text-2xl font-bold">${saldos.saldoTotal.toLocaleString('es-AR')}</div>
+                    </div>
+                    {#if saldos.saldosInicialesEnCero}
+                      <div class="flex items-center gap-2 rounded-md border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-700 dark:text-yellow-400">
+                        <AlertTriangleIcon class="size-4 shrink-0" />
+                        Faltan saldos iniciales — los totales no incluyen arrastre.
+                      </div>
+                    {/if}
+                    <div class="grid gap-2 sm:grid-cols-3">
+                      {#each saldos.cuentas as c (c.id)}
+                        <div class="rounded-md border border-border px-3 py-2">
+                          <div class="text-xs text-muted-foreground">{c.nombre_cuenta}</div>
+                          <div class="text-sm font-semibold">${(saldos.saldosPorCuenta.get(Number(c.id)) || 0).toLocaleString('es-AR')}</div>
+                        </div>
+                      {/each}
+                    </div>
+                    <Separator />
+                    <div class="grid gap-2 sm:grid-cols-2">
+                      <div class="rounded-md border border-border px-3 py-2">
+                        <div class="text-xs text-muted-foreground">Ingresos del mes</div>
+                        <div class="text-sm font-semibold text-primary">+${saldos.ingresosMes.toLocaleString('es-AR')}</div>
+                      </div>
+                      <div class="rounded-md border border-border px-3 py-2">
+                        <div class="text-xs text-muted-foreground">Egresos del mes</div>
+                        <div class="text-sm font-semibold text-destructive">-${saldos.egresosMes.toLocaleString('es-AR')}</div>
+                      </div>
+                    </div>
+                  </div>
+                {/if}
+              </Card.Content>
+            </Card.Root>
+          {/if}
 
           <Card.Root>
             <Card.Content class="flex flex-col gap-1 pt-4">
