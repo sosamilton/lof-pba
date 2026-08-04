@@ -16,6 +16,7 @@
   import Socios from '$app/modules/comunidad/Socios.svelte'
   import Personas from '$app/modules/comunidad/Personas.svelte'
   import Movimientos from '$app/modules/tesoreria/Movimientos.svelte'
+  import ResumenMensual from '$app/modules/tesoreria/ResumenMensual.svelte'
   import Gobierno from '$app/modules/gobierno/AsambleasAutoridades.svelte'
 
   let ready = $state(false)
@@ -84,6 +85,8 @@
         <Personas />
       {:else if router.current === 'movimientos'}
         <Movimientos />
+      {:else if router.current === 'resumen'}
+        <ResumenMensual />
       {:else if router.current === 'gobierno'}
         <Gobierno />
       {:else}
