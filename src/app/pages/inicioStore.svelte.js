@@ -11,7 +11,7 @@ import {
 import { REQUIRED_TABLES } from '$core/schema'
 import { getSchemaDiff, ensureSchema } from '$setup/initLof'
 import { deduplicatePersonas } from '$setup/migracion'
-import { TABLE_PREFERRED_IDS, MESES } from '$core/utils'
+import { TABLE_PREFERRED_IDS, MESES, getModalidadGestion } from '$core/utils'
 import { loadConfig, saveConfig } from '$core/configuracion'
 import { notify, withNotify } from '$core/notify.svelte'
 import { createBaseState } from '$core/stores/gristStore.svelte'
@@ -31,6 +31,8 @@ let periodosAutoLoaded = $state(false)
 
 let dashLoading = $state(false)
 let moduloGestionIntegral = $state(false)
+let modalidadGestion = $state('No configurado')
+let moduloKiosco = $state(false)
 let tableroError = $state('') // Fix F6: avisa si falla la carga del tablero de caja.
 let sociosActivos = $state(0)
 let altasUltimoAnio = $state(0)
@@ -170,6 +172,8 @@ const loadDashboard = async () => {
 
     generarPeriodosAuto = Boolean(config?.generar_periodos_automatico)
     moduloGestionIntegral = Boolean(config?.modulo_gestion_integral)
+    modalidadGestion = getModalidadGestion(config)
+    moduloKiosco = Boolean(config?.modulo_kiosco)
     periodosAutoLoaded = true
     versionInstalada = config?.version_instalada || null
     shaInstalado = config?.sha_instalado || null
@@ -283,6 +287,8 @@ export const inicioStore = {
   set generarPeriodosAuto(v) { generarPeriodosAuto = v },
   get dashLoading() { return dashLoading },
   get moduloGestionIntegral() { return moduloGestionIntegral },
+  get modalidadGestion() { return modalidadGestion },
+  get moduloKiosco() { return moduloKiosco },
   get tableroError() { return tableroError },
   get sociosActivos() { return sociosActivos },
   get altasUltimoAnio() { return altasUltimoAnio },
