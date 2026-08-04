@@ -14,6 +14,7 @@
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import GavelIcon from '@lucide/svelte/icons/gavel'
   import SettingsIcon from '@lucide/svelte/icons/settings'
+  import BarChartIcon from '@lucide/svelte/icons/bar-chart'
   import BuildingIcon from '@lucide/svelte/icons/building-2'
   import CommandIcon from '@lucide/svelte/icons/command'
   import { identidad } from '$core/identidad'
@@ -34,6 +35,7 @@
     socios: UsersIcon,
     personas: ContactIcon,
     movimientos: ArrowLeftRightIcon,
+    resumen: BarChartIcon,
     gobierno: GavelIcon,
     cooperadora: SettingsIcon,
   }
@@ -43,6 +45,7 @@
     socios: 'Ctrl+S',
     personas: 'Ctrl+P',
     movimientos: 'Ctrl+M',
+    resumen: 'Ctrl+R',
     gobierno: 'Ctrl+A',
     cooperadora: 'Ctrl+C',
   }
