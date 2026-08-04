@@ -52,6 +52,31 @@
   </Card.Content>
 </Card.Root>
 
+{#if store.selectedModules.gestion_integral || store.selectedModules.gestion_etapas}
+  <!-- Saldo inicial del ejercicio -->
+  <Card.Root class="mb-4">
+    <Card.Content class="pt-6">
+      <h2 class="text-[17px] font-bold mb-1.5">Saldo inicial</h2>
+      <p class="text-[13px] text-muted-foreground mb-4">Si recién empezás, dejalo en 0. Si venías con planilla, poné lo que tenías al iniciar el ejercicio.</p>
+
+      <div class="grid gap-3 max-[600px]:grid-cols-1 sm:grid-cols-3">
+        <div class="flex flex-col gap-1">
+          <Label class="text-xs font-bold text-muted-foreground" for="saldo_inicial_banco">Banco</Label>
+          <Input id="saldo_inicial_banco" type="number" bind:value={store.ejercicio.saldo_inicial_banco} placeholder="0" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <Label class="text-xs font-bold text-muted-foreground" for="saldo_inicial_efectivo">Efectivo</Label>
+          <Input id="saldo_inicial_efectivo" type="number" bind:value={store.ejercicio.saldo_inicial_efectivo} placeholder="0" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <Label class="text-xs font-bold text-muted-foreground" for="saldo_inicial_caja_chica">Caja chica</Label>
+          <Input id="saldo_inicial_caja_chica" type="number" bind:value={store.ejercicio.saldo_inicial_caja_chica} placeholder="0" />
+        </div>
+      </div>
+    </Card.Content>
+  </Card.Root>
+{/if}
+
 <Separator class="mb-4" />
 
 <!-- Cargos -->
