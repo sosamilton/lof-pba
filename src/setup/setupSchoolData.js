@@ -5,7 +5,7 @@ import {
   isValidCuil,
   isValidCuilChecksum,
   formatTelefonoNational,
-  normalizeTelefonoNationalForStorage,
+  normalizeTelefonoForStorage,
   isValidTelefonoNational,
   normalizeEmail,
   isValidEmail,
@@ -84,7 +84,7 @@ export function onCuitInput(s) {
 
 export function onTelefonoEscuelaInput(s) {
   s.schoolData.telefono_escuela = formatTelefonoNational(s.schoolData.telefono_escuela)
-  const stored = normalizeTelefonoNationalForStorage(s.schoolData.telefono_escuela)
+  const stored = normalizeTelefonoForStorage(s.schoolData.telefono_escuela)
   if (stored && !isValidTelefonoNational(s.schoolData.telefono_escuela) && s.schoolData.telefono_escuela.replace(/\D/g, '').length > 0) {
     s.telefonoEscuelaWarning = 'Teléfono incompleto'
   } else {
@@ -104,7 +104,7 @@ export function onTelefonoInput(s) {
     return
   }
   s.schoolData.telefono = formatTelefonoNational(s.schoolData.telefono)
-  const stored = normalizeTelefonoNationalForStorage(s.schoolData.telefono)
+  const stored = normalizeTelefonoForStorage(s.schoolData.telefono)
   if (stored && !isValidTelefonoNational(s.schoolData.telefono) && s.schoolData.telefono.replace(/\D/g, '').length > 0) {
     s.telefonoWarning = 'Teléfono incompleto'
   } else {

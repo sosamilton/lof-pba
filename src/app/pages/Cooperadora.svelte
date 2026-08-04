@@ -1,20 +1,17 @@
 <script>
   import { onMount } from 'svelte'
   import { cooperadoraStore as store } from './cooperadoraStore.svelte'
-  import { Button } from '$lib/components/ui/button'
-  import { Input } from '$lib/components/ui/input'
-  import { Label } from '$lib/components/ui/label'
-  import * as Select from '$lib/components/ui/select'
   import * as Accordion from '$lib/components/ui/accordion'
   import { Badge } from '$lib/components/ui/badge'
   import { Skeleton } from '$lib/components/ui/skeleton'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
   import LockIcon from '@lucide/svelte/icons/lock'
-  import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
-  import PencilIcon from '@lucide/svelte/icons/pencil'
   import { emailInstitucionalAlias, parseEmailInstitucionalInput } from '$core/emailInstitucional'
   import FormEscuela from './parts/FormEscuela.svelte'
+  import FormBanco from './parts/FormBanco.svelte'
+  import FormKiosco from './parts/FormKiosco.svelte'
   import TablaCargos from './parts/TablaCargos.svelte'
+  import ListaEjercicios from './parts/ListaEjercicios.svelte'
   import DialogEditarSaldos from './parts/DialogEditarSaldos.svelte'
 
   let dialogSaldosAbierto = $state(false)
@@ -149,38 +146,12 @@
           {/if}
         </Accordion.Trigger>
         <Accordion.Content>
-          <div class="flex flex-col gap-4">
-            <div class="grid gap-3 sm:grid-cols-3">
-              <div>
-                <Label for="banco-entidad">Entidad</Label>
-                <Input id="banco-entidad" bind:value={store.banco.entidad} disabled={bancoValidado} class="mt-1" />
-              </div>
-              <div>
-                <Label for="banco-cbu">CBU</Label>
-                <Input id="banco-cbu" bind:value={store.banco.cbu} disabled={bancoValidado} oninput={store.onCbuInput} placeholder="00000031-0000000000000001" inputmode="numeric" class="mt-1" />
-              </div>
-              <div>
-                <Label for="banco-cc">Cuenta</Label>
-                <Input id="banco-cc" bind:value={store.banco.cuenta_corriente} disabled={bancoValidado} class="mt-1" />
-              </div>
-              <div>
-                <Label for="banco-sucursal">Sucursal</Label>
-                <Input id="banco-sucursal" bind:value={store.banco.sucursal} disabled={bancoValidado} class="mt-1" />
-              </div>
-              <div>
-                <Label for="banco-tipo">Tipo de cuenta</Label>
-                <Input id="banco-tipo" bind:value={store.banco.tipo_cuenta} disabled={bancoValidado} class="mt-1" />
-              </div>
-            </div>
-            <div class="flex items-center justify-between">
-              {#if !bancoValidado}
-                <Button variant="outline" size="sm" onclick={store.validarBanco} disabled={store.busy}>
-                  <CheckCircleIcon data-icon="inline-start" />
-                  Validar y bloquear
-                </Button>
-              {/if}
-            </div>
-          </div>
+          <FormBanco
+            banco={store.banco}
+            {bancoValidado}
+            busy={store.busy}
+            onValidar={store.validarBanco}
+          />
         </Accordion.Content>
       </Accordion.Item>
 
@@ -190,35 +161,12 @@
           <span class="font-semibold">Kiosco / Librería</span>
         </Accordion.Trigger>
         <Accordion.Content>
-          <div class="flex flex-col gap-4">
-            <div class="grid gap-3 sm:grid-cols-2">
-              <div>
-                <Label for="kiosco-posee">Posee</Label>
-                <Select.Root type="single" value={store.kiosco.posee != null ? String(store.kiosco.posee) : undefined} onValueChange={(v) => store.kiosco.posee = v === 'true'}>
-                  <Select.Trigger id="kiosco-posee" class="mt-1 w-full">
-                    <Select.Value placeholder="Elegir…" />
-                  </Select.Trigger>
-                  <Select.Content>
-                    <Select.Item value="true">Sí</Select.Item>
-                    <Select.Item value="false">No</Select.Item>
-                  </Select.Content>
-                </Select.Root>
-              </div>
-              <div>
-                <Label for="kiosco-modalidad">Modalidad</Label>
-                <Select.Root type="single" bind:value={store.kiosco.modalidad} allowDeselect={true}>
-                  <Select.Trigger id="kiosco-modalidad" class="mt-1 w-full">
-                    <Select.Value placeholder="(sin)" />
-                  </Select.Trigger>
-                  <Select.Content>
-                    <Select.Item value="Propio">Propio</Select.Item>
-                    <Select.Item value="Licitado">Licitado</Select.Item>
-                  </Select.Content>
-                </Select.Root>
-              </div>
-            </div>
-            <div class="flex justify-end"><Button onclick={handleSave} disabled={store.busy || (escuelaValidada && !escuelaDirty && !kioscoDirty)}>Guardar</Button></div>
-          </div>
+          <FormKiosco
+            kiosco={store.kiosco}
+            busy={store.busy}
+            onSave={handleSave}
+            saveDisabled={escuelaValidada && !escuelaDirty && !kioscoDirty}
+          />
         </Accordion.Content>
       </Accordion.Item>
 
@@ -241,30 +189,7 @@
           <span class="font-semibold">Ejercicios</span>
         </Accordion.Trigger>
         <Accordion.Content>
-          <div class="flex flex-col gap-2">
-            {#each store.ejercicios as e (e.id)}
-              <div class="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
-                <div class="flex flex-col gap-0.5">
-                  <div class="text-sm font-semibold">{e.anio_inicio}-{e.anio_fin} · {e.mes_inicio}</div>
-                  <div class="text-xs text-muted-foreground">
-                    {e.en_curso ? 'En curso' : 'Inactivo'}
-                    {#if e.saldo_inicial_total != null}
-                      · Saldo inicial: <span class="font-semibold text-foreground">${Number(e.saldo_inicial_total).toLocaleString('es-AR')}</span>
-                    {/if}
-                  </div>
-                </div>
-                <div class="flex items-center gap-2">
-                  {#if e.en_curso}
-                    <Badge variant="default">En curso</Badge>
-                    <Button variant="outline" size="sm" onclick={() => abrirEditarSaldos(e)}>
-                      <PencilIcon data-icon="inline-start" />
-                      Editar saldos
-                    </Button>
-                  {/if}
-                </div>
-              </div>
-            {/each}
-          </div>
+          <ListaEjercicios ejercicios={store.ejercicios} onEditarSaldos={abrirEditarSaldos} />
         </Accordion.Content>
       </Accordion.Item>
     </Accordion.Root>

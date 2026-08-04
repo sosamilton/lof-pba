@@ -1,5 +1,6 @@
 import { applyUserActions, fetchRecords, resolveTableId } from '$core/grist'
-import { extractRowId, normalizeCuil, normalizeDni } from '$core/personas'
+import { extractRowId } from '$core/personas'
+import { parseCuil as normalizeCuil, parseDni as normalizeDni } from '$core/format'
 import { TABLE_PREFERRED_IDS } from '$core/utils'
 
 const normalizeText = (s) => String(s || '').toLowerCase().trim()

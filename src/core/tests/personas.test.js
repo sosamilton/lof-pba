@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { normalizeDni, normalizeCuil, isValidDni, isValidCuil, personaLabel } from '$core/personas'
+import { parseDni as normalizeDni, parseCuil as normalizeCuil, isValidDni, isValidCuil } from '$core/format'
+import { personaLabel } from '$core/personas'
 
 describe('normalizeDni', () => {
   it('strips non-digits', () => {

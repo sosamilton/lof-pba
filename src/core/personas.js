@@ -1,27 +1,7 @@
 import { applyUserActions, fetchRecords, resolveTableId, withMultiplayerProtection } from './grist'
 import { TABLE_PREFERRED_IDS } from './utils'
 import localidadesBA from './data/localidades-buenos-aires.json'
-import {
-  parseDni as _parseDni,
-  parseCuil as _parseCuil,
-  isValidDni as _isValidDni,
-  isValidCuil as _isValidCuil,
-  isValidCuilChecksum,
-  normalizeTelefonoForStorage,
-  normalizeEmail,
-  isValidEmail,
-} from './format.js'
-
-// Re-export para compatibilidad con código existente.
-// Los datos se guardan como dígitos crudos; el formateo es solo visual.
-export const normalizeDni = _parseDni
-export const normalizeCuil = _parseCuil
-export const isValidDni = _isValidDni
-export const isValidCuil = _isValidCuil
-export const normalizeTelefono = normalizeTelefonoForStorage
-export const normalizeEmailField = normalizeEmail
-export const isValidEmailField = isValidEmail
-export { isValidCuilChecksum }
+import { parseDni, parseCuil } from './format.js'
 
 const normalizeText = (s) => String(s || '').toLowerCase().trim()
 
@@ -40,13 +20,13 @@ export const searchPersonas = async (query) => {
 }
 
 export const findPersonaByDni = async (dni) => {
-  const d = normalizeDni(dni)
+  const d = parseDni(dni)
   if (!d) return null
   const tableId = await resolveTableId(TABLE_PREFERRED_IDS.personas)
   if (!tableId) return null
   const all = await fetchRecords(tableId, {
     columns: ['tipo_persona', 'dni', 'cuil', 'apellido', 'nombre', 'razon_social', 'domicilio', 'localidad', 'telefono', 'email', 'categoria'],
-    filter: (p) => normalizeDni(p.dni) === d
+    filter: (p) => parseDni(p.dni) === d
   })
   return all[0] || null
 }
@@ -65,8 +45,8 @@ export const extractRowId = (res) => {
 const buildPersonaFields = (data) => {
   const fields = {}
   if (data.tipo_persona) fields.tipo_persona = data.tipo_persona
-  const dni = normalizeDni(data.dni)
-  const cuil = normalizeCuil(data.cuil)
+  const dni = parseDni(data.dni)
+  const cuil = parseCuil(data.cuil)
   if (dni) fields.dni = dni
   if (cuil) fields.cuil = cuil
   if (data.apellido) fields.apellido = data.apellido
@@ -100,7 +80,7 @@ export const updatePersona = async (id, data) => {
 }
 
 export const findOrCreatePersona = async (data) => {
-  const dni = normalizeDni(data.dni)
+  const dni = parseDni(data.dni)
   // 1. Si hay DNI, buscar persona existente primero
   if (dni) {
     const existing = await findPersonaByDni(dni)

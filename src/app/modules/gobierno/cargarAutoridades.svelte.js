@@ -1,6 +1,7 @@
 import { applyUserActions } from '$core/grist.js'
 import { normalizeFields, dateToInput, addMonths } from '$core/utils.js'
-import { extractRowId, findOrCreatePersona, personaLabel, normalizeDni, isValidDni } from '$core/personas.js'
+import { extractRowId, findOrCreatePersona, personaLabel } from '$core/personas.js'
+import { parseDni as normalizeDni, isValidDni } from '$core/format.js'
 
 /**
  * Cargar autoridades desde una asamblea (AGO/AGE).
