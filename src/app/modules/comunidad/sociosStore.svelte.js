@@ -1,19 +1,12 @@
 import { createGristStore, extendStore } from '$core/stores/gristStore.svelte.js'
 import { fetchRecords, resolveTableId, gristReady } from '$core/grist.js'
-import { dateToInput, isAdult, daysSince } from '$core/utils.js'
-import {
-  findOrCreatePersona,
-  findPersonaByDni,
-  updatePersona,
-  isValidDni,
-  normalizeDni,
-  normalizeCuil,
-  normalizeTelefono,
-  normalizeEmailField,
-} from '$core/personas.js'
-import { formatDni, formatCuil, formatTelefono } from '$core/format.js'
+import { findOrCreatePersona, updatePersona } from '$core/personas.js'
+import { formatDni, formatCuil, formatTelefono, parseDni as normalizeDni, parseCuil as normalizeCuil, normalizeTelefonoForStorage as normalizeTelefono, normalizeEmail as normalizeEmailField, isValidDni } from '$core/format.js'
 import { usePersonaSearch } from '$core/usePersonaSearch.svelte.js'
 import { useFieldWarnings } from '$core/useFieldWarnings.svelte.js'
+import { validateSocio, validateEdad } from './socioValidator.js'
+import { buildSocioForm, buildNewSocioForm } from './personaFormManager.js'
+import { hasLegacyData, fillFormFromPersona, checkExistingPersona } from './personaLinker.js'
 
 const base = createGristStore({
   tableKey: 'socios',
@@ -46,23 +39,7 @@ const select = (s) => {
   fw.reset()
   ps.reset()
   edadWarning = ''
-  form = {
-    id: s.id,
-    persona_id: s.persona_id || null,
-    dni: formatDni(s.dni || ''),
-    cuil: formatCuil(s.cuil || ''),
-    apellido: s.apellido || '',
-    nombre: s.nombre || '',
-    domicilio: s.domicilio || '',
-    localidad: s.localidad || '',
-    telefono: formatTelefono(s.telefono || ''),
-    email: s.email || '',
-    tipo_socio: s.tipo_socio || 'Activo',
-    fecha_nacimiento: dateToInput(s.fecha_nacimiento),
-    fecha_alta: dateToInput(s.fecha_alta),
-    fecha_baja: dateToInput(s.fecha_baja),
-    motivo_baja: s.motivo_baja || '',
-  }
+  form = buildSocioForm(s)
 }
 
 const nuevo = (prefill = {}) => {
@@ -72,22 +49,7 @@ const nuevo = (prefill = {}) => {
   ps.reset()
   fw.reset()
   edadWarning = ''
-  form = {
-    persona_id: null,
-    dni: formatDni(prefill.dni || ''),
-    cuil: '',
-    apellido: prefill.apellido || '',
-    nombre: prefill.nombre || '',
-    domicilio: '',
-    localidad: '',
-    telefono: '',
-    email: '',
-    tipo_socio: 'Activo',
-    fecha_nacimiento: '',
-    fecha_alta: new Date().toISOString().slice(0, 10),
-    fecha_baja: '',
-    motivo_baja: '',
-  }
+  form = buildNewSocioForm(prefill)
   if (prefill.dni) {
     const d = normalizeDni(prefill.dni)
     if (d && !isValidDni(d)) {
@@ -97,22 +59,11 @@ const nuevo = (prefill = {}) => {
 }
 
 const selectPersona = (p) => {
-  const legacyFields = ['dni', 'cuil', 'apellido', 'nombre', 'domicilio', 'localidad', 'telefono', 'email']
-  const hasLegacy = legacyFields.some((f) => form[f] && form[f] !== p[f])
-  if (hasLegacy && !confirm('Al vincular esta persona se reemplazarán los datos existentes del socio. ¿Continuar?')) return
+  if (hasLegacyData(form, p) && !confirm('Al vincular esta persona se reemplazarán los datos existentes del socio. ¿Continuar?')) return
   linkedPersona = p
   ps.reset()
   fw.reset()
-  form.persona_id = p.id
-  form.dni = formatDni(p.dni || form.dni)
-  form.cuil = formatCuil(p.cuil || form.cuil)
-  form.apellido = p.apellido || form.apellido
-  form.nombre = p.nombre || form.nombre
-  form.domicilio = p.domicilio || form.domicilio
-  form.localidad = p.localidad || form.localidad
-  form.telefono = formatTelefono(p.telefono || form.telefono)
-  form.email = p.email || form.email
-  form.fecha_nacimiento = dateToInput(p.fecha_nacimiento) || form.fecha_nacimiento
+  form = fillFormFromPersona(form, p)
 }
 
 const cancelar = () => {
@@ -159,17 +110,10 @@ const onDniInput = () => {
     return
   }
   fw.setDniWarning('Verificando DNI…')
-  findPersonaByDni(d).then((existing) => {
+  checkExistingPersona(d).then((existing) => {
     if (existing) {
       linkedPersona = existing
-      form.persona_id = existing.id
-      form.cuil = formatCuil(existing.cuil || form.cuil)
-      form.apellido = existing.apellido || form.apellido
-      form.nombre = existing.nombre || form.nombre
-      form.domicilio = existing.domicilio || form.domicilio
-      form.localidad = existing.localidad || form.localidad
-      form.telefono = formatTelefono(existing.telefono || form.telefono)
-      form.email = existing.email || form.email
+      form = fillFormFromPersona(form, existing)
       fw.setDniWarning(`Persona cargada: ${existing.apellido || ''}, ${existing.nombre || ''}`)
     } else {
       linkedPersona = null
@@ -180,16 +124,7 @@ const onDniInput = () => {
 }
 
 const onFechaNacimientoInput = () => {
-  if (!form.fecha_nacimiento) {
-    edadWarning = ''
-    return
-  }
-  const adult = isAdult(form.fecha_nacimiento)
-  if (adult === false) {
-    edadWarning = 'Menor de 18 años: no se puede registrar como socio sin validación expresa.'
-  } else {
-    edadWarning = ''
-  }
+  edadWarning = validateEdad(form.fecha_nacimiento)
 }
 
 const saveSocio = async () => {
@@ -198,22 +133,9 @@ const saveSocio = async () => {
     base.setError('Corregí los campos marcados antes de guardar.')
     return null
   }
-  if (form.id && !form.fecha_baja) {
-    const existing = base.records.find((s) => s.id === form.id)
-    if (existing?.fecha_baja && form.fecha_alta) {
-      const lastBaja = String(existing.fecha_baja).slice(0, 10)
-      if (form.fecha_alta < lastBaja) {
-        base.setError(`La fecha de alta (${form.fecha_alta}) no puede ser anterior a la última fecha de baja (${lastBaja}).`)
-        return null
-      }
-    }
-  }
-  if (form.fecha_baja && form.fecha_alta && form.fecha_baja < form.fecha_alta) {
-    base.setError('La fecha de baja no puede ser anterior a la fecha de alta.')
-    return null
-  }
-  if (form.fecha_nacimiento && isAdult(form.fecha_nacimiento) === false) {
-    base.setError('La persona es menor de 18 años. No se puede registrar como socio sin validación expresa de la autoridad.')
+  const { valid, error } = validateSocio(form, base.records)
+  if (!valid) {
+    base.setError(error)
     return null
   }
 
@@ -233,7 +155,6 @@ const saveSocio = async () => {
 
     let personaId = form.persona_id
     if (personaId) {
-      // Persona ya vinculada: actualizar sus datos si cambiaron.
       await updatePersona(personaId, personaData)
     } else if (personaData.dni || personaData.apellido || personaData.nombre) {
       const persona = await findOrCreatePersona(personaData)

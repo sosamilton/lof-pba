@@ -7,6 +7,7 @@
   import BuildingIcon from '@lucide/svelte/icons/building'
   import PencilIcon from '@lucide/svelte/icons/pencil'
   import { navigate } from '$core/router.svelte'
+  import InfoField from './InfoField.svelte'
 
   let {
     loading = false,
@@ -31,48 +32,17 @@
     </Card.Header>
     <Card.Content class="flex flex-col gap-4">
       <div class="grid gap-3 sm:grid-cols-2">
-        <div>
-          <div class="text-xs text-muted-foreground">Distrito</div>
-          <div class="text-sm font-medium">{escuela?.distrito || '—'}</div>
-        </div>
-        <div>
-          <div class="text-xs text-muted-foreground">Escuela</div>
-          <div class="text-sm font-medium">{escuela?.escuela_nombre || '—'}</div>
-        </div>
-        <div>
-          <div class="text-xs text-muted-foreground">Número</div>
-          <div class="text-sm font-medium">{escuela?.escuela_numero || '—'}</div>
-        </div>
-        <div>
-          <div class="text-xs text-muted-foreground">CUE</div>
-          <div class="text-sm font-medium">{escuela?.cue || '—'}</div>
-        </div>
-        <div>
-          <div class="text-xs text-muted-foreground">CUIT</div>
-          <div class="text-sm font-medium">{escuela?.cuit || '—'}</div>
-        </div>
-        <div>
-          <div class="text-xs text-muted-foreground">Cooperadora</div>
-          <div class="text-sm font-medium">{escuela?.cooperadora_nombre || '—'}</div>
-        </div>
-        <div>
-          <div class="text-xs text-muted-foreground">Domicilio</div>
-          <div class="text-sm font-medium">{escuela?.domicilio || '—'}</div>
-        </div>
-        <div>
-          <div class="text-xs text-muted-foreground">Localidad</div>
-          <div class="text-sm font-medium">{escuela?.localidad || '—'}</div>
-        </div>
-        <div>
-          <div class="text-xs text-muted-foreground">Email cooperadora</div>
-          <div class="text-sm font-medium">{escuela?.email_cooperadora || '—'}</div>
-        </div>
-        <div>
-          <div class="text-xs text-muted-foreground">Teléfono cooperadora</div>
-          <div class="text-sm font-medium">{escuela?.telefono_cooperadora || '—'}</div>
-        </div>
+        <InfoField label="Distrito" value={escuela?.distrito} />
+        <InfoField label="Escuela" value={escuela?.escuela_nombre} />
+        <InfoField label="Número" value={escuela?.escuela_numero} />
+        <InfoField label="CUE" value={escuela?.cue} />
+        <InfoField label="CUIT" value={escuela?.cuit} />
+        <InfoField label="Cooperadora" value={escuela?.cooperadora_nombre} />
+        <InfoField label="Domicilio" value={escuela?.domicilio} />
+        <InfoField label="Localidad" value={escuela?.localidad} />
+        <InfoField label="Email cooperadora" value={escuela?.email_cooperadora} />
+        <InfoField label="Teléfono cooperadora" value={escuela?.telefono_cooperadora} />
       </div>
-
       {#if escuela?.datos_validados}
         <Badge variant="secondary" class="w-fit"><CheckCircleIcon class="size-3" /> Datos validados</Badge>
       {/if}
@@ -86,14 +56,8 @@
       </Card.Header>
       <Card.Content class="flex flex-col gap-3">
         <div class="grid gap-3 sm:grid-cols-2">
-          <div>
-            <div class="text-xs text-muted-foreground">Entidad</div>
-            <div class="text-sm font-medium">{banco?.entidad || '—'}</div>
-          </div>
-          <div>
-            <div class="text-xs text-muted-foreground">Tipo de cuenta</div>
-            <div class="text-sm font-medium">{banco?.tipo_cuenta || '—'}</div>
-          </div>
+          <InfoField label="Entidad" value={banco?.entidad} />
+          <InfoField label="Tipo de cuenta" value={banco?.tipo_cuenta} />
         </div>
         {#if banco?.banco_validado}
           <Badge variant="secondary" class="w-fit"><CheckCircleIcon class="size-3" /> Datos validados</Badge>
@@ -109,15 +73,9 @@
       </Card.Header>
       <Card.Content class="flex flex-col gap-3">
         <div class="grid gap-3 sm:grid-cols-2">
-          <div>
-            <div class="text-xs text-muted-foreground">Posee</div>
-            <div class="text-sm font-medium">{kiosco?.posee ? 'Sí' : 'No'}</div>
-          </div>
+          <InfoField label="Posee" value={kiosco?.posee ? 'Sí' : 'No'} />
           {#if kiosco?.posee}
-            <div>
-              <div class="text-xs text-muted-foreground">Modalidad</div>
-              <div class="text-sm font-medium">{kiosco?.modalidad || '—'}</div>
-            </div>
+            <InfoField label="Modalidad" value={kiosco?.modalidad} />
           {/if}
         </div>
       </Card.Content>

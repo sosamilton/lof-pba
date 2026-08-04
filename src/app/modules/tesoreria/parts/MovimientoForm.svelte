@@ -1,5 +1,5 @@
 <script>
-  import { normalize, monthKey } from '$core/utils'
+  import { monthKey } from '$core/utils'
   import { Button } from '$lib/components/ui/button'
   import * as Card from '$lib/components/ui/card'
   import { Input } from '$lib/components/ui/input'
@@ -8,6 +8,7 @@
   import * as Field from '$lib/components/ui/field'
   import Combobox from '$lib/components/Combobox.svelte'
   import { notifyAfter } from '$core/notify.svelte'
+  import PersonaVinculadaField from './PersonaVinculadaField.svelte'
 
   let {
     store,
@@ -144,51 +145,14 @@
         </Field.Field>
       {/if}
 
-      {#if store.personasSeleccionables.tipo !== 'none' && (store.personasSeleccionables.items.length > 0 || store.personasSeleccionables.filtroCategoria)}
-        <Field.Field class="sm:col-span-2">
-          <Field.FieldLabel for="persona-vinculada">{store.personasSeleccionables.label} (opcional)</Field.FieldLabel>
-
-          {#if store.personasSeleccionables.filtroCategoria && store.categoriasDisponibles.length > 0}
-            <div class="mb-2 flex flex-wrap items-center gap-1.5">
-              <span class="text-xs text-muted-foreground">Categoría:</span>
-              <button
-                type="button"
-                class="rounded-full border px-2.5 py-0.5 text-xs transition-colors {!store.filtroCategoria ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}"
-                onclick={() => store.setFiltroCategoria('')}
-              >Todas</button>
-              {#each store.categoriasDisponibles as cat}
-                <button
-                  type="button"
-                  class="rounded-full border px-2.5 py-0.5 text-xs transition-colors {store.filtroCategoria === cat ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}"
-                  onclick={() => store.setFiltroCategoria(store.filtroCategoria === cat ? '' : cat)}
-                >{cat}</button>
-              {/each}
-            </div>
-          {/if}
-
-          {#if store.personasSeleccionables.items.length > 0}
-            <Combobox
-              value={personaVinculadaValue}
-              onchange={onPersonaVinculadaChange}
-              items={store.personasSeleccionables.items}
-              placeholder="(Ninguno)"
-              searchPlaceholder="Buscar persona…"
-              class="mt-1"
-            />
-            {#if store.personasSeleccionables.tipo === 'socio'}
-              <Field.FieldDescription>Solo se muestran socios activos (pago societario).</Field.FieldDescription>
-            {:else}
-              <Field.FieldDescription>
-                Se muestran todas las personas con su tipo y categoría. Usá el filtro para acotar.
-              </Field.FieldDescription>
-            {/if}
-          {:else}
-            <Field.FieldDescription>
-              No hay personas {store.filtroCategoria ? `con categoría "${store.filtroCategoria}"` : 'cargadas'}. Registrá una persona en el módulo Personas.
-            </Field.FieldDescription>
-          {/if}
-        </Field.Field>
-      {/if}
+      <PersonaVinculadaField
+        personasSeleccionables={store.personasSeleccionables}
+        categoriasDisponibles={store.categoriasDisponibles}
+        filtroCategoria={store.filtroCategoria}
+        onSetFiltroCategoria={store.setFiltroCategoria}
+        value={personaVinculadaValue}
+        onchange={onPersonaVinculadaChange}
+      />
     </Field.FieldGroup>
 
     <Field.FieldDescription>

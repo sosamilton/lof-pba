@@ -7,14 +7,11 @@ import {
   formatCuil,
   isValidCuil,
   isValidCuilChecksum,
-  parseTelefono,
   formatTelefono,
   normalizeTelefonoForStorage,
   isValidTelefono,
   formatTelefonoNational,
-  normalizeTelefonoNationalForStorage,
   isValidTelefonoNational,
-  extractNational,
   normalizeEmail,
   isValidEmail,
   parseCue,
@@ -154,24 +151,6 @@ describe('formatTelefonoNational', () => {
   })
 })
 
-describe('normalizeTelefonoNationalForStorage', () => {
-  it('prepends 54 to national number', () => {
-    expect(normalizeTelefonoNationalForStorage('1112345678')).toBe('541112345678')
-  })
-  it('prepends 54 to mobile (with 9)', () => {
-    expect(normalizeTelefonoNationalForStorage('91112345678')).toBe('5491112345678')
-  })
-  it('converts 15 prefix to 549', () => {
-    expect(normalizeTelefonoNationalForStorage('151112345678')).toBe('5491112345678')
-  })
-  it('preserves existing 54 prefix', () => {
-    expect(normalizeTelefonoNationalForStorage('541112345678')).toBe('541112345678')
-  })
-  it('returns empty for empty input', () => {
-    expect(normalizeTelefonoNationalForStorage('')).toBe('')
-  })
-})
-
 describe('isValidTelefonoNational', () => {
   it('validates 10-digit national', () => {
     expect(isValidTelefonoNational('1112345678')).toBe(true)
@@ -181,21 +160,6 @@ describe('isValidTelefonoNational', () => {
   })
   it('rejects too short', () => {
     expect(isValidTelefonoNational('123')).toBe(false)
-  })
-})
-
-describe('extractNational', () => {
-  it('extracts national from stored number with 54', () => {
-    expect(extractNational('5491112345678')).toBe('91112345678')
-  })
-  it('extracts national from landline with 54', () => {
-    expect(extractNational('541112345678')).toBe('1112345678')
-  })
-  it('returns as-is if no 54 prefix', () => {
-    expect(extractNational('1112345678')).toBe('1112345678')
-  })
-  it('returns empty for empty', () => {
-    expect(extractNational('')).toBe('')
   })
 })
 

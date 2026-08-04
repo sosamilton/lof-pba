@@ -1,6 +1,7 @@
 import { applyUserActions } from '$core/grist.js'
 import { normalizeFields, addMonths } from '$core/utils.js'
-import { findOrCreatePersona, personaLabel, normalizeDni, isValidDni } from '$core/personas.js'
+import { findOrCreatePersona, personaLabel } from '$core/personas.js'
+import { parseDni as normalizeDni, isValidDni } from '$core/format.js'
 
 /**
  * Reemplazo de una autoridad: cesa la anterior y crea una nueva

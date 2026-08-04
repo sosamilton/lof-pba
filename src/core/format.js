@@ -79,16 +79,6 @@ const detectAreaLen = (national) => {
   return 4
 }
 
-export const parseTelefono = (raw) => {
-  let d = onlyDigits(raw)
-  // Quitar el 15 (prefijo celular local) si está seguido de un número de área
-  // Lo normalizamos a formato internacional sin '+': 54 + [9] + área + número
-  // Si ya viene con 54, lo respetamos
-  if (d.startsWith('54')) return d.slice(0, 13) // 54 + 9? + área + número
-  // Sin código de país: asumimos Argentina. Devolvemos solo el número nacional (10 dígitos)
-  return d.slice(0, 10)
-}
-
 export const formatTelefono = (raw) => {
   let d = onlyDigits(raw)
   if (!d) return ''
@@ -172,7 +162,7 @@ export const formatTelefonoNational = (raw) => {
 }
 
 // Normaliza la parte nacional a formato de storage: 54 + [9] + área + número
-export const normalizeTelefonoNationalForStorage = (raw) => {
+export const normalizeTelefonoForStorage = (raw) => {
   let d = onlyDigits(raw)
   if (!d) return ''
   if (d.startsWith('15')) d = '9' + d.slice(2)
@@ -185,19 +175,6 @@ export const isValidTelefonoNational = (raw) => {
   // Acepta 10 (nacional) o 11 (con el 9 de móvil)
   return d.length === 10 || (d.length === 11 && d.startsWith('9'))
 }
-
-// Extrae la parte nacional de un número guardado (con prefijo 54)
-export const extractNational = (raw) => {
-  let d = onlyDigits(raw)
-  if (!d) return ''
-  if (d.startsWith('54')) d = d.slice(2)
-  // Devolver tal cual (incluye el 9 si es móvil o el 15 si se guardó así)
-  return d
-}
-
-// Compatibilidad: el mismo comportamiento que normalizeTelefonoNationalForStorage
-// para no romper código existente (personas.js, etc.)
-export const normalizeTelefonoForStorage = normalizeTelefonoNationalForStorage
 
 export const isValidTelefono = (raw) => {
   const d = onlyDigits(raw)

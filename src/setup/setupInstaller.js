@@ -2,7 +2,7 @@ import { gristReady, listTables, resolveTableId, applyUserActions, invalidateTab
 import { ensureSchema, initDemoData } from './initLof'
 import { TABLE_PREFERRED_IDS, MODULES } from '$core/utils'
 import { saveConfig } from '$core/configuracion'
-import { normalizeEmail, normalizeTelefonoNationalForStorage, isValidCbuChecksum } from '$core/format'
+import { normalizeEmail, normalizeTelefonoForStorage, isValidCbuChecksum } from '$core/format'
 import { currentYear } from './setupConstants'
 
 /**
@@ -31,8 +31,8 @@ export async function doInstall(s) {
       if (existingEscuela.length === 0) {
         const cueDigits = s.schoolData.cue.replace(/\D/g, '')
         const cuitDigits = s.schoolData.cuit.replace(/\D/g, '')
-        const telEscuelaStored = normalizeTelefonoNationalForStorage(s.schoolData.telefono_escuela)
-        const telStored = normalizeTelefonoNationalForStorage(s.schoolData.telefono)
+        const telEscuelaStored = normalizeTelefonoForStorage(s.schoolData.telefono_escuela)
+        const telStored = normalizeTelefonoForStorage(s.schoolData.telefono)
         // datos_validados = true solo si la escuela se encontró en el índice
         // oficial (CUE matcheado). Si se cargó manualmente (not_found), false.
         const escuelaValidada = s.cueState === 'found'
