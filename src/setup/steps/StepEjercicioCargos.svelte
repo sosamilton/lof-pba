@@ -52,7 +52,7 @@
   </Card.Content>
 </Card.Root>
 
-{#if store.selectedModules.gestion_integral || store.selectedModules.gestion_etapas}
+{#if store.selectedModules.gestion_integral || store.selectedModules.carga_consolidada}
   <!-- Saldo inicial del ejercicio -->
   <Card.Root class="mb-4">
     <Card.Content class="pt-6">

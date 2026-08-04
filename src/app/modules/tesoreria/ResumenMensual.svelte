@@ -1,20 +1,43 @@
 <script>
   import { onMount } from 'svelte'
   import { resumenStore as store } from './resumenStore.svelte.js'
+  import { movimientosStore } from './movimientosStore.svelte.js'
+  import { loadConfig } from '$core/configuracion'
   import { formatARS } from '$core/utils'
   import * as Card from '$lib/components/ui/card'
   import * as Table from '$lib/components/ui/table'
   import * as Tabs from '$lib/components/ui/tabs'
   import * as Alert from '$lib/components/ui/alert'
   import { Badge } from '$lib/components/ui/badge'
+  import { Button } from '$lib/components/ui/button'
   import { Label } from '$lib/components/ui/label'
   import { Skeleton } from '$lib/components/ui/skeleton'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
   import BarChartIcon from '@lucide/svelte/icons/bar-chart'
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
   import LockIcon from '@lucide/svelte/icons/lock'
+  import TableIcon from '@lucide/svelte/icons/table'
+  import CargaPIAMatrix from './CargaPIAMatrix.svelte'
 
-  onMount(() => store.load())
+  // Modo de gestión: si es carga_consolidada, mostramos el botón de carga PIA.
+  let modoConsolidada = $state(false)
+  let cargaPIAMatrix = $state(null)
+
+  onMount(async () => {
+    store.load()
+    try {
+      const config = await loadConfig()
+      modoConsolidada = Boolean(
+        config?.modulo_carga_consolidada || config?.modulo_solo_pia || config?.modulo_gestion_etapas
+      )
+    } catch { /* config opcional */ }
+    // Cargar datos del store de movimientos (necesarios para la matriz PIA).
+    if (modoConsolidada) {
+      const unsub = movimientosStore.subscribe()
+      await movimientosStore.loadAll()
+      return unsub
+    }
+  })
 </script>
 
 <PageScaffold title="Resumen">
@@ -32,6 +55,16 @@
       <Alert.Description>{store.error}</Alert.Description>
     </Alert.Root>
   {:else}
+    <!-- Botón de carga PIA (solo en modo carga_consolidada) -->
+    {#if modoConsolidada}
+      <div class="mb-4">
+        <Button onclick={() => cargaPIAMatrix?.abrir()}>
+          <TableIcon data-icon="inline-start" />
+          Cargar PIA por rubro
+        </Button>
+      </div>
+    {/if}
+
     <!-- Selectores: ejercicio + vista -->
     <div class="flex flex-wrap items-end gap-3 mb-4">
       <div class="flex flex-col gap-1">
@@ -60,7 +93,7 @@
         <AlertTriangleIcon data-icon="inline-start" />
         <Alert.Title>Faltan saldos iniciales</Alert.Title>
         <Alert.Description>
-          Los saldos iniciales del ejercicio están en 0. Editálos desde <strong>Cooperadora → Ejercicios</strong> para que el arrastre sea correcto.
+          Los saldos iniciales del ejercicio están en 0. Editálos desde <strong>Inicio → Información institucional</strong> para que el arrastre sea correcto.
         </Alert.Description>
       </Alert.Root>
     {/if}
@@ -69,8 +102,10 @@
       <Card.Root>
         <Card.Content class="pt-6 text-center text-sm text-muted-foreground">
           No hay períodos con movimientos para este ejercicio.
-          <br />
-          Cargá movimientos desde <strong>Movimientos</strong> para ver el resumen.
+          {#if modoConsolidada}
+            <br />
+            Usá el botón <strong>Cargar PIA por rubro</strong> para empezar a cargar los rubros del período.
+          {/if}
         </Card.Content>
       </Card.Root>
     {:else}
@@ -124,3 +159,6 @@
     {/if}
   {/if}
 </PageScaffold>
+
+<!-- Matriz de carga PIA (solo visible en carga_consolidada, montada siempre) -->
+<CargaPIAMatrix bind:this={cargaPIAMatrix} />

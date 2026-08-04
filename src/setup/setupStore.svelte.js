@@ -37,7 +37,7 @@ import { DEMO_MODULES, DEMO_ESC_COOP, DEMO_BANCO, DEMO_KIOSCO, DEMO_EJERCICIO } 
 const CUENTAS_OPCIONES = ['Banco', 'Efectivo', 'Caja Chica']
 const currentYear = new Date().getFullYear()
 
-/** @typedef {'solo_pia' | 'gestion_integral' | 'gestion_etapas' | 'kiosco'} ModuleKey */
+/** @typedef {'carga_consolidada' | 'gestion_integral' | 'kiosco'} ModuleKey */
 /** @typedef {'CD' | 'CRC' | 'Federacion'} Organismo */
 
 /**
@@ -82,9 +82,8 @@ export class SetupStore {
   existingTables = $state(/** @type {string[]} */ ([]))
 
   selectedModules = $state(/** @type {Record<ModuleKey, boolean>} */ ({
-    solo_pia: false,
+    carga_consolidada: false,
     gestion_integral: true,
-    gestion_etapas: false,
     kiosco: false
   }))
 
@@ -142,8 +141,8 @@ export class SetupStore {
     anio_inicio: currentYear,
     anio_fin: currentYear + 1,
     // Saldos iniciales del ejercicio (punto de partida del sistema).
-    // Solo se piden al usuario en modos gestion_integral / gestion_etapas
-    // (panel en StepEjercicioCargos). En solo_pia quedan en 0.
+    // Solo se piden al usuario en modos gestion_integral / carga_consolidada
+    // (panel en StepEjercicioCargos).
     saldo_inicial_banco: 0,
     saldo_inicial_efectivo: 0,
     saldo_inicial_caja_chica: 0
@@ -694,7 +693,7 @@ export class SetupStore {
         sha_instalado: typeof __APP_SHA__ !== 'undefined' ? __APP_SHA__ : 'dev'
       })
 
-      const needsEjercicio = this.selectedModules.gestion_integral || this.selectedModules.solo_pia || this.selectedModules.gestion_etapas
+      const needsEjercicio = this.selectedModules.gestion_integral || this.selectedModules.carga_consolidada
       const needsCargos = this.selectedModules.gestion_integral
 
       if (needsEjercicio) {
@@ -738,7 +737,7 @@ export class SetupStore {
       }
 
       const seeds = []
-      if (this.selectedModules.gestion_integral) {
+      if (this.selectedModules.gestion_integral || this.selectedModules.carga_consolidada) {
         seeds.push({ tableId: await resolveTableId(TABLE_PREFERRED_IDS.cuentas), seedName: 'cuentas', batchSize: 50 })
       }
       if (needsEjercicio) {
