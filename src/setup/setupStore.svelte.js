@@ -140,7 +140,13 @@ export class SetupStore {
   ejercicio = $state({
     mes_inicio: 'Marzo',
     anio_inicio: currentYear,
-    anio_fin: currentYear + 1
+    anio_fin: currentYear + 1,
+    // Saldos iniciales del ejercicio (punto de partida del sistema).
+    // Solo se piden al usuario en modos gestion_integral / gestion_etapas
+    // (panel en StepEjercicioCargos). En solo_pia quedan en 0.
+    saldo_inicial_banco: 0,
+    saldo_inicial_efectivo: 0,
+    saldo_inicial_caja_chica: 0
   })
 
   cargos = $state(/** @type {Cargo[]} */ ([]))
@@ -688,7 +694,7 @@ export class SetupStore {
         sha_instalado: typeof __APP_SHA__ !== 'undefined' ? __APP_SHA__ : 'dev'
       })
 
-      const needsEjercicio = this.selectedModules.gestion_integral || this.selectedModules.solo_pia
+      const needsEjercicio = this.selectedModules.gestion_integral || this.selectedModules.solo_pia || this.selectedModules.gestion_etapas
       const needsCargos = this.selectedModules.gestion_integral
 
       if (needsEjercicio) {
@@ -701,9 +707,9 @@ export class SetupStore {
               anio_inicio: Number(this.ejercicio.anio_inicio) || currentYear,
               anio_fin: Number(this.ejercicio.anio_fin) || currentYear + 1,
               mes_inicio: this.ejercicio.mes_inicio || 'Marzo',
-              saldo_inicial_banco: 0,
-              saldo_inicial_efectivo: 0,
-              saldo_inicial_caja_chica: 0,
+              saldo_inicial_banco: Number(this.ejercicio.saldo_inicial_banco) || 0,
+              saldo_inicial_efectivo: Number(this.ejercicio.saldo_inicial_efectivo) || 0,
+              saldo_inicial_caja_chica: Number(this.ejercicio.saldo_inicial_caja_chica) || 0,
               en_curso: true,
               observaciones: 'Ejercicio inicial'
             }]])
