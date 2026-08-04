@@ -24,13 +24,25 @@
 
   // Diálogo de carga de total manual.
   let dialogCargaAbierto = $state(false)
+  // 'editar' (período fijo, ya existe) | 'nuevo' (período editable, alta).
+  let modoCarga = $state('editar')
   let periodoCarga = $state('')
   let formCarga = $state({
     ingresos_banco: 0, ingresos_efectivo: 0, ingresos_caja_chica: 0,
     egresos_banco: 0, egresos_efectivo: 0, egresos_caja_chica: 0,
   })
 
+  // Default: primer mes del ejercicio seleccionado (YYYY-MM).
+  const periodoDefault = $derived.by(() => {
+    const e = store.ejercicio
+    if (!e) return ''
+    const mes = String(e.mes_inicio || '01').padStart(2, '0')
+    const anio = Number(e.anio_inicio) || new Date().getFullYear()
+    return `${anio}-${mes}`
+  })
+
   const abrirCargaManual = (periodo) => {
+    modoCarga = 'editar'
     periodoCarga = periodo
     const existente = store.cierreDePeriodo(periodo)
     formCarga = {
@@ -44,10 +56,30 @@
     dialogCargaAbierto = true
   }
 
+  // Alta de cierre manual para un período nuevo (sin movimientos ni cierre).
+  const abrirCargaManualNueva = () => {
+    modoCarga = 'nuevo'
+    periodoCarga = periodoDefault
+    formCarga = {
+      ingresos_banco: 0, ingresos_efectivo: 0, ingresos_caja_chica: 0,
+      egresos_banco: 0, egresos_efectivo: 0, egresos_caja_chica: 0,
+    }
+    dialogCargaAbierto = true
+  }
+
   const cerrarCargaManual = () => {
     dialogCargaAbierto = false
     periodoCarga = ''
   }
+
+  // Aviso si el período elegido ya tiene movimientos detallados.
+  const avisoPeriodoConDetalle = $derived.by(() => {
+    if (modoCarga !== 'nuevo' || !periodoCarga) return ''
+    if (store.periodoTieneDetalle(periodoCarga)) {
+      return 'Este período ya tiene movimientos detallados. Los totales manuales se ignoran cuando hay detalle (regla "detalle gana").'
+    }
+    return ''
+  })
 
   const guardarCargaManual = async () => {
     const ok = await store.guardarCierreManual({
@@ -111,10 +143,20 @@
       </Alert.Root>
     {/if}
 
+    <!-- Botón de alta de total manual (siempre visible, incluso sin períodos). -->
+    <div class="flex justify-end mb-3">
+      <Button variant="default" size="sm" onclick={abrirCargaManualNueva} disabled={!store.ejercicio}>
+        <PlusIcon data-icon="inline-start" />
+        Cargar total manual
+      </Button>
+    </div>
+
     {#if store.resumen.length === 0}
       <Card.Root>
         <Card.Content class="pt-6 text-center text-sm text-muted-foreground">
           No hay períodos con movimientos ni cargas manuales para este ejercicio.
+          <br />
+          Usá <strong>"Cargar total manual"</strong> para declarar los totales consolidados de un mes.
         </Card.Content>
       </Card.Root>
     {:else}
@@ -190,12 +232,27 @@
 <Dialog.Root bind:open={dialogCargaAbierto}>
   <Dialog.Content class="sm:max-w-[520px]">
     <Dialog.Header>
-      <Dialog.Title>Cargar total manual</Dialog.Title>
+      <Dialog.Title>{modoCarga === 'nuevo' ? 'Cargar total manual' : 'Editar total manual'}</Dialog.Title>
       <Dialog.Description>
-        Período: <span class="font-mono font-semibold">{periodoCarga}</span>. Ingresá los totales por cuenta. Se guardará como carga manual y se usará solo si no hay movimientos detallados.
+        Ingresá los totales por cuenta. Se guardará como carga manual y se usará solo si no hay movimientos detallados (regla "detalle gana").
       </Dialog.Description>
     </Dialog.Header>
     <div class="flex flex-col gap-4 py-2">
+      <!-- Selector de período: editable en alta nueva, fijo en edición. -->
+      <div class="flex flex-col gap-1">
+        <Label class="text-xs text-muted-foreground" for="carga_periodo">Período (mes)</Label>
+        {#if modoCarga === 'nuevo'}
+          <Input id="carga_periodo" type="month" bind:value={periodoCarga} />
+          {#if avisoPeriodoConDetalle}
+            <p class="text-xs text-yellow-600 dark:text-yellow-400 mt-1 flex items-center gap-1">
+              <AlertTriangleIcon class="size-3" />
+              {avisoPeriodoConDetalle}
+            </p>
+          {/if}
+        {:else}
+          <div class="font-mono font-semibold text-sm py-2">{periodoCarga}</div>
+        {/if}
+      </div>
       <div>
         <div class="text-xs font-bold text-muted-foreground mb-2">Ingresos</div>
         <div class="grid gap-3 sm:grid-cols-3">
