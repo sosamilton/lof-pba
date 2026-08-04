@@ -200,6 +200,7 @@ export const MODULES = {
       { route: 'inicio', label: 'Inicio' },
       { route: 'socios', label: 'Socios' },
       { route: 'personas', label: 'Personas' },
+      { route: 'movimientos', label: 'Movimientos' },
       { route: 'resumen', label: 'Resumen' }
     ],
     implemented: true
@@ -229,6 +230,7 @@ export const getActiveMenuItems = (config) => {
     items.push({ route: 'socios', label: 'Socios' })
     items.push({ route: 'personas', label: 'Personas' })
     if (config.modulo_gestion_etapas) {
+      items.push({ route: 'movimientos', label: 'Movimientos' })
       items.push({ route: 'resumen', label: 'Resumen' })
     }
   }
