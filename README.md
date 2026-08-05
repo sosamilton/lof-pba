@@ -32,15 +32,63 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 
 ## Características
 
-- **Setup guiado** — wizard paso a paso con formateo en vivo de CUIT/CUE/teléfono/email/CBU, modo de gestión consolidada, cargos del estatuto al mínimo legal, color de marca como tema de la app, y validación/bloqueo de datos institucionales y bancarios.
-- **Socios** — alta, edición y baja con búsqueda instantánea por apellido, DNI, CUIL, email o teléfono. Categoría de vínculo (socio, docente, directivo, proveedor, donante). Validación de mayoría de edad y habilitación electoral automática (activo + 30 días de antigüedad).
-- **Personas** — tabla unificada que vincula socios, autoridades, docentes y directivos sin duplicar datos.
-- **Tesorería** — entradas, salidas y traspasos con rubro/subrubro según PIA, destino bancario, socio asociado, y combobox con búsqueda para listas grandes. Dashboard con métricas de socios activos, altas/bajas y vencimientos próximos.
-- **Carga PIA consolidada** — matriz de carga por rubro con múltiples filas por cuenta (hasta 3), importe en formato pesos argentinos, página dedicada con selector de período, todos los períodos del ejercicio visibles (incluso vacíos), confirmación de firma con resumen read-only, y firma de períodos.
-- **Resumen** — vista mensual y semanal con arrastre de saldo, saldos iniciales por ejercicio, badge de estado por período (Falta cargar / Abierto / Firmado), y botón de edición directa a la carga PIA.
-- **Gobierno** — comisión directiva y asambleas vinculadas al ejercicio. Inicializar comisión desde los cargos, registrar autoridades con vencimiento de mandato, gestionar ceses y reemplazos, historial completo, crear y editar asambleas con resoluciones. Padrón electoral automático según estatuto modelo.
-- **100% offline** — sin dependencias externas. Todos los recursos bundleados localmente.
-- **Tema dinámico** — la app toma el color de marca de cada cooperadora como tema primario. Título de pestaña dinámico con el nombre de la institución.
+### Configuración inicial
+
+- **Wizard guiado** paso a paso: módulos, escuela, banco, cargos del estatuto y ejercicio.
+- **Validaciones argentinas en tiempo real**: CUE (contra índice oficial de PBA), CUIT/CUIL (checksum oficial), CBU (checksum), DNI, teléfono (formato argentino +54 9), email.
+- **Color de marca** como tema primario de la app (conversión a OKLCH para light/dark mode).
+- **Bloqueo de datos validados**: una vez validados, los datos institucionales y bancarios no se pueden editar sin re-validar.
+- **Módulo Kiosco/Librería** opcional (propio o licitado, con fechas de contrato).
+
+### Dashboard de inicio
+
+- **Resumen ejecutivo**: ejercicio en curso con alerta de vencimiento, cargos obligatorios cubiertos (quórum), socios activos, altas/bajas del último año, vencimientos próximos (60 días), alerta de asamblea AGO (recordatorio en mayo).
+- **Tablero de caja**: saldos por cuenta (Banco, Efectivo, Caja Chica) y saldo total.
+- **Administración**: cambio de modalidad de gestión, generación automática de períodos, revalidar schema, reparar refs rotas, deduplicar personas por DNI, detección de versión desactualizada.
+- **Creación de nuevo ejercicio** automática (2 meses antes del vencimiento del actual).
+
+### Comunidad
+
+- **Socios** — alta, edición y baja con búsqueda instantánea por apellido, DNI, CUIL, email, teléfono, localidad o domicilio. Filtros por estado (Activos/Bajas/Todos) y tipo (Activo/Honorario/Adherente). Baja con motivo (Renuncia, Falta de pago, Fallecimiento, CambioEscuela, Otro). Validación de mayoría de edad y habilitación electoral automática (activo + 30 días de antigüedad).
+- **Personas** — tabla unificada (single source of truth) que vincula socios, autoridades, docentes y directivos sin duplicar datos. Soporte para personas físicas y jurídicas. Combobox de localidades de toda la Provincia de Buenos Aires.
+- **Vinculación automática**: al escribir DNI, busca persona existente y la vincula. Indicador visual de persona vinculada con botón para desvincular.
+- **Protección multiplayer**: evita duplicados cuando dos usuarios crean la misma persona simultáneamente.
+- **Normalización automática**: DNI/CUIL se guardan como dígitos crudos, teléfono con prefijo internacional, email en lowercase.
+
+### Tesorería
+
+- **Movimientos** — entradas, salidas y traspasos con rubro/subrubro según PIA, destino bancario (Cuenta corriente / Plazo fijo), socio o persona asociada, y combobox con búsqueda para listas grandes. Filtrado de rubros por tipo, subrubros dinámicos por rubro.
+- **Cuota societaria rápida** — atajo Ctrl+1 o botón para pre-cargar movimiento de cuota social en un click.
+- **Carga PIA consolidada** — matriz de carga por rubro con múltiples filas por cuenta (hasta 3), importe en formato pesos argentinos ($ 1.234,56), página dedicada con selector de período, todos los períodos del ejercicio visibles (incluso vacíos), confirmación de firma con resumen read-only de movimientos y totales, y firma de períodos (bloqueo de edición).
+- **Resumen** — vista mensual y semanal con arrastre de saldo, saldos iniciales por ejercicio, badge de estado por período (Falta cargar / Abierto / Firmado), botón de edición directa a la carga PIA, y cálculo del próximo período adeudado.
+- **Regla "detalle gana"**: si hay movimientos en un período, usa totales de movimientos; si no, usa cierres manuales. Permite mix de carga detallada y consolidada.
+- **Cierres mensuales** con firma de período y bloqueo de edición.
+
+### Gobierno
+
+- **Comisión Directiva** inicializada desde los cargos del estatuto (Decreto 4767/72).
+- **Comisión Revisora de Cuentas** (titular docente, titular socio, suplente) y Asesoría.
+- **Autoridades** con vencimiento de mandato, ceses (Renuncia, FinMandato, Reemplazo, Otro) y reemplazos con historial completo.
+- **Asambleas** (AGO/AGE/RCD) con resoluciones vinculadas al ejercicio.
+- **Histórico** de autoridades por período con filtros por organismo.
+- **Padrón electoral automático** según estatuto modelo.
+- **Detección de conflictos**: persona en otro cargo, quórum bajo.
+
+### Experiencia de usuario
+
+- **Paleta de comandos** (Ctrl+K) tipo VS Code con acciones del módulo actual, navegación y acciones rápidas.
+- **Atajos de teclado** completos: Ctrl+N (nuevo), Ctrl+F (buscar), Ctrl+1 (cuota social), Ctrl+I/S/P/M/R/A (navegación), `/` (enfocar búsqueda), `?` (ayuda).
+- **Sidebar dinámico colapsable**: el menú se genera según módulos activos, con atajos de teclado por item.
+- **Combobox con búsqueda** y modo "large" para listas grandes (> 50 items, requiere 3 caracteres).
+- **Tema dinámico**: la app toma el color de marca de cada cooperadora como tema primario (OKLCH para light/dark). Título de pestaña dinámico con el nombre de la institución.
+- **100% offline** — sin dependencias externas, sin CDNs, sin telemetría. Todos los recursos bundleados localmente.
+
+### Arquitectura
+
+- **Single source of truth en personas**: socios y autoridades tienen columnas que son fórmulas de Grist (pull de `$persona_id`), no datos almacenados. Cambiar una persona actualiza automáticamente todos sus registros vinculados.
+- **Migraciones automáticas**: `ensureSchema` detecta columnas que necesitan convertirse a fórmulas y las migra. Reparación de refs rotas, migración de datos legacy y deduplicación de personas por DNI.
+- **Router por hash** con persistencia de última ruta en widget options de Grist.
+- **Fórmulas de Grist**: período (desde fecha), activo en socios (!fecha_baja), habilitado electoral, saldo inicial total del ejercicio.
 
 > _Las capturas de pantalla y videos de ejemplo se encuentran en la [landing page](https://sosamilton.github.io/spa-cooperadora/)._
 
