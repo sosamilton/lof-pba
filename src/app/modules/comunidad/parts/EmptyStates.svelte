@@ -22,22 +22,16 @@
     sub="No se encontraron {entityLabel}s con ese criterio. ¿Querés crear {entityArticle} nuevo?"
     actionLabel="Crear {entityLabel}"
     onaction={onNewFromQuery}
-  >
-    {#snippet actionIcon()}
-      {#if actionIcon}{@render actionIcon()}{/if}
-    {/snippet}
-  </EmptyState>
+    actionIcon={actionIcon}
+  />
 {:else if filteredCount === 0}
   <EmptyState
     title="Todavía no hay {entityLabel}s"
     sub="Creá el primer {entityLabel} para empezar."
     actionLabel="Nuevo {entityLabel}"
     onaction={onNew}
-  >
-    {#snippet actionIcon()}
-      {#if actionIcon}{@render actionIcon()}{/if}
-    {/snippet}
-  </EmptyState>
+    actionIcon={actionIcon}
+  />
 {:else}
   <div class="flex flex-col items-center gap-2 py-12 text-center">
     <UsersIcon class="size-8 text-muted-foreground" />

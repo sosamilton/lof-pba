@@ -86,17 +86,19 @@
     {/snippet}
   </FilterBar>
 
-  <div class="grid gap-4" style="grid-template-columns: {filtered.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
-    <RecordList
-      items={filtered}
-      selectedId={store.form?.id}
-      onSelect={(p) => store.select(p)}
-      itemLabel={(p) => isJuridica(p) ? (p.razon_social || '(sin razón social)') : `${p.apellido}, ${p.nombre}`}
-      itemSub={(p) => isJuridica(p) ? `CUIT ${p.cuil || '-'}` : `DNI ${p.dni || '-'} · ${p.localidad || ''}`}
-      itemBadges={(p) => isJuridica(p)
-        ? [{ text: 'Jurídica', variant: 'secondary' }]
-        : [{ text: 'Física', variant: 'secondary' }]}
-    />
+  <div class="grid gap-4 items-start" style="grid-template-columns: {filtered.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
+    <div class="relative min-h-0 self-stretch min-h-[75vh]">
+      <RecordList
+        items={filtered}
+        selectedId={store.form?.id}
+        onSelect={(p) => store.select(p)}
+        itemLabel={(p) => isJuridica(p) ? (p.razon_social || '(sin razón social)') : `${p.apellido}, ${p.nombre}`}
+        itemSub={(p) => isJuridica(p) ? `CUIT ${p.cuil || '-'}` : `DNI ${p.dni || '-'} · ${p.localidad || ''}`}
+        itemBadges={(p) => isJuridica(p)
+          ? [{ text: 'Jurídica', variant: 'secondary' }]
+          : [{ text: 'Física', variant: 'secondary' }]}
+      />
+    </div>
 
     <div>
       {#if store.form}
