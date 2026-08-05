@@ -44,7 +44,7 @@
     return unsub
   })
 
-  const tipoFilterConfig = {
+  const tipoFilterConfig = $derived({
     key: 'tipo',
     value: tipoFilter,
     allowDeselect: true,
@@ -56,9 +56,9 @@
       { value: 'Juridica', label: 'Jurídica' },
     ],
     onValueChange: (v) => (tipoFilter = v),
-  }
+  })
 
-  const categoriaFilterConfig = {
+  const categoriaFilterConfig = $derived({
     key: 'categoria',
     value: categoriaFilter,
     allowDeselect: true,
@@ -67,7 +67,7 @@
     placeholder: 'Categoría / vínculo',
     options: CATEGORIAS_VINCULO.map((cat) => ({ value: cat, label: cat })),
     onValueChange: (v) => (categoriaFilter = v),
-  }
+  })
 </script>
 
 <PageScaffold title="Personas" loading={store.loading} error={store.error} notice={store.notice}>

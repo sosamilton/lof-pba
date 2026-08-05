@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from 'svelte'
+  import { onMount, untrack } from 'svelte'
   import { router, navigate } from '$core/router.svelte'
   import { configStore } from '$core/stores/configStore.svelte'
   import { getActiveMenuItems } from '$core/utils'
@@ -25,7 +25,7 @@
   const shaActual = typeof __APP_SHA__ !== 'undefined' ? __APP_SHA__ : 'dev'
 
   let menuItems = $state([{ route: 'inicio', label: 'Inicio' }])
-  let brandTitle = $state(title)
+  let brandTitle = $state(untrack(() => title))
   let brandSub = $state('Demo cooperadora')
   let mainEl = $state(null)
 

@@ -51,7 +51,7 @@
     return unsub
   })
 
-  const estadoFilter = {
+  const estadoFilter = $derived({
     key: 'estado',
     value: estado,
     allowDeselect: false,
@@ -64,9 +64,9 @@
       { value: 'todos', label: 'Todos' },
     ],
     onValueChange: (v) => (estado = v),
-  }
+  })
 
-  const tipoFilter = {
+  const tipoFilter = $derived({
     key: 'tipo',
     value: tipo,
     allowDeselect: true,
@@ -75,7 +75,7 @@
     placeholder: 'Todos los tipos',
     options: TIPOS_SOCIO.map((t) => ({ value: t, label: t })),
     onValueChange: (v) => (tipo = v),
-  }
+  })
 </script>
 
 <PageScaffold title="Socios" loading={store.loading} error={store.error} notice={store.notice}>
