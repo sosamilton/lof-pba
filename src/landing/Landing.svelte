@@ -82,7 +82,7 @@
   <nav class="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm" aria-label="Navegación principal">
     <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
       <div class="flex items-center gap-2">
-        <img src="./logo.svg" alt="{identidad.nombre}" class="size-7" />
+        <HeartHandshakeIcon class="size-7 text-primary" />
         <span class="text-lg font-bold tracking-tight">{identidad.nombre}</span>
         <Badge variant="secondary" class="hidden sm:inline-flex">{identidad.ubicacion}</Badge>
       </div>
@@ -108,12 +108,8 @@
     <div class="relative mx-auto max-w-5xl px-4 py-12 sm:py-16">
       <div class="flex flex-col gap-6">
         <div class="flex flex-col gap-3">
-          <!-- Marca: logo + nombre + lema (badge SVG = filetype del logo actual) -->
           <div class="flex items-center gap-3">
-            <div class="flex flex-col items-center gap-1">
-              <img src="./logo.svg" alt="{identidad.nombre}" class="size-14" />
-              <Badge variant="outline" class="text-[10px] uppercase tracking-wide">SVG</Badge>
-            </div>
+            <HeartHandshakeIcon class="size-14 text-primary" />
             <div class="flex flex-col">
               <span class="text-2xl font-bold leading-none tracking-tight sm:text-3xl">{identidad.nombre}</span>
               <span class="text-sm font-medium text-primary sm:text-base">{identidad.lema}</span>

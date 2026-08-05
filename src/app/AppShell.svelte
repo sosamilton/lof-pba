@@ -16,6 +16,7 @@
   import BarChartIcon from '@lucide/svelte/icons/bar-chart'
   import BuildingIcon from '@lucide/svelte/icons/building-2'
   import CommandIcon from '@lucide/svelte/icons/command'
+  import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
   import { identidad } from '$core/identidad'
 
   let { title = identidad.nombre, children } = $props()
@@ -221,7 +222,7 @@
     <Sidebar.Rail />
     <Sidebar.Footer>
       <div class="flex items-center gap-2 px-2 py-1 select-none">
-        <img src="./logo.svg" alt="{identidad.nombre}" class="size-6 shrink-0 rounded" />
+        <HeartHandshakeIcon class="size-6 shrink-0 text-primary" />
         <div class="text-[11px] text-muted-foreground/80 leading-tight group-data-[collapsible=icon]:hidden">
           {identidad.nombre} v{versionActual}{#if shaActual && shaActual !== 'dev'} · {shaActual}{/if}
         </div>

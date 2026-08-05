@@ -14,6 +14,7 @@
   import WifiOffIcon from '@lucide/svelte/icons/wifi-off'
   import WifiIcon from '@lucide/svelte/icons/wifi'
   import FileTextIcon from '@lucide/svelte/icons/file-text'
+  import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
   import { identidad } from '$core/identidad'
   import data from './landing.json'
 
@@ -45,7 +46,7 @@
   <nav class="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
     <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
       <div class="flex items-center gap-2">
-        <img src="./logo.svg" alt={identidad.nombre} class="size-7" />
+        <HeartHandshakeIcon class="size-7 text-primary" />
         <span class="text-lg font-bold tracking-tight">{identidad.nombre}</span>
         <Badge variant="secondary" class="hidden sm:inline-flex">{identidad.ubicacion}</Badge>
       </div>
