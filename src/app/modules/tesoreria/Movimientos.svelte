@@ -81,11 +81,13 @@
         <Select.Item value="Traspaso">Traspaso</Select.Item>
       </Select.Content>
     </Select.Root>
-    <Button data-shortcut="new" onclick={() => store.nuevo()}>
-      <PlusIcon data-icon="inline-start" />
-      Nuevo movimiento
-    </Button>
-    <button data-shortcut="cuota" onclick={store.nuevoCuotaSocietaria} class="hidden" aria-hidden="true" tabindex="-1"></button>
+    {#if store.modoGestion !== 'carga_consolidada'}
+      <Button data-shortcut="new" onclick={() => store.nuevo()}>
+        <PlusIcon data-icon="inline-start" />
+        Nuevo movimiento
+      </Button>
+      <button data-shortcut="cuota" onclick={store.nuevoCuotaSocietaria} class="hidden" aria-hidden="true" tabindex="-1"></button>
+    {/if}
     <span class="text-sm text-muted-foreground">{filtered.length} movimientos</span>
   </div>
 
@@ -109,10 +111,10 @@
           <MovimientoForm {store} {filteredRubros} {subrubrosByRubro} {cuentaById} />
         {:else if filtered.length === 0}
           <EmptyState
-            title="Listo para cargar movimientos"
-            sub="Creá el primer movimiento para empezar."
-            actionLabel="Nuevo movimiento"
-            onaction={() => store.nuevo()}
+            title={store.modoGestion === 'carga_consolidada' ? "Sin movimientos en este período" : "Listo para cargar movimientos"}
+            sub={store.modoGestion === 'carga_consolidada' ? "Los movimientos se cargan desde Resumen → Cargar PIA por rubro." : "Creá el primer movimiento para empezar."}
+            actionLabel={store.modoGestion === 'carga_consolidada' ? null : "Nuevo movimiento"}
+            onaction={store.modoGestion === 'carga_consolidada' ? null : () => store.nuevo()}
           >
             {#snippet actionIcon()}
               <PlusIcon data-icon="inline-start" />
