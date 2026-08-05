@@ -58,8 +58,11 @@
               Cargar datos de prueba tras instalar
             </div>
             <p class="text-[12px] text-muted-foreground mt-0.5 m-0 leading-relaxed">
-              Genera personas, socios, movimientos, una asamblea AGO y
-              autoridades de CD/CRC con Refs resueltas para probar performance
+              Genera personas, socios, movimientos
+              {#if store.selectedModules.gestion_integral}
+                , una asamblea AGO y autoridades de CD/CRC
+              {/if}
+              y planillas PIA/Nómina con Refs resueltas para probar performance
               de listados y filtros.
             </p>
           </div>

@@ -200,6 +200,7 @@ export async function doInstall(s) {
           cantSocios: Number(s.datosPruebaConfig.cantSocios) || 400,
           cantMovimientos: Number(s.datosPruebaConfig.cantMovimientos) || 2000,
           batchSize: Number(s.datosPruebaConfig.batchSize) || 100,
+          gestionIntegral: Boolean(s.selectedModules.gestion_integral),
           onProgress: (msg) => { s.datosPruebaProgress = msg },
         })
       } catch (e) {
