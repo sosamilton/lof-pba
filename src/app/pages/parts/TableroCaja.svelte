@@ -42,7 +42,8 @@
           {/each}
         </div>
         <Separator />
-        <div class="grid gap-2 sm:grid-cols-2">
+        <div class="text-xs font-medium text-muted-foreground">{saldos?.mesLabel ?? ''}</div>
+        <div class="grid gap-2 sm:grid-cols-3">
           <div class="rounded-md border border-border px-3 py-2">
             <div class="text-xs text-muted-foreground">Ingresos del mes</div>
             <div class="text-sm font-semibold text-primary">+${saldos?.ingresosMes?.toLocaleString('es-AR') ?? 0}</div>
@@ -50,6 +51,30 @@
           <div class="rounded-md border border-border px-3 py-2">
             <div class="text-xs text-muted-foreground">Egresos del mes</div>
             <div class="text-sm font-semibold text-destructive">-${saldos?.egresosMes?.toLocaleString('es-AR') ?? 0}</div>
+          </div>
+          <div class="rounded-md border border-border px-3 py-2">
+            <div class="text-xs text-muted-foreground">Resultado del mes</div>
+            <div class="text-sm font-semibold {(saldos?.resultadoMes ?? 0) >= 0 ? 'text-primary' : 'text-destructive'}">
+              {(saldos?.resultadoMes ?? 0) >= 0 ? '+' : ''}${(saldos?.resultadoMes ?? 0).toLocaleString('es-AR')}
+            </div>
+          </div>
+        </div>
+        <Separator />
+        <div class="text-xs font-medium text-muted-foreground">Acumulado del ejercicio</div>
+        <div class="grid gap-2 sm:grid-cols-3">
+          <div class="rounded-md border border-border px-3 py-2">
+            <div class="text-xs text-muted-foreground">Ingresos acumulados</div>
+            <div class="text-sm font-semibold text-primary">+${saldos?.ingresosEjercicio?.toLocaleString('es-AR') ?? 0}</div>
+          </div>
+          <div class="rounded-md border border-border px-3 py-2">
+            <div class="text-xs text-muted-foreground">Egresos acumulados</div>
+            <div class="text-sm font-semibold text-destructive">-${saldos?.egresosEjercicio?.toLocaleString('es-AR') ?? 0}</div>
+          </div>
+          <div class="rounded-md border border-border px-3 py-2">
+            <div class="text-xs text-muted-foreground">Resultado acumulado</div>
+            <div class="text-sm font-semibold {(saldos?.resultadoEjercicio ?? 0) >= 0 ? 'text-primary' : 'text-destructive'}">
+              {(saldos?.resultadoEjercicio ?? 0) >= 0 ? '+' : ''}${(saldos?.resultadoEjercicio ?? 0).toLocaleString('es-AR')}
+            </div>
           </div>
         </div>
       </div>

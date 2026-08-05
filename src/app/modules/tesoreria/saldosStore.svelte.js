@@ -4,8 +4,10 @@ import {
   calcularSaldosPorCuenta,
   calcularSaldoTotal,
   totalesDesdeDetalle,
+  totalesEjercicio,
   saldosInicialesEnCero as _saldosInicialesEnCero,
 } from './tesoreriaCalc.js'
+import { MESES } from '$core/utils'
 
 const bs = createBaseState()
 
@@ -83,6 +85,19 @@ const mesEnCursoKey = $derived.by(() => {
 const _mesTotales = $derived.by(() => totalesDesdeDetalle(movimientos, mesEnCursoKey))
 const ingresosMes = $derived.by(() => _mesTotales.ingresos)
 const egresosMes = $derived.by(() => _mesTotales.egresos)
+const resultadoMes = $derived.by(() => ingresosMes - egresosMes)
+
+// Label legible del mes en curso (ej: "Julio 2026")
+const mesLabel = $derived.by(() => {
+  const d = new Date()
+  return `${MESES[d.getMonth()]} ${d.getFullYear()}`
+})
+
+// Acumulado del ejercicio (todos los movimientos, no solo el mes actual)
+const _ejTotales = $derived.by(() => totalesEjercicio(movimientos))
+const ingresosEjercicio = $derived.by(() => _ejTotales.ingresos)
+const egresosEjercicio = $derived.by(() => _ejTotales.egresos)
+const resultadoEjercicio = $derived.by(() => ingresosEjercicio - egresosEjercicio)
 
 // True si los 3 saldos iniciales están en 0 (o null) pero hay movimientos.
 const saldosInicialesEnCero = $derived.by(() => _saldosInicialesEnCero(ejercicio, movimientos))
@@ -98,6 +113,11 @@ export const saldosStore = {
   get saldoTotal() { return saldoTotal },
   get ingresosMes() { return ingresosMes },
   get egresosMes() { return egresosMes },
+  get resultadoMes() { return resultadoMes },
+  get mesLabel() { return mesLabel },
+  get ingresosEjercicio() { return ingresosEjercicio },
+  get egresosEjercicio() { return egresosEjercicio },
+  get resultadoEjercicio() { return resultadoEjercicio },
   get saldosInicialesEnCero() { return saldosInicialesEnCero },
   load,
   loadFromData,
