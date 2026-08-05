@@ -4,24 +4,29 @@
       <stop stop-color="#0a0a0a"/>
       <stop offset="1" stop-color="#161616"/>
     </linearGradient>
+    <linearGradient id="glow" x1="600" y1="80" x2="600" y2="320" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#24a965" stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#24a965" stop-opacity="0"/>
+    </linearGradient>
   </defs>
   <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="300" y="60" width="600" height="280" fill="url(#glow)"/>
 
-  <!-- Heart-handshake icon (same path as favicon.svg / lucide) -->
-  <g transform="translate(460, 80) scale(11.667)" stroke="#24a965" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+  <!-- Heart-handshake icon -->
+  <g transform="translate(530, 90) scale(9.167)" stroke="#24a965" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
     <path d="M19.414 14.414C21 12.828 22 11.5 22 9.5a5.5 5.5 0 0 0-9.591-3.676.6.6 0 0 1-.818.001A5.5 5.5 0 0 0 2 9.5c0 2.3 1.5 4 3 5.5l5.535 5.362a2 2 0 0 0 2.879.052 2.12 2.12 0 0 0-.004-3 2.124 2.124 0 1 0 3-3 2.124 2.124 0 0 0 3.004 0 2 2 0 0 0 0-2.828l-1.881-1.882a2.41 2.41 0 0 0-3.409 0l-1.71 1.71a2 2 0 0 1-2.828 0 2 2 0 0 1 0-2.828l2.823-2.762"/>
   </g>
 
   <!-- LOF text -->
-  <text x="600" y="380" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="80" font-weight="800" fill="#ffffff" letter-spacing="-2">LOF</text>
+  <text x="600" y="370" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="96" font-weight="800" fill="#ffffff" letter-spacing="-3">LOF</text>
 
   <!-- Tagline -->
-  <text x="600" y="440" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="30" font-weight="500" fill="#24a965">Lazos que Organizan el Futuro</text>
+  <text x="600" y="430" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="34" font-weight="600" fill="#24a965">Lazos que Organizan el Futuro</text>
 
   <!-- Subtitle -->
-  <text x="600" y="490" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="400" fill="#a1a1aa">Gestión integral para cooperadoras escolares de PBA</text>
+  <text x="600" y="480" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="400" fill="#a1a1aa">Gestión integral para cooperadoras escolares de PBA</text>
 
   <!-- Bottom badge -->
-  <rect x="400" y="540" width="400" height="48" rx="24" fill="#24a965" fill-opacity="0.1" stroke="#24a965" stroke-opacity="0.3" stroke-width="1"/>
-  <text x="600" y="571" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="17" font-weight="600" fill="#24a965">Software libre · AGPL-3.0 · 100% offline</text>
+  <rect x="380" y="535" width="440" height="52" rx="26" fill="#24a965" fill-opacity="0.1" stroke="#24a965" stroke-opacity="0.3" stroke-width="1"/>
+  <text x="600" y="568" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="600" fill="#24a965">Software libre · AGPL-3.0 · 100% offline</text>
 </svg>
