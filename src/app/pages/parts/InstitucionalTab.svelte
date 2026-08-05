@@ -5,6 +5,7 @@
   import { Skeleton } from '$lib/components/ui/skeleton'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
   import BuildingIcon from '@lucide/svelte/icons/building'
+  import CalendarIcon from '@lucide/svelte/icons/calendar'
   import PencilIcon from '@lucide/svelte/icons/pencil'
   import { navigate } from '$core/router.svelte'
   import InfoField from './InfoField.svelte'
@@ -15,6 +16,7 @@
     banco = null,
     kiosco = null,
     moduloKiosco = false,
+    ejercicioEnCurso = null,
   } = $props()
 </script>
 
@@ -23,6 +25,34 @@
     <Skeleton class="h-64 w-full" />
   </div>
 {:else}
+  <Card.Root>
+    <Card.Header>
+      <Card.Title class="text-base flex items-center gap-2">
+        <CalendarIcon class="size-4" />
+        Ejercicio en curso
+      </Card.Title>
+    </Card.Header>
+    <Card.Content class="flex flex-col gap-3">
+      {#if ejercicioEnCurso}
+        <div class="grid gap-3 sm:grid-cols-2">
+          <InfoField label="Período" value={`${ejercicioEnCurso.anio_inicio}-${ejercicioEnCurso.anio_fin}`} />
+          <InfoField label="Mes de inicio" value={ejercicioEnCurso.mes_inicio} />
+          <InfoField label="Fecha desde" value={ejercicioEnCurso.fecha_inicio} />
+          <InfoField label="Fecha hasta" value={ejercicioEnCurso.fecha_fin} />
+          {#if ejercicioEnCurso.saldo_inicial_total != null}
+            <InfoField label="Saldo inicial total" value={`$${Number(ejercicioEnCurso.saldo_inicial_total).toLocaleString('es-AR')}`} />
+          {/if}
+          {#if ejercicioEnCurso.observaciones}
+            <InfoField label="Observaciones" value={ejercicioEnCurso.observaciones} />
+          {/if}
+        </div>
+        <Badge variant="default" class="w-fit">En curso</Badge>
+      {:else}
+        <p class="text-sm text-muted-foreground">No hay un ejercicio activo. Creá uno desde la sección de ejercicios.</p>
+      {/if}
+    </Card.Content>
+  </Card.Root>
+
   <Card.Root>
     <Card.Header>
       <Card.Title class="text-base flex items-center gap-2">
@@ -85,7 +115,7 @@
   <div class="flex justify-end">
     <Button variant="outline" size="sm" onclick={() => navigate('cooperadora')}>
       <PencilIcon data-icon="inline-start" />
-      Ver más / Editar
+      Ver más / Editar / Gestionar ejercicios
     </Button>
   </div>
 {/if}
