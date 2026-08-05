@@ -1,0 +1,22 @@
+installation:
+  version: 1.0.6
+  installDate: 2026-08-04T01:43:41.034Z
+  lastUpdated: 2026-08-04T01:43:41.034Z
+modules:
+  - name: core
+    version: 1.0.6
+    installDate: 2026-08-04T01:43:41.034Z
+    lastUpdated: 2026-08-04T01:43:41.034Z
+    source: built-in
+    npmPackage: null
+    repoUrl: null
+  - name: bmm
+    version: 1.0.6
+    installDate: 2026-08-04T01:43:41.001Z
+    lastUpdated: 2026-08-04T01:43:41.034Z
+    source: built-in
+    npmPackage: null
+    repoUrl: null
+ides:
+  - windsurf
+  - claude-code
