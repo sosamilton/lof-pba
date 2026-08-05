@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="public/logo.svg" width="120" alt="ComunidadCoop" />
+  <img src="public/favicon.svg" width="120" alt="LOF" />
 </p>
 
-<h1 align="center">ComunidadCoop</h1>
+<h1 align="center">LOF</h1>
 
 <p align="center">
-  <strong>Tecnología al servicio del pueblo organizado.</strong><br/>
+  <strong>Lazos que Organizan el Futuro</strong><br/>
   Gestión integral para cooperadoras escolares de la Provincia de Buenos Aires.
 </p>
 
@@ -26,16 +26,18 @@
 
 ---
 
-ComunidadCoop es una SPA construida con **Svelte 5** que funciona como *Custom Widget* dentro de un documento [Grist](https://www.getgrist.com/). No tiene backend propio: lee y escribe directamente en las tablas del documento. Pensada para funcionar **100% offline**, sin CDNs, APIs externas ni telemetría.
+LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* dentro de un documento [Grist](https://www.getgrist.com/). No tiene backend propio: lee y escribe directamente en las tablas del documento. Pensada para funcionar **100% offline**, sin CDNs, APIs externas ni telemetría.
 
 > Construida con software libre bajo AGPL-3.0. Pensada desde el territorio, para compañeras y compañeros sin conocimientos técnicos.
 
 ## Características
 
-- **Setup guiado** — wizard paso a paso con formateo en vivo de CUIT/CUE/teléfono/email/CBU, tres modos de gestión (solo PIA/nómina, gestión integral o por etapas), cargos del estatuto al mínimo legal, color de marca como tema de la app, y validación/bloqueo de datos institucionales y bancarios.
+- **Setup guiado** — wizard paso a paso con formateo en vivo de CUIT/CUE/teléfono/email/CBU, modo de gestión consolidada, cargos del estatuto al mínimo legal, color de marca como tema de la app, y validación/bloqueo de datos institucionales y bancarios.
 - **Socios** — alta, edición y baja con búsqueda instantánea por apellido, DNI, CUIL, email o teléfono. Categoría de vínculo (socio, docente, directivo, proveedor, donante). Validación de mayoría de edad y habilitación electoral automática (activo + 30 días de antigüedad).
 - **Personas** — tabla unificada que vincula socios, autoridades, docentes y directivos sin duplicar datos.
-- **Movimientos** — entradas, salidas y traspasos con rubro/subrubro según PIA, destino bancario, socio asociado, y combobox con búsqueda para listas grandes. Dashboard con métricas de socios activos, altas/bajas y vencimientos próximos.
+- **Tesorería** — entradas, salidas y traspasos con rubro/subrubro según PIA, destino bancario, socio asociado, y combobox con búsqueda para listas grandes. Dashboard con métricas de socios activos, altas/bajas y vencimientos próximos.
+- **Carga PIA consolidada** — matriz de carga por rubro con múltiples filas por cuenta (hasta 3), importe en formato pesos argentinos, página dedicada con selector de período, todos los períodos del ejercicio visibles (incluso vacíos), confirmación de firma con resumen read-only, y firma de períodos.
+- **Resumen** — vista mensual y semanal con arrastre de saldo, saldos iniciales por ejercicio, badge de estado por período (Falta cargar / Abierto / Firmado), y botón de edición directa a la carga PIA.
 - **Gobierno** — comisión directiva y asambleas vinculadas al ejercicio. Inicializar comisión desde los cargos, registrar autoridades con vencimiento de mandato, gestionar ceses y reemplazos, historial completo, crear y editar asambleas con resoluciones. Padrón electoral automático según estatuto modelo.
 - **100% offline** — sin dependencias externas. Todos los recursos bundleados localmente.
 - **Tema dinámico** — la app toma el color de marca de cada cooperadora como tema primario. Título de pestaña dinámico con el nombre de la institución.
@@ -50,10 +52,10 @@ docker compose up -d --build
 
 | Servicio | URL | Rol |
 | --- | --- | --- |
-| **Grist** | `http://localhost:8484` | Backend — documento SQLite con todas las tablas |
-| **LOF** | `http://localhost:8080` | Frontend — la SPA servida por nginx |
+| **Grist** | `http://localhost:8089` | Backend — documento SQLite con todas las tablas |
+| **LOF** | `http://localhost:8088` | Frontend — la SPA servida por nginx |
 
-**Pasos:** abrir Grist → crear documento → `Add New` → `Add Widget to Page` → `Custom` → pegar URL `http://localhost:8080` → `Full document access` → completar wizard.
+**Pasos:** abrir Grist → crear documento → `Add New` → `Add Widget to Page` → `Custom` → pegar URL `http://localhost:8088` → `Full document access` → completar wizard.
 
 > Guía completa de instalación, variables de entorno y troubleshooting en [`docs/DOCKER.md`](docs/DOCKER.md).
 
@@ -100,8 +102,8 @@ Si no se seleccionan los checkboxes, cada paso muestra un botón **"Precargar da
 | Estado | Item |
 | --- | --- |
 | Próximo | Adjuntos y actas — carga guiada de comprobantes con trazabilidad |
-| Después | Cierres y reportes — cierres mensuales, saldos, exportables PIA/nómina |
 | Después | Accesos y roles — permisos por tesorería, comisión, asesoría |
+| Después | Exportables — PIA, nómina de autoridades, balance de tesorería |
 | Futuro | App móvil — consulta de saldos, movimientos, notificaciones |
 | Futuro | Integraciones — DIPREGEP y herramientas de gestión escolar |
 

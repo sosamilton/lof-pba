@@ -163,7 +163,7 @@ LOF organiza la gestión de una cooperadora escolar bonaerense en un único sist
 * Datos de la escuela, la cooperadora y el ejercicio
 * Cargos del estatuto al mínimo legal (Decreto 4767/72)
 * Cuentas bancarias y datos institucionales validados
-* Tres modos de gestión: solo PIA/nómina, integral o por etapas
+* Modo de gestión consolidada (carga PIA por rubro)
 
 ### Comunidad
 
@@ -188,16 +188,25 @@ LOF organiza la gestión de una cooperadora escolar bonaerense en un único sist
 * Asociación opcional de socio o persona
 * Dashboard con métricas: socios activos, altas/bajas, vencimientos, ejercicio en curso
 
+### Carga PIA consolidada
+
+* Matriz de carga por rubro con múltiples filas por cuenta (hasta 3)
+* Importe en formato pesos argentinos ($ 1.234,56)
+* Página dedicada con selector de período y foco automático en nueva fila
+* Todos los períodos del ejercicio visibles (incluso vacíos)
+* Confirmación de firma con resumen read-only de movimientos y totales
+* Firma de períodos (bloqueo de edición)
+
+### Resumen
+
+* Vista mensual y semanal con arrastre de saldo
+* Saldo inicial por ejercicio
+* Estado por período: Falta cargar / Abierto / Firmado
+* Edición directa desde el resumen a la carga PIA
+
 ## Planificado
 
 Lo que ya está en camino, definido a partir de las necesidades reales de las cooperadoras:
-
-### Tesorería avanzada
-
-* Saldos iniciales por ejercicio
-* Resúmenes semanales y mensuales
-* Tablero económico de caja: cuánto hay, cuánto se debe, cuánto ingresó y cuánto salió
-* Carga periódica por períodos con totalizador de movimientos (recalculable)
 
 ### Cierres y reportes
 
