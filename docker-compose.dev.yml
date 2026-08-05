@@ -1,15 +1,47 @@
 # docker-compose.dev.yml — entorno de DESARROLLO LOCAL
-# Vite dev server con HTR montando el código en volumen.
+# Vite dev server con HTR montando el código en volumen + Grist (backend).
 # No construye el bundle: usa `npm run dev` dentro del container.
 #
 # Uso:
 #   docker compose -f docker-compose.dev.yml up
 #
-# La app queda en http://localhost:5173
+# Servicios:
+#   - Grist: http://localhost:${GRIST_PORT:-8489}
+#   - Vite:  http://localhost:${DEV_PORT:-5173}  (HMR vía bind mount)
+#
 # Los cambios en src/ se reflejan en caliente (HMR) gracias al volumen.
 # node_modules se mantiene en un volumen anónimo para no pisar el del host.
+# Para conectar la app: en Grist, Add Widget → Custom → URL http://localhost:5173
+# con Access level "Full document access".
 
 services:
+  grist:
+    image: gristlabs/grist:${GRIST_TAG:-latest}
+    container_name: grist-dev
+    ports:
+      - "${GRIST_PORT:-8489}:8484"
+    volumes:
+      - grist_dev_data:/persist
+      - grist_dev_docs:/docs
+    environment:
+      # Permite registro de usuarios sin email (modo local/offline)
+      - GRIST_ORG_IN_PATH=true
+      # No requiere login para acceso local (simplifica el primer uso)
+      - GRIST_SINGLE_PORT=true
+      # Persistencia dentro del container
+      - GRIST_DATA_DIR=/persist
+      # Desactivar telemetría para uso offline
+      - GRIST_TELEMETRY_LEVEL=off
+      # URL pública de Grist (para emails/links; en local no es crítico)
+      - APP_HOME_URL=http://localhost:${GRIST_PORT:-8489}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8484/status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   lof-dev:
     image: node:24-alpine
     container_name: lof-dev
@@ -26,6 +58,11 @@ services:
       # Vite necesita esto para servir desde el container
       - NODE_ENV=development
     restart: unless-stopped
+    depends_on:
+      grist:
+        condition: service_healthy
 
 volumes:
   lof_node_modules:
+  grist_dev_data:
+  grist_dev_docs:
