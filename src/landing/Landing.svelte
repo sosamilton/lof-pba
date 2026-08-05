@@ -48,6 +48,7 @@
   import MapPinIcon from '@lucide/svelte/icons/map-pin'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
   import DownloadIcon from '@lucide/svelte/icons/download'
+  import ArrowRightIcon from '@lucide/svelte/icons/arrow-right'
   import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
   import BookOpenIcon from '@lucide/svelte/icons/book-open'
   import FileTextIcon from '@lucide/svelte/icons/file-text'
@@ -280,6 +281,19 @@
           </div>
         {/if}
       {/each}
+    </div>
+  </section>
+
+  <!-- INVITACIÓN A "SOBRE LOF" -->
+  <section class="mx-auto max-w-5xl px-4 py-10">
+    <div class="flex flex-col items-center gap-3 rounded-lg border border-border bg-card/50 px-6 py-8 text-center">
+      <p class="text-base text-muted-foreground max-w-prose">
+        ¿Te gustó la solución y querés saber <strong class="text-foreground">por qué existe LOF</strong>, qué significa el nombre y qué nos motiva?
+      </p>
+      <Button variant="outline" onclick={() => navigate('sobre-lof')}>
+        Conocer la historia
+        <ArrowRightIcon data-icon="inline-end" />
+      </Button>
     </div>
   </section>
 
