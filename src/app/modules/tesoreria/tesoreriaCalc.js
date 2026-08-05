@@ -84,6 +84,24 @@ export function totalesDesdeDetalle(movimientos, periodoKey) {
 }
 
 /**
+ * Suma los importes de todos los movimientos del ejercicio por tipo.
+ * Traspaso no se cuenta como ingreso/egreso (movimiento interno).
+ * @param {any[]} movimientos
+ * @returns {{ingresos: number, egresos: number}}
+ */
+export function totalesEjercicio(movimientos) {
+  let ingresos = 0
+  let egresos = 0
+  for (const m of movimientos) {
+    const importe = Number(m.importe) || 0
+    const tipo = String(m.tipo_movimiento || '')
+    if (tipo === 'Entrada') ingresos += importe
+    else if (tipo === 'Salida') egresos += importe
+  }
+  return { ingresos, egresos }
+}
+
+/**
  * True si los 3 saldos iniciales están en 0 pero hay movimientos.
  * @param {Record<string, any>|null} ejercicio
  * @param {any[]} movimientos
@@ -159,11 +177,9 @@ export function periodosConDetalle(movimientos) {
 export function calcularResumenMensual(movimientos, cierres, ejercicio) {
   const conDetalle = periodosConDetalle(movimientos)
   const cierresMap = cierresPorPeriodo(cierres, ejercicio ? ejercicio.id : null)
-  // Todos los períodos del ejercicio (incluso vacíos) + cualquier período
-  // con datos que no pertenezca formalmente al ejercicio (edge case).
-  const todosEjercicio = generarPeriodosEjercicio(ejercicio)
-  const periodos = new Set([...todosEjercicio, ...conDetalle, ...cierresMap.keys()])
-  const ordenados = [...periodos].sort()
+  // Solo períodos del ejercicio (incluso vacíos). Los movimientos o cierres
+  // con períodos fuera del rango del ejercicio se ignoran en el resumen.
+  const ordenados = generarPeriodosEjercicio(ejercicio)
   let acumulado = saldoInicialEjercicio(ejercicio)
   return ordenados.map((p) => {
     const tieneDetalle = conDetalle.has(p)
