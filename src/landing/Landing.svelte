@@ -21,6 +21,10 @@
     'arrow-left-right': ArrowLeftRightIcon,
     gavel: GavelIcon,
     rocket: RocketIcon,
+    'refresh-cw': RefreshCwIcon,
+    'book-open': BookOpenIcon,
+    'file-text': FileTextIcon,
+    wallet: WalletIcon,
   }
 
   const ROADMAP_GROUPS = {
@@ -46,11 +50,15 @@
   import DownloadIcon from '@lucide/svelte/icons/download'
   import LanguagesIcon from '@lucide/svelte/icons/languages'
   import SparklesIcon from '@lucide/svelte/icons/sparkles'
+  import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
+  import BookOpenIcon from '@lucide/svelte/icons/book-open'
+  import FileTextIcon from '@lucide/svelte/icons/file-text'
+  import WalletIcon from '@lucide/svelte/icons/wallet'
   import GristIcon from '$lib/components/GristIcon.svelte'
   import { identidad } from '$core/identidad'
   import data from './landing.json'
 
-  const { principios, funciones, capturas, roadmap } = data
+  const { principios, problemas, funciones, capturas, roadmap } = data
   const enlaces = identidad.enlaces
   const roadmapGroups = $derived(
     Object.fromEntries(
@@ -134,6 +142,32 @@
           Software libre bajo {identidad.licencia}. Funciona con Grist, una plataforma de datos libre y autoinstalable.
         </p>
       </div>
+    </div>
+  </section>
+
+  <!-- QUÉ RESUELVE: problemas cotidianos de las cooperadoras -->
+  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="problemas-heading">
+    <div class="flex flex-col gap-2 mb-6">
+      <h2 id="problemas-heading" class="text-2xl font-bold tracking-tight">¿Te pasa esto?</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        Situaciones cotidianas de las cooperadoras escolares que LOF ayuda a resolver.
+      </p>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {#each problemas as p}
+        {@const Icon = iconMap[p.icono]}
+        <Card.Root>
+          <Card.Header>
+            <div class="flex items-center gap-3">
+              {@render iconBadge(Icon)}
+              <Card.Title class="text-base">{p.titulo}</Card.Title>
+            </div>
+          </Card.Header>
+          <Card.Content>
+            <p class="text-sm text-muted-foreground">{p.descripcion}</p>
+          </Card.Content>
+        </Card.Root>
+      {/each}
     </div>
   </section>
 
@@ -236,7 +270,7 @@
   <!-- FUNCIONES -->
   <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="funciones-heading">
     <div class="flex flex-col gap-2 mb-6">
-      <h2 id="funciones-heading" class="text-2xl font-bold tracking-tight">Qué podés hacer hoy</h2>
+      <h2 id="funciones-heading" class="text-2xl font-bold tracking-tight">Cómo te ayuda todos los días</h2>
       <p class="text-sm text-muted-foreground max-w-prose">
         Cuatro áreas para la gestión diaria de tu cooperadora, alineadas con el estatuto modelo y la PIA.
       </p>
