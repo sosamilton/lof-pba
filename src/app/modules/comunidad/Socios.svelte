@@ -96,20 +96,22 @@
     {/snippet}
   </FilterBar>
 
-  <div class="grid gap-4" style="grid-template-columns: {filtered.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
-    <RecordList
-      items={filtered}
-      selectedId={store.form?.id}
-      onSelect={(s) => store.select(s)}
-      itemLabel={(s) => `${s.apellido}, ${s.nombre}`}
-      itemSub={(s) => `DNI ${s.dni || '-'} · ${s.localidad || ''}`}
-      itemBadges={(s) => {
-        const badges = []
-        badges.push(isActivo(s) ? { text: 'Activo', variant: 'secondary' } : { text: 'Baja', variant: 'outline' })
-        if (s.tipo_socio && s.tipo_socio !== 'Activo') badges.push({ text: 'Sin voto', variant: 'outline' })
-        return badges
-      }}
-    />
+  <div class="grid gap-4 items-start" style="grid-template-columns: {filtered.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
+    <div class="relative min-h-0 self-stretch min-h-[75vh]">
+      <RecordList
+        items={filtered}
+        selectedId={store.form?.id}
+        onSelect={(s) => store.select(s)}
+        itemLabel={(s) => `${s.apellido}, ${s.nombre}`}
+        itemSub={(s) => `DNI ${s.dni || '-'} · ${s.localidad || ''}`}
+        itemBadges={(s) => {
+          const badges = []
+          badges.push(isActivo(s) ? { text: 'Activo', variant: 'secondary' } : { text: 'Baja', variant: 'outline' })
+          if (s.tipo_socio && s.tipo_socio !== 'Activo') badges.push({ text: 'Sin voto', variant: 'outline' })
+          return badges
+        }}
+      />
+    </div>
 
     <div>
       {#if store.form}
