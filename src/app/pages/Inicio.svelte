@@ -10,14 +10,19 @@
   import { Separator } from '$lib/components/ui/separator'
   import MessageBanner from '$lib/components/MessageBanner.svelte'
   import * as Card from '$lib/components/ui/card'
+  import { Button } from '$lib/components/ui/button'
   import DatabaseIcon from '@lucide/svelte/icons/database'
   import SettingsIcon from '@lucide/svelte/icons/settings'
+  import LayoutDashboardIcon from '@lucide/svelte/icons/layout-dashboard'
+  import WalletIcon from '@lucide/svelte/icons/wallet'
   import ResumenEjecutivo from './parts/ResumenEjecutivo.svelte'
   import TableroCaja from './parts/TableroCaja.svelte'
   import ConfigPanel from './parts/ConfigPanel.svelte'
   import InstitucionalTab from './parts/InstitucionalTab.svelte'
-  import NuevoEjercicioCard from './parts/NuevoEjercicioCard.svelte'
   import SchemaErrorView from './parts/SchemaErrorView.svelte'
+  import { navigate } from '$core/router.svelte'
+  import ArrowRightIcon from '@lucide/svelte/icons/arrow-right'
+  import CalendarPlusIcon from '@lucide/svelte/icons/calendar-plus'
 
   const saldos = $derived(store.saldos)
 
@@ -62,7 +67,10 @@
             <Accordion.Root type="multiple" bind:value={resumenAccordion}>
               <Accordion.Item value="resumen-ejecutivo">
                 <Accordion.Trigger>
-                  <span class="font-semibold">Resumen ejecutivo</span>
+                  <span class="font-semibold flex items-center gap-2">
+                    <LayoutDashboardIcon class="size-4" />
+                    Resumen ejecutivo
+                  </span>
                 </Accordion.Trigger>
                 <Accordion.Content>
                   <ResumenEjecutivo
@@ -83,7 +91,10 @@
               {#if store.moduloGestionIntegral}
                 <Accordion.Item value="tablero-caja">
                   <Accordion.Trigger>
-                    <span class="font-semibold">Tablero de caja</span>
+                    <span class="font-semibold flex items-center gap-2">
+                      <WalletIcon class="size-4" />
+                      Tablero de caja
+                    </span>
                   </Accordion.Trigger>
                   <Accordion.Content>
                     <TableroCaja
@@ -108,15 +119,16 @@
               </Accordion.Item>
             </Accordion.Root>
 
-            <NuevoEjercicioCard
-              show={store.showNuevoEjercicio}
-              proximoVencer={store.ejercicioProximoVencer}
-              nuevoEj={store.nuevoEj}
-              creating={store.creating}
-              onShow={() => store.setShowNuevoEjercicio(true)}
-              onCancel={() => store.setShowNuevoEjercicio(false)}
-              onCreate={store.crearEjercicio}
-            />
+            {#if store.ejercicioProximoVencer}
+              <div class="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+                <CalendarPlusIcon class="size-4 text-destructive shrink-0" />
+                <span class="text-sm text-muted-foreground">El ejercicio está próximo a vencer.</span>
+                <Button variant="outline" size="sm" class="ml-auto" onclick={() => navigate('cooperadora')}>
+                  Gestionar ejercicios
+                  <ArrowRightIcon data-icon="inline-end" />
+                </Button>
+              </div>
+            {/if}
           </Tabs.Content>
 
           <Tabs.Content value="institucional" class="flex flex-col gap-4 mt-2">
@@ -126,6 +138,7 @@
               banco={cooperadoraStore.banco}
               kiosco={cooperadoraStore.kiosco}
               moduloKiosco={store.moduloKiosco}
+              ejercicioEnCurso={store.ejercicioEnCurso}
             />
           </Tabs.Content>
         </Tabs.Root>

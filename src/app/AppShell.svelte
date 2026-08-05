@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from 'svelte'
+  import { onMount, untrack } from 'svelte'
   import { router, navigate } from '$core/router.svelte'
   import { configStore } from '$core/stores/configStore.svelte'
   import { getActiveMenuItems } from '$core/utils'
@@ -16,6 +16,7 @@
   import BarChartIcon from '@lucide/svelte/icons/bar-chart'
   import BuildingIcon from '@lucide/svelte/icons/building-2'
   import CommandIcon from '@lucide/svelte/icons/command'
+  import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
   import { identidad } from '$core/identidad'
 
   let { title = identidad.nombre, children } = $props()
@@ -25,7 +26,7 @@
   const shaActual = typeof __APP_SHA__ !== 'undefined' ? __APP_SHA__ : 'dev'
 
   let menuItems = $state([{ route: 'inicio', label: 'Inicio' }])
-  let brandTitle = $state(title)
+  let brandTitle = $state(untrack(() => title))
   let brandSub = $state('Demo cooperadora')
   let mainEl = $state(null)
 
@@ -221,7 +222,7 @@
     <Sidebar.Rail />
     <Sidebar.Footer>
       <div class="flex items-center gap-2 px-2 py-1 select-none">
-        <img src="./logo.svg" alt="{identidad.nombre}" class="size-6 shrink-0 rounded" />
+        <HeartHandshakeIcon class="size-6 shrink-0 text-primary" />
         <div class="text-[11px] text-muted-foreground/80 leading-tight group-data-[collapsible=icon]:hidden">
           {identidad.nombre} v{versionActual}{#if shaActual && shaActual !== 'dev'} · {shaActual}{/if}
         </div>

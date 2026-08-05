@@ -138,18 +138,20 @@ const TIPOS_MOV = ['Entrada', 'Salida', 'Traspaso']
  * @param {number} [opts.cantSocios=400]
  * @param {number} [opts.cantMovimientos=2000]
  * @param {number} [opts.batchSize=100]
+ * @param {boolean} [opts.gestionIntegral=true] - Si false (carga_consolidada), omite asamblea/autoridades y genera planillas_generadas.
  * @param {(msg: string) => void} [opts.onProgress]
- * @returns {Promise<{personas: number, socios: number, movimientos: number, asamblea: boolean, autoridades: number}>}
+ * @returns {Promise<{personas: number, socios: number, movimientos: number, asamblea: boolean, autoridades: number, planillas: number}>}
  */
 export const generarDatosPrueba = async ({
   cantPersonas = 500,
   cantSocios = 400,
   cantMovimientos = 2000,
   batchSize = 100,
+  gestionIntegral = true,
   onProgress = () => {},
 } = {}) => {
   const log = onProgress || (() => {})
-  const results = { personas: 0, socios: 0, movimientos: 0, asamblea: false, autoridades: 0 }
+  const results = { personas: 0, socios: 0, movimientos: 0, asamblea: false, autoridades: 0, planillas: 0 }
 
   // --- Resolver tablas ---
   const tPersonas = await resolveTableId(TABLE_PREFERRED_IDS.personas)
@@ -359,8 +361,10 @@ export const generarDatosPrueba = async ({
   results.movimientos = movimientosData.length
 
   // --- 4. Asamblea AGO + autoridades de CD y CRC ---
-  // Solo si existen las tablas necesarias y hay ejercicio + cargos definidos.
-  if (tAsambleas && tAutoridades && tCargos && ejercicioId) {
+  // Solo en modo gestion_integral: si existen las tablas necesarias y hay
+  // ejercicio + cargos definidos. En carga_consolidada no se crean estas
+  // tablas, así que se omite este bloque.
+  if (gestionIntegral && tAsambleas && tAutoridades && tCargos && ejercicioId) {
     log('Creando asamblea AGO y designando autoridades...')
 
     // Cargar cargos activos agrupados por organismo
@@ -437,10 +441,34 @@ export const generarDatosPrueba = async ({
     }
   }
 
+  // --- 5. Planillas generadas ---
+  // Genera registros de planillas PIA y Nómina vinculadas al ejercicio.
+  // En carga_consolidada es especialmente relevante para probar listados.
+  const tPlanillas = await resolveTableId(TABLE_PREFERRED_IDS.planillas_generadas)
+  if (tPlanillas && ejercicioId) {
+    log('Generando planillas generadas...')
+    const tiposPlanilla = ['PIA', 'Nomina']
+    const planillasData = []
+    for (const tipo of tiposPlanilla) {
+      planillasData.push({
+        tipo_planilla: tipo,
+        ejercicio_id: ejercicioId,
+        fecha_generacion: new Date().toISOString(),
+        generado_por: 'demo',
+        version_formulario: '2024',
+      })
+    }
+    try {
+      await addRecords(tPlanillas, planillasData)
+      results.planillas = planillasData.length
+    } catch { /* sin tabla planillas */ }
+  }
+
   log(
     `Listo: ${results.personas} personas, ${results.socios} socios, ` +
     `${results.movimientos} movimientos` +
     (results.asamblea ? `, 1 asamblea AGO, ${results.autoridades} autoridades` : '') +
+    (results.planillas ? `, ${results.planillas} planillas` : '') +
     '.'
   )
 

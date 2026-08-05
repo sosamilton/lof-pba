@@ -12,34 +12,44 @@
   import FormKiosco from './parts/FormKiosco.svelte'
   import TablaCargos from './parts/TablaCargos.svelte'
   import ListaEjercicios from './parts/ListaEjercicios.svelte'
-  import DialogEditarSaldos from './parts/DialogEditarSaldos.svelte'
+  import DialogEditarEjercicio from './parts/DialogEditarEjercicio.svelte'
 
-  let dialogSaldosAbierto = $state(false)
+  let dialogEjercicioAbierto = $state(false)
   let ejercicioEditandoId = $state(null)
 
-  const abrirEditarSaldos = (e) => {
-    store.setEditandoSaldos(e)
+  const abrirEditarEjercicio = (e) => {
+    store.setEditandoEjercicio(e)
     ejercicioEditandoId = e.id
-    dialogSaldosAbierto = true
+    dialogEjercicioAbierto = true
   }
 
-  const cerrarEditarSaldos = () => {
-    dialogSaldosAbierto = false
-    store.cancelarEdicionSaldos()
+  const cerrarEditarEjercicio = () => {
+    dialogEjercicioAbierto = false
+    store.cancelarEdicionEjercicio()
     ejercicioEditandoId = null
   }
 
-  const confirmarGuardarSaldos = async () => {
+  const confirmarGuardarEjercicio = async () => {
     if (!store.ejercicioEditando) return
     const tiene = await store.tieneMovimientos(ejercicioEditandoId)
     if (tiene) {
       const ok = window.confirm(
-        'Modificar el saldo inicial recalculará los saldos de todos los períodos. ¿Continuar?'
+        'Modificar los saldos iniciales recalculará los saldos de todos los períodos. ¿Continuar?'
       )
       if (!ok) return
     }
-    await store.saveSaldosEjercicio()
-    if (!store.error) dialogSaldosAbierto = false
+    await store.saveEjercicio()
+    if (!store.error) dialogEjercicioAbierto = false
+  }
+
+  const confirmarEliminarEjercicio = async (e) => {
+    if (!confirm(`¿Eliminar el ejercicio ${e.anio_inicio}-${e.anio_fin}? Esta acción no se puede deshacer.`)) return
+    await store.deleteEjercicio(e.id)
+  }
+
+  const confirmarActivarEjercicio = async (id) => {
+    if (!confirm('¿Activar este ejercicio como en curso? El ejercicio actual pasará a inactivo.')) return
+    await store.setEjercicioEnCurso(id)
   }
 
   let emailEscuelaAlias = $state('')
@@ -104,7 +114,7 @@
     </div>
   {/snippet}
   <div class="flex flex-col gap-2 w-full">
-    <Accordion.Root type="multiple" value={['escuela']}>
+    <Accordion.Root type="multiple" value={['escuela', 'ejercicios']}>
       <!-- Item 1: Escuela y cooperadora -->
       <Accordion.Item value="escuela">
         <Accordion.Trigger>
@@ -189,7 +199,16 @@
           <span class="font-semibold">Ejercicios</span>
         </Accordion.Trigger>
         <Accordion.Content>
-          <ListaEjercicios ejercicios={store.ejercicios} onEditarSaldos={abrirEditarSaldos} />
+          <ListaEjercicios
+            ejercicios={store.ejercicios}
+            nuevoEj={store.nuevoEj}
+            creating={store.busy}
+            busy={store.busy}
+            onEditar={abrirEditarEjercicio}
+            onActivar={confirmarActivarEjercicio}
+            onEliminar={confirmarEliminarEjercicio}
+            onCrear={store.createEjercicio}
+          />
         </Accordion.Content>
       </Accordion.Item>
     </Accordion.Root>
@@ -197,11 +216,11 @@
 
 </PageScaffold>
 
-<DialogEditarSaldos
-  bind:open={dialogSaldosAbierto}
+<DialogEditarEjercicio
+  bind:open={dialogEjercicioAbierto}
   ejercicioEditando={store.ejercicioEditando}
   error={store.error}
   busy={store.busy}
-  onClose={cerrarEditarSaldos}
-  onSave={confirmarGuardarSaldos}
+  onClose={cerrarEditarEjercicio}
+  onSave={confirmarGuardarEjercicio}
 />

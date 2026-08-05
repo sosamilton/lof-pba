@@ -10,6 +10,7 @@ import {
   calcularResumenMensual,
   calcularResumenSemanal,
   isoWeekKey,
+  generarPeriodosEjercicio,
 } from '../tesoreriaCalc.js'
 
 const cuentas = [
@@ -20,6 +21,9 @@ const cuentas = [
 
 const ejercicio = {
   id: 10,
+  anio_inicio: 2026,
+  anio_fin: 2027,
+  mes_inicio: 'Marzo',
   saldo_inicial_banco: 1000,
   saldo_inicial_efectivo: 500,
   saldo_inicial_caja_chica: 100,
@@ -149,10 +153,11 @@ describe('regla "detalle gana" (calcularResumenMensual)', () => {
       { ejercicio_id: 10, periodo: '2026-03', es_carga_manual: true, total_ingresos_calc: 9999, total_egresos_calc: 8888 },
     ]
     const rows = calcularResumenMensual(movs, cierres, ejercicio)
-    expect(rows).toHaveLength(1)
-    expect(rows[0].origen).toBe('detalle')
-    expect(rows[0].ingresos).toBe(100)
-    expect(rows[0].egresos).toBe(30)
+    const mar = rows.find((r) => r.periodo === '2026-03')
+    expect(mar).toBeDefined()
+    expect(mar.origen).toBe('detalle')
+    expect(mar.ingresos).toBe(100)
+    expect(mar.egresos).toBe(30)
   })
 
   it('usa cierre manual cuando no hay detalle', () => {
@@ -160,10 +165,11 @@ describe('regla "detalle gana" (calcularResumenMensual)', () => {
       { ejercicio_id: 10, periodo: '2026-04', es_carga_manual: true, total_ingresos_calc: 500, total_egresos_calc: 200 },
     ]
     const rows = calcularResumenMensual([], cierres, ejercicio)
-    expect(rows).toHaveLength(1)
-    expect(rows[0].origen).toBe('manual')
-    expect(rows[0].ingresos).toBe(500)
-    expect(rows[0].egresos).toBe(200)
+    const abr = rows.find((r) => r.periodo === '2026-04')
+    expect(abr).toBeDefined()
+    expect(abr.origen).toBe('manual')
+    expect(abr.ingresos).toBe(500)
+    expect(abr.egresos).toBe(200)
   })
 
   it('ignora cierres que no son del ejercicio seleccionado', () => {
@@ -171,7 +177,10 @@ describe('regla "detalle gana" (calcularResumenMensual)', () => {
       { ejercicio_id: 99, periodo: '2026-04', es_carga_manual: true, total_ingresos_calc: 500, total_egresos_calc: 200 },
     ]
     const rows = calcularResumenMensual([], cierres, ejercicio)
-    expect(rows).toHaveLength(0)
+    const abr = rows.find((r) => r.periodo === '2026-04')
+    expect(abr).toBeDefined()
+    expect(abr.origen).toBe('vacio')
+    expect(abr.ingresos).toBe(0)
   })
 
   it('ignora cierres sin es_carga_manual=true', () => {
@@ -179,7 +188,10 @@ describe('regla "detalle gana" (calcularResumenMensual)', () => {
       { ejercicio_id: 10, periodo: '2026-04', es_carga_manual: false, total_ingresos_calc: 500, total_egresos_calc: 200 },
     ]
     const rows = calcularResumenMensual([], cierres, ejercicio)
-    expect(rows).toHaveLength(0)
+    const abr = rows.find((r) => r.periodo === '2026-04')
+    expect(abr).toBeDefined()
+    expect(abr.origen).toBe('vacio')
+    expect(abr.ingresos).toBe(0)
   })
 })
 
@@ -267,5 +279,45 @@ describe('cierresPorPeriodo', () => {
     const map = cierresPorPeriodo(cierres, 10)
     expect(map.size).toBe(1)
     expect(map.has('2026-03')).toBe(true)
+  })
+})
+
+describe('generarPeriodosEjercicio', () => {
+  it('genera 12 períodos para ejercicio Marzo 2026 → Febrero 2027', () => {
+    const ej = { id: 1, anio_inicio: 2026, anio_fin: 2027, mes_inicio: 'Marzo' }
+    const periodos = generarPeriodosEjercicio(ej)
+    expect(periodos).toHaveLength(12)
+    expect(periodos[0]).toBe('2026-03')
+    expect(periodos[periodos.length - 1]).toBe('2027-02')
+  })
+
+  it('genera 12 períodos para ejercicio Enero 2026 → Diciembre 2026', () => {
+    const ej = { id: 1, anio_inicio: 2026, anio_fin: 2027, mes_inicio: 'Enero' }
+    const periodos = generarPeriodosEjercicio(ej)
+    expect(periodos).toHaveLength(12)
+    expect(periodos[0]).toBe('2026-01')
+    expect(periodos[periodos.length - 1]).toBe('2026-12')
+  })
+
+  it('devuelve array vacío si no hay ejercicio', () => {
+    expect(generarPeriodosEjercicio(null)).toEqual([])
+  })
+})
+
+describe('calcularResumenMensual: períodos fuera del ejercicio', () => {
+  it('ignora movimientos con períodos fuera del rango del ejercicio', () => {
+    const ej = { id: 10, anio_inicio: 2026, anio_fin: 2027, mes_inicio: 'Marzo',
+      saldo_inicial_banco: 1000, saldo_inicial_efectivo: 0, saldo_inicial_caja_chica: 0 }
+    const movs = [
+      mov({ periodo: '2026-01', tipo_movimiento: 'Entrada', importe: 500 }),
+      mov({ periodo: '2026-02', tipo_movimiento: 'Entrada', importe: 300 }),
+      mov({ periodo: '2026-03', tipo_movimiento: 'Entrada', importe: 100 }),
+    ]
+    const rows = calcularResumenMensual(movs, [], ej)
+    expect(rows).toHaveLength(12)
+    expect(rows[0].periodo).toBe('2026-03')
+    expect(rows[0].ingresos).toBe(100)
+    expect(rows[1].periodo).toBe('2026-04')
+    expect(rows[1].origen).toBe('vacio')
   })
 })
