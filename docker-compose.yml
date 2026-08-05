@@ -8,8 +8,8 @@
 #   docker compose up -d               # usa imagen de GHCR si ya existe
 #
 # Puertos:
-#   - Grist: http://localhost:${GRIST_PORT:-8484}
-#   - LOF:   http://localhost:${APP_PORT:-8080}
+#   - Grist: http://localhost:${GRIST_PORT:-8089}
+#   - LOF:   http://localhost:${APP_PORT:-8088}
 #
 # Persistencia:
 #   - grist_data: documento Grist (SQLite), usuarios, sesiones.
@@ -21,7 +21,7 @@ services:
     image: gristlabs/grist:${GRIST_TAG:-latest}
     container_name: grist
     ports:
-      - "${GRIST_PORT:-8484}:8484"
+      - "${GRIST_PORT:-8089}:8484"
     volumes:
       - grist_data:/persist
       - grist_docs:/docs
@@ -35,7 +35,7 @@ services:
       # Desactivar telemetría para uso offline
       - GRIST_TELEMETRY_LEVEL=off
       # URL pública de Grist (para emails/links; en local no es crítico)
-      - APP_HOME_URL=http://localhost:${GRIST_PORT:-8484}
+      - APP_HOME_URL=http://localhost:${GRIST_PORT:-8089}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8484/status"]
@@ -51,7 +51,7 @@ services:
       dockerfile: Dockerfile
     container_name: lof
     ports:
-      - "${APP_PORT:-8080}:80"
+      - "${APP_PORT:-8088}:80"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]

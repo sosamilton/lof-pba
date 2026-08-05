@@ -20,29 +20,29 @@ El `docker-compose.yml` levanta **Grist + LOF SPA** juntos, listos para usar y 1
 
 ```bash
 docker compose up -d --build
-# Grist en http://localhost:8484
-# LOF en http://localhost:8080
+# Grist en http://localhost:8089
+# LOF en http://localhost:8088
 ```
 
 ### Levantar solo la SPA (sin Grist)
 
 ```bash
 docker compose up -d --build lof
-# App en http://localhost:8080
+# App en http://localhost:8088
 ```
 
 ### Variables de entorno (opcionales)
 
 | Variable | Default | Descripción |
 | --- | --- | --- |
-| `APP_PORT` | `8080` | Puerto del host para la SPA. |
-| `GRIST_PORT` | `8484` | Puerto del host para Grist. |
+| `APP_PORT` | `8088` | Puerto del host para la SPA. |
+| `GRIST_PORT` | `8089` | Puerto del host para Grist. |
 | `GRIST_TAG` | `latest` | Tag de la imagen oficial de Grist. |
 | `IMAGE_REPO` | `sosamilton/spa-cooperadora` | Repo de GHCR (para `image:`). |
 | `IMAGE_TAG` | `latest` | Tag de la imagen de la SPA. |
 
 ```bash
-GRIST_PORT=9000 APP_PORT=8080 docker compose up -d --build
+GRIST_PORT=9000 APP_PORT=8088 docker compose up -d --build
 ```
 
 ### Configuración de Grist
@@ -61,10 +61,10 @@ El servicio `grist` usa la imagen oficial `gristlabs/grist` con:
 
 Una vez levantados ambos servicios:
 
-1. Abrir `http://localhost:8484` (Grist).
+1. Abrir `http://localhost:8089` (Grist).
 2. Crear un documento nuevo.
 3. `Add New` → `Add Widget to Page` → `Custom`.
-4. URL: `http://localhost:8080`.
+4. URL: `http://localhost:8088`.
 5. `Access level`: **Full document access**.
 
 > Para uso offline, ver [`docs/OFFLINE.md`](OFFLINE.md).
@@ -75,7 +75,7 @@ El CI publica automáticamente en `ghcr.io/<owner>/<repo>`:
 
 ```bash
 docker pull ghcr.io/sosamilton/spa-cooperadora:latest
-docker run -d -p 8080:80 --name lof ghcr.io/sosamilton/spa-cooperadora:latest
+docker run -d -p 8088:80 --name lof ghcr.io/sosamilton/spa-cooperadora:latest
 ```
 
 Tags generados por el workflow:
@@ -122,22 +122,41 @@ docker compose -f docker-compose.dev.yml up
 # App en http://localhost:5173 con HMR
 ```
 
-El servicio de dev:
+El compose de dev levanta **Grist + Vite** juntos. Un solo comando deja ambos servicios listos:
 
-- Usa `node:24-alpine` directamente (sin Dockerfile propio).
-- Monta el directorio del proyecto en `/app` (volumen en vivo → HMR).
-- Mantiene `node_modules` en un **volumen anónimo** (`lof_node_modules`) para no pisar el del host ni tener conflictos de plataforma.
-- Ejecuta `npm install && npm run dev -- --host 0.0.0.0` en cada arranque.
+```bash
+docker compose -f docker-compose.dev.yml up
+# Grist en http://localhost:8489
+# Vite  en http://localhost:5173 (HMR)
+```
+
+Servicios:
+
+- **`grist`** — imagen oficial `gristlabs/grist`, misma config que producción (telemetría off, single-port, org-in-path) pero con volúmenes propios (`grist_dev_data`, `grist_dev_docs`) para no mezclar datos de dev con los de prod. Healthcheck contra `/status`.
+- **`lof-dev`** — `node:24-alpine` directamente (sin Dockerfile propio). Monta el directorio del proyecto en `/app` (volumen en vivo → HMR). Mantiene `node_modules` en un **volumen anónimo** (`lof_node_modules`) para no pisar el del host. Ejecuta `npm install && npm run dev -- --host 0.0.0.0` en cada arranque. `depends_on: grist (healthy)` — Vite arranca cuando Grist responde.
+
+### Conectar la SPA con Grist en dev
+
+Una vez levantados ambos servicios:
+
+1. Abrir `http://localhost:8489` (Grist).
+2. Crear un documento nuevo.
+3. `Add New` → `Add Widget to Page` → `Custom`.
+4. URL: `http://localhost:5173`.
+5. `Access level`: **Full document access**.
 
 | Variable | Default | Descripción |
 | --- | --- | --- |
 | `DEV_PORT` | `5173` | Puerto del host mapeado al 5173 de Vite. |
+| `GRIST_PORT` | `8489` | Puerto del host para Grist. |
+| `GRIST_TAG` | `latest` | Tag de la imagen oficial de Grist. |
 
 ```bash
-DEV_PORT=5180 docker compose -f docker-compose.dev.yml up
+DEV_PORT=5180 GRIST_PORT=9000 docker compose -f docker-compose.dev.yml up
 ```
 
 > El dev container reinstala dependencias en cada `up` porque `node_modules` es un volumen anónimo. Para iterar rápido sin reinstalar, podés comentar el `npm install` del `command` después del primer arranque, o usar un volumen con nombre persistente.
+> Los volúmenes `grist_dev_data` / `grist_dev_docs` son independientes de los de producción (`grist_data` / `grist_docs`), así podés tener dev y prod en la misma máquina sin pisar datos.
 
 ## CI (GitHub Actions)
 
@@ -163,14 +182,14 @@ Como la SPA usa paths relativos (`base: './'`) y hash routing, no hace falta con
 
 | | Producción (`docker-compose.yml`) | Dev (`docker-compose.dev.yml`) |
 | --- | --- | --- |
-| Servicios | Grist + SPA | Solo SPA (dev) |
+| Servicios | Grist + SPA | Grist + Vite (dev) |
 | Imagen base SPA | `nginx:1.27-alpine` (build local) | `node:24-alpine` |
-| Imagen Grist | `gristlabs/grist` | No incluye |
+| Imagen Grist | `gristlabs/grist` | `gristlabs/grist` |
 | Servidor SPA | nginx | Vite dev server |
 | HMR | No (estáticos) | Sí |
-| Puerto SPA | 80 → 8080 | 5173 |
-| Puerto Grist | 8484 | — |
+| Puerto SPA | 80 → 8088 | 5173 |
+| Puerto Grist | 8089 | 8489 |
 | Volumen código | No (copiado en build) | Sí (bind mount) |
-| Volumen datos | `grist_data`, `grist_docs` | `lof_node_modules` |
-| Healthcheck | Sí (wget) | No |
+| Volumen datos | `grist_data`, `grist_docs` | `grist_dev_data`, `grist_dev_docs` |
+| Healthcheck | Sí (wget) | Sí (wget) |
 | Reinicio | `unless-stopped` | `unless-stopped` |

@@ -84,16 +84,6 @@ export function totalesDesdeDetalle(movimientos, periodoKey) {
 }
 
 /**
- * Suma ingresos/egresos del mes en curso (YYYY-MM actual).
- * @param {any[]} movimientos
- * @param {string} mesKey - 'YYYY-MM'
- * @returns {{ingresos: number, egresos: number}}
- */
-export function totalesMesEnCurso(movimientos, mesKey) {
-  return totalesDesdeDetalle(movimientos, mesKey)
-}
-
-/**
  * True si los 3 saldos iniciales están en 0 pero hay movimientos.
  * @param {Record<string, any>|null} ejercicio
  * @param {any[]} movimientos
@@ -169,7 +159,10 @@ export function periodosConDetalle(movimientos) {
 export function calcularResumenMensual(movimientos, cierres, ejercicio) {
   const conDetalle = periodosConDetalle(movimientos)
   const cierresMap = cierresPorPeriodo(cierres, ejercicio ? ejercicio.id : null)
-  const periodos = new Set([...conDetalle, ...cierresMap.keys()])
+  // Todos los períodos del ejercicio (incluso vacíos) + cualquier período
+  // con datos que no pertenezca formalmente al ejercicio (edge case).
+  const todosEjercicio = generarPeriodosEjercicio(ejercicio)
+  const periodos = new Set([...todosEjercicio, ...conDetalle, ...cierresMap.keys()])
   const ordenados = [...periodos].sort()
   let acumulado = saldoInicialEjercicio(ejercicio)
   return ordenados.map((p) => {
@@ -181,11 +174,14 @@ export function calcularResumenMensual(movimientos, cierres, ejercicio) {
       const t = totalesDesdeDetalle(movimientos, p)
       ingresos = t.ingresos
       egresos = t.egresos
-    } else {
+    } else if (cierresMap.has(p)) {
       const cierre = cierresMap.get(p)
       origen = 'manual'
       ingresos = Number(cierre?.total_ingresos_calc) || 0
       egresos = Number(cierre?.total_egresos_calc) || 0
+    } else {
+      // Período vacío: sin datos ni cierre manual.
+      origen = 'vacio'
     }
     const saldoInicial = acumulado
     const saldoPeriodo = saldoInicial + ingresos - egresos
@@ -210,12 +206,40 @@ export function isoWeekKey(dateStr) {
   return `${tmp.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`
 }
 
+const MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+
+/**
+ * Convierte una clave de semana ISO (YYYY-Www) a un rango de fechas legible
+ * en formato "Sem N · dd-dd Mes Año" (ej. "Sem 1 · 01-07 Ene 2026").
+ * @param {string} weekKey - 'YYYY-Www'
+ * @returns {{ label: string, num: number, inicio: string, fin: string }}
+ */
+export function weekKeyToRange(weekKey) {
+  const match = String(weekKey || '').match(/^(\d{4})-W(\d{2})$/)
+  if (!match) return { label: weekKey, num: 0, inicio: '', fin: '' }
+  const year = Number(match[1])
+  const weekNum = Number(match[2])
+  // Lunes de la semana ISO: 4 de enero siempre está en la semana 1.
+  const jan4 = new Date(Date.UTC(year, 0, 4))
+  const jan4Day = jan4.getUTCDay() || 7
+  const week1Monday = new Date(jan4)
+  week1Monday.setUTCDate(jan4.getUTCDate() - (jan4Day - 1))
+  const monday = new Date(week1Monday)
+  monday.setUTCDate(week1Monday.getUTCDate() + (weekNum - 1) * 7)
+  const sunday = new Date(monday)
+  sunday.setUTCDate(monday.getUTCDate() + 6)
+  const fmt = (d) => `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+  const label = `Sem ${weekNum} · ${fmt(monday)}-${fmt(sunday)}`
+  return { label, num: weekNum, inicio: monday.toISOString().slice(0, 10), fin: sunday.toISOString().slice(0, 10) }
+}
+
 /**
  * Calcula el resumen semanal agrupando por semana ISO. Solo períodos con
  * detalle (los cierres manuales son mensuales). Mismo arrastre de saldo.
+ * Incluye `label` con rango de fechas legible.
  * @param {any[]} movimientos
  * @param {Record<string, any>|null} ejercicio
- * @returns {Array<{periodo: string, ingresos: number, egresos: number, saldoInicial: number, saldoPeriodo: number, origen: 'detalle'}>}
+ * @returns {Array<{periodo: string, label: string, ingresos: number, egresos: number, saldoInicial: number, saldoPeriodo: number, origen: 'detalle'}>}
  */
 export function calcularResumenSemanal(movimientos, ejercicio) {
   const porSemana = new Map()
@@ -232,11 +256,13 @@ export function calcularResumenSemanal(movimientos, ejercicio) {
   let acumulado = saldoInicialEjercicio(ejercicio)
   return ordenadas.map((sem) => {
     const r = porSemana.get(sem)
+    const { label } = weekKeyToRange(sem)
     const saldoInicial = acumulado
     const saldoPeriodo = saldoInicial + r.ingresos - r.egresos
     acumulado = saldoPeriodo
     return {
       periodo: sem,
+      label,
       ingresos: r.ingresos,
       egresos: r.egresos,
       saldoInicial,
@@ -244,4 +270,57 @@ export function calcularResumenSemanal(movimientos, ejercicio) {
       origen: 'detalle',
     }
   })
+}
+
+// Mapa nombre de mes → número (1-12). Compatible con MESES de utils.js.
+const MES_NUMERO = {
+  Enero: 1, Febrero: 2, Marzo: 3, Abril: 4, Mayo: 5, Junio: 6,
+  Julio: 7, Agosto: 8, Septiembre: 9, Octubre: 10, Noviembre: 11, Diciembre: 12,
+}
+
+/**
+ * Genera todos los períodos (YYYY-MM) de un ejercicio, desde el mes de inicio
+ * del año de inicio hasta el mes anterior al mes de inicio del año de fin.
+ * Por ejemplo, Enero 2026 → Diciembre 2026 si anio_inicio=2026, anio_fin=2027.
+ *
+ * @param {Record<string, any>|null} ejercicio - { anio_inicio, anio_fin, mes_inicio }
+ * @returns {string[]} Array de períodos 'YYYY-MM' ordenados ascendentemente
+ */
+export function generarPeriodosEjercicio(ejercicio) {
+  if (!ejercicio) return []
+  const anioInicio = Number(ejercicio.anio_inicio)
+  const anioFin = Number(ejercicio.anio_fin)
+  const mesInicioNum = MES_NUMERO[String(ejercicio.mes_inicio || 'Enero')] || 1
+  if (!anioInicio || !anioFin) return []
+
+  const periodos = []
+  let anio = anioInicio
+  let mes = mesInicioNum
+  // El ejercicio termina el mes anterior al mes_inicio del anio_fin.
+  const finAnio = anioFin
+  const finMes = mesInicioNum - 1
+  const finReal = finMes < 1 ? { anio: finAnio - 1, mes: 12 } : { anio: finAnio, mes: finMes }
+
+  while (anio < finReal.anio || (anio === finReal.anio && mes <= finReal.mes)) {
+    periodos.push(`${anio}-${String(mes).padStart(2, '0')}`)
+    mes++
+    if (mes > 12) { mes = 1; anio++ }
+  }
+  return periodos
+}
+
+/**
+ * Encuentra el próximo período a cargar: el más viejo sin datos.
+ * Si todos tienen datos, devuelve el último período del ejercicio.
+ * Si no hay ejercicio, devuelve el mes actual.
+ *
+ * @param {Record<string, any>|null} ejercicio
+ * @param {Set<string>} periodosConDatos - Períodos que ya tienen movimientos o cierres
+ * @returns {string} Período 'YYYY-MM'
+ */
+export function proximoPeriodoACargar(ejercicio, periodosConDatos) {
+  const todos = generarPeriodosEjercicio(ejercicio)
+  if (todos.length === 0) return new Date().toISOString().slice(0, 7)
+  const pendiente = todos.find((p) => !periodosConDatos.has(p))
+  return pendiente || todos[todos.length - 1]
 }

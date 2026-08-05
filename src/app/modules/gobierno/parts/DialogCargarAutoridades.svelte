@@ -5,19 +5,16 @@
   import { Badge } from '$lib/components/ui/badge'
   import * as Field from '$lib/components/ui/field'
   import { notifyAfter } from '$core/notify.svelte'
+  import ControlledDialog from '$lib/components/ControlledDialog.svelte'
   import PersonaPicker from './PersonaPicker.svelte'
 
   let { store } = $props()
 
-  const open = $derived(Boolean(store.cargarDraft))
-  const handleOpenChange = (v) => { if (!v) store.closeCargarAutoridades() }
-
   const handleSave = () => notifyAfter(store, store.saveAutoridadesFromAsamblea)
 </script>
 
-<Dialog.Root {open} onOpenChange={handleOpenChange}>
-  <Dialog.Content class="sm:max-w-2xl">
-    <Dialog.Header>
+<ControlledDialog open={Boolean(store.cargarDraft)} onClose={store.closeCargarAutoridades} class="sm:max-w-2xl">
+  <Dialog.Header>
       <Dialog.Title>Cargar autoridades electas</Dialog.Title>
       <Dialog.Description class="text-xs">
         {#if store.cargarDraft}
@@ -68,5 +65,4 @@
       <Button variant="outline" onclick={store.closeCargarAutoridades}>Cancelar</Button>
       <Button onclick={handleSave} disabled={store.busy}>Guardar autoridades</Button>
     </Dialog.Footer>
-  </Dialog.Content>
-</Dialog.Root>
+  </ControlledDialog>

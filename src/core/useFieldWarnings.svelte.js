@@ -1,15 +1,4 @@
-import {
-  normalizeCuil,
-  normalizeTelefono,
-  normalizeEmailField,
-  isValidCuil,
-  isValidCuilChecksum,
-  isValidEmailField,
-} from '$core/personas.js'
-import {
-  formatCuil,
-  formatTelefono,
-} from '$core/format.js'
+import { formatCuil, formatTelefono, parseCuil as normalizeCuil, normalizeTelefonoForStorage as normalizeTelefono, normalizeEmail as normalizeEmailField, isValidCuil, isValidCuilChecksum, isValidEmail as isValidEmailField } from '$core/format.js'
 
 /**
  * Composable reutilizable para validación de campos con warnings visuales.

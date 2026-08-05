@@ -13,7 +13,6 @@
   import ContactIcon from '@lucide/svelte/icons/contact'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import GavelIcon from '@lucide/svelte/icons/gavel'
-  import SettingsIcon from '@lucide/svelte/icons/settings'
   import BarChartIcon from '@lucide/svelte/icons/bar-chart'
   import BuildingIcon from '@lucide/svelte/icons/building-2'
   import CommandIcon from '@lucide/svelte/icons/command'
@@ -37,7 +36,6 @@
     movimientos: ArrowLeftRightIcon,
     resumen: BarChartIcon,
     gobierno: GavelIcon,
-    cooperadora: SettingsIcon,
   }
 
   const shortcutLabels = {
@@ -47,7 +45,6 @@
     movimientos: 'Ctrl+M',
     resumen: 'Ctrl+R',
     gobierno: 'Ctrl+A',
-    cooperadora: 'Ctrl+C',
   }
 
   const go = (r) => navigate(r)
@@ -223,8 +220,11 @@
     </Sidebar.Content>
     <Sidebar.Rail />
     <Sidebar.Footer>
-      <div class="px-2 py-1 text-[11px] text-muted-foreground/80 select-none">
-        {identidad.nombre} v{versionActual}{#if shaActual && shaActual !== 'dev'} · {shaActual}{/if}
+      <div class="flex items-center gap-2 px-2 py-1 select-none">
+        <img src="./logo.svg" alt="{identidad.nombre}" class="size-6 shrink-0 rounded" />
+        <div class="text-[11px] text-muted-foreground/80 leading-tight group-data-[collapsible=icon]:hidden">
+          {identidad.nombre} v{versionActual}{#if shaActual && shaActual !== 'dev'} · {shaActual}{/if}
+        </div>
       </div>
     </Sidebar.Footer>
   </Sidebar.Root>

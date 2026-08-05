@@ -24,7 +24,7 @@ export const buildVigenteByCargo = (autoridades, organismo) => {
 export const normalizeFields = (obj) => {
   const out = {}
   for (const [k, v] of Object.entries(obj || {})) {
-    if (v === '') continue
+    if (v === '' || v === null) continue
     out[k] = v
   }
   return out
@@ -74,6 +74,14 @@ export const addMonths = (dateStr, months) => {
 }
 
 export const monthKey = (iso) => String(iso || '').slice(0, 7)
+
+/**
+ * Construye un Map de Number(item.id) → item a partir de un array de registros.
+ * Útil para lookups O(1) por id numérico (los ids de Grist son números).
+ * @param {any[]} arr - Array de registros con propiedad `id`
+ * @returns {Map<number, any>}
+ */
+export const buildMapById = (arr) => new Map((arr || []).map((item) => [Number(item.id), item]))
 
 export const formatARS = (amount) => {
   const n = Number(amount || 0)
@@ -167,14 +175,16 @@ export const TABLE_PREFERRED_IDS = {
 }
 
 export const MODULES = {
-  solo_pia: {
-    label: 'Solo PIA / Nómina',
-    description: 'Simplificá la generación de planillas PIA y nómina de socios. Carga personas y socios, y generá los reportes cuando los necesites.',
-    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'rubros_pia', 'planillas_generadas', 'configuracion'],
+  carga_consolidada: {
+    label: 'Carga consolidada',
+    description: 'Cargá los rubros PIA por período (mensual o anual). Ideal para cooperadoras que no registran cada movimiento individual.',
+    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'rubros_pia', 'planillas_generadas', 'configuracion', 'movimientos', 'cuentas', 'cierres_mensuales'],
     menuItems: [
       { route: 'inicio', label: 'Inicio' },
       { route: 'socios', label: 'Socios' },
-      { route: 'personas', label: 'Personas' }
+      { route: 'personas', label: 'Personas' },
+      { route: 'movimientos', label: 'Movimientos' },
+      { route: 'resumen', label: 'Resumen' }
     ],
     implemented: true
   },
@@ -192,19 +202,6 @@ export const MODULES = {
     ],
     implemented: true
   },
-  gestion_etapas: {
-    label: 'Gestión por etapas',
-    description: 'Carga consolidada por período (semanal, mensual, bimestral o semestral).',
-    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'rubros_pia', 'planillas_generadas', 'configuracion', 'movimientos', 'cuentas', 'cierres_mensuales'],
-    menuItems: [
-      { route: 'inicio', label: 'Inicio' },
-      { route: 'socios', label: 'Socios' },
-      { route: 'personas', label: 'Personas' },
-      { route: 'movimientos', label: 'Movimientos' },
-      { route: 'resumen', label: 'Resumen' }
-    ],
-    implemented: true
-  },
   kiosco: {
     label: 'Kiosco / Librería',
     description: 'Gestión de kiosco o librería escolar',
@@ -215,25 +212,41 @@ export const MODULES = {
   }
 }
 
+/**
+ * Detecta si una config corresponde al modo carga_consolidada,
+ * considerando tanto el flag nuevo como los legacy (solo_pia / gestion_etapas).
+ */
+const isCargaConsolidada = (config) =>
+  Boolean(config?.modulo_carga_consolidada || config?.modulo_solo_pia || config?.modulo_gestion_etapas)
+
 export const getActiveMenuItems = (config) => {
   if (!config) return [{ route: 'inicio', label: 'Inicio' }]
   const items = [{ route: 'inicio', label: 'Inicio' }]
 
   if (config.modulo_gestion_integral) {
-    items.push({ route: 'cooperadora', label: 'Cooperadora' })
     items.push({ route: 'movimientos', label: 'Movimientos' })
     items.push({ route: 'gobierno', label: 'Asambleas y Autoridades' })
     items.push({ route: 'socios', label: 'Socios' })
     items.push({ route: 'personas', label: 'Personas' })
     items.push({ route: 'resumen', label: 'Resumen' })
-  } else if (config.modulo_solo_pia || config.modulo_gestion_etapas) {
+  } else if (isCargaConsolidada(config)) {
     items.push({ route: 'socios', label: 'Socios' })
     items.push({ route: 'personas', label: 'Personas' })
-    if (config.modulo_gestion_etapas) {
-      items.push({ route: 'movimientos', label: 'Movimientos' })
-      items.push({ route: 'resumen', label: 'Resumen' })
-    }
+    items.push({ route: 'movimientos', label: 'Movimientos' })
+    items.push({ route: 'resumen', label: 'Resumen' })
   }
 
   return items
+}
+
+/**
+ * Devuelve el label de la modalidad de gestión activa según los flags de config.
+ * @param {Record<string, any> | null} config
+ * @returns {string}
+ */
+export const getModalidadGestion = (config) => {
+  if (!config) return 'No configurado'
+  if (config.modulo_gestion_integral) return MODULES.gestion_integral.label
+  if (isCargaConsolidada(config)) return MODULES.carga_consolidada.label
+  return 'No configurado'
 }

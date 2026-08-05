@@ -28,6 +28,9 @@ describe('normalizeFields', () => {
   it('removes empty string values', () => {
     expect(normalizeFields({ a: 'x', b: '', c: 0 })).toEqual({ a: 'x', c: 0 })
   })
+  it('removes null values', () => {
+    expect(normalizeFields({ a: 'x', b: null, c: 0 })).toEqual({ a: 'x', c: 0 })
+  })
   it('handles null', () => {
     expect(normalizeFields(null)).toEqual({})
   })

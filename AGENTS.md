@@ -1,5 +1,22 @@
 # Project Rules
 
+## Entorno de shell: nvm antes de npm
+
+El host usa `nvm` para gestionar Node. **Antes de ejecutar cualquier comando `npm` (o `npx`/`node`) por primera vez en una sesión de shell**, correr primero:
+
+```bash
+nvm use 24
+```
+
+Esto carga la versión de Node 24 y deja `npm` disponible en el PATH de esa shell. Si la shell ya tiene Node 24 cargado (ej. `node -v` devuelve `v24.x`), **no hace falta** repetirlo en la misma sesión.
+
+Reglas:
+
+- Ejecutar `nvm use 24` **una sola vez por sesión de shell** (no antes de cada comando npm).
+- Si una shell nueva (distinto `shell_id`) va a correr npm, correr `nvm use 24` ahí también.
+- Si `nvm use 24` falla porque la versión no está instalada, avisar al usuario en lugar de intentar instalarla.
+- Después de `nvm use 24`, los comandos `npm run dev`, `npm run build`, `npm ci`, `npm test`, etc. funcionan normalmente.
+
 ## Skills obligatorios para cambios de código
 
 Cuando se solicite una modificación, un fix, una mejora o una nueva funcionalidad en este proyecto, **invocar siempre** (en paralelo, al iniciar la tarea) los siguientes skills, salvo que el usuario indique explícitamente lo contrario (ej. "no uses skills definidos"):

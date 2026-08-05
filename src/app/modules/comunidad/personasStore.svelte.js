@@ -1,19 +1,8 @@
 import { createGristStore, extendStore } from '$core/stores/gristStore.svelte.js'
-import {
-  normalizeDni,
-  normalizeCuil,
-  normalizeTelefono,
-  normalizeEmailField,
-  isValidDni,
-  findPersonaByDni,
-} from '$core/personas.js'
-import {
-  formatDni,
-  formatCuil,
-  formatTelefono,
-} from '$core/format.js'
-import { dateToInput } from '$core/utils.js'
+import { findPersonaByDni } from '$core/personas.js'
+import { formatDni, formatCuil, formatTelefono, parseDni as normalizeDni, parseCuil as normalizeCuil, normalizeTelefonoForStorage as normalizeTelefono, normalizeEmail as normalizeEmailField, isValidDni } from '$core/format.js'
 import { useFieldWarnings } from '$core/useFieldWarnings.svelte.js'
+import { buildPersonaForm, buildNewPersonaForm } from './personaFormManager.js'
 
 const base = createGristStore({
   tableKey: 'personas',
@@ -22,9 +11,6 @@ const base = createGristStore({
     const out = { ...fields }
     out.dni = normalizeDni(out.dni) || null
     out.cuil = normalizeCuil(out.cuil) || null
-    Object.keys(out).forEach((k) => {
-      if (out[k] === '' || out[k] === null) delete out[k]
-    })
     return out
   },
 })
@@ -37,40 +23,12 @@ const fw = useFieldWarnings({ getForm: () => form })
 
 const select = (/** @type {Record<string, any>} */ p) => {
   fw.reset()
-  form = {
-    id: p.id,
-    tipo_persona: p.tipo_persona || 'Fisica',
-    dni: formatDni(p.dni || ''),
-    cuil: formatCuil(p.cuil || ''),
-    apellido: p.apellido || '',
-    nombre: p.nombre || '',
-    razon_social: p.razon_social || '',
-    domicilio: p.domicilio || '',
-    localidad: p.localidad || '',
-    telefono: formatTelefono(p.telefono || ''),
-    email: p.email || '',
-    fecha_nacimiento: dateToInput(p.fecha_nacimiento),
-    categoria: p.categoria || '',
-  }
+  form = buildPersonaForm(p)
 }
 
 const nuevo = (/** @type {Record<string, any>} */ prefill = {}) => {
   fw.reset()
-  form = {
-    id: null,
-    tipo_persona: prefill.tipo_persona || 'Fisica',
-    dni: formatDni(prefill.dni || ''),
-    cuil: '',
-    apellido: prefill.apellido || '',
-    nombre: prefill.nombre || '',
-    razon_social: prefill.razon_social || '',
-    domicilio: '',
-    localidad: '',
-    telefono: '',
-    email: '',
-    fecha_nacimiento: '',
-    categoria: prefill.categoria || '',
-  }
+  form = buildNewPersonaForm(prefill)
 }
 
 const cancelar = () => {

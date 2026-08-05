@@ -1,53 +1,47 @@
 <script>
   import { onMount } from 'svelte'
   import { sociosStore as store } from './sociosStore.svelte'
-  import { normalize, TIPOS_SOCIO, MOTIVOS_BAJA, daysSince, isAdult } from '$core/utils'
-  import { personaLabel, isDniQuery, buildPrefill, localidadesItems } from '$core/personas'
+  import { TIPOS_SOCIO, MOTIVOS_BAJA, daysSince } from '$core/utils'
+  import { filterBySearch, sortByFields } from '$core/useListFilter.svelte.js'
+  import { buildPrefill } from '$core/personas'
   import { notifyAfter } from '$core/notify.svelte'
   import { Button } from '$lib/components/ui/button'
   import * as Card from '$lib/components/ui/card'
-  import { Badge } from '$lib/components/ui/badge'
   import { Input } from '$lib/components/ui/input'
   import { Separator } from '$lib/components/ui/separator'
   import * as Select from '$lib/components/ui/select'
   import * as Field from '$lib/components/ui/field'
   import * as Alert from '$lib/components/ui/alert'
-  import Combobox from '$lib/components/Combobox.svelte'
-  import EmptyState from '$lib/components/EmptyState.svelte'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
-  import { useInfiniteScroll } from '$lib/useInfiniteScroll.svelte.js'
-  import { Skeleton } from '$lib/components/ui/skeleton'
   import UserPlusIcon from '@lucide/svelte/icons/user-plus'
-  import SearchIcon from '@lucide/svelte/icons/search'
   import LinkIcon from '@lucide/svelte/icons/link'
-  import UsersIcon from '@lucide/svelte/icons/users'
+  import FilterBar from './parts/FilterBar.svelte'
+  import RecordList from './parts/RecordList.svelte'
+  import PersonaFormFields from './parts/PersonaFormFields.svelte'
+  import EmptyStates from './parts/EmptyStates.svelte'
+
   let q = $state('')
   let estado = $state('activos')
   let tipo = $state('')
 
   const isActivo = (/** @type {any} */ s) => !s.fecha_baja
-  const isElectoral = (/** @type {any} */ s) => s.tipo_socio === 'Activo' && !s.fecha_baja && (daysSince(s.fecha_alta) ?? 0) >= 30
 
   let filtered = $derived(
-    store.records
-      .filter((/** @type {any} */ s) => {
-        if (estado === 'activos') return isActivo(s)
-        if (estado === 'bajas') return !isActivo(s)
-        return true
-      })
-      .filter((/** @type {any} */ s) => (tipo ? String(s.tipo_socio || '') === tipo : true))
-      .filter((/** @type {any} */ s) => {
-        const t = normalize(q)
-        if (!t) return true
-        const hay = [s.apellido, s.nombre, s.dni, s.cuil, s.email, s.telefono, s.localidad, s.domicilio]
-          .map((/** @type {any} */ v) => normalize(v))
-          .join(' ')
-        return hay.includes(t)
-      })
-      .sort((/** @type {any} */ a, /** @type {any} */ b) => normalize(a.apellido).localeCompare(normalize(b.apellido)) || normalize(a.nombre).localeCompare(normalize(b.nombre)))
+    sortByFields(
+      filterBySearch(
+        store.records
+          .filter((/** @type {any} */ s) => {
+            if (estado === 'activos') return isActivo(s)
+            if (estado === 'bajas') return !isActivo(s)
+            return true
+          })
+          .filter((/** @type {any} */ s) => (tipo ? String(s.tipo_socio || '') === tipo : true)),
+        q,
+        (/** @type {any} */ s) => [s.apellido, s.nombre, s.dni, s.cuil, s.email, s.telefono, s.localidad, s.domicilio],
+      ),
+      (/** @type {any} */ s) => [s.apellido, s.nombre],
+    ),
   )
-
-  const scroll = useInfiniteScroll(() => filtered)
 
   const handleSave = () => notifyAfter(store, store.saveSocio)
 
@@ -56,83 +50,68 @@
     store.load()
     return unsub
   })
+
+  const estadoFilter = {
+    key: 'estado',
+    value: estado,
+    allowDeselect: false,
+    triggerClass: 'w-[120px]',
+    ariaLabel: 'Filtrar por estado',
+    placeholder: 'Estado',
+    options: [
+      { value: 'activos', label: 'Activos' },
+      { value: 'bajas', label: 'Bajas' },
+      { value: 'todos', label: 'Todos' },
+    ],
+    onValueChange: (v) => (estado = v),
+  }
+
+  const tipoFilter = {
+    key: 'tipo',
+    value: tipo,
+    allowDeselect: true,
+    triggerClass: 'w-[160px]',
+    ariaLabel: 'Filtrar por tipo de socio',
+    placeholder: 'Todos los tipos',
+    options: TIPOS_SOCIO.map((t) => ({ value: t, label: t })),
+    onValueChange: (v) => (tipo = v),
+  }
 </script>
 
 <PageScaffold title="Socios" loading={store.loading} error={store.error} notice={store.notice}>
-  {#snippet skeleton()}
-    <div class="flex flex-col gap-4">
-      <div class="flex gap-3">
-        <Skeleton class="h-9 flex-1" />
-        <Skeleton class="h-9 w-32" />
-        <Skeleton class="h-9 w-32" />
-      </div>
-      <div class="grid gap-4" style="grid-template-columns: 320px 1fr">
-        <Skeleton class="h-96" />
-        <Skeleton class="h-96" />
-      </div>
-    </div>
-  {/snippet}
-  <div class="mb-4 flex flex-wrap items-center gap-3">
-    <div class="relative flex-1 min-w-[200px]">
-      <SearchIcon class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input placeholder="Buscar (apellido, nombre, DNI…)" bind:value={q} class="pl-9" aria-label="Buscar socios" data-shortcut="search" />
-    </div>
-    <Select.Root type="single" bind:value={estado}>
-      <Select.Trigger class="w-[120px]" aria-label="Filtrar por estado">
-        <Select.Value placeholder="Estado" />
-      </Select.Trigger>
-      <Select.Content>
-        <Select.Item value="activos">Activos</Select.Item>
-        <Select.Item value="bajas">Bajas</Select.Item>
-        <Select.Item value="todos">Todos</Select.Item>
-      </Select.Content>
-    </Select.Root>
-    <Select.Root type="single" bind:value={tipo} allowDeselect={true}>
-      <Select.Trigger class="w-[160px]" aria-label="Filtrar por tipo de socio">
-        <Select.Value placeholder="Todos los tipos" />
-      </Select.Trigger>
-      <Select.Content>
-        {#each TIPOS_SOCIO as t}
-          <Select.Item value={t}>{t}</Select.Item>
-        {/each}
-      </Select.Content>
-    </Select.Root>
-    <Button data-shortcut="new" onclick={() => store.nuevo(buildPrefill(q))}>
+  <FilterBar
+    bind:q
+    count={filtered.length}
+    countLabel="socios"
+    searchPlaceholder="Buscar (apellido, nombre, DNI…)"
+    searchAriaLabel="Buscar socios"
+    newLabel="Nuevo socio"
+    onNew={() => store.nuevo(buildPrefill(q))}
+    onReload={store.load}
+    showReload
+    filters={[estadoFilter, tipoFilter]}
+  >
+    {#snippet newIcon()}
       <UserPlusIcon data-icon="inline-start" />
-      Nuevo socio
-    </Button>
-    <Button variant="outline" onclick={store.load}>Recargar</Button>
-    <span class="text-sm text-muted-foreground">{filtered.length} socios</span>
-  </div>
+    {/snippet}
+  </FilterBar>
 
-  <div class="grid gap-4" style="grid-template-columns: {filtered.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
-    {#if filtered.length > 0}
-      <div bind:this={scroll.scrollEl} onscroll={scroll.onScroll} class="max-h-[calc(100vh-200px)] overflow-y-auto rounded-lg border border-border bg-card">
-        {#each scroll.visible as s (s.id)}
-          <button
-            class="w-full border-b border-border px-4 py-3 text-left transition-colors hover:bg-accent {store.form?.id === s.id ? 'bg-primary/10' : ''}"
-            onclick={() => store.select(s)}
-            aria-pressed={store.form?.id === s.id}
-          >
-            <div class="font-semibold text-sm">{s.apellido}, {s.nombre}</div>
-            <div class="text-xs text-muted-foreground">
-              {#if isActivo(s)}
-                <Badge variant="secondary" class="mr-1 text-[10px]">Activo</Badge>
-              {:else}
-                <Badge variant="outline" class="mr-1 text-[10px]">Baja</Badge>
-              {/if}
-              {#if s.tipo_socio && s.tipo_socio !== 'Activo'}
-                <Badge variant="outline" class="mr-1 text-[10px] text-muted-foreground">Sin voto</Badge>
-              {/if}
-              DNI {s.dni || '-'} · {s.localidad || ''}
-            </div>
-          </button>
-        {/each}
-        {#if scroll.hasMore}
-          <div class="py-3 text-center text-xs text-muted-foreground">Cargando más…</div>
-        {/if}
-      </div>
-    {/if}
+  <div class="grid gap-4 items-start" style="grid-template-columns: {filtered.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
+    <div class="relative min-h-0 self-stretch min-h-[75vh]">
+      <RecordList
+        items={filtered}
+        selectedId={store.form?.id}
+        onSelect={(s) => store.select(s)}
+        itemLabel={(s) => `${s.apellido}, ${s.nombre}`}
+        itemSub={(s) => `DNI ${s.dni || '-'} · ${s.localidad || ''}`}
+        itemBadges={(s) => {
+          const badges = []
+          badges.push(isActivo(s) ? { text: 'Activo', variant: 'secondary' } : { text: 'Baja', variant: 'outline' })
+          if (s.tipo_socio && s.tipo_socio !== 'Activo') badges.push({ text: 'Sin voto', variant: 'outline' })
+          return badges
+        }}
+      />
+    </div>
 
     <div>
       {#if store.form}
@@ -146,7 +125,7 @@
             {#if store.linkedPersona}
               <div class="flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2">
                 <LinkIcon class="size-3.5 text-primary" />
-                <span class="text-sm font-medium">Persona vinculada: {personaLabel(store.linkedPersona)}</span>
+                <span class="text-sm font-medium">Persona vinculada: {store.linkedPersona.apellido || ''}, {store.linkedPersona.nombre || ''}</span>
               </div>
             {/if}
 
@@ -168,24 +147,19 @@
 
             <!-- Form -->
             <Field.FieldGroup class="grid gap-4 sm:grid-cols-2">
-              <Field.Field data-invalid={Boolean(store.dniWarning)}>
-                <Field.FieldLabel for="dni">DNI</Field.FieldLabel>
-                <Input id="dni" bind:value={store.form.dni} oninput={store.onDniInput} aria-invalid={Boolean(store.dniWarning)} placeholder="12.345.678" inputmode="numeric" />
-                {#if store.dniWarning}<Field.FieldError>{store.dniWarning}</Field.FieldError>{/if}
-              </Field.Field>
-              <Field.Field data-invalid={Boolean(store.cuilWarning)}>
-                <Field.FieldLabel for="cuil">CUIL</Field.FieldLabel>
-                <Input id="cuil" bind:value={store.form.cuil} oninput={store.onCuilInput} aria-invalid={Boolean(store.cuilWarning)} placeholder="20-12345678-9" inputmode="numeric" />
-                {#if store.cuilWarning}<Field.FieldError>{store.cuilWarning}</Field.FieldError>{/if}
-              </Field.Field>
-              <Field.Field>
-                <Field.FieldLabel for="apellido">Apellido</Field.FieldLabel>
-                <Input id="apellido" bind:value={store.form.apellido} />
-              </Field.Field>
-              <Field.Field>
-                <Field.FieldLabel for="nombre">Nombre</Field.FieldLabel>
-                <Input id="nombre" bind:value={store.form.nombre} />
-              </Field.Field>
+              <PersonaFormFields
+                form={store.form}
+                dniWarning={store.dniWarning}
+                cuilWarning={store.cuilWarning}
+                telefonoWarning={store.telefonoWarning}
+                emailWarning={store.emailWarning}
+                onDniInput={store.onDniInput}
+                onCuilInput={store.onCuilInput}
+                onTelefonoInput={store.onTelefonoInput}
+                onEmailInput={store.onEmailInput}
+                fechaNacimientoWarning={store.edadWarning}
+                onFechaNacimientoInput={store.onFechaNacimientoInput}
+              />
               <Field.Field>
                 <Field.FieldLabel for="tipo">Tipo</Field.FieldLabel>
                 <Select.Root type="single" bind:value={store.form.tipo_socio}>
@@ -199,37 +173,9 @@
                   </Select.Content>
                 </Select.Root>
               </Field.Field>
-              <Field.Field data-invalid={Boolean(store.edadWarning)}>
-                <Field.FieldLabel for="fecha-nacimiento">Fecha de nacimiento</Field.FieldLabel>
-                <Input id="fecha-nacimiento" type="date" bind:value={store.form.fecha_nacimiento} oninput={store.onFechaNacimientoInput} aria-invalid={Boolean(store.edadWarning)} />
-                {#if store.edadWarning}<Field.FieldError>{store.edadWarning}</Field.FieldError>{/if}
-              </Field.Field>
               <Field.Field>
                 <Field.FieldLabel for="fecha-alta">Fecha alta</Field.FieldLabel>
                 <Input id="fecha-alta" type="date" bind:value={store.form.fecha_alta} />
-              </Field.Field>
-              <Field.Field>
-                <Field.FieldLabel for="domicilio">Domicilio</Field.FieldLabel>
-                <Input id="domicilio" bind:value={store.form.domicilio} />
-              </Field.Field>
-              <Field.Field>
-                <Field.FieldLabel for="localidad">Localidad</Field.FieldLabel>
-                <Combobox
-                  bind:value={store.form.localidad}
-                  items={localidadesItems}
-                  placeholder="Elegir localidad…"
-                  searchPlaceholder="Buscar localidad de PBA…"
-                />
-              </Field.Field>
-              <Field.Field data-invalid={Boolean(store.telefonoWarning)}>
-                <Field.FieldLabel for="telefono">Teléfono</Field.FieldLabel>
-                <Input id="telefono" bind:value={store.form.telefono} oninput={store.onTelefonoInput} aria-invalid={Boolean(store.telefonoWarning)} placeholder="+54 9 11 1234-5678" inputmode="tel" />
-                {#if store.telefonoWarning}<Field.FieldError>{store.telefonoWarning}</Field.FieldError>{/if}
-              </Field.Field>
-              <Field.Field data-invalid={Boolean(store.emailWarning)}>
-                <Field.FieldLabel for="email">Email</Field.FieldLabel>
-                <Input id="email" type="email" bind:value={store.form.email} oninput={store.onEmailInput} aria-invalid={Boolean(store.emailWarning)} placeholder="nombre@ejemplo.com" inputmode="email" />
-                {#if store.emailWarning}<Field.FieldError>{store.emailWarning}</Field.FieldError>{/if}
               </Field.Field>
               {#if store.form.id && store.form.fecha_baja && !store.showBaja}
                 <Field.Field class="sm:col-span-2">
@@ -297,33 +243,20 @@
             </div>
           </Card.Content>
         </Card.Root>
-      {:else if filtered.length === 0 && q.trim()}
-        <EmptyState
-          title="Sin coincidencias"
-          sub="No se encontraron socios con ese criterio. ¿Querés crear uno nuevo?"
-          actionLabel="Crear socio"
-          onaction={() => store.nuevo(buildPrefill(q))}
-        >
-          {#snippet actionIcon()}
-            <UserPlusIcon data-icon="inline-start" />
-          {/snippet}
-        </EmptyState>
-      {:else if filtered.length === 0}
-        <EmptyState
-          title="Todavía no hay socios"
-          sub="Creá el primer socio para empezar."
-          actionLabel="Nuevo socio"
-          onaction={() => store.nuevo()}
-        >
-          {#snippet actionIcon()}
-            <UserPlusIcon data-icon="inline-start" />
-          {/snippet}
-        </EmptyState>
       {:else}
-        <div class="flex flex-col items-center gap-2 py-12 text-center">
-          <UsersIcon class="size-8 text-muted-foreground" />
-          <p class="text-sm text-muted-foreground">Seleccioná un socio o creá uno nuevo.</p>
-        </div>
+        <EmptyStates
+          filteredCount={filtered.length}
+          hasQuery={Boolean(q.trim())}
+          entityLabel="socio"
+          entityArticle="uno"
+          onNew={() => store.nuevo()}
+          onNewFromQuery={() => store.nuevo(buildPrefill(q))}
+          selectPrompt="Seleccioná un socio o creá uno nuevo."
+        >
+          {#snippet actionIcon()}
+            <UserPlusIcon data-icon="inline-start" />
+          {/snippet}
+        </EmptyStates>
       {/if}
     </div>
   </div>

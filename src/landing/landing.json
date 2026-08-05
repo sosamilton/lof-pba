@@ -76,8 +76,11 @@
         "Rubro y subrubro según la PIA",
         "Destino bancario cuando corresponde",
         "Asociar socio o persona de forma opcional",
-        "Combobox con umbral de búsqueda para listas grandes",
-        "Dashboard con métricas: socios activos, altas/bajas, vencimientos, ejercicio en curso"
+        "Saldos iniciales por ejercicio (banco, efectivo, caja chica)",
+        "Tablero de caja en Inicio: saldo total, por cuenta, ingresos/egresos del mes",
+        "Carga PIA por rubro: matriz editable con un movimiento por rubro del período",
+        "Resumen mensual y semanal con arrastre de saldo",
+        "Firma de períodos: sella un mes y bloquea la edición"
       ]
     }
   ],
@@ -234,18 +237,18 @@
   "roadmap": [
     {
       "estado": "proximo",
-      "titulo": "Tesorería avanzada",
-      "descripcion": "Saldos iniciales por ejercicio, resúmenes semanales y mensuales, y un tablero de caja que muestre cuánto hay, cuánto se debe, cuánto ingresó y cuánto salió."
-    },
-    {
-      "estado": "proximo",
       "titulo": "Actas y adjuntos",
       "descripcion": "Carga guiada de actas de Comisión Directiva y asambleas, comprobantes y archivos adjuntos con trazabilidad completa."
     },
     {
+      "estado": "proximo",
+      "titulo": "Generación automática de la PIA",
+      "descripcion": "Armado automático de la Planilla de Ingresos y Aportes desde los movimientos cargados por rubro, lista para imprimir o exportar."
+    },
+    {
       "estado": "despues",
       "titulo": "Cierres y reportes",
-      "descripcion": "Cierres mensuales con saldos y exportables para PIA, nómina de autoridades y controles. Generación del balance de tesorería según modelo oficial."
+      "descripcion": "Cierres mensuales firmados con snapshot inmutable, exportables para PIA y balance de tesorería según modelo oficial."
     },
     {
       "estado": "despues",
