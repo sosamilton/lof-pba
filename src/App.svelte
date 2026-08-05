@@ -17,6 +17,7 @@
   import Personas from '$app/modules/comunidad/Personas.svelte'
   import Movimientos from '$app/modules/tesoreria/Movimientos.svelte'
   import ResumenMensual from '$app/modules/tesoreria/ResumenMensual.svelte'
+  import CargaPIAMatrix from '$app/modules/tesoreria/CargaPIAMatrix.svelte'
   import Gobierno from '$app/modules/gobierno/AsambleasAutoridades.svelte'
 
   let ready = $state(false)
@@ -87,6 +88,8 @@
         <Movimientos />
       {:else if router.current === 'resumen'}
         <ResumenMensual />
+      {:else if router.current.startsWith('carga-pia')}
+        <CargaPIAMatrix />
       {:else if router.current === 'gobierno'}
         <Gobierno />
       {:else}

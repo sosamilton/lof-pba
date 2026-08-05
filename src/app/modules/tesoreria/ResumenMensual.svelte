@@ -4,6 +4,8 @@
   import { movimientosStore } from './movimientosStore.svelte.js'
   import { loadConfig } from '$core/configuracion'
   import { formatARS } from '$core/utils'
+  import { navigate } from '$core/router.svelte'
+  import { proximoPeriodoACargar } from './tesoreriaCalc.js'
   import * as Card from '$lib/components/ui/card'
   import * as Table from '$lib/components/ui/table'
   import * as Tabs from '$lib/components/ui/tabs'
@@ -18,11 +20,9 @@
   import LockIcon from '@lucide/svelte/icons/lock'
   import TableIcon from '@lucide/svelte/icons/table'
   import PencilIcon from '@lucide/svelte/icons/pencil'
-  import CargaPIAMatrix from './CargaPIAMatrix.svelte'
 
   // Modo de gestión: si es carga_consolidada, mostramos el botón de carga PIA.
   let modoConsolidada = $state(false)
-  let cargaPIAMatrix = $state(null)
 
   onMount(async () => {
     store.load()
@@ -32,13 +32,28 @@
         config?.modulo_carga_consolidada || config?.modulo_solo_pia || config?.modulo_gestion_etapas
       )
     } catch { /* config opcional */ }
-    // Cargar datos del store de movimientos (necesarios para la matriz PIA).
+    // Cargar datos del store de movimientos (necesarios para calcular próximo período).
     if (modoConsolidada) {
       const unsub = movimientosStore.subscribe()
       await movimientosStore.loadAll()
       return unsub
     }
   })
+
+  // Navega a la página de carga PIA con un período específico.
+  const irACargaPIA = (periodo) => {
+    navigate(`carga-pia/${periodo}`)
+  }
+
+  // Navega a la página de carga PIA sin período: la página calcula el más viejo adeudado.
+  const irACargaPIADefault = () => {
+    // Calcular el próximo período a cargar aquí para navegar con él.
+    const periodosConDatos = new Set(
+      store.movimientos.map((m) => String(String(m.fecha || '').slice(0, 7))).filter(Boolean)
+    )
+    const proximo = proximoPeriodoACargar(store.ejercicio, periodosConDatos)
+    navigate(`carga-pia/${proximo}`)
+  }
 </script>
 
 <PageScaffold title="Resumen">
@@ -59,7 +74,7 @@
     <!-- Botón de carga PIA (solo en modo carga_consolidada) -->
     {#if modoConsolidada}
       <div class="mb-4">
-        <Button onclick={() => cargaPIAMatrix?.abrir()}>
+        <Button onclick={irACargaPIADefault}>
           <TableIcon data-icon="inline-start" />
           Cargar PIA por rubro
         </Button>
@@ -102,7 +117,7 @@
     {#if store.resumen.length === 0}
       <Card.Root>
         <Card.Content class="pt-6 text-center text-sm text-muted-foreground">
-          No hay períodos con movimientos para este ejercicio.
+          No hay períodos para este ejercicio.
           {#if modoConsolidada}
             <br />
             Usá el botón <strong>Cargar PIA por rubro</strong> para empezar a cargar los rubros del período.
@@ -129,7 +144,7 @@
             <Table.Body>
               {#each store.resumen as r (r.periodo)}
                 <Table.Row>
-                  <Table.Cell class="font-mono">{r.periodo}</Table.Cell>
+                  <Table.Cell class="font-mono text-xs">{r.label || r.periodo}</Table.Cell>
                   <Table.Cell class="text-right text-primary">+{formatARS(r.ingresos)}</Table.Cell>
                   <Table.Cell class="text-right text-destructive">-{formatARS(r.egresos)}</Table.Cell>
                   <Table.Cell class="text-right">{formatARS(r.saldoInicial)}</Table.Cell>
@@ -140,6 +155,8 @@
                         <LockIcon class="size-3" />
                         Firmado
                       </Badge>
+                    {:else if r.origen === 'vacio'}
+                      <Badge variant="outline" class="text-muted-foreground">Falta cargar</Badge>
                     {:else}
                       <Badge variant="secondary">Abierto</Badge>
                     {/if}
@@ -151,11 +168,11 @@
                           variant="ghost"
                           size="sm"
                           class="h-7 gap-1"
-                          onclick={() => cargaPIAMatrix?.abrir(r.periodo + '-01')}
-                          title="Editar carga PIA de este período"
+                          onclick={() => irACargaPIA(r.periodo)}
+                          title={r.origen === 'vacio' ? 'Cargar PIA de este período' : 'Editar carga PIA de este período'}
                         >
                           <PencilIcon class="size-3.5" />
-                          Editar
+                          {r.origen === 'vacio' ? 'Cargar' : 'Editar'}
                         </Button>
                       {/if}
                     </Table.Cell>
@@ -180,6 +197,3 @@
     {/if}
   {/if}
 </PageScaffold>
-
-<!-- Matriz de carga PIA (solo visible en carga_consolidada, montada siempre) -->
-<CargaPIAMatrix bind:this={cargaPIAMatrix} />

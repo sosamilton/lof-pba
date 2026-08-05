@@ -1,6 +1,10 @@
 <script>
+  import { onMount, tick } from 'svelte'
   import { movimientosStore as store } from './movimientosStore.svelte.js'
+  import { resumenStore } from './resumenStore.svelte.js'
   import { formatARS, normalize } from '$core/utils'
+  import { navigate } from '$core/router.svelte'
+  import { generarPeriodosEjercicio, proximoPeriodoACargar } from './tesoreriaCalc.js'
   import { Button } from '$lib/components/ui/button'
   import * as Table from '$lib/components/ui/table'
   import * as Dialog from '$lib/components/ui/dialog'
@@ -9,6 +13,8 @@
   import { Label } from '$lib/components/ui/label'
   import { Badge } from '$lib/components/ui/badge'
   import ArsInput from '$lib/components/ArsInput.svelte'
+  import PageScaffold from '$lib/components/PageScaffold.svelte'
+  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left'
   import PlusIcon from '@lucide/svelte/icons/plus'
   import TrashIcon from '@lucide/svelte/icons/trash'
   import LockIcon from '@lucide/svelte/icons/lock'
@@ -18,20 +24,21 @@
   // Máximo de filas por rubro (una por tipo de cuenta, hasta 3).
   const MAX_FILAS_POR_RUBRO = 3
 
-  // Diálogo de matriz PIA.
-  let abierto = $state(false)
   let fecha = $state('')
   // Filas: múltiples por rubro. Cada fila:
   // { rowId, rubro_id, nombre, codigo, tipo, grupo, importe, cuenta_id, detalle, movimientoId }
   let filas = $state([])
   let cargandoPeriodo = $state(false)
-  // IDs de movimientos eliminados por el usuario (para borrar en Grist al guardar).
   let eliminados = $state([])
-  // Contador para generar rowIds únicos.
   let rowCounter = 0
   // Diálogo de confirmación de firma.
   let confirmarFirma = $state(false)
   let firmando = $state(false)
+  // RowId de la fila recién agregada (para hacer foco después del render).
+  let focusRowId = $state(null)
+
+  // Períodos del ejercicio para el selector.
+  let periodosEjercicio = $derived(generarPeriodosEjercicio(store.ejercicio))
 
   // Filas con importe > 0 para el resumen de confirmación.
   let filasParaConfirmar = $derived(
@@ -76,9 +83,6 @@
   /**
    * Cuentas disponibles para una fila: todas menos las ya usadas en otras
    * filas del mismo rubro. La cuenta actual de la fila siempre está incluida.
-   * @param {number} rubroId
-   * @param {string} currentCuentaId
-   * @returns {any[]}
    */
   const cuentasDisponibles = (rubroId, currentCuentaId) => {
     const usadas = new Set(
@@ -91,27 +95,37 @@
   }
 
   /**
-   * Construye las filas base (una o más por rubro PIA) y las precarga con los
-   * movimientos existentes del período si los hay.
-   * @param {string} fechaInicial
+   * Calcula el período inicial al entrar a la página:
+   * - Si hay período en la URL (#carga-pia/2026-01), usa ese.
+   * - Si no, busca el próximo período a cargar (más viejo sin datos).
+   * - Base: último PIA cargado + 1 mes, o inicio del ejercicio si no hay nada.
    */
-  const abrir = async (fechaInicial) => {
-    fecha = fechaInicial || new Date().toISOString().slice(0, 10)
-    abierto = true
-    await cargarFilas()
+  const calcularPeriodoInicial = () => {
+    // Parsear período de la URL (#carga-pia/2026-01 → '2026-01').
+    const hash = String(typeof window !== 'undefined' ? window.location.hash : '')
+    const match = hash.match(/carga-pia\/(\d{4}-\d{2})/)
+    if (match) return match[1] + '-01'
+
+    // Sin período en URL: calcular el próximo a cargar.
+    const periodosConDatos = new Set(
+      store.records
+        .filter((m) => store.ejercicio && Number(m.ejercicio_id) === Number(store.ejercicio.id))
+        .map((m) => String(String(m.fecha || '').slice(0, 7)))
+        .filter(Boolean)
+    )
+    const proximo = proximoPeriodoACargar(store.ejercicio, periodosConDatos)
+    return proximo + '-01'
   }
 
   /**
    * Reconstruye las filas con los rubros PIA y precarga los importes
    * desde los movimientos existentes del período seleccionado.
-   * Para cada rubro: una fila por movimiento existente + una fila vacía
-   * con la cuenta default si no hay movimientos.
    */
   const cargarFilas = async () => {
     if (!periodoKey) return
     cargandoPeriodo = true
     try {
-      const cuentaDefault = store.cuentaDefaultId || (store.cuentas[0]?.id ?? '')
+      const cuentaDefault = String(store.cuentaDefaultId || store.cuentas[0]?.id || '')
       const existentes = await store.getMovimientosPorRubro(periodoKey)
       rowCounter = 0
       eliminados = []
@@ -128,7 +142,6 @@
             grupo: r.grupo_rubro || 'Otros',
           }
           if (movs.length > 0) {
-            // Una fila por movimiento existente.
             return movs.map((m) => ({
               ...base,
               rowId: `r${rowCounter++}`,
@@ -138,7 +151,6 @@
               movimientoId: m.id,
             }))
           }
-          // Sin movimientos: una fila vacía con cuenta default.
           return [{
             ...base,
             rowId: `r${rowCounter++}`,
@@ -155,31 +167,40 @@
     }
   }
 
-  // Cuando cambia el período (fecha), recargar las filas con los datos
-  // existentes del nuevo período. Solo si el diálogo está abierto.
+  // Cuando cambia el período (fecha), recargar las filas.
   let lastPeriodo = ''
   $effect(() => {
     const pk = periodoKey
-    if (!abierto || !pk || pk === lastPeriodo) return
+    if (!pk || pk === lastPeriodo) return
     lastPeriodo = pk
     cargarFilas()
   })
 
-  const cerrar = () => { abierto = false }
+  // Foco en el select de cuenta de la fila recién agregada.
+  $effect(() => {
+    if (!focusRowId) return
+    tick().then(() => {
+      const el = document.querySelector(`[data-focus-row="${focusRowId}"] select`)
+      if (el) el.focus()
+      focusRowId = null
+    })
+  })
+
+  const volver = () => navigate('resumen')
 
   /**
    * Agrega una nueva fila vacía para un rubro, con la primera cuenta disponible.
-   * @param {object} rubroFila - La fila representativa del rubro (cualquiera del rubro)
+   * Hace foco en el select de cuenta de la nueva fila después del render.
    */
   const agregarFila = (rubroFila) => {
     const rid = Number(rubroFila.rubro_id)
     const filasRubro = filas.filter((f) => Number(f.rubro_id) === rid)
     if (filasRubro.length >= MAX_FILAS_POR_RUBRO) return
-    // Primera cuenta no usada en este rubro.
     const usadas = new Set(filasRubro.map((f) => String(f.cuenta_id)).filter(Boolean))
     const disponible = store.cuentas.find((c) => !usadas.has(String(c.id)))
+    const newRowId = `r${rowCounter++}`
     filas = [...filas, {
-      rowId: `r${rowCounter++}`,
+      rowId: newRowId,
       rubro_id: rubroFila.rubro_id,
       nombre: rubroFila.nombre,
       codigo: rubroFila.codigo,
@@ -190,11 +211,11 @@
       detalle: '',
       movimientoId: null,
     }]
+    focusRowId = newRowId
   }
 
   /**
    * Elimina una fila. Si tenía movimientoId, lo registra para borrar en Grist.
-   * @param {string} rowId
    */
   const eliminarFila = (rowId) => {
     const fila = filas.find((f) => f.rowId === rowId)
@@ -217,7 +238,6 @@
       }))
     const ok = await store.guardarCargaPIA({ fecha, filas: validas, eliminados })
     if (ok) {
-      // Recargar las filas para reflejar el estado guardado (upsert).
       await cargarFilas()
     }
   }
@@ -231,7 +251,6 @@
     if (!periodoKey) return
     firmando = true
     try {
-      // Guardar cambios pendientes antes de firmar.
       const validas = filas
         .filter((f) => Number(f.importe) > 0)
         .map((f) => ({
@@ -254,189 +273,183 @@
     }
   }
 
-  // Exponer abrir para que ResumenMensual.svelte lo invoque.
-  export { abrir }
+  onMount(async () => {
+    const unsub = store.subscribe()
+    await store.loadAll()
+    fecha = calcularPeriodoInicial()
+    await cargarFilas()
+    return unsub
+  })
 </script>
 
-<Dialog.Root bind:open={abierto}>
-  <Dialog.Content class="sm:max-w-[950px] max-h-[90vh] overflow-y-auto">
-    <Dialog.Header>
-      <Dialog.Title>Carga PIA por rubro</Dialog.Title>
-      <Dialog.Description>
-        Uno o más movimientos por rubro PIA para el período seleccionado, uno por tipo de cuenta. Si ya hay movimientos cargados, se muestran y se actualizan al guardar. Solo se guardan las filas con importe &gt; 0.
-      </Dialog.Description>
-    </Dialog.Header>
+<PageScaffold title="Carga PIA" loading={cargandoPeriodo && filas.length === 0} error={store.error} notice={store.notice}>
+  <!-- Header con botón volver -->
+  <div class="flex items-center gap-3 mb-4">
+    <Button variant="outline" size="icon" onclick={volver} title="Volver al resumen">
+      <ArrowLeftIcon class="size-4" />
+    </Button>
+    <h1 class="text-lg font-bold">Carga PIA por rubro</h1>
+  </div>
 
-    <div class="flex flex-col gap-4 py-2">
-      <!-- Selector de período + estado de firma -->
-      <div class="flex flex-wrap items-end gap-3">
-        <div class="flex flex-col gap-1">
-          <Label class="text-xs text-muted-foreground" for="pia_fecha">Período (mes)</Label>
-          <Input id="pia_fecha" type="month" bind:value={fecha} disabled={firmado} />
-        </div>
-        {#if firmado}
-          <Badge variant="destructive" class="mb-1.5">
-            <LockIcon class="size-3" />
-            Firmado — no editable
-          </Badge>
-        {/if}
+  <div class="flex flex-col gap-4">
+    <!-- Selector de período + estado de firma -->
+    <div class="flex flex-wrap items-end gap-3">
+      <div class="flex flex-col gap-1">
+        <Label class="text-xs text-muted-foreground" for="pia_fecha">Período (mes)</Label>
+        <Input id="pia_fecha" type="month" bind:value={fecha} disabled={firmado} />
       </div>
-
       {#if firmado}
-        <Alert.Root>
-          <LockIcon data-icon="inline-start" />
-          <Alert.Title>Período firmado</Alert.Title>
-          <Alert.Description>
-            El período {periodoKey} está firmado. Los movimientos no pueden modificarse desde esta pantalla.
-          </Alert.Description>
-        </Alert.Root>
-      {/if}
-
-      <!-- Matriz por grupo -->
-      <div class="border rounded-lg overflow-hidden">
-        <Table.Root>
-          <Table.Header>
-            <Table.Row>
-              <Table.Head class="w-16">Código</Table.Head>
-              <Table.Head>Rubro PIA</Table.Head>
-              <Table.Head class="w-32">Cuenta</Table.Head>
-              <Table.Head class="w-36">Detalle</Table.Head>
-              <Table.Head class="w-32 text-right">Importe</Table.Head>
-              <Table.Head class="w-24 text-center">Acciones</Table.Head>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {#each grupos as g (g.grupo)}
-              <Table.Row class="bg-muted/50">
-                <Table.Cell colspan="6" class="font-bold text-xs uppercase text-muted-foreground py-2">
-                  {g.grupo}
-                </Table.Cell>
-              </Table.Row>
-              {#each g.rubros as r (r.rubro.rubro_id)}
-                {#each r.filas as f, i (f.rowId)}
-                  <Table.Row>
-                    {#if i === 0}
-                      <Table.Cell class="font-mono text-xs text-muted-foreground">{f.codigo}</Table.Cell>
-                      <Table.Cell>
-                        <div class="flex items-center gap-2">
-                          <span>{f.nombre}</span>
-                          {#if f.tipo === 'Entrada'}
-                            <Badge variant="outline" class="text-xs text-primary border-primary/30">Entrada</Badge>
-                          {:else}
-                            <Badge variant="outline" class="text-xs text-destructive border-destructive/30">Salida</Badge>
-                          {/if}
-                        </div>
-                      </Table.Cell>
-                    {:else}
-                      <Table.Cell></Table.Cell>
-                      <Table.Cell class="text-xs text-muted-foreground pl-8">↳ otra cuenta</Table.Cell>
-                    {/if}
-                    <Table.Cell>
-                      <select
-                        bind:value={f.cuenta_id}
-                        disabled={firmado}
-                        class="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
-                      >
-                        {#each cuentasDisponibles(f.rubro_id, f.cuenta_id) as c (c.id)}
-                          <option value={c.id}>{c.nombre_cuenta}</option>
-                        {/each}
-                      </select>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Input
-                        type="text"
-                        bind:value={f.detalle}
-                        placeholder="—"
-                        disabled={firmado}
-                        class="h-8 text-xs"
-                      />
-                    </Table.Cell>
-                    <Table.Cell class="text-right">
-                      <ArsInput
-                        bind:value={f.importe}
-                        disabled={firmado}
-                        class="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-right text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
-                      />
-                    </Table.Cell>
-                    <Table.Cell class="text-center">
-                      <div class="flex items-center justify-center gap-0.5">
-                        {#if i === r.filas.length - 1 && !firmado}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            class="size-7"
-                            disabled={r.filas.length >= MAX_FILAS_POR_RUBRO || r.filas.length >= store.cuentas.length}
-                            onclick={() => agregarFila(f)}
-                            aria-label="Agregar fila"
-                            title={r.filas.length >= MAX_FILAS_POR_RUBRO ? 'Máximo de filas alcanzado' : r.filas.length >= store.cuentas.length ? 'No hay más cuentas disponibles' : 'Agregar otra cuenta para este rubro'}
-                          >
-                            <PlusIcon class="size-4" />
-                          </Button>
-                        {/if}
-                        {#if !firmado}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            class="size-7 text-destructive hover:text-destructive"
-                            disabled={r.filas.length <= 1 && !f.movimientoId}
-                            onclick={() => eliminarFila(f.rowId)}
-                            aria-label="Eliminar fila"
-                            title={r.filas.length <= 1 && !f.movimientoId ? 'No se puede eliminar la única fila vacía' : 'Eliminar esta fila'}
-                          >
-                            <TrashIcon class="size-4" />
-                          </Button>
-                        {/if}
-                      </div>
-                    </Table.Cell>
-                  </Table.Row>
-                {/each}
-              {/each}
-            {/each}
-          </Table.Body>
-          <Table.Footer>
-            <Table.Row>
-              <Table.Cell colspan="5" class="font-bold text-right">Total ingresos</Table.Cell>
-              <Table.Cell class="text-right font-bold text-primary">+{formatARS(totalIngresos)}</Table.Cell>
-            </Table.Row>
-            <Table.Row>
-              <Table.Cell colspan="5" class="font-bold text-right">Total egresos</Table.Cell>
-              <Table.Cell class="text-right font-bold text-destructive">-{formatARS(totalEgresos)}</Table.Cell>
-            </Table.Row>
-            <Table.Row>
-              <Table.Cell colspan="5" class="font-bold text-right">Saldo del período</Table.Cell>
-              <Table.Cell class="text-right font-bold">{formatARS(saldoPeriodo)}</Table.Cell>
-            </Table.Row>
-          </Table.Footer>
-        </Table.Root>
-      </div>
-
-      {#if store.error}
-        <Alert.Root variant="destructive">
-          <AlertTriangleIcon data-icon="inline-start" />
-          <Alert.Description>{store.error}</Alert.Description>
-        </Alert.Root>
-      {/if}
-      {#if store.notice}
-        <Alert.Root class="border-primary/45 bg-primary/10 text-primary">
-          <Alert.Description>{store.notice}</Alert.Description>
-        </Alert.Root>
+        <Badge variant="destructive" class="mb-1.5">
+          <LockIcon class="size-3" />
+          Firmado — no editable
+        </Badge>
       {/if}
     </div>
 
-    <Dialog.Footer>
-      <Button variant="outline" onclick={cerrar}>Cerrar</Button>
-      {#if !firmado}
-        <Button variant="secondary" onclick={firmar} disabled={store.busy || !periodoKey}>
-          <LockIcon data-icon="inline-start" />
-          Firmar y cerrar
-        </Button>
-        <Button onclick={guardar} disabled={store.busy || !periodoKey || cargandoPeriodo}>
-          {#if store.busy}Guardando…{:else}<PlusIcon data-icon="inline-start" />Guardar{/if}
-        </Button>
-      {/if}
-    </Dialog.Footer>
-  </Dialog.Content>
-</Dialog.Root>
+    {#if firmado}
+      <Alert.Root>
+        <LockIcon data-icon="inline-start" />
+        <Alert.Title>Período firmado</Alert.Title>
+        <Alert.Description>
+          El período {periodoKey} está firmado. Los movimientos no pueden modificarse desde esta pantalla.
+        </Alert.Description>
+      </Alert.Root>
+    {/if}
+
+    <!-- Matriz por grupo -->
+    <div class="border rounded-lg overflow-hidden">
+      <Table.Root>
+        <Table.Header>
+          <Table.Row>
+            <Table.Head class="w-16">Código</Table.Head>
+            <Table.Head>Rubro PIA</Table.Head>
+            <Table.Head class="w-32">Cuenta</Table.Head>
+            <Table.Head class="w-36">Detalle</Table.Head>
+            <Table.Head class="w-32 text-right">Importe</Table.Head>
+            <Table.Head class="w-24 text-center">Acciones</Table.Head>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {#each grupos as g (g.grupo)}
+            <Table.Row class="bg-muted/50">
+              <Table.Cell colspan="6" class="font-bold text-xs uppercase text-muted-foreground py-2">
+                {g.grupo}
+              </Table.Cell>
+            </Table.Row>
+            {#each g.rubros as r (r.rubro.rubro_id)}
+              {#each r.filas as f, i (f.rowId)}
+                <Table.Row>
+                  {#if i === 0}
+                    <Table.Cell class="font-mono text-xs text-muted-foreground">{f.codigo}</Table.Cell>
+                    <Table.Cell>
+                      <div class="flex items-center gap-2">
+                        <span>{f.nombre}</span>
+                        {#if f.tipo === 'Entrada'}
+                          <Badge variant="outline" class="text-xs text-primary border-primary/30">Entrada</Badge>
+                        {:else}
+                          <Badge variant="outline" class="text-xs text-destructive border-destructive/30">Salida</Badge>
+                        {/if}
+                      </div>
+                    </Table.Cell>
+                  {:else}
+                    <Table.Cell></Table.Cell>
+                    <Table.Cell class="text-xs text-muted-foreground pl-8">↳ otra cuenta</Table.Cell>
+                  {/if}
+                  <Table.Cell data-focus-row={f.rowId}>
+                    <select
+                      bind:value={f.cuenta_id}
+                      disabled={firmado}
+                      class="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+                    >
+                      {#each cuentasDisponibles(f.rubro_id, f.cuenta_id) as c (c.id)}
+                        <option value={String(c.id)}>{c.nombre_cuenta}</option>
+                      {/each}
+                    </select>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Input
+                      type="text"
+                      bind:value={f.detalle}
+                      placeholder="—"
+                      disabled={firmado}
+                      class="h-8 text-xs"
+                    />
+                  </Table.Cell>
+                  <Table.Cell class="text-right">
+                    <ArsInput
+                      bind:value={f.importe}
+                      disabled={firmado}
+                      class="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-right text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+                    />
+                  </Table.Cell>
+                  <Table.Cell class="text-center">
+                    <div class="flex items-center justify-center gap-0.5">
+                      {#if i === r.filas.length - 1 && !firmado}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          class="size-7"
+                          disabled={r.filas.length >= MAX_FILAS_POR_RUBRO || r.filas.length >= store.cuentas.length}
+                          onclick={() => agregarFila(f)}
+                          aria-label="Agregar fila"
+                          title={r.filas.length >= MAX_FILAS_POR_RUBRO ? 'Máximo de filas alcanzado' : r.filas.length >= store.cuentas.length ? 'No hay más cuentas disponibles' : 'Agregar otra cuenta para este rubro'}
+                        >
+                          <PlusIcon class="size-4" />
+                        </Button>
+                      {/if}
+                      {#if !firmado}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          class="size-7 text-destructive hover:text-destructive"
+                          disabled={r.filas.length <= 1 && !f.movimientoId}
+                          onclick={() => eliminarFila(f.rowId)}
+                          aria-label="Eliminar fila"
+                          title={r.filas.length <= 1 && !f.movimientoId ? 'No se puede eliminar la única fila vacía' : 'Eliminar esta fila'}
+                        >
+                          <TrashIcon class="size-4" />
+                        </Button>
+                      {/if}
+                    </div>
+                  </Table.Cell>
+                </Table.Row>
+              {/each}
+            {/each}
+          {/each}
+        </Table.Body>
+        <Table.Footer>
+          <Table.Row>
+            <Table.Cell colspan="5" class="font-bold text-right">Total ingresos</Table.Cell>
+            <Table.Cell class="text-right font-bold text-primary">+{formatARS(totalIngresos)}</Table.Cell>
+          </Table.Row>
+          <Table.Row>
+            <Table.Cell colspan="5" class="font-bold text-right">Total egresos</Table.Cell>
+            <Table.Cell class="text-right font-bold text-destructive">-{formatARS(totalEgresos)}</Table.Cell>
+          </Table.Row>
+          <Table.Row>
+            <Table.Cell colspan="5" class="font-bold text-right">Saldo del período</Table.Cell>
+            <Table.Cell class="text-right font-bold">{formatARS(saldoPeriodo)}</Table.Cell>
+          </Table.Row>
+        </Table.Footer>
+      </Table.Root>
+    </div>
+
+    </div>
+
+    <!-- Footer con acciones -->
+  <div class="flex flex-wrap items-center justify-end gap-2 mt-4">
+    <Button variant="outline" onclick={volver}>Volver al resumen</Button>
+    {#if !firmado}
+      <Button variant="secondary" onclick={firmar} disabled={store.busy || !periodoKey}>
+        <LockIcon data-icon="inline-start" />
+        Firmar y cerrar
+      </Button>
+      <Button onclick={guardar} disabled={store.busy || !periodoKey || cargandoPeriodo}>
+        {#if store.busy}Guardando…{:else}<PlusIcon data-icon="inline-start" />Guardar{/if}
+      </Button>
+    {/if}
+  </div>
+</PageScaffold>
 
 <!-- Diálogo de confirmación de firma: resumen read-only de movimientos -->
 <Dialog.Root bind:open={confirmarFirma}>
