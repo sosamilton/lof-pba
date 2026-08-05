@@ -59,6 +59,7 @@
 
   const { problemas, funciones, capturas, roadmap } = data
   const enlaces = identidad.enlaces
+  const versionActual = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
   const roadmapGroups = $derived(
     Object.fromEntries(
       Object.entries(ROADMAP_GROUPS).map(([key, group]) => [
@@ -301,6 +302,9 @@
         <div class="flex items-center gap-2">
             <HeartHandshakeIcon class="size-5 text-primary" />
             <span class="font-bold">{identidad.nombre}</span>
+            {#if versionActual !== 'dev'}
+              <Badge variant="secondary" class="font-mono text-[10px]">v{versionActual}</Badge>
+            {/if}
           </div>
           <p class="text-sm text-muted-foreground max-w-prose">
             {identidad.lema}. Software libre bajo {identidad.licencia}.
