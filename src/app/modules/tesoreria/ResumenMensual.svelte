@@ -17,6 +17,7 @@
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
   import LockIcon from '@lucide/svelte/icons/lock'
   import TableIcon from '@lucide/svelte/icons/table'
+  import PencilIcon from '@lucide/svelte/icons/pencil'
   import CargaPIAMatrix from './CargaPIAMatrix.svelte'
 
   // Modo de gestión: si es carga_consolidada, mostramos el botón de carga PIA.
@@ -120,6 +121,9 @@
                 <Table.Head class="text-right">Saldo inicial</Table.Head>
                 <Table.Head class="text-right">Saldo del período</Table.Head>
                 <Table.Head class="text-center">Estado</Table.Head>
+                {#if modoConsolidada}
+                  <Table.Head class="text-center w-20">Acciones</Table.Head>
+                {/if}
               </Table.Row>
             </Table.Header>
             <Table.Body>
@@ -140,6 +144,22 @@
                       <Badge variant="secondary">Abierto</Badge>
                     {/if}
                   </Table.Cell>
+                  {#if modoConsolidada}
+                    <Table.Cell class="text-center">
+                      {#if !store.periodoFirmado(r.periodo)}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          class="h-7 gap-1"
+                          onclick={() => cargaPIAMatrix?.abrir(r.periodo + '-01')}
+                          title="Editar carga PIA de este período"
+                        >
+                          <PencilIcon class="size-3.5" />
+                          Editar
+                        </Button>
+                      {/if}
+                    </Table.Cell>
+                  {/if}
                 </Table.Row>
               {/each}
             </Table.Body>
@@ -151,6 +171,7 @@
                 <Table.Cell></Table.Cell>
                 <Table.Cell class="text-right font-bold">{formatARS(store.totales.saldoFinal)}</Table.Cell>
                 <Table.Cell></Table.Cell>
+                {#if modoConsolidada}<Table.Cell></Table.Cell>{/if}
               </Table.Row>
             </Table.Footer>
           </Table.Root>
