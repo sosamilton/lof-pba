@@ -44,6 +44,8 @@
   import MapPinIcon from '@lucide/svelte/icons/map-pin'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
   import DownloadIcon from '@lucide/svelte/icons/download'
+  import LanguagesIcon from '@lucide/svelte/icons/languages'
+  import SparklesIcon from '@lucide/svelte/icons/sparkles'
   import GristIcon from '$lib/components/GristIcon.svelte'
   import { identidad } from '$core/identidad'
   import data from './landing.json'
@@ -96,9 +98,12 @@
     <div class="relative mx-auto max-w-5xl px-4 py-12 sm:py-16">
       <div class="flex flex-col gap-6">
         <div class="flex flex-col gap-3">
-          <!-- Marca: logo (demo, a reemplazar por archivo) + nombre + lema -->
+          <!-- Marca: logo + nombre + lema (badge SVG = filetype del logo actual) -->
           <div class="flex items-center gap-3">
-            <img src="./logo.svg" alt="{identidad.nombre}" class="size-14" />
+            <div class="flex flex-col items-center gap-1">
+              <img src="./logo.svg" alt="{identidad.nombre}" class="size-14" />
+              <Badge variant="outline" class="text-[10px] uppercase tracking-wide">SVG</Badge>
+            </div>
             <div class="flex flex-col">
               <span class="text-2xl font-bold leading-none tracking-tight sm:text-3xl">{identidad.nombre}</span>
               <span class="text-sm font-medium text-primary sm:text-base">{identidad.lema}</span>
@@ -129,6 +134,74 @@
           Software libre bajo {identidad.licencia}. Funciona con Grist, una plataforma de datos libre y autoinstalable.
         </p>
       </div>
+    </div>
+  </section>
+
+  <!-- IDENTIDAD: el nombre y su origen -->
+  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="identidad-heading">
+    <div class="flex flex-col gap-2 mb-6">
+      <h2 id="identidad-heading" class="text-2xl font-bold tracking-tight">El nombre y su origen</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        Por qué este sistema se llama LOF, qué significa y quién lo construye.
+      </p>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-3">
+      <!-- Origen del nombre -->
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            {@render iconBadge(LanguagesIcon)}
+            <Card.Title class="text-base">Origen del nombre</Card.Title>
+          </div>
+        </Card.Header>
+        <Card.Content class="flex flex-col gap-2">
+          <p class="text-sm text-muted-foreground">
+            <strong class="text-foreground">LOF</strong> es una palabra del <strong class="text-foreground">mapudungun</strong> que designa una <em>comunidad organizada</em>: la unidad social y territorial formada por familias que comparten responsabilidades, decisiones y un proyecto común.
+          </p>
+          <p class="text-sm text-muted-foreground">
+            Una cooperadora escolar no es solo una asociación que administra recursos: es una comunidad que sostiene colectivamente la escuela pública.
+          </p>
+        </Card.Content>
+      </Card.Root>
+
+      <!-- La interpretación como identidad del sistema -->
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            {@render iconBadge(SparklesIcon)}
+            <Card.Title class="text-base">La interpretación</Card.Title>
+          </div>
+        </Card.Header>
+        <Card.Content class="flex flex-col gap-2">
+          <blockquote class="border-l-2 border-primary/40 pl-3 text-sm font-medium text-foreground">
+            {identidad.lema}
+          </blockquote>
+          <p class="text-sm text-muted-foreground">
+            No es un acrónimo oficial, sino una interpretación: la forma en que una comunidad <strong class="text-foreground">defiende y cuida la educación pública</strong> — organizándose, fortaleciendo sus vínculos y conservando su memoria institucional.
+          </p>
+        </Card.Content>
+      </Card.Root>
+
+      <!-- Quién lo genera -->
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            {@render iconBadge(HeartHandshakeIcon)}
+            <Card.Title class="text-base">Quién lo genera</Card.Title>
+          </div>
+        </Card.Header>
+        <Card.Content class="flex flex-col gap-2">
+          <p class="text-sm text-muted-foreground">
+            LOF es software libre (<strong class="text-foreground">{identidad.licencia}</strong>) desarrollado por <strong class="text-foreground">Milton Sosa</strong> y abierto a la comunidad: auditable, modificable y ejecutable en infraestructura propia.
+          </p>
+          <Button variant="outline" size="sm" class="w-fit" href={enlaces.repo} target="_blank" rel="noopener noreferrer">
+            <CodeXmlIcon data-icon="inline-start" />
+            Ver repositorio
+            <ExternalLinkIcon data-icon="inline-end" />
+          </Button>
+        </Card.Content>
+      </Card.Root>
     </div>
   </section>
 
