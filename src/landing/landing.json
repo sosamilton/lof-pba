@@ -31,56 +31,91 @@
       "icono": "building"
     }
   ],
+  "problemas": [
+    {
+      "titulo": "¿La información se pierde al cambiar de comisión?",
+      "descripcion": "Los socios, las autoridades, las asambleas y los movimientos quedan registrados permanentemente. Cuando cambia la Comisión Directiva, la nueva gestión retoma exactamente donde quedó la anterior.",
+      "icono": "refresh-cw"
+    },
+    {
+      "titulo": "¿Llevar los libros obligatorios al día es un caos?",
+      "descripcion": "LOF digitaliza los cuatro libros que exige la normativa de PBA: Actas, Socios, Tesorería e Inventario. Todo queda registrado y trazable, listo para cualquier control.",
+      "icono": "book-open"
+    },
+    {
+      "titulo": "¿Rendir la PIA es un dolor de cabeza cada año?",
+      "descripcion": "Cargás los movimientos por rubro del Plan Institucional Anual y el sistema los agrupa automáticamente. La PIA se arma sola desde los datos cargados mes a mes.",
+      "icono": "file-text"
+    },
+    {
+      "titulo": "¿No sabés cuánto hay en caja, banco o efectivo?",
+      "descripcion": "El tablero de caja te muestra en un vistazo cuánto hay en cada cuenta y el saldo total. Con arrastre de saldo mes a mes, siempre sabés de dónde partís.",
+      "icono": "wallet"
+    },
+    {
+      "titulo": "¿Perdiste socios por no tener un padrón ordenado?",
+      "descripcion": "Búsqueda instantánea por apellido, DNI o teléfono. Altas y bajas con historial. Sabés en cualquier momento cuántos socios activos tenés y quiénes pueden votar.",
+      "icono": "users"
+    },
+    {
+      "titulo": "¿Las autoridades y los mandatos son un rompecabezas?",
+      "descripcion": "Cargás la Comisión Directiva una sola vez y el sistema calcula los vencimientos, te avisa cuando un cargo queda vacante y registra ceses y reemplazos con historial completo.",
+      "icono": "gavel"
+    }
+  ],
   "funciones": [
     {
-      "titulo": "Configuración inicial",
-      "descripcion": "Wizard guiado paso a paso para dejar la cooperadora lista en minutos, con los cargos del estatuto modelo.",
+      "titulo": "Empezar es simple",
+      "descripcion": "Un asistente te guía paso a paso para dejar la cooperadora lista en minutos.",
       "icono": "rocket",
       "items": [
         "Datos de la escuela, la cooperadora y el ejercicio",
-        "Cargos del estatuto al mínimo legal (Decreto 4767/72) + Federación opcional",
-        "Tres modos de gestión: solo PIA/nómina, gestión integral o por etapas",
-        "Formateo en vivo de CUIT, CUE, teléfono, email y CBU",
-        "Color de marca de la cooperadora como tema de la app"
+        "Cargos del estatuto al mínimo legal (Decreto 4767/72)",
+        "Validación automática de CUIT, CUE, CBU y teléfono",
+        "El color de tu cooperadora se convierte en el tema de la app",
+        "Módulo opcional de kiosco o librería escolar"
       ]
     },
     {
-      "titulo": "Comunidad",
-      "descripcion": "Padrón de socios con tabla unificada de personas vinculadas, sin duplicar datos.",
+      "titulo": "Socios y personas",
+      "descripcion": "Un único padrón que vincula socios, autoridades, docentes y directivos sin duplicar datos.",
       "icono": "users",
       "items": [
         "Búsqueda instantánea por apellido, DNI, CUIL, email o teléfono",
-        "Alta, edición y baja como acción explícita y transparente",
-        "Categoría de vínculo: socio, docente, directivo, proveedor, donante",
-        "Tabla única que vincula socios, autoridades y directivos sin duplicar",
-        "Habilitación electoral automática: socio activo con 30 días de antigüedad"
+        "Altas, bajas y reactivaciones con historial",
+        "Categorías: socio, docente, directivo, proveedor, donante",
+        "Combobox con todas las localidades de la Provincia de Buenos Aires",
+        "Habilitación electoral automática: socio activo con 30 días de antigüedad",
+        "Protección contra duplicados cuando varios usuarios cargan a la vez"
       ]
     },
     {
-      "titulo": "Gobierno",
-      "descripcion": "Comisión Directiva, Comisión Revisora de Cuentas y asambleas vinculadas al ejercicio.",
+      "titulo": "Tesorería al día",
+      "descripcion": "Registrás los movimientos y el sistema hace el resto: saldos, resúmenes y PIA.",
+      "icono": "arrow-left-right",
+      "items": [
+        "Ingresos, egresos y traspasos con rubro según la PIA",
+        "Carga PIA por rubro: una pantalla con todos los rubros del mes",
+        "Múltiples cuentas por rubro (banco, efectivo, caja chica)",
+        "Importe en pesos argentinos con formato automático",
+        "Tablero de caja en Inicio: cuánto hay en cada cuenta",
+        "Resumen mensual y semanal con arrastre de saldo",
+        "Firma de períodos: sellás un mes y se bloquea la edición",
+        "Cuota societaria rápida con un solo clic"
+      ]
+    },
+    {
+      "titulo": "Gobierno y asambleas",
+      "descripcion": "Comisión Directiva, Comisión Revisora de Cuentas y asambleas, todo vinculado al ejercicio.",
       "icono": "gavel",
       "items": [
         "Comisión Directiva inicializada desde los cargos del estatuto",
-        "Comisión Revisora de Cuentas (titular docente, titular socio, suplente) y Asesoría",
-        "Registrar autoridades con vencimiento de mandato",
-        "Gestionar ceses y reemplazos con historial completo",
-        "Crear y editar asambleas con resoluciones"
-      ]
-    },
-    {
-      "titulo": "Tesorería",
-      "descripcion": "Registro de ingresos, egresos y traspasos con trazabilidad, alineado a la PIA.",
-      "icono": "arrow-left-right",
-      "items": [
-        "Rubro y subrubro según la PIA",
-        "Destino bancario cuando corresponde",
-        "Asociar socio o persona de forma opcional",
-        "Saldos iniciales por ejercicio (banco, efectivo, caja chica)",
-        "Tablero de caja en Inicio: saldo total, por cuenta, ingresos/egresos del mes",
-        "Carga PIA por rubro: matriz editable con un movimiento por rubro del período",
-        "Resumen mensual y semanal con arrastre de saldo",
-        "Firma de períodos: sella un mes y bloquea la edición"
+        "Comisión Revisora de Cuentas y Asesoría",
+        "Vencimientos de mandato calculados automáticamente",
+        "Ceses y reemplazos con historial completo",
+        "Asambleas (AGO, AGE, RCD) con resoluciones",
+        "Padrón electoral automático según estatuto modelo",
+        "Alerta de quórum bajo y detección de personas en otro cargo"
       ]
     }
   ],
@@ -162,7 +197,7 @@
       },
       {
         "titulo": "Pegar la URL de la app",
-        "descripcion": "En el paso siguiente te aparece para poner una URL. Si usás Grist Desktop, esta será la única opción disponible. En la versión Docker local o en la nube de getgrist.com (con límite de 5000 filas por tabla) también aparecerán widgets predefinidos. Pegá la URL de la app: https://sosamilton.github.io/spa-cooperadora/ o, si la levantás offline con Docker, http://localhost:8080",
+        "descripcion": "En el paso siguiente te aparece para poner una URL. Si usás Grist Desktop, esta será la única opción disponible. En la versión Docker local o en la nube de getgrist.com (con límite de 5000 filas por tabla) también aparecerán widgets predefinidos. Pegá la URL de la app: https://sosamilton.github.io/spa-cooperadora/ o, si la levantás offline con Docker, http://localhost:8088",
         "imagen": "img/install/4-pego-url-app.png"
       },
       {
@@ -194,14 +229,14 @@
         "titulo": "Docker local (solo Grist)",
         "descripcion": "Levantá Grist con un solo comando. Ideal para uso local o self-hosted.",
         "modo": "offline",
-        "nota": "Necesitás instalar Docker primero. El comando levanta Grist en el puerto 8484 y guarda los datos en ~/grist. Para uso offline, la app debe servirse localmente.",
-        "comando": "docker run -p 8484:8484 -v ~/grist:/persist -it gristlabs/grist",
+        "nota": "Necesitás instalar Docker primero. El comando levanta Grist en el puerto 8089 y guarda los datos en ~/grist. Para uso offline, la app debe servirse localmente.",
+        "comando": "docker run -p 8089:8484 -v ~/grist:/persist -it gristlabs/grist",
         "enlace": "https://www.getgrist.com/product/self-hosted/",
         "enlace_texto": "Ver documentación de self-hosted"
       },
       {
         "titulo": "Docker Compose (Grist + LOF)",
-        "descripcion": "Levantá Grist y la app juntos con Docker Compose. La app queda disponible en el puerto 8080 y Grist en el 8484. Recomendado para uso 100% offline.",
+        "descripcion": "Levantá Grist y la app juntos con Docker Compose. La app queda disponible en el puerto 8088 y Grist en el 8089. Recomendado para uso 100% offline.",
         "modo": "offline",
         "nota": "Necesitás instalar Docker Desktop (Windows/Linux) o Docker Engine (Linux). Primero descargá el archivo docker-compose.yml con curl, luego levantá todo desde la misma carpeta.",
         "comandos": [
@@ -247,8 +282,8 @@
     },
     {
       "estado": "despues",
-      "titulo": "Cierres y reportes",
-      "descripcion": "Cierres mensuales firmados con snapshot inmutable, exportables para PIA y balance de tesorería según modelo oficial."
+      "titulo": "Exportables y reportes",
+      "descripcion": "Exportación de la PIA, nómina de autoridades y balance de tesorería según modelo oficial, listos para imprimir o presentar."
     },
     {
       "estado": "despues",

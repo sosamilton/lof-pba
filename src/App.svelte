@@ -10,6 +10,7 @@
   import Inicio from '$app/pages/Inicio.svelte'
   import Landing from '$landing/Landing.svelte'
   import InstallGuide from '$landing/InstallGuide.svelte'
+  import SobreLof from '$landing/SobreLof.svelte'
   import NeedsAccess from '$setup/NeedsAccess.svelte'
   import SetupWizard from '$setup/SetupWizard.svelte'
   import Cooperadora from '$app/pages/Cooperadora.svelte'
@@ -101,6 +102,8 @@
   <NeedsAccess />
 {:else if router.current === 'instalacion'}
   <InstallGuide />
+{:else if router.current === 'sobre-lof'}
+  <SobreLof />
 {:else}
   <Landing />
 {/if}

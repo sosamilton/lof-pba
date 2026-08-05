@@ -163,22 +163,41 @@ LOF organiza la gestión de una cooperadora escolar bonaerense en un único sist
 * Datos de la escuela, la cooperadora y el ejercicio
 * Cargos del estatuto al mínimo legal (Decreto 4767/72)
 * Cuentas bancarias y datos institucionales validados
-* Tres modos de gestión: solo PIA/nómina, integral o por etapas
+* Modo de gestión consolidada (carga PIA por rubro)
+* Módulo Kiosco/Librería opcional (propio o licitado)
+* Validaciones argentinas en tiempo real: CUE (índice oficial PBA), CUIT/CUIL (checksum), CBU (checksum), DNI, teléfono, email
+* Color de marca como tema primario de la app (OKLCH para light/dark)
+* Bloqueo de datos validados (no editable sin re-validar)
+
+### Dashboard de inicio
+
+* Resumen ejecutivo: ejercicio en curso, cargos cubiertos, socios activos, altas/bajas, vencimientos próximos
+* Alerta de asamblea AGO (recordatorio en mayo)
+* Tablero de caja con saldos por cuenta
+* Administración: revalidar schema, reparar refs, deduplicar personas, detección de versión desactualizada
+* Creación automática de nuevo ejercicio (2 meses antes del vencimiento)
 
 ### Comunidad
 
 * Padrón de socios con altas, bajas y edición
 * Tabla única de personas vinculadas (socios, autoridades, directivos, proveedores, donantes) sin duplicar datos
-* Búsqueda instantánea por apellido, DNI, CUIL, email o teléfono
+* Soporte para personas físicas y jurídicas
+* Búsqueda instantánea por apellido, DNI, CUIL, email, teléfono, localidad o domicilio
+* Combobox de localidades de toda la Provincia de Buenos Aires
+* Vinculación automática de persona por DNI al escribir
 * Habilitación electoral automática: socio activo con 30 días de antigüedad
+* Protección multiplayer: evita duplicados en multiusuario
+* Normalización automática de DNI/CUIL/teléfono/email
 
 ### Gobierno
 
 * Comisión Directiva inicializada desde los cargos del estatuto
 * Comisión Revisora de Cuentas (titular docente, titular socio, suplente) y Asesoría
 * Mandatos con vencimiento, ceses y reemplazos con historial completo
-* Asambleas con resoluciones vinculadas al ejercicio
-* Histórico de autoridades por período
+* Asambleas (AGO/AGE/RCD) con resoluciones vinculadas al ejercicio
+* Histórico de autoridades por período con filtros por organismo
+* Padrón electoral automático según estatuto modelo
+* Detección de conflictos: persona en otro cargo, quórum bajo
 
 ### Tesorería
 
@@ -186,18 +205,44 @@ LOF organiza la gestión de una cooperadora escolar bonaerense en un único sist
 * Rubro y subrubro según la PIA
 * Destino bancario cuando corresponde
 * Asociación opcional de socio o persona
-* Dashboard con métricas: socios activos, altas/bajas, vencimientos, ejercicio en curso
+* Cuota societaria rápida (Ctrl+1 o botón)
+* Combobox con búsqueda para listas grandes
+
+### Carga PIA consolidada
+
+* Matriz de carga por rubro con múltiples filas por cuenta (hasta 3)
+* Importe en formato pesos argentinos ($ 1.234,56)
+* Página dedicada con selector de período y foco automático en nueva fila
+* Todos los períodos del ejercicio visibles (incluso vacíos)
+* Confirmación de firma con resumen read-only de movimientos y totales
+* Firma de períodos (bloqueo de edición)
+
+### Resumen
+
+* Vista mensual y semanal con arrastre de saldo
+* Saldo inicial por ejercicio
+* Estado por período: Falta cargar / Abierto / Firmado
+* Edición directa desde el resumen a la carga PIA
+* Cálculo del próximo período adeudado
+* Regla "detalle gana": mix de carga detallada y manual
+
+### Experiencia de usuario
+
+* Paleta de comandos (Ctrl+K) tipo VS Code
+* Atajos de teclado completos (navegación, nuevo, buscar, cuota social)
+* Sidebar dinámico colapsable según módulos activos
+* Tema dinámico con color de marca de cada cooperadora
+
+### Arquitectura
+
+* Single source of truth en personas (fórmulas Grist pull de $persona_id)
+* Migraciones automáticas (schema, refs rotas, datos legacy, deduplicación)
+* Router por hash con persistencia de última ruta
+* Fórmulas de Grist: período, activo, habilitado electoral, saldo inicial total
 
 ## Planificado
 
 Lo que ya está en camino, definido a partir de las necesidades reales de las cooperadoras:
-
-### Tesorería avanzada
-
-* Saldos iniciales por ejercicio
-* Resúmenes semanales y mensuales
-* Tablero económico de caja: cuánto hay, cuánto se debe, cuánto ingresó y cuánto salió
-* Carga periódica por períodos con totalizador de movimientos (recalculable)
 
 ### Cierres y reportes
 

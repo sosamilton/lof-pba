@@ -21,6 +21,10 @@
     'arrow-left-right': ArrowLeftRightIcon,
     gavel: GavelIcon,
     rocket: RocketIcon,
+    'refresh-cw': RefreshCwIcon,
+    'book-open': BookOpenIcon,
+    'file-text': FileTextIcon,
+    wallet: WalletIcon,
   }
 
   const ROADMAP_GROUPS = {
@@ -44,13 +48,16 @@
   import MapPinIcon from '@lucide/svelte/icons/map-pin'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
   import DownloadIcon from '@lucide/svelte/icons/download'
-  import LanguagesIcon from '@lucide/svelte/icons/languages'
-  import SparklesIcon from '@lucide/svelte/icons/sparkles'
+  import ArrowRightIcon from '@lucide/svelte/icons/arrow-right'
+  import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
+  import BookOpenIcon from '@lucide/svelte/icons/book-open'
+  import FileTextIcon from '@lucide/svelte/icons/file-text'
+  import WalletIcon from '@lucide/svelte/icons/wallet'
   import GristIcon from '$lib/components/GristIcon.svelte'
   import { identidad } from '$core/identidad'
   import data from './landing.json'
 
-  const { principios, funciones, capturas, roadmap } = data
+  const { problemas, funciones, capturas, roadmap } = data
   const enlaces = identidad.enlaces
   const roadmapGroups = $derived(
     Object.fromEntries(
@@ -80,6 +87,9 @@
         <Badge variant="secondary" class="hidden sm:inline-flex">{identidad.ubicacion}</Badge>
       </div>
       <div class="flex items-center gap-2">
+        <Button variant="ghost" size="sm" onclick={() => navigate('sobre-lof')}>
+          Sobre LOF
+        </Button>
         <Button variant="ghost" size="sm" href={enlaces.repo} target="_blank" rel="noopener noreferrer" aria-label="Ver repositorio en GitHub">
           <CodeXmlIcon data-icon="inline-start" />
           <span class="hidden sm:inline">GitHub</span>
@@ -137,84 +147,16 @@
     </div>
   </section>
 
-  <!-- IDENTIDAD: el nombre y su origen -->
-  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="identidad-heading">
+  <!-- QUÉ RESUELVE: problemas cotidianos de las cooperadoras -->
+  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="problemas-heading">
     <div class="flex flex-col gap-2 mb-6">
-      <h2 id="identidad-heading" class="text-2xl font-bold tracking-tight">El nombre y su origen</h2>
+      <h2 id="problemas-heading" class="text-2xl font-bold tracking-tight">¿Te pasa esto?</h2>
       <p class="text-sm text-muted-foreground max-w-prose">
-        Por qué este sistema se llama LOF, qué significa y quién lo construye.
-      </p>
-    </div>
-
-    <div class="grid gap-4 sm:grid-cols-3">
-      <!-- Origen del nombre -->
-      <Card.Root>
-        <Card.Header>
-          <div class="flex items-center gap-3">
-            {@render iconBadge(LanguagesIcon)}
-            <Card.Title class="text-base">Origen del nombre</Card.Title>
-          </div>
-        </Card.Header>
-        <Card.Content class="flex flex-col gap-2">
-          <p class="text-sm text-muted-foreground">
-            <strong class="text-foreground">LOF</strong> es una palabra del <strong class="text-foreground">mapudungun</strong> que designa una <em>comunidad organizada</em>: la unidad social y territorial formada por familias que comparten responsabilidades, decisiones y un proyecto común.
-          </p>
-          <p class="text-sm text-muted-foreground">
-            Una cooperadora escolar no es solo una asociación que administra recursos: es una comunidad que sostiene colectivamente la escuela pública.
-          </p>
-        </Card.Content>
-      </Card.Root>
-
-      <!-- La interpretación como identidad del sistema -->
-      <Card.Root>
-        <Card.Header>
-          <div class="flex items-center gap-3">
-            {@render iconBadge(SparklesIcon)}
-            <Card.Title class="text-base">La interpretación</Card.Title>
-          </div>
-        </Card.Header>
-        <Card.Content class="flex flex-col gap-2">
-          <blockquote class="border-l-2 border-primary/40 pl-3 text-sm font-medium text-foreground">
-            {identidad.lema}
-          </blockquote>
-          <p class="text-sm text-muted-foreground">
-            No es un acrónimo oficial, sino una interpretación: la forma en que una comunidad <strong class="text-foreground">defiende y cuida la educación pública</strong> — organizándose, fortaleciendo sus vínculos y conservando su memoria institucional.
-          </p>
-        </Card.Content>
-      </Card.Root>
-
-      <!-- Quién lo genera -->
-      <Card.Root>
-        <Card.Header>
-          <div class="flex items-center gap-3">
-            {@render iconBadge(HeartHandshakeIcon)}
-            <Card.Title class="text-base">Quién lo genera</Card.Title>
-          </div>
-        </Card.Header>
-        <Card.Content class="flex flex-col gap-2">
-          <p class="text-sm text-muted-foreground">
-            LOF es software libre (<strong class="text-foreground">{identidad.licencia}</strong>) desarrollado por <strong class="text-foreground">Milton Sosa</strong> y abierto a la comunidad: auditable, modificable y ejecutable en infraestructura propia.
-          </p>
-          <Button variant="outline" size="sm" class="w-fit" href={enlaces.repo} target="_blank" rel="noopener noreferrer">
-            <CodeXmlIcon data-icon="inline-start" />
-            Ver repositorio
-            <ExternalLinkIcon data-icon="inline-end" />
-          </Button>
-        </Card.Content>
-      </Card.Root>
-    </div>
-  </section>
-
-  <!-- PRINCIPIOS -->
-  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="principios-heading">
-    <div class="flex flex-col gap-2 mb-6">
-      <h2 id="principios-heading" class="text-2xl font-bold tracking-tight">Nuestros principios</h2>
-      <p class="text-sm text-muted-foreground max-w-prose">
-        Los que guían cada decisión de diseño y desarrollo de esta herramienta.
+        Situaciones cotidianas de las cooperadoras escolares que LOF ayuda a resolver.
       </p>
     </div>
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {#each principios as p}
+      {#each problemas as p}
         {@const Icon = iconMap[p.icono]}
         <Card.Root>
           <Card.Header>
@@ -231,12 +173,10 @@
     </div>
   </section>
 
-  <Separator />
-
   <!-- FUNCIONES -->
   <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="funciones-heading">
     <div class="flex flex-col gap-2 mb-6">
-      <h2 id="funciones-heading" class="text-2xl font-bold tracking-tight">Qué podés hacer hoy</h2>
+      <h2 id="funciones-heading" class="text-2xl font-bold tracking-tight">Cómo te ayuda todos los días</h2>
       <p class="text-sm text-muted-foreground max-w-prose">
         Cuatro áreas para la gestión diaria de tu cooperadora, alineadas con el estatuto modelo y la PIA.
       </p>
@@ -344,6 +284,19 @@
     </div>
   </section>
 
+  <!-- INVITACIÓN A "SOBRE LOF" -->
+  <section class="mx-auto max-w-5xl px-4 py-10">
+    <div class="flex flex-col items-center gap-3 rounded-lg border border-border bg-card/50 px-6 py-8 text-center">
+      <p class="text-base text-muted-foreground max-w-prose">
+        ¿Te gustó la solución y querés saber <strong class="text-foreground">por qué existe LOF</strong>, qué significa el nombre y qué nos motiva?
+      </p>
+      <Button variant="outline" onclick={() => navigate('sobre-lof')}>
+        Conocer la historia
+        <ArrowRightIcon data-icon="inline-end" />
+      </Button>
+    </div>
+  </section>
+
   <!-- FOOTER -->
   <footer class="border-t border-border bg-card">
     <div class="mx-auto max-w-5xl px-4 py-8">
@@ -358,6 +311,9 @@
           </p>
         </div>
         <div class="flex flex-wrap gap-3">
+          <Button variant="ghost" size="sm" onclick={() => navigate('sobre-lof')}>
+            Sobre LOF
+          </Button>
           <Button variant="ghost" size="sm" href={enlaces.repo} target="_blank" rel="noopener noreferrer">
             <CodeXmlIcon data-icon="inline-start" />
             Contribuir
