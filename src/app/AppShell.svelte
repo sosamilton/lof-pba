@@ -220,8 +220,11 @@
     </Sidebar.Content>
     <Sidebar.Rail />
     <Sidebar.Footer>
-      <div class="px-2 py-1 text-[11px] text-muted-foreground/80 select-none">
-        {identidad.nombre} v{versionActual}{#if shaActual && shaActual !== 'dev'} · {shaActual}{/if}
+      <div class="flex items-center gap-2 px-2 py-1 select-none">
+        <img src="./logo.svg" alt="{identidad.nombre}" class="size-6 shrink-0 rounded" />
+        <div class="text-[11px] text-muted-foreground/80 leading-tight group-data-[collapsible=icon]:hidden">
+          {identidad.nombre} v{versionActual}{#if shaActual && shaActual !== 'dev'} · {shaActual}{/if}
+        </div>
       </div>
     </Sidebar.Footer>
   </Sidebar.Root>
