@@ -251,21 +251,24 @@ const setEjercicioEnCurso = async (id) => {
 let _onSaldosChanged = null
 const setOnSaldosChanged = (fn) => { _onSaldosChanged = fn }
 
-// Clona el ejercicio a editar para que los inputs del panel operen sobre
+// Clona el ejercicio a editar para que los inputs del dialog operen sobre
 // una copia y no sobre el registro real hasta que se confirme el guardado.
-const setEditandoSaldos = (e) => {
+const setEditandoEjercicio = (e) => {
   ejercicioEditando = e ? {
     id: e.id,
     anio_inicio: e.anio_inicio,
     anio_fin: e.anio_fin,
     mes_inicio: e.mes_inicio,
+    fecha_inicio: e.fecha_inicio || '',
+    fecha_fin: e.fecha_fin || '',
+    observaciones: e.observaciones || '',
     saldo_inicial_banco: Number(e.saldo_inicial_banco) || 0,
     saldo_inicial_efectivo: Number(e.saldo_inicial_efectivo) || 0,
     saldo_inicial_caja_chica: Number(e.saldo_inicial_caja_chica) || 0,
   } : null
 }
 
-const cancelarEdicionSaldos = () => { ejercicioEditando = null }
+const cancelarEdicionEjercicio = () => { ejercicioEditando = null }
 
 // Verifica si un ejercicio tiene al menos un movimiento detallado.
 // Usa limit:1 para no cargar todos los registros. Evita importar
@@ -281,13 +284,19 @@ const tieneMovimientos = async (ejercicioId) => {
   } catch { return false }
 }
 
-const saveSaldosEjercicio = async () => {
+const saveEjercicio = async () => {
   bs.clearMessages()
   bs.setBusy(true)
   try {
     if (!tEjercicios) { bs.setError('No se encontró la tabla ejercicios.'); return }
     if (!ejercicioEditando) return
     const fields = normalizeFields({
+      anio_inicio: Number(ejercicioEditando.anio_inicio) || null,
+      anio_fin: Number(ejercicioEditando.anio_fin) || null,
+      mes_inicio: ejercicioEditando.mes_inicio || 'Marzo',
+      fecha_inicio: ejercicioEditando.fecha_inicio || null,
+      fecha_fin: ejercicioEditando.fecha_fin || null,
+      observaciones: ejercicioEditando.observaciones || '',
       saldo_inicial_banco: Number(ejercicioEditando.saldo_inicial_banco) || 0,
       saldo_inicial_efectivo: Number(ejercicioEditando.saldo_inicial_efectivo) || 0,
       saldo_inicial_caja_chica: Number(ejercicioEditando.saldo_inicial_caja_chica) || 0,
@@ -295,12 +304,35 @@ const saveSaldosEjercicio = async () => {
     await applyUserActions([['UpdateRecord', tEjercicios, ejercicioEditando.id, fields]])
     ejercicios = await fetchRecords(tEjercicios)
     ejercicioEnCurso = ejercicios.find((e) => e.en_curso === true) || null
+    const ejercicioGuardado = ejercicioEnCurso
     ejercicioEditando = null
     // Fix F5: notificar a stores derivados para que recarguen.
     if (typeof _onSaldosChanged === 'function') {
-      try { await _onSaldosChanged(ejercicioEnCurso) } catch { /* no-op */ }
+      try { await _onSaldosChanged(ejercicioGuardado) } catch { /* no-op */ }
     }
-    bs.setNotice('Saldos iniciales guardados.'); notify.success(bs.notice)
+    bs.setNotice('Ejercicio guardado.'); notify.success(bs.notice)
+  } catch (e) { bs.setError(e?.message || String(e)) } finally { bs.setBusy(false) }
+}
+
+const deleteEjercicio = async (id) => {
+  bs.clearMessages()
+  bs.setBusy(true)
+  try {
+    if (!tEjercicios) { bs.setError('No se encontró la tabla ejercicios.'); return }
+    if (id == null) return
+    const tiene = await tieneMovimientos(id)
+    if (tiene) {
+      bs.setError('No se puede eliminar un ejercicio con movimientos asociados.')
+      notify.error(bs.error); return
+    }
+    const ej = ejercicios.find((e) => Number(e.id) === Number(id))
+    if (ej?.en_curso) {
+      bs.setError('No se puede eliminar el ejercicio en curso. Activá otro primero.')
+      notify.error(bs.error); return
+    }
+    await applyUserActions([['RemoveRecord', tEjercicios, id]])
+    ejercicios = await fetchRecords(tEjercicios)
+    bs.setNotice('Ejercicio eliminado.'); notify.success(bs.notice)
   } catch (e) { bs.setError(e?.message || String(e)) } finally { bs.setBusy(false) }
 }
 
@@ -399,10 +431,11 @@ export const cooperadoraStore = {
   setEjercicioEnCurso,
   saveCargo,
   addCargo,
-  setEditandoSaldos,
-  cancelarEdicionSaldos,
+  setEditandoEjercicio,
+  cancelarEdicionEjercicio,
   tieneMovimientos,
-  saveSaldosEjercicio,
+  saveEjercicio,
+  deleteEjercicio,
   setOnSaldosChanged,
   subscribe,
 }

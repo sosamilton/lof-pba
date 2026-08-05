@@ -18,10 +18,13 @@
   } = $props()
 </script>
 
-{#if proximoVencer && !show}
+{#if !show}
   <Button onclick={onShow} disabled={creating}>
     <CalendarIcon data-icon="inline-start" />
     Crear nuevo ejercicio
+    {#if proximoVencer}
+      <span class="ml-1 text-xs text-destructive font-normal">(próximo a vencer)</span>
+    {/if}
   </Button>
 {/if}
 {#if show}
