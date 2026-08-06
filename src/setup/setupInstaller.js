@@ -1,4 +1,4 @@
-import { gristReady, listTables, resolveTableId, applyUserActions, invalidateTablesCache, fetchRecords, addRecords } from '$core/grist'
+import { gristReady, resolveTableId, applyUserActions, invalidateTablesCache, fetchRecords, addRecords } from '$core/grist'
 import { ensureSchema, initDemoData } from './initLof'
 import { TABLE_PREFERRED_IDS, MODULES } from '$core/utils'
 import { saveConfig } from '$core/configuracion'
@@ -209,7 +209,7 @@ export async function doInstall(s) {
       }
     }
 
-    // Limpieza post-instalación: eliminar Table1 vacía y renombrar página del widget
+    // Limpieza post-instalación: renombrar página del widget
     await cleanupDefaultTable()
 
     invalidateTablesCache()
@@ -223,48 +223,22 @@ export async function doInstall(s) {
 }
 
 /**
- * Limpieza post-instalación:
- * 1. Renombra la página donde está el widget a "🤝 LOF-PBA" (emoji = ícono)
- * 2. Si existe Table1 (tabla default de Grist) y está vacía, la elimina
- *
- * Las páginas en Grist son registros en la metadata table _grist_Views.
- * Buscamos la vista que NO se llama "Table1" (la del widget) y la renombramos.
- * Si solo hay una vista, la renombramos directamente.
+ * Renombra la página donde está el widget a "🤝 LOF-PBA".
+ * Grist muestra como ícono de página el primer emoji del nombre.
+ * Las páginas son registros en la metadata table _grist_Views.
  */
 async function cleanupDefaultTable() {
   try {
-    // 1. Renombrar la página del widget a "🤝 LOF-PBA"
-    // Grist muestra como ícono de página el primer emoji del nombre
-    try {
-      const views = await fetchRecords('_grist_Views', { columns: ['id', 'name'] })
-      if (views.length > 0) {
-        // Buscar la vista que no se llama "Table1" (la del widget)
-        // Si solo hay una, renombrarla directamente
-        let target = views.find((v) => String(v.name) !== 'Table1')
-        if (!target) target = views[0]
-        const pageName = '🤝 LOF-PBA'
-        if (String(target.name) !== pageName) {
-          await applyUserActions([['UpdateRecord', '_grist_Views', target.id, { name: pageName }]])
-        }
+    const views = await fetchRecords('_grist_Views', { columns: ['id', 'name'] })
+    if (views.length > 0) {
+      let target = views.find((v) => String(v.name) !== 'Table1')
+      if (!target) target = views[0]
+      const pageName = '🤝 LOF-PBA'
+      if (String(target.name) !== pageName) {
+        await applyUserActions([['UpdateRecord', '_grist_Views', target.id, { name: pageName }]])
       }
-    } catch (e) {
-      console.warn('[cleanup] No se pudo renombrar la página:', e?.message || e)
-    }
-
-    // 2. Eliminar Table1 si existe y está vacía
-    try {
-      const tables = await listTables()
-      const table1Id = tables.find((t) => String(t).toLowerCase() === 'table1')
-      if (table1Id) {
-        const recs = await fetchRecords(table1Id)
-        if (recs.length === 0) {
-          await applyUserActions([['RemoveTable', table1Id]])
-        }
-      }
-    } catch (e) {
-      console.warn('[cleanup] No se pudo eliminar Table1:', e?.message || e)
     }
   } catch (e) {
-    console.warn('[cleanup] Error en limpieza post-instalación:', e?.message || e)
+    console.warn('[cleanup] No se pudo renombrar la página:', e?.message || e)
   }
 }
