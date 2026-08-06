@@ -209,6 +209,9 @@ export async function doInstall(s) {
       }
     }
 
+    // Limpieza post-instalación: eliminar Table1 vacía y renombrar página del widget
+    await cleanupDefaultTable()
+
     invalidateTablesCache()
     await new Promise((resolve) => setTimeout(resolve, 1000))
     window.location.reload()
@@ -216,5 +219,50 @@ export async function doInstall(s) {
     s.error = e?.message || String(e)
   } finally {
     s.installing = false
+  }
+}
+
+/**
+ * Limpieza post-instalación:
+ * 1. Renombra la página donde está el widget a "LOF-PBA"
+ * 2. Si existe Table1 (tabla default de Grist) y está vacía, la elimina
+ *
+ * Las páginas en Grist son registros en la metadata table _grist_Views.
+ * Buscamos la vista que NO se llama "Table1" (la del widget) y la renombramos.
+ * Si solo hay una vista, la renombramos directamente.
+ */
+async function cleanupDefaultTable() {
+  try {
+    // 1. Renombrar la página del widget a "LOF-PBA"
+    try {
+      const views = await fetchRecords('_grist_Views', { columns: ['id', 'name'] })
+      if (views.length > 0) {
+        // Buscar la vista que no se llama "Table1" (la del widget)
+        // Si solo hay una, renombrarla directamente
+        let target = views.find((v) => String(v.name) !== 'Table1')
+        if (!target) target = views[0]
+        if (String(target.name) !== 'LOF-PBA') {
+          await applyUserActions([['UpdateRecord', '_grist_Views', target.id, { name: 'LOF-PBA' }]])
+        }
+      }
+    } catch (e) {
+      console.warn('[cleanup] No se pudo renombrar la página:', e?.message || e)
+    }
+
+    // 2. Eliminar Table1 si existe y está vacía
+    try {
+      const tables = await listTables()
+      const table1Id = tables.find((t) => String(t).toLowerCase() === 'table1')
+      if (table1Id) {
+        const recs = await fetchRecords(table1Id)
+        if (recs.length === 0) {
+          await applyUserActions([['RemoveTable', table1Id]])
+        }
+      }
+    } catch (e) {
+      console.warn('[cleanup] No se pudo eliminar Table1:', e?.message || e)
+    }
+  } catch (e) {
+    console.warn('[cleanup] Error en limpieza post-instalación:', e?.message || e)
   }
 }
