@@ -29,9 +29,9 @@ El único requisito para offline es que **Grist cargue el widget desde un origen
 | URL del widget | ¿Funciona offline? | Notas |
 | --- | --- | --- |
 | `https://sosamilton.github.io/spa-cooperadora/` | **No** | Requiere internet para cargar el HTML/JS |
-| `http://localhost:8080` (Docker nginx) | **Sí** | Mientras el contenedor esté corriendo |
+| `http://localhost:8088` (Docker nginx) | **Sí** | Mientras el contenedor esté corriendo |
 | `http://localhost:5173` (Vite dev) | **Sí** | Mientras el dev server esté corriendo |
-| `http://192.168.x.x:8080` (red local) | **Sí** | Servidor local en otra máquina de la LAN |
+| `http://192.168.x.x:8088` (red local) | **Sí** | Servidor local en otra máquina de la LAN |
 
 ---
 
@@ -39,32 +39,36 @@ El único requisito para offline es que **Grist cargue el widget desde un origen
 
 ### Escenario 1: Docker Compose (Grist + SPA) — Recomendado
 
-Levanta ambos servicios en localhost. **Es el escenario más simple y robusto.**
+Levanta Grist + Redis + MinIO (snapshots) + SPA en localhost. **Es el escenario más simple y robusto.**
 
 ```bash
+cp docker/grist/grist.env.example .env   # solo la primera vez
 docker compose up -d --build
 ```
 
-- **Grist**: `http://localhost:8484`
-- **LOF SPA**: `http://localhost:8080`
-- **Persistencia**: volumen Docker `grist_data` (SQLite del documento)
+- **Grist**: `http://localhost:8089`
+- **MinIO console**: `http://localhost:9001` (snapshots versionados)
+- **LOF SPA**: `http://localhost:8088`
+- **Persistencia**: bind mounts en `./data/` (SQLite + MinIO + Redis)
 
 Pasos post-levantado:
 
-1. Abrir `http://localhost:8484` en el navegador.
+1. Abrir `http://localhost:8089` en el navegador.
 2. Crear un documento nuevo (o usar uno existente).
 3. En el documento: `Add New` → `Add Widget to Page` → `Custom`.
-4. Pegar la URL: `http://localhost:8080`.
+4. Pegar la URL: `http://localhost:8088`.
 5. Configurar `Access level` como **Full document access**.
 6. La app se inicia y muestra el wizard de instalación.
 
 **Cerrar y reabrir:**
 
-- `docker compose down` detiene los contenedores. Los datos persisten en el volumen.
+- `docker compose down` detiene los contenedores. Los datos persisten en `./data/`.
 - `docker compose up -d` vuelve a levantar todo. El documento Grist sigue intacto con todas las tablas y la configuración (`instalado: true`).
 - La SPA detecta que ya está instalada y va directo a la app (no repite el wizard).
 
-**Offline absoluto:** una vez levantado, no necesita internet para nada. Ambos servicios están en localhost.
+**Snapshots automáticos:** cada cambio en un documento se versiona en MinIO. Restaurar desde Grist: botón derecho en el documento → **Revisions**.
+
+**Offline absoluto:** una vez levantado, no necesita internet para nada. Todos los servicios están en localhost.
 
 > Ver [`docs/DOCKER.md`](DOCKER.md) para detalles de configuración de puertos y variables.
 
@@ -76,13 +80,13 @@ Grist Desktop es una aplicación de escritorio (Electron) que guarda el document
 2. Levantar la SPA localmente:
    ```bash
    # Opción A: Docker
-   docker run -d -p 8080:80 --name lof ghcr.io/sosamilton/spa-cooperadora:latest
+   docker run -d -p 8088:80 --name lof ghcr.io/sosamilton/spa-cooperadora:latest
 
    # Opción B: build local + servidor estático
-   npm run build && npx serve dist -p 8080
+   npm run build && npx serve dist -p 8088
    ```
 3. Abrir Grist Desktop, crear o abrir un documento.
-4. Agregar Custom Widget con URL `http://localhost:8080` y **Full document access**.
+4. Agregar Custom Widget con URL `http://localhost:8088` y **Full document access**.
 
 **Cerrar y reabrir:**
 
@@ -104,8 +108,8 @@ Para una cooperadora que tiene un servidor en la institución (Raspberry Pi, min
 docker compose up -d --build
 ```
 
-- Los usuarios acceden a Grist desde `http://<IP-del-servidor>:8484`.
-- El widget se configura con `http://<IP-del-servidor>:8080`.
+- Los usuarios acceden a Grist desde `http://<IP-del-servidor>:8089`.
+- El widget se configura con `http://<IP-del-servidor>:8088`.
 - Todo el tráfico queda dentro de la LAN — sin internet.
 
 **Offline absoluto:** sí, siempre que las máquinas de los usuarios y el servidor estén en la misma red local.
@@ -149,8 +153,8 @@ Los stores de cada módulo cargan sus datos desde Grist vía `fetchRecords()` �
 Para confirmar que tu instalación es 100% offline:
 
 1. **Desconectar internet** (apagar Wi-Fi / desenchufar cable de red).
-2. Verificar que Grist carga: `http://localhost:8484` (o el puerto configurado).
-3. Verificar que la SPA carga: `http://localhost:8080` (o el puerto configurado).
+2. Verificar que Grist carga: `http://localhost:8089` (o el puerto configurado).
+3. Verificar que la SPA carga: `http://localhost:8088` (o el puerto configurado).
 4. Abrir el documento Grist con el widget LOF.
 5. Navegar por los módulos (Socios, Movimientos, Gobierno, etc.).
 6. Crear/editar registros y confirmar que persisten al refrescar.
@@ -161,7 +165,7 @@ Si todos los pasos funcionan sin internet, la instalación es 100% offline.
 
 ## Telemetría y privacidad
 
-El `docker-compose.yml` configura `GRIST_TELEMETRY_LEVEL=off` para desactivar cualquier telemetría de Grist. LOF no envía datos a ningún servicio externo.
+El `docker/grist/docker-compose.grist.yml` configura `GRIST_TELEMETRY_LEVEL=off` para desactivar cualquier telemetría de Grist. LOF no envía datos a ningún servicio externo.
 
 ---
 
@@ -172,5 +176,5 @@ Si ya tenés un documento en getgrist.com y querés pasarlo a local:
 1. En getgrist.com: `Document Settings` → `Download` → descarga el `.grist` (SQLite).
 2. Levantar Grist local: `docker compose up -d --build`.
 3. En Grist local: `Import Document` → subí el archivo `.grist`.
-4. Reconfigurar el widget con `http://localhost:8080`.
+4. Reconfigurar el widget con `http://localhost:8088`.
 5. Todos los datos, tablas y configuración se preservan.

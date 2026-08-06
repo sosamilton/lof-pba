@@ -36,18 +36,6 @@
       "sourceType": "well-known",
       "computedHash": "dc17f090c975afe1d96a25dbe843fc9c978e96d5699eed1bb7c12b411e10b830"
     },
-    "svelte-core-bestpractices": {
-      "source": "sveltejs/ai-tools",
-      "sourceType": "github",
-      "skillPath": "plugins/claude/svelte/skills/svelte-core-bestpractices/SKILL.md",
-      "computedHash": "98b4ee346ac45e13740c9f3353b604d5c6e844c96cdc8867052fa961cbdb525d"
-    },
-    "svelte-design": {
-      "source": "ajianaz/skills-collection",
-      "sourceType": "github",
-      "skillPath": "skills/svelte-design/SKILL.md",
-      "computedHash": "af4ae37461cfd2c8131d45fc7be8ba1277e323d7650ba0f61c0e0980f6018346"
-    },
     "svelte-expert": {
       "source": "oimiragieo/agent-studio",
       "sourceType": "github",

@@ -32,3 +32,18 @@ docs/oficiales_abc/
 scripts/cooperadoras-csv/*
 !scripts/cooperadoras-csv/.gitkeep
 *.geojson
+
+# Docker data volumes (bind mounts — SQLite, MinIO, etc.)
+data/
+
+# Environment files with secrets
+.env
+docker/grist/grist.env
+docker/grist/oidc.env
+
+# Agent/tooling directories (not part of the project)
+_evo/
+_spec/
+.agents/
+.claude/
+.vscode/

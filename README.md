@@ -116,6 +116,7 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 ## Inicio rápido
 
 ```bash
+cp docker/grist/grist.env.example .env   # solo la primera vez
 docker compose up -d --build
 ```
 

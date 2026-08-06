@@ -1,51 +1,31 @@
 # docker-compose.yml — entorno PRODUCTIVO: Grist + LOF SPA
 #
-# Levanta Grist (backend) y la SPA (frontend) listos para usar, 100% offline.
-# No requiere internet: ambos servicios corren en localhost.
+# Levanta Grist (backend + Redis + MinIO snapshots) y la SPA (frontend),
+# listos para usar y 100% offline.
 #
 # Uso:
 #   docker compose up -d --build       # construye la SPA y levanta todo
 #   docker compose up -d               # usa imagen de GHCR si ya existe
 #
 # Puertos:
-#   - Grist: http://localhost:${GRIST_PORT:-8089}
-#   - LOF:   http://localhost:${APP_PORT:-8088}
+#   - Grist:         http://localhost:${GRIST_PORT:-8089}
+#   - MinIO console: http://localhost:${MINIO_CONSOLE_PORT:-9001}
+#   - LOF:           http://localhost:${APP_PORT:-8088}
 #
-# Persistencia:
-#   - grist_data: documento Grist (SQLite), usuarios, sesiones.
+# Persistencia (bind mounts en ./data/):
+#   - ./data/grist/persist  — documento Grist (SQLite), usuarios, sesiones
+#   - ./data/grist/docs     — documentos importados/exportados
+#   - ./data/minio          — snapshots versionados (S3-compatible)
 #
-# Ver docs/DOCKER.md y docs/OFFLINE.md para detalles.
+# Config: copiar docker/grist/grist.env.example a .env y personalizar.
+# Ver docs/DOCKER.md para detalles.
+
+include:
+  - docker/grist/docker-compose.grist.yml
 
 services:
-  grist:
-    image: gristlabs/grist:${GRIST_TAG:-latest}
-    container_name: grist
-    ports:
-      - "${GRIST_PORT:-8089}:8484"
-    volumes:
-      - grist_data:/persist
-      - grist_docs:/docs
-    environment:
-      # Permite registro de usuarios sin email (modo local/offline)
-      - GRIST_ORG_IN_PATH=true
-      # No requiere login para acceso local (simplifica el primer uso)
-      - GRIST_SINGLE_PORT=true
-      # Persistencia dentro del container
-      - GRIST_DATA_DIR=/persist
-      # Desactivar telemetría para uso offline
-      - GRIST_TELEMETRY_LEVEL=off
-      # URL pública de Grist (para emails/links; en local no es crítico)
-      - APP_HOME_URL=http://localhost:${GRIST_PORT:-8089}
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8484/status"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-
   lof:
-    image: ghcr.io/${IMAGE_REPO:-sosamilton/spa-cooperadora}:${IMAGE_TAG:-latest}
+    image: ghcr.io/${IMAGE_REPO:-sosamilton/lof-pba}:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -53,16 +33,3 @@ services:
     ports:
       - "${APP_PORT:-8088}:80"
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 5s
-    depends_on:
-      grist:
-        condition: service_healthy
-
-volumes:
-  grist_data:
-  grist_docs:

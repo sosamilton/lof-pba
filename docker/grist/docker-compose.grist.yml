@@ -1,0 +1,108 @@
+# docker/grist/docker-compose.grist.yml
+# ---------------------------------------------------------------------------
+# Stack de Grist autocontenido: Grist + Redis + MinIO (snapshots S3) + init.
+#
+# Diseñado para ser incluido por docker-compose.yml (prod) y
+# docker-compose.dev.yml (dev) mediante la directiva `include`.
+#
+# Servicios:
+#   grist       — Grist (backend spreadsheet-database)
+#   redis       — State store (recomendado para snapshots, webhooks, notifications)
+#   minio       — S3-compatible para snapshots/versionado de documentos
+#   minio-init  — Crea el bucket versionado grist-docs (one-shot)
+#
+# Auth desatendida:
+#   GRIST_IN_SERVICE=true  — skip boot key check (red privada)
+#   GRIST_FORCE_LOGIN=true — sin acceso anónimo
+#   GRIST_DEFAULT_EMAIL    — admin preconfigurado
+#   GRIST_SESSION_SECRET   — secreto persistente (cambiar en prod!)
+#
+# OIDC: ver grist.env.example para habilitar SSO.
+# Crear docker/grist/oidc.env con las variables GRIST_OIDC_* para activar SSO.
+# ---------------------------------------------------------------------------
+
+services:
+  grist:
+    image: gristlabs/grist:${GRIST_TAG:-latest}
+    container_name: ${GRIST_CONTAINER:-grist}
+    ports:
+      - "${GRIST_PORT:-8089}:8484"
+    volumes:
+      - ${GRIST_PERSIST_DIR:-../../data/grist/persist}:/persist
+      - ${GRIST_DOCS_DIR:-../../data/grist/docs}:/docs
+    env_file:
+      - path: ./oidc.env
+        required: false
+    environment:
+      GRIST_ORG_IN_PATH: "true"
+      GRIST_SINGLE_PORT: "true"
+      GRIST_DATA_DIR: /persist
+      GRIST_TELEMETRY_LEVEL: "off"
+      GRIST_IN_SERVICE: "true"
+      GRIST_FORCE_LOGIN: ${GRIST_FORCE_LOGIN:-true}
+      GRIST_DEFAULT_EMAIL: ${GRIST_ADMIN_EMAIL:-admin@localhost}
+      GRIST_SESSION_SECRET: ${GRIST_SESSION_SECRET:-change-me-please}
+      GRIST_SINGLE_ORG: ${GRIST_SINGLE_ORG:-cooperadora}
+      GRIST_SANDBOX_FLAVOR: ${GRIST_SANDBOX_FLAVOR:-gvisor}
+      APP_HOME_URL: ${APP_HOME_URL:-http://localhost:${GRIST_PORT:-8089}}
+      REDIS_URL: redis://redis:6379
+      GRIST_DOCS_MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-grist}
+      GRIST_DOCS_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-grist-secret}
+      GRIST_DOCS_MINIO_BUCKET: grist-docs
+      GRIST_DOCS_MINIO_ENDPOINT: minio
+      GRIST_DOCS_MINIO_PORT: "9000"
+      GRIST_DOCS_MINIO_USE_SSL: "0"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8484/status"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    depends_on:
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+
+  redis:
+    image: redis:7-alpine
+    container_name: ${REDIS_CONTAINER:-grist-redis}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  minio:
+    image: minio/minio:latest
+    container_name: ${MINIO_CONTAINER:-grist-minio}
+    command: server /data --console-address ":9001"
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - ${MINIO_DATA_DIR:-../../data/minio}:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-grist}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-grist-secret}
+    restart: unless-stopped
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: ${MINIO_INIT_CONTAINER:-grist-minio-init}
+    depends_on:
+      minio:
+        condition: service_started
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set gristminio http://minio:9000 ${MINIO_ROOT_USER:-grist} ${MINIO_ROOT_PASSWORD:-grist-secret} 2>/dev/null; do
+        echo 'Waiting for MinIO...';
+        sleep 2;
+      done &&
+      mc mb --ignore-existing gristminio/grist-docs &&
+      mc version enable gristminio/grist-docs &&
+      echo 'Bucket grist-docs created with versioning enabled'
+      "
+    restart: "no"

@@ -9,19 +9,29 @@ Guía completa de la dockerización de LOF. La app compila a **estáticos** y se
 | `Dockerfile` | Imagen multi-stage: build con Node → runtime con nginx. |
 | `docker/nginx.conf` | Configuración de nginx (gzip, cache, SPA fallback). |
 | `.dockerignore` | Excluye `node_modules`, `dist`, `.git`, docs, etc. del contexto de build. |
-| `docker-compose.yml` | Compose de **producción** (Grist + nginx). |
-| `docker-compose.dev.yml` | Compose de **desarrollo** (Vite + HMR). |
+| `docker/grist/docker-compose.grist.yml` | Stack de **Grist** autocontenido (Grist + Redis + MinIO + init bucket). Incluido por prod y dev. |
+| `docker/grist/grist.env.example` | Template de configuración (copiar a `.env`). |
+| `docker-compose.yml` | Compose de **producción** (include Grist + nginx SPA). |
+| `docker-compose.dev.yml` | Compose de **desarrollo** (include Grist + Vite HMR). |
 
 ## Producción
 
-El `docker-compose.yml` levanta **Grist + LOF SPA** juntos, listos para usar y 100% offline.
+El `docker-compose.yml` levanta **Grist + Redis + MinIO + LOF SPA** juntos, listos para usar y 100% offline.
+
+### Configuración inicial
+
+```bash
+cp docker/grist/grist.env.example .env
+# Editar .env: cambiar GRIST_SESSION_SECRET y MINIO_ROOT_PASSWORD
+```
 
 ### Construir y levantar todo
 
 ```bash
 docker compose up -d --build
-# Grist en http://localhost:8089
-# LOF en http://localhost:8088
+# Grist en         http://localhost:8089
+# MinIO console en  http://localhost:9001
+# LOF en            http://localhost:8088
 ```
 
 ### Levantar solo la SPA (sin Grist)
@@ -31,31 +41,66 @@ docker compose up -d --build lof
 # App en http://localhost:8088
 ```
 
-### Variables de entorno (opcionales)
+### Variables de entorno
 
 | Variable | Default | Descripción |
 | --- | --- | --- |
 | `APP_PORT` | `8088` | Puerto del host para la SPA. |
 | `GRIST_PORT` | `8089` | Puerto del host para Grist. |
 | `GRIST_TAG` | `latest` | Tag de la imagen oficial de Grist. |
+| `GRIST_ADMIN_EMAIL` | `admin@localhost` | Email del admin (se crea en el primer arranque). |
+| `GRIST_SESSION_SECRET` | `change-me-please` | Secreto de sesiones (**cambiar en prod**). |
+| `GRIST_FORCE_LOGIN` | `true` | Sin acceso anónimo. |
+| `GRIST_SINGLE_ORG` | `cooperadora` | Single-team (simplifica URLs). |
+| `GRIST_SANDBOX_FLAVOR` | `gvisor` | Aislamiento de fórmulas Python (`none` si no hay soporte CPU). |
+| `MINIO_ROOT_USER` | `grist` | Usuario MinIO (snapshots). |
+| `MINIO_ROOT_PASSWORD` | `grist-secret` | Password MinIO (**cambiar en prod**). |
 | `IMAGE_REPO` | `sosamilton/spa-cooperadora` | Repo de GHCR (para `image:`). |
 | `IMAGE_TAG` | `latest` | Tag de la imagen de la SPA. |
+
+Ver `docker/grist/grist.env.example` para la lista completa incluyendo OIDC.
 
 ```bash
 GRIST_PORT=9000 APP_PORT=8088 docker compose up -d --build
 ```
 
-### Configuración de Grist
+### Stack de Grist
 
-El servicio `grist` usa la imagen oficial `gristlabs/grist` con:
+El archivo `docker/grist/docker-compose.grist.yml` define el stack completo de Grist:
 
-- `GRIST_TELEMETRY_LEVEL=off` — sin telemetría (privacidad offline).
-- `GRIST_SINGLE_PORT=true` — modo single-port (simplifica acceso local).
-- `GRIST_ORG_IN_PATH=true` — URLs con org en el path (sin subdominios).
-- Volumen `grist_data` en `/persist` — documento SQLite, usuarios, sesiones.
-- Volumen `grist_docs` en `/docs` — documentos importados/exportados.
-- Healthcheck contra `/status`.
-- `depends_on: grist (healthy)` en `lof` — la SPA espera a que Grist esté listo.
+- **`grist`** — imagen oficial `gristlabs/grist` con:
+  - `GRIST_IN_SERVICE=true` — skip boot key (arranque desatendido).
+  - `GRIST_FORCE_LOGIN=true` — sin acceso anónimo.
+  - `GRIST_DEFAULT_EMAIL` — admin preconfigurado.
+  - `GRIST_SINGLE_ORG` — single-team (URLs sin `/o/team-name`).
+  - `GRIST_SANDBOX_FLAVOR=gvisor` — aislamiento de fórmulas Python.
+  - `GRIST_TELEMETRY_LEVEL=off` — sin telemetría.
+  - Bind mount `./data/grist/persist` → `/persist` (SQLite, usuarios, sesiones).
+  - Bind mount `./data/grist/docs` → `/docs` (documentos).
+  - Healthcheck contra `/status`.
+- **`redis`** — state store (recomendado para snapshots, webhooks, notifications).
+- **`minio`** — S3-compatible para snapshots versionados de documentos.
+- **`minio-init`** — crea el bucket `grist-docs` con versioning habilitado (one-shot).
+
+### Snapshots / Backup
+
+Los documentos se sincronizan automáticamente a MinIO (S3-compatible) con versionado:
+
+- Cada cambio crea una versión nueva en el bucket `grist-docs`.
+- Desde Grist: botón derecho en un documento → **Revisions** para ver/restaurar versiones.
+- Console de MinIO: `http://localhost:9001` (credenciales de `.env`).
+- Backup completo: copiar `./data/` (incluye SQLite + MinIO + Redis).
+
+### Autenticación
+
+El setup por defecto es **desatendido**:
+
+- `GRIST_IN_SERVICE=true` — sin boot key check (red privada).
+- `GRIST_FORCE_LOGIN=true` — requiere login.
+- El admin se crea con `GRIST_DEFAULT_EMAIL` en el primer arranque.
+- Para cambiar el password: Admin Panel → Users.
+
+**OIDC (opcional):** crear `docker/grist/oidc.env` con las variables `GRIST_OIDC_*` (ver template en `grist.env.example`). El archivo se carga automáticamente via `env_file` sin error si no existe. Redirect URI: `https://<grist-domain>/oauth2/callback`.
 
 ### Conectar la SPA con Grist
 
@@ -122,17 +167,19 @@ docker compose -f docker-compose.dev.yml up
 # App en http://localhost:5173 con HMR
 ```
 
-El compose de dev levanta **Grist + Vite** juntos. Un solo comando deja ambos servicios listos:
+El compose de dev levanta **Grist + Redis + MinIO + Vite** juntos. Hereda todo el stack de Grist del `include` y solo overridea container names, ports y paths:
 
 ```bash
 docker compose -f docker-compose.dev.yml up
-# Grist en http://localhost:8489
-# Vite  en http://localhost:5173 (HMR)
+# Grist en         http://localhost:8489
+# MinIO console en  http://localhost:9101
+# Vite  en          http://localhost:5173 (HMR)
 ```
 
 Servicios:
 
-- **`grist`** — imagen oficial `gristlabs/grist`, misma config que producción (telemetría off, single-port, org-in-path) pero con volúmenes propios (`grist_dev_data`, `grist_dev_docs`) para no mezclar datos de dev con los de prod. Healthcheck contra `/status`.
+- **`grist`** — misma config que producción (del `include`) pero con container `grist-dev`, puerto `8489` y datos en `./data/grist-dev/`.
+- **`redis`** / **`minio`** / **`minio-init`** — same, con container names `-dev` y paths separados.
 - **`lof-dev`** — `node:24-alpine` directamente (sin Dockerfile propio). Monta el directorio del proyecto en `/app` (volumen en vivo → HMR). Mantiene `node_modules` en un **volumen anónimo** (`lof_node_modules`) para no pisar el del host. Ejecuta `npm install && npm run dev -- --host 0.0.0.0` en cada arranque. `depends_on: grist (healthy)` — Vite arranca cuando Grist responde.
 
 ### Conectar la SPA con Grist en dev
@@ -149,6 +196,8 @@ Una vez levantados ambos servicios:
 | --- | --- | --- |
 | `DEV_PORT` | `5173` | Puerto del host mapeado al 5173 de Vite. |
 | `GRIST_PORT` | `8489` | Puerto del host para Grist. |
+| `MINIO_PORT` | `9100` | Puerto del host para MinIO API. |
+| `MINIO_CONSOLE_PORT` | `9101` | Puerto del host para MinIO console. |
 | `GRIST_TAG` | `latest` | Tag de la imagen oficial de Grist. |
 
 ```bash
@@ -156,7 +205,7 @@ DEV_PORT=5180 GRIST_PORT=9000 docker compose -f docker-compose.dev.yml up
 ```
 
 > El dev container reinstala dependencias en cada `up` porque `node_modules` es un volumen anónimo. Para iterar rápido sin reinstalar, podés comentar el `npm install` del `command` después del primer arranque, o usar un volumen con nombre persistente.
-> Los volúmenes `grist_dev_data` / `grist_dev_docs` son independientes de los de producción (`grist_data` / `grist_docs`), así podés tener dev y prod en la misma máquina sin pisar datos.
+> Los datos de dev van a `./data/grist-dev/` y `./data/minio-dev/`, separados de prod (`./data/grist/` y `./data/minio/`), así podés tener dev y prod en la misma máquina sin pisar datos.
 
 ## CI (GitHub Actions)
 
@@ -182,14 +231,18 @@ Como la SPA usa paths relativos (`base: './'`) y hash routing, no hace falta con
 
 | | Producción (`docker-compose.yml`) | Dev (`docker-compose.dev.yml`) |
 | --- | --- | --- |
-| Servicios | Grist + SPA | Grist + Vite (dev) |
+| Servicios | Grist + Redis + MinIO + SPA | Grist + Redis + MinIO + Vite |
+| Stack Grist | `include` docker/grist/... | `include` + overrides dev |
 | Imagen base SPA | `nginx:1.27-alpine` (build local) | `node:24-alpine` |
 | Imagen Grist | `gristlabs/grist` | `gristlabs/grist` |
 | Servidor SPA | nginx | Vite dev server |
 | HMR | No (estáticos) | Sí |
 | Puerto SPA | 80 → 8088 | 5173 |
 | Puerto Grist | 8089 | 8489 |
+| Puerto MinIO console | 9001 | 9101 |
 | Volumen código | No (copiado en build) | Sí (bind mount) |
-| Volumen datos | `grist_data`, `grist_docs` | `grist_dev_data`, `grist_dev_docs` |
+| Volumen datos | `./data/grist/`, `./data/minio/` | `./data/grist-dev/`, `./data/minio-dev/` |
+| Snapshots | Sí (MinIO versionado) | Sí (MinIO versionado) |
+| Auth | Login + admin email | Login + admin email |
 | Healthcheck | Sí (wget) | Sí (wget) |
 | Reinicio | `unless-stopped` | `unless-stopped` |
