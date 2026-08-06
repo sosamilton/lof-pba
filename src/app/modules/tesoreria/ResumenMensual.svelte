@@ -49,7 +49,7 @@
   const irACargaPIADefault = () => {
     // Calcular el próximo período a cargar aquí para navegar con él.
     const periodosConDatos = new Set(
-      store.movimientos.map((m) => String(String(m.fecha || '').slice(0, 7))).filter(Boolean)
+      store.movimientos.map((m) => String(m.periodo || '')).filter(Boolean)
     )
     const proximo = proximoPeriodoACargar(store.ejercicio, periodosConDatos)
     navigate(`carga-pia/${proximo}`)

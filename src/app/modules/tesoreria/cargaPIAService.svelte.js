@@ -34,7 +34,7 @@ export function createCargaPIAService({ relatedData, base, cierresService }) {
     if (!tableId) return new Map()
     const ejId = Number(relatedData.ejercicio.id)
     const recs = await fetchRecords(tableId, {
-      filter: (m) => Number(m.ejercicio_id) === ejId && String(String(m.fecha || '').slice(0, 7)) === periodoKey,
+      filter: (m) => Number(m.ejercicio_id) === ejId && String(m.periodo || '') === periodoKey,
     })
     const map = new Map()
     for (const m of recs) {
@@ -96,7 +96,7 @@ export function createCargaPIAService({ relatedData, base, cierresService }) {
         const rubro = rubroById.get(Number(f.rubro_id))
         const tipo = rubro?.tipo_rubro || 'Entrada'
         const fields = normalizeFields({
-          fecha: String(fecha),
+          fecha: String(fecha).slice(0, 7) + '-01',
           tipo_movimiento: tipo,
           rubro_id: Number(f.rubro_id),
           importe: Number(f.importe),

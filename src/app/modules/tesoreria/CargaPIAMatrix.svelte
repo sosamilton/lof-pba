@@ -104,17 +104,17 @@
     // Parsear período de la URL (#carga-pia/2026-01 → '2026-01').
     const hash = String(typeof window !== 'undefined' ? window.location.hash : '')
     const match = hash.match(/carga-pia\/(\d{4}-\d{2})/)
-    if (match) return match[1] + '-01'
+    if (match) return match[1]
 
     // Sin período en URL: calcular el próximo a cargar.
     const periodosConDatos = new Set(
       store.records
         .filter((m) => store.ejercicio && Number(m.ejercicio_id) === Number(store.ejercicio.id))
-        .map((m) => String(String(m.fecha || '').slice(0, 7)))
+        .map((m) => String(m.periodo || ''))
         .filter(Boolean)
     )
     const proximo = proximoPeriodoACargar(store.ejercicio, periodosConDatos)
-    return proximo + '-01'
+    return proximo
   }
 
   /**
