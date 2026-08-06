@@ -40,13 +40,42 @@ export const isValidCuil = (raw) => onlyDigits(raw).length === 11
 
 // Validación de dígito verificador de CUIT (algoritmo oficial)
 const CUIT_PESOS = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2]
+
+/**
+ * Calcula el dígito verificador de un CUIT a partir de los primeros 10 dígitos.
+ * @param {string} diezDigitos - Los primeros 10 dígitos del CUIT (prefijo + DNI)
+ * @returns {number|null}
+ */
+export const calcularDigitoVerificador = (diezDigitos) => {
+  const c = onlyDigits(diezDigitos).slice(0, 10)
+  if (c.length !== 10) return null
+  const sum = c.split('').reduce((acc, d, i) => acc + Number(d) * CUIT_PESOS[i], 0)
+  const rest = sum % 11
+  return rest === 0 ? 0 : rest === 1 ? 9 : 11 - rest
+}
+
+/**
+ * Construye un CUIT/CUIL completo a partir del DNI y un prefijo.
+ * El DNI se rellena con ceros a la izquierda si tiene 7 dígitos.
+ * @param {string} dni - DNI (7 u 8 dígitos)
+ * @param {string} prefix - Prefijo del CUIT ('20', '23', '24', '27', etc.)
+ * @returns {string} CUIT completo de 11 dígitos, o '' si el DNI es inválido
+ */
+export const buildCuilFromDni = (dni, prefix = '20') => {
+  const d = onlyDigits(dni)
+  if (d.length < 7 || d.length > 8) return ''
+  const dni8 = d.padStart(8, '0')
+  const base = `${prefix}${dni8}`.slice(0, 10)
+  const dv = calcularDigitoVerificador(base)
+  if (dv == null) return ''
+  return `${base}${dv}`
+}
+
 export const isValidCuilChecksum = (raw) => {
   const c = parseCuil(raw)
   if (c.length !== 11) return false
-  const sum = c.slice(0, 10).split('').reduce((acc, d, i) => acc + Number(d) * CUIT_PESOS[i], 0)
-  const rest = sum % 11
-  const dv = rest === 0 ? 0 : rest === 1 ? 9 : 11 - rest
-  return dv === Number(c[10])
+  const dv = calcularDigitoVerificador(c.slice(0, 10))
+  return dv != null && dv === Number(c[10])
 }
 
 // ---------- Teléfono ----------
@@ -131,6 +160,8 @@ export const formatTelefono = (raw) => {
 export const formatTelefonoNational = (raw) => {
   let d = onlyDigits(raw)
   if (!d) return ''
+  // Strip country prefix if present (stored data includes 54)
+  if (d.startsWith('54')) d = d.slice(2)
   // Quitar el 15 inicial (celular local) y anteponer 9 para mostrar como móvil
   if (d.startsWith('15')) {
     d = '9' + d.slice(2)

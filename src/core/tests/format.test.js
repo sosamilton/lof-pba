@@ -7,6 +7,8 @@ import {
   formatCuil,
   isValidCuil,
   isValidCuilChecksum,
+  calcularDigitoVerificador,
+  buildCuilFromDni,
   formatTelefono,
   normalizeTelefonoForStorage,
   isValidTelefono,
@@ -76,6 +78,46 @@ describe('isValidCuilChecksum', () => {
   })
   it('rejects non-11-digit', () => {
     expect(isValidCuilChecksum('3054321678')).toBe(false)
+  })
+})
+
+describe('calcularDigitoVerificador', () => {
+  it('calculates correct check digit for known CUIT', () => {
+    // 30-54321678-6 → first 10 digits = 3054321678
+    expect(calcularDigitoVerificador('3054321678')).toBe(6)
+  })
+  it('returns null for less than 10 digits', () => {
+    expect(calcularDigitoVerificador('305432167')).toBeNull()
+  })
+})
+
+describe('buildCuilFromDni', () => {
+  it('builds CUIT from 8-digit DNI with prefix 20', () => {
+    // DNI 12345678, prefix 20 → 20-12345678-?
+    const cuil = buildCuilFromDni('12345678', '20')
+    expect(cuil).toHaveLength(11)
+    expect(cuil.slice(0, 2)).toBe('20')
+    expect(cuil.slice(2, 10)).toBe('12345678')
+    expect(isValidCuilChecksum(cuil)).toBe(true)
+  })
+  it('builds CUIT from 7-digit DNI (padded with leading 0)', () => {
+    // DNI 3707576 (7 digits), prefix 24 → 24-03707576-?
+    const cuil = buildCuilFromDni('3707576', '24')
+    expect(cuil).toHaveLength(11)
+    expect(cuil.slice(0, 2)).toBe('24')
+    expect(cuil.slice(2, 10)).toBe('03707576')
+    expect(isValidCuilChecksum(cuil)).toBe(true)
+  })
+  it('returns empty for invalid DNI', () => {
+    expect(buildCuilFromDni('123', '20')).toBe('')
+    expect(buildCuilFromDni('123456789', '20')).toBe('')
+  })
+  it('user example: DNI 37075766 prefix 24', () => {
+    const cuil = buildCuilFromDni('37075766', '24')
+    expect(cuil).toHaveLength(11)
+    expect(cuil.slice(0, 2)).toBe('24')
+    expect(cuil.slice(2, 10)).toBe('37075766')
+    expect(isValidCuilChecksum(cuil)).toBe(true)
   })
 })
 
