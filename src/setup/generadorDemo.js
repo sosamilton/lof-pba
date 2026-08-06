@@ -138,7 +138,7 @@ const TIPOS_MOV = ['Entrada', 'Salida', 'Traspaso']
  * @param {number} [opts.cantSocios=400]
  * @param {number} [opts.cantMovimientos=2000]
  * @param {number} [opts.batchSize=100]
- * @param {boolean} [opts.gestionIntegral=true] - Si false (carga_consolidada), omite asamblea/autoridades y genera planillas_generadas.
+ * @param {boolean} [opts.gestionIntegral=true] - Reservado para compatibilidad. Las asambleas/autoridades se generan si existen las tablas.
  * @param {(msg: string) => void} [opts.onProgress]
  * @returns {Promise<{personas: number, socios: number, movimientos: number, asamblea: boolean, autoridades: number, planillas: number}>}
  */
@@ -361,10 +361,9 @@ export const generarDatosPrueba = async ({
   results.movimientos = movimientosData.length
 
   // --- 4. Asamblea AGO + autoridades de CD y CRC ---
-  // Solo en modo gestion_integral: si existen las tablas necesarias y hay
-  // ejercicio + cargos definidos. En carga_consolidada no se crean estas
-  // tablas, así que se omite este bloque.
-  if (gestionIntegral && tAsambleas && tAutoridades && tCargos && ejercicioId) {
+  // Se genera si existen las tablas necesarias y hay ejercicio + cargos definidos.
+  // Aplica tanto a gestion_integral como a carga_consolidada.
+  if (tAsambleas && tAutoridades && tCargos && ejercicioId) {
     log('Creando asamblea AGO y designando autoridades...')
 
     // Cargar cargos activos agrupados por organismo

@@ -178,12 +178,13 @@ export const MODULES = {
   carga_consolidada: {
     label: 'Carga consolidada',
     description: 'Cargá los rubros PIA por período (mensual o anual). Ideal para cooperadoras que no registran cada movimiento individual.',
-    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'rubros_pia', 'planillas_generadas', 'configuracion', 'movimientos', 'cuentas', 'cierres_mensuales'],
+    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asambleas', 'resoluciones', 'rubros_pia', 'planillas_generadas', 'configuracion', 'movimientos', 'cuentas', 'cierres_mensuales'],
     menuItems: [
       { route: 'inicio', label: 'Inicio' },
       { route: 'socios', label: 'Socios' },
       { route: 'personas', label: 'Personas' },
       { route: 'movimientos', label: 'Movimientos' },
+      { route: 'gobierno', label: 'Asambleas y Autoridades' },
       { route: 'resumen', label: 'Resumen' }
     ],
     implemented: true
@@ -233,6 +234,7 @@ export const getActiveMenuItems = (config) => {
     items.push({ route: 'socios', label: 'Socios' })
     items.push({ route: 'personas', label: 'Personas' })
     items.push({ route: 'movimientos', label: 'Movimientos' })
+    items.push({ route: 'gobierno', label: 'Asambleas y Autoridades' })
     items.push({ route: 'resumen', label: 'Resumen' })
   }
 
