@@ -3,7 +3,9 @@
   "private": true,
   "version": "0.1.0-dev",
   "type": "module",
-  "maintainers": ["Milton Sosa <milton.sosa.22@gmail.com>"],
+  "maintainers": [
+    "Milton Sosa <milton.sosa.22@gmail.com>"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -22,6 +24,7 @@
     "vitest": "^3.2.7"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.3.0",
     "@tailwindcss/vite": "^4.3.3",
     "bits-ui": "^2.18.1",
     "clsx": "^2.1.1",
