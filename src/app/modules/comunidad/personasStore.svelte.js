@@ -1,6 +1,6 @@
 import { createGristStore, extendStore } from '$core/stores/gristStore.svelte.js'
 import { findPersonaByDni } from '$core/personas.js'
-import { formatDni, formatCuil, formatTelefono, parseDni as normalizeDni, parseCuil as normalizeCuil, normalizeTelefonoForStorage as normalizeTelefono, normalizeEmail as normalizeEmailField, isValidDni } from '$core/format.js'
+import { formatDni, formatCuil, parseDni as normalizeDni, parseCuil as normalizeCuil, isValidDni } from '$core/format.js'
 import { useFieldWarnings } from '$core/useFieldWarnings.svelte.js'
 import { buildPersonaForm, buildNewPersonaForm } from './personaFormManager.js'
 

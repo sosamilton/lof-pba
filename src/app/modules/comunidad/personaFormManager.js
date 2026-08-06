@@ -1,10 +1,12 @@
 import { dateToInput } from '$core/utils.js'
-import { formatDni, formatCuil, formatTelefono } from '$core/format.js'
+import { formatDni, formatCuil, formatTelefonoNational } from '$core/format.js'
 
 /**
  * Constructores de formularios de persona y socio.
  * Funciones puras que retornan objetos form listos para asignar a $state.
  */
+
+const CUIL_PREFIX_DEFAULT = '20'
 
 /**
  * Construye el form de socio desde un registro existente.
@@ -21,7 +23,7 @@ export function buildSocioForm(s) {
     nombre: s.nombre || '',
     domicilio: s.domicilio || '',
     localidad: s.localidad || '',
-    telefono: formatTelefono(s.telefono || ''),
+    telefono: formatTelefonoNational(s.telefono || ''),
     email: s.email || '',
     tipo_socio: s.tipo_socio || 'Activo',
     fecha_nacimiento: dateToInput(s.fecha_nacimiento),
@@ -40,7 +42,7 @@ export function buildNewSocioForm(prefill = {}) {
   return {
     persona_id: null,
     dni: formatDni(prefill.dni || ''),
-    cuil: '',
+    cuil: formatCuil(CUIL_PREFIX_DEFAULT),
     apellido: prefill.apellido || '',
     nombre: prefill.nombre || '',
     domicilio: '',
@@ -71,7 +73,7 @@ export function buildPersonaForm(p) {
     razon_social: p.razon_social || '',
     domicilio: p.domicilio || '',
     localidad: p.localidad || '',
-    telefono: formatTelefono(p.telefono || ''),
+    telefono: formatTelefonoNational(p.telefono || ''),
     email: p.email || '',
     fecha_nacimiento: dateToInput(p.fecha_nacimiento),
     categoria: p.categoria || '',
@@ -84,11 +86,13 @@ export function buildPersonaForm(p) {
  * @returns {Record<string, any>}
  */
 export function buildNewPersonaForm(prefill = {}) {
+  const isJuridica = prefill.tipo_persona === 'Juridica'
+  const prefix = isJuridica ? '30' : CUIL_PREFIX_DEFAULT
   return {
     id: null,
     tipo_persona: prefill.tipo_persona || 'Fisica',
     dni: formatDni(prefill.dni || ''),
-    cuil: '',
+    cuil: formatCuil(prefix),
     apellido: prefill.apellido || '',
     nombre: prefill.nombre || '',
     razon_social: prefill.razon_social || '',

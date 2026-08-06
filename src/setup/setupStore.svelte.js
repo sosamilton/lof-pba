@@ -72,7 +72,7 @@ export class SetupStore {
     cue: '06',
     distrito: '',
     cooperadora_nombre: '',
-    cuit: '',
+    cuit: '30',
     domicilio: '',
     localidad: '',
     email: '',

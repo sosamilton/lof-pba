@@ -1,4 +1,4 @@
-import { formatCuil, formatTelefono, parseCuil as normalizeCuil, normalizeTelefonoForStorage as normalizeTelefono, normalizeEmail as normalizeEmailField, isValidCuil, isValidCuilChecksum, isValidEmail as isValidEmailField } from '$core/format.js'
+import { formatCuil, formatTelefonoNational, parseCuil as normalizeCuil, normalizeTelefonoForStorage as normalizeTelefono, normalizeEmail as normalizeEmailField, isValidCuil, isValidCuilChecksum, isValidEmail as isValidEmailField } from '$core/format.js'
 
 /**
  * Composable reutilizable para validación de campos con warnings visuales.
@@ -43,7 +43,7 @@ export function useFieldWarnings({ getForm = () => null } = {}) {
     const form = getForm()
     if (!form) return
     const raw = form.telefono
-    form.telefono = formatTelefono(raw)
+    form.telefono = formatTelefonoNational(raw)
     const stored = normalizeTelefono(raw)
     if (stored && stored.length < 10 && stored.length > 0) {
       telefonoWarning = 'Teléfono incompleto'

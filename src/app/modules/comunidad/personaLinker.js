@@ -1,5 +1,5 @@
 import { dateToInput } from '$core/utils.js'
-import { formatDni, formatCuil, formatTelefono } from '$core/format.js'
+import { formatDni, formatCuil, formatTelefonoNational } from '$core/format.js'
 import { findPersonaByDni } from '$core/personas.js'
 
 /**
@@ -36,7 +36,7 @@ export function fillFormFromPersona(form, p) {
     nombre: p.nombre || form.nombre,
     domicilio: p.domicilio || form.domicilio,
     localidad: p.localidad || form.localidad,
-    telefono: formatTelefono(p.telefono || form.telefono),
+    telefono: formatTelefonoNational(p.telefono || form.telefono),
     email: p.email || form.email,
     fecha_nacimiento: dateToInput(p.fecha_nacimiento) || form.fecha_nacimiento,
   }

@@ -8,6 +8,7 @@
   import { Badge } from '$lib/components/ui/badge'
   import { cueSedeLabel } from '$core/format'
   import { EMAIL_INSTITUCIONAL_DOMAIN } from '$core/emailInstitucional'
+  import CuilInput from '$app/modules/comunidad/parts/CuilInput.svelte'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check-big'
   import AlertCircleIcon from '@lucide/svelte/icons/circle-alert'
 
@@ -116,10 +117,7 @@
       </div>
       <div class="flex flex-col gap-1">
         <Label class="text-xs font-bold text-muted-foreground">CUIT</Label>
-        <Input bind:value={store.schoolData.cuit} oninput={() => store.onCuitInput()} placeholder="20-XXXXXXXX-X" inputmode="numeric" disabled={!escuelaEnabled} />
-        {#if store.cuitWarning}
-          <span class="text-xs text-destructive">{store.cuitWarning}</span>
-        {/if}
+        <CuilInput bind:value={store.schoolData.cuit} cuilWarning={store.cuitWarning} isJuridica={true} label="" onCuilInput={() => store.onCuitInput()} />
       </div>
       <div class="flex flex-col gap-1">
         <Label class="text-xs font-bold text-muted-foreground">Email</Label>

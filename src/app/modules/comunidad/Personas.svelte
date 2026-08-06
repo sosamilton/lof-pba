@@ -11,6 +11,7 @@
   import * as Select from '$lib/components/ui/select'
   import * as Field from '$lib/components/ui/field'
   import { Input } from '$lib/components/ui/input'
+  import * as InputGroup from '$lib/components/ui/input-group'
   import Combobox from '$lib/components/Combobox.svelte'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
   import UserPlusIcon from '@lucide/svelte/icons/user-plus'
@@ -18,6 +19,7 @@
   import FilterBar from './parts/FilterBar.svelte'
   import RecordList from './parts/RecordList.svelte'
   import PersonaFormFields from './parts/PersonaFormFields.svelte'
+  import CuilInput from './parts/CuilInput.svelte'
   import EmptyStates from './parts/EmptyStates.svelte'
 
   let q = $state('')
@@ -87,18 +89,20 @@
   </FilterBar>
 
   <div class="grid gap-4 items-start" style="grid-template-columns: {filtered.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
-    <div class="relative min-h-0 self-stretch min-h-[75vh]">
-      <RecordList
-        items={filtered}
-        selectedId={store.form?.id}
-        onSelect={(p) => store.select(p)}
-        itemLabel={(p) => isJuridica(p) ? (p.razon_social || '(sin razón social)') : `${p.apellido}, ${p.nombre}`}
-        itemSub={(p) => isJuridica(p) ? `CUIT ${p.cuil || '-'}` : `DNI ${p.dni || '-'} · ${p.localidad || ''}`}
-        itemBadges={(p) => isJuridica(p)
-          ? [{ text: 'Jurídica', variant: 'secondary' }]
-          : [{ text: 'Física', variant: 'secondary' }]}
-      />
-    </div>
+    {#if filtered.length > 0}
+      <div class="relative min-h-0 self-stretch min-h-[75vh]">
+        <RecordList
+          items={filtered}
+          selectedId={store.form?.id}
+          onSelect={(p) => store.select(p)}
+          itemLabel={(p) => isJuridica(p) ? (p.razon_social || '(sin razón social)') : `${p.apellido}, ${p.nombre}`}
+          itemSub={(p) => isJuridica(p) ? `CUIT ${p.cuil || '-'}` : `DNI ${p.dni || '-'} · ${p.localidad || ''}`}
+          itemBadges={(p) => isJuridica(p)
+            ? [{ text: 'Jurídica', variant: 'secondary' }]
+            : [{ text: 'Física', variant: 'secondary' }]}
+        />
+      </div>
+    {/if}
 
     <div>
       {#if store.form}
@@ -152,11 +156,7 @@
                   <Field.FieldLabel for="razon_social">Razón social</Field.FieldLabel>
                   <Input id="razon_social" bind:value={store.form.razon_social} />
                 </Field.Field>
-                <Field.Field data-invalid={Boolean(store.cuilWarning)}>
-                  <Field.FieldLabel for="cuil">CUIT</Field.FieldLabel>
-                  <Input id="cuil" bind:value={store.form.cuil} oninput={store.onCuilInput} aria-invalid={Boolean(store.cuilWarning)} placeholder="20-12345678-9" />
-                  {#if store.cuilWarning}<Field.FieldError>{store.cuilWarning}</Field.FieldError>{/if}
-                </Field.Field>
+                <CuilInput bind:value={store.form.cuil} cuilWarning={store.cuilWarning} isJuridica={true} label="CUIT" onCuilInput={store.onCuilInput} />
                 <Field.Field>
                   <Field.FieldLabel for="domicilio">Domicilio</Field.FieldLabel>
                   <Input id="domicilio" bind:value={store.form.domicilio} />
@@ -172,7 +172,10 @@
                 </Field.Field>
                 <Field.Field data-invalid={Boolean(store.telefonoWarning)}>
                   <Field.FieldLabel for="telefono">Teléfono</Field.FieldLabel>
-                  <Input id="telefono" bind:value={store.form.telefono} oninput={store.onTelefonoInput} aria-invalid={Boolean(store.telefonoWarning)} placeholder="+54 9 11 1234-5678" inputmode="tel" />
+                  <InputGroup.Root>
+                    <InputGroup.Addon class="font-bold text-sm">+54</InputGroup.Addon>
+                    <InputGroup.Input id="telefono" bind:value={store.form.telefono} oninput={store.onTelefonoInput} aria-invalid={Boolean(store.telefonoWarning)} placeholder="9 11 1234-5678" inputmode="tel" />
+                  </InputGroup.Root>
                   {#if store.telefonoWarning}<Field.FieldError>{store.telefonoWarning}</Field.FieldError>{/if}
                 </Field.Field>
                 <Field.Field data-invalid={Boolean(store.emailWarning)}>
