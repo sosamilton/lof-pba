@@ -224,7 +224,7 @@ export async function doInstall(s) {
 
 /**
  * Limpieza post-instalación:
- * 1. Renombra la página donde está el widget a "LOF-PBA"
+ * 1. Renombra la página donde está el widget a "🤝 LOF-PBA" (emoji = ícono)
  * 2. Si existe Table1 (tabla default de Grist) y está vacía, la elimina
  *
  * Las páginas en Grist son registros en la metadata table _grist_Views.
@@ -233,7 +233,8 @@ export async function doInstall(s) {
  */
 async function cleanupDefaultTable() {
   try {
-    // 1. Renombrar la página del widget a "LOF-PBA"
+    // 1. Renombrar la página del widget a "🤝 LOF-PBA"
+    // Grist muestra como ícono de página el primer emoji del nombre
     try {
       const views = await fetchRecords('_grist_Views', { columns: ['id', 'name'] })
       if (views.length > 0) {
@@ -241,8 +242,9 @@ async function cleanupDefaultTable() {
         // Si solo hay una, renombrarla directamente
         let target = views.find((v) => String(v.name) !== 'Table1')
         if (!target) target = views[0]
-        if (String(target.name) !== 'LOF-PBA') {
-          await applyUserActions([['UpdateRecord', '_grist_Views', target.id, { name: 'LOF-PBA' }]])
+        const pageName = '🤝 LOF-PBA'
+        if (String(target.name) !== pageName) {
+          await applyUserActions([['UpdateRecord', '_grist_Views', target.id, { name: pageName }]])
         }
       }
     } catch (e) {
