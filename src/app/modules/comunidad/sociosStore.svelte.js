@@ -1,7 +1,7 @@
 import { createGristStore, extendStore } from '$core/stores/gristStore.svelte.js'
 import { fetchRecords, resolveTableId, gristReady } from '$core/grist.js'
 import { findOrCreatePersona, updatePersona } from '$core/personas.js'
-import { formatDni, formatCuil, formatTelefono, parseDni as normalizeDni, parseCuil as normalizeCuil, normalizeTelefonoForStorage as normalizeTelefono, normalizeEmail as normalizeEmailField, isValidDni } from '$core/format.js'
+import { formatDni, formatCuil, parseDni as normalizeDni, parseCuil as normalizeCuil, normalizeTelefonoForStorage as normalizeTelefono, normalizeEmail as normalizeEmailField, isValidDni } from '$core/format.js'
 import { usePersonaSearch } from '$core/usePersonaSearch.svelte.js'
 import { useFieldWarnings } from '$core/useFieldWarnings.svelte.js'
 import { validateSocio, validateEdad } from './socioValidator.js'
@@ -13,10 +13,10 @@ const base = createGristStore({
   fetchOptions: {},
   beforeSave: (fields) => {
     const out = { ...fields }
-    out.dni = normalizeDni(out.dni) || null
-    out.cuil = normalizeCuil(out.cuil) || null
-    if (out.telefono) out.telefono = normalizeTelefono(out.telefono) || null
-    if (out.email) out.email = normalizeEmailField(out.email) || null
+    // dni, cuil, apellido, nombre, domicilio, localidad, telefono, email, fecha_nacimiento
+    // son columnas formula en Grist (pull de $persona_id). No se guardan en socios.
+    const SOCIO_FORMULA_FIELDS = ['dni', 'cuil', 'apellido', 'nombre', 'domicilio', 'localidad', 'telefono', 'email', 'fecha_nacimiento']
+    for (const f of SOCIO_FORMULA_FIELDS) delete out[f]
     return out
   },
 })
@@ -183,7 +183,7 @@ const saveSocio = async () => {
       delete fields.motivo_baja
     }
 
-    const record = { ...form, ...fields }
+    const record = { id: form.id, ...fields }
     const result = await base.save(record)
 
     if (form.id) {
