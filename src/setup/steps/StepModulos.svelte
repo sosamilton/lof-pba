@@ -128,7 +128,21 @@
                   </Field.FieldDescription>
                 </Field.Field>
                 <Field.Field>
-                  <Field.FieldLabel for="dp-asambleas" class="text-[12px]">Asambleas</Field.FieldLabel>
+                  <Field.FieldLabel for="dp-ejercicios" class="text-[12px]">Ejercicios</Field.FieldLabel>
+                  <Input
+                    id="dp-ejercicios"
+                    type="number"
+                    min="1"
+                    max="5"
+                    bind:value={store.datosPruebaConfig.cantEjercicios}
+                    class="h-9"
+                  />
+                  <Field.FieldDescription class="text-[11px]">
+                    Crea ejercicios anteriores además del actual. Cada uno con su asamblea y autoridades, para probar el histórico multi-ejercicio.
+                  </Field.FieldDescription>
+                </Field.Field>
+                <Field.Field>
+                  <Field.FieldLabel for="dp-asambleas" class="text-[12px]">Asambleas por ejercicio</Field.FieldLabel>
                   <Input
                     id="dp-asambleas"
                     type="number"
@@ -138,7 +152,7 @@
                     class="h-9"
                   />
                   <Field.FieldDescription class="text-[11px]">
-                    Más de 1 genera asambleas en distintos períodos para probar cierre y cambio de período.
+                    Más de 1 genera asambleas en distintos meses del ejercicio para probar cierre y cambio de período.
                   </Field.FieldDescription>
                 </Field.Field>
               </div>

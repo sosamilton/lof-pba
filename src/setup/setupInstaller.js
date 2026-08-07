@@ -203,6 +203,7 @@ export async function doInstall(s) {
           gestionIntegral: Boolean(s.selectedModules.gestion_integral),
           cargaConsolidada: Boolean(s.selectedModules.carga_consolidada),
           cantAsambleas: Number(s.datosPruebaConfig.cantAsambleas) || 1,
+          cantEjercicios: Number(s.datosPruebaConfig.cantEjercicios) || 1,
           onProgress: (msg) => { s.datosPruebaProgress = msg },
         })
       } catch (e) {

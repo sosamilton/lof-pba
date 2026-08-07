@@ -188,7 +188,8 @@ const generarPeriodosEjercicioLocal = (ejercicio) => {
  * @param {number} [opts.batchSize=100]
  * @param {boolean} [opts.gestionIntegral=true] - Reservado para compatibilidad. Las asambleas/autoridades se generan si existen las tablas.
  * @param {boolean} [opts.cargaConsolidada=false] - Si true, movimientos PIA-style (1 por rubro/cuenta/período) y autoridades = socios + directivos/docentes.
- * @param {number} [opts.cantAsambleas=1] - Cantidad de asambleas a generar (para probar cierre de período).
+ * @param {number} [opts.cantAsambleas=1] - Cantidad de asambleas por ejercicio (para probar cierre de período dentro de un ejercicio).
+ * @param {number} [opts.cantEjercicios=1] - Cantidad total de ejercicios a generar (incluye el actual). Crea ejercicios anteriores con sus propias asambleas y autoridades.
  * @param {(msg: string) => void} [opts.onProgress]
  * @returns {Promise<{personas: number, socios: number, movimientos: number, asamblea: boolean, autoridades: number, planillas: number}>}
  */
@@ -200,6 +201,7 @@ export const generarDatosPrueba = async ({
   gestionIntegral = true,
   cargaConsolidada = false,
   cantAsambleas = 1,
+  cantEjercicios = 1,
   onProgress = () => {},
 } = {}) => {
   const log = onProgress || (() => {})
@@ -451,13 +453,12 @@ export const generarDatosPrueba = async ({
   await chunkAndInsert(tMovimientos, movimientosData, batchSize)
   results.movimientos = movimientosData.length
 
-  // --- 4. Asambleas + autoridades de CD y CRC ---
-  // Se genera si existen las tablas necesarias y hay ejercicio + cargos definidos.
-  // Aplica tanto a gestion_integral como a carga_consolidada.
-  // cantAsambleas > 1 genera múltiples asambleas en distintos períodos para
-  // probar el cambio/cierre de período.
+  // --- 4. Ejercicios adicionales + asambleas + autoridades ---
+  // cantEjercicios > 1 crea ejercicios anteriores (cada uno con sus asambleas
+  // y autoridades) para probar el histórico multi-ejercicio.
+  // cantAsambleas > 1 genera múltiples asambleas dentro de cada ejercicio.
   if (tAsambleas && tAutoridades && tCargos && ejercicioId) {
-    log(`Creando ${cantAsambleas} asamblea(s) y designando autoridades...`)
+    log(`Creando asambleas y autoridades para ${cantEjercicios} ejercicio(s)...`)
 
     // Cargar cargos activos agrupados por organismo
     /** @type {Record<string, any>[]} */
@@ -482,91 +483,147 @@ export const generarDatosPrueba = async ({
         .filter(Boolean)
 
       const organismosTarget = ['CD', 'CRC']
-      const periodos = generarPeriodosEjercicioLocal(ejercicioRec)
-      const totalAsambleas = Math.min(cantAsambleas, periodos.length || 1)
+
+      // Construir lista de ejercicios: el actual + (cantEjercicios - 1) anteriores.
+      // Cada ejercicio anterior dura 1 año menos y NO está en_curso.
+      /** @type {{id: number, anio_inicio: number, anio_fin: number, mes_inicio: string, en_curso: boolean}[]} */
+      const ejerciciosParaGenerar = []
+      if (ejercicioRec) {
+        ejerciciosParaGenerar.push({ ...ejercicioRec })
+        const anioBase = Number(ejercicioRec.anio_inicio) || anioInicio
+        const mesInicio = ejercicioRec.mes_inicio || 'Marzo'
+        for (let e = 1; e < cantEjercicios; e++) {
+          const anioInicioEj = anioBase - e
+          // Crear ejercicio anterior en Grist
+          try {
+            const ejRes = await applyUserActions([['AddRecord', tEjercicios, null, {
+              anio_inicio: anioInicioEj,
+              anio_fin: anioInicioEj + 1,
+              mes_inicio: mesInicio,
+              saldo_inicial_banco: 0,
+              saldo_inicial_efectivo: 0,
+              saldo_inicial_caja_chica: 0,
+              en_curso: false,
+              observaciones: `Ejercicio demo ${anioInicioEj}-${anioInicioEj + 1}`,
+            }]])
+            const ejId = extractRowId(ejRes)
+            if (ejId != null) {
+              ejerciciosParaGenerar.unshift({
+                id: ejId,
+                anio_inicio: anioInicioEj,
+                anio_fin: anioInicioEj + 1,
+                mes_inicio: mesInicio,
+                en_curso: false,
+              })
+            }
+          } catch (e2) {
+            console.warn('[demo] No se pudo crear ejercicio anterior:', e2?.message || e2)
+          }
+        }
+      }
+
       let asambleasCreadas = 0
       const todasAutoridades = []
+      const todasPlanillas = []
 
-      for (let aIdx = 0; aIdx < totalAsambleas; aIdx++) {
-        // Distribuir asambleas en distintos períodos del ejercicio.
-        // La primera es AGO (marzo), las demás AGE en otros meses.
-        const periodo = periodos.length > 0
-          ? periodos[Math.floor((aIdx / totalAsambleas) * periodos.length)]
-          : `${anioInicio}-03`
-        const [asYear, asMonth] = periodo.split('-').map(Number)
-        const fechaAsamblea = genFecha(asYear, asMonth, 15)
-        const tipoAsamblea = aIdx === 0 ? 'AGO' : 'AGE'
-        const actaNum = String(aIdx + 1).padStart(3, '0')
+      // Generar asambleas + autoridades para cada ejercicio.
+      // Los ejercicios anteriores se procesan primero (orden cronológico).
+      ejerciciosParaGenerar.sort((a, b) => Number(a.anio_inicio) - Number(b.anio_inicio))
 
-        const asambleaFields = {
-          fecha: fechaAsamblea,
-          tipo_asamblea: tipoAsamblea,
-          acta_numero: `${actaNum}/${asYear}`,
-          acta_fojas: String(aIdx + 1),
-          ejercicio_id: ejercicioId,
-          socios_presentes_cantidad: Math.min(sociosData.length, rand(50, 150)),
-          cuota_social_importe: Number((Math.random() * 5000 + 1000).toFixed(2)),
-          cuota_social_modalidad: 'Mensual',
-          caja_chica_importe: Number((Math.random() * 10000 + 2000).toFixed(2)),
-        }
-        const asambleaRes = await applyUserActions([['AddRecord', tAsambleas, null, asambleaFields]])
-        const asambleaId = extractRowId(asambleaRes)
-        if (asambleaId != null) asambleasCreadas++
-        results.asamblea = results.asamblea || asambleaId != null
+      for (let eIdx = 0; eIdx < ejerciciosParaGenerar.length; eIdx++) {
+        const ej = ejerciciosParaGenerar[eIdx]
+        const esUltimoEjercicio = eIdx === ejerciciosParaGenerar.length - 1
+        const periodos = generarPeriodosEjercicioLocal(ej)
+        const totalAsambleas = Math.min(cantAsambleas, periodos.length || 1)
+        const ejAnioInicio = Number(ej.anio_inicio) || anioInicio
 
-        // Designar autoridades para esta asamblea.
-        // Para cada cargo activo de CD y CRC, asignar una persona.
-        // En carga_consolidada: priorizar socios + 2-3 directivos/docentes en CD.
-        const personasUsadasAuth = new Set()
-        const poolPrincipal = cargaConsolidada && personasPoolSocios.length > 0
-          ? personasPoolSocios
-          : personasRecs.filter((p) => p.id != null)
+        for (let aIdx = 0; aIdx < totalAsambleas; aIdx++) {
+          const periodo = periodos.length > 0
+            ? periodos[Math.floor((aIdx / totalAsambleas) * periodos.length)]
+            : `${ejAnioInicio}-03`
+          const [asYear, asMonth] = periodo.split('-').map(Number)
+          const fechaAsamblea = genFecha(asYear, asMonth, 15)
+          const tipoAsamblea = aIdx === 0 ? 'AGO' : 'AGE'
+          const actaNum = String(aIdx + 1).padStart(3, '0')
 
-        for (const org of organismosTarget) {
-          const cargosOrg = cargosRecs
-            .filter((c) => String(c.organismo) === org)
-            .sort((a, b) => Number(a.orden || 0) - Number(b.orden || 0))
-
-          for (let ci = 0; ci < cargosOrg.length; ci++) {
-            const cargo = cargosOrg[ci]
-            let persona = null
-
-            // En carga_consolidada, para CD: los primeros 2-3 cargos se asignan
-            // a directivos/docentes si hay disponibles; el resto a socios.
-            if (cargaConsolidada && org === 'CD' && ci < 3 && personasPoolDirectivos.length > 0) {
-              persona = personasPoolDirectivos.find((p) => !personasUsadasAuth.has(p.id))
-              if (!persona) persona = pick(personasPoolDirectivos)
-            }
-            if (!persona) {
-              persona = poolPrincipal.find((p) => !personasUsadasAuth.has(p.id))
-              if (!persona) persona = pick(poolPrincipal)
-            }
-            if (!persona) continue
-            personasUsadasAuth.add(persona.id)
-
-            const duracionMeses = Number(cargo.duracion_meses) || 12
-            const fechaAsuncion = fechaAsamblea
-            const fechaVenc = addMonths(fechaAsuncion, duracionMeses)
-
-            // En asambleas posteriores a la primera, las autoridades previas
-            // quedan inactivas (cese por nueva designación).
-            // Solo las de la última asamblea quedan activas (vigentes).
-            const esUltima = aIdx === totalAsambleas - 1
-
-            todasAutoridades.push({
-              organismo: org,
-              cargo_id: cargo.id,
-              persona_id: persona.id,
-              fecha_asuncion: fechaAsuncion,
-              fecha_vencimiento: fechaVenc,
-              tipo_origen: 'Asamblea',
-              asamblea_id: asambleaId || null,
-              activo: esUltima,
-              ejercicio_id: ejercicioId,
-              // fecha_cese solo para autoridades de asambleas anteriores
-              ...(esUltima ? {} : { fecha_cese: fechaAsamblea }),
-            })
+          const asambleaFields = {
+            fecha: fechaAsamblea,
+            tipo_asamblea: tipoAsamblea,
+            acta_numero: `${actaNum}/${asYear}`,
+            acta_fojas: String(aIdx + 1),
+            ejercicio_id: ej.id,
+            socios_presentes_cantidad: Math.min(sociosData.length, rand(50, 150)),
+            cuota_social_importe: Number((Math.random() * 5000 + 1000).toFixed(2)),
+            cuota_social_modalidad: 'Mensual',
+            caja_chica_importe: Number((Math.random() * 10000 + 2000).toFixed(2)),
           }
+          const asambleaRes = await applyUserActions([['AddRecord', tAsambleas, null, asambleaFields]])
+          const asambleaId = extractRowId(asambleaRes)
+          if (asambleaId != null) asambleasCreadas++
+          results.asamblea = results.asamblea || asambleaId != null
+
+          // Designar autoridades para esta asamblea.
+          const personasUsadasAuth = new Set()
+          const poolPrincipal = cargaConsolidada && personasPoolSocios.length > 0
+            ? personasPoolSocios
+            : personasRecs.filter((p) => p.id != null)
+
+          for (const org of organismosTarget) {
+            const cargosOrg = cargosRecs
+              .filter((c) => String(c.organismo) === org)
+              .sort((a, b) => Number(a.orden || 0) - Number(b.orden || 0))
+
+            for (let ci = 0; ci < cargosOrg.length; ci++) {
+              const cargo = cargosOrg[ci]
+              let persona = null
+
+              if (cargaConsolidada && org === 'CD' && ci < 3 && personasPoolDirectivos.length > 0) {
+                persona = personasPoolDirectivos.find((p) => !personasUsadasAuth.has(p.id))
+                if (!persona) persona = pick(personasPoolDirectivos)
+              }
+              if (!persona) {
+                persona = poolPrincipal.find((p) => !personasUsadasAuth.has(p.id))
+                if (!persona) persona = pick(poolPrincipal)
+              }
+              if (!persona) continue
+              personasUsadasAuth.add(persona.id)
+
+              const duracionMeses = Number(cargo.duracion_meses) || 12
+              const fechaAsuncion = fechaAsamblea
+              const fechaVenc = addMonths(fechaAsuncion, duracionMeses)
+
+              // Solo las autoridades de la ÚLTIMA asamblea del ÚLTIMO ejercicio
+              // quedan vigentes (activo=true, sin fecha_cese). Las demás quedan
+              // cesadas (activo=false + fecha_cese).
+              const esUltimaAsamblea = aIdx === totalAsambleas - 1
+              const esVigente = esUltimoEjercicio && esUltimaAsamblea
+
+              todasAutoridades.push({
+                organismo: org,
+                cargo_id: cargo.id,
+                persona_id: persona.id,
+                fecha_asuncion: fechaAsuncion,
+                fecha_vencimiento: fechaVenc,
+                tipo_origen: 'Asamblea',
+                asamblea_id: asambleaId || null,
+                activo: esVigente,
+                ejercicio_id: ej.id,
+                ...(esVigente ? {} : { fecha_cese: fechaAsamblea }),
+              })
+            }
+          }
+        }
+
+        // Planillas por ejercicio
+        const tiposPlanilla = ['PIA', 'Nomina']
+        for (const tipo of tiposPlanilla) {
+          todasPlanillas.push({
+            tipo_planilla: tipo,
+            ejercicio_id: ej.id,
+            fecha_generacion: new Date().toISOString(),
+            generado_por: 'demo',
+            version_formulario: '2024',
+          })
         }
       }
 
@@ -576,30 +633,17 @@ export const generarDatosPrueba = async ({
       }
       results.asamblea = asambleasCreadas > 0
       results.asambleasCreadas = asambleasCreadas
-    }
-  }
 
-  // --- 5. Planillas generadas ---
-  // Genera registros de planillas PIA y Nómina vinculadas al ejercicio.
-  // En carga_consolidada es especialmente relevante para probar listados.
-  const tPlanillas = await resolveTableId(TABLE_PREFERRED_IDS.planillas_generadas)
-  if (tPlanillas && ejercicioId) {
-    log('Generando planillas generadas...')
-    const tiposPlanilla = ['PIA', 'Nomina']
-    const planillasData = []
-    for (const tipo of tiposPlanilla) {
-      planillasData.push({
-        tipo_planilla: tipo,
-        ejercicio_id: ejercicioId,
-        fecha_generacion: new Date().toISOString(),
-        generado_por: 'demo',
-        version_formulario: '2024',
-      })
+      // --- 5. Planillas generadas ---
+      const tPlanillas = await resolveTableId(TABLE_PREFERRED_IDS.planillas_generadas)
+      if (tPlanillas && todasPlanillas.length > 0) {
+        log('Generando planillas generadas...')
+        try {
+          await addRecords(tPlanillas, todasPlanillas)
+          results.planillas = todasPlanillas.length
+        } catch { /* sin tabla planillas */ }
+      }
     }
-    try {
-      await addRecords(tPlanillas, planillasData)
-      results.planillas = planillasData.length
-    } catch { /* sin tabla planillas */ }
   }
 
   log(
