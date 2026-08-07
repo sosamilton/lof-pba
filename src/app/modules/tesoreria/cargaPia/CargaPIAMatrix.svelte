@@ -7,7 +7,6 @@
   import { generarPeriodosEjercicio, proximoPeriodoACargar } from '../shared/tesoreriaCalc.js'
   import { Button } from '$lib/components/ui/button'
   import * as Table from '$lib/components/ui/table'
-  import * as Dialog from '$lib/components/ui/dialog'
   import * as Alert from '$lib/components/ui/alert'
   import { Input } from '$lib/components/ui/input'
   import { Label } from '$lib/components/ui/label'
@@ -15,11 +14,10 @@
   import ArsInput from '$lib/components/ArsInput.svelte'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left'
+  import ConfirmarFirmaDialog from './components/ConfirmarFirmaDialog.svelte'
   import PlusIcon from '@lucide/svelte/icons/plus'
   import TrashIcon from '@lucide/svelte/icons/trash'
   import LockIcon from '@lucide/svelte/icons/lock'
-  import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
-  import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
 
   // Máximo de filas por rubro (una por tipo de cuenta, hasta 3).
   const MAX_FILAS_POR_RUBRO = 3
@@ -459,91 +457,17 @@
   </div>
 </PageScaffold>
 
-<!-- Diálogo de confirmación de firma: resumen read-only de movimientos -->
-<Dialog.Root bind:open={confirmarFirma}>
-  <Dialog.Content class="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-    <Dialog.Header>
-      <Dialog.Title>Confirmar cierre del período {periodoKey}</Dialog.Title>
-      <Dialog.Description>
-        Revisá los movimientos antes de firmar. Una vez firmado, el período no podrá modificarse.
-      </Dialog.Description>
-    </Dialog.Header>
-
-    <div class="flex flex-col gap-4 py-2">
-      {#if filasParaConfirmar.length === 0}
-        <Alert.Root>
-          <AlertTriangleIcon data-icon="inline-start" />
-          <Alert.Title>Sin movimientos</Alert.Title>
-          <Alert.Description>
-            No hay filas con importe para este período. El período se firmará sin movimientos cargados.
-          </Alert.Description>
-        </Alert.Root>
-      {:else}
-        <div class="border rounded-lg overflow-hidden">
-          <Table.Root>
-            <Table.Header>
-              <Table.Row>
-                <Table.Head class="w-16">Código</Table.Head>
-                <Table.Head>Rubro</Table.Head>
-                <Table.Head class="w-28">Cuenta</Table.Head>
-                <Table.Head class="w-32 text-right">Importe</Table.Head>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {#each filasParaConfirmar as f (f.rowId)}
-                <Table.Row>
-                  <Table.Cell class="font-mono text-xs text-muted-foreground">{f.codigo}</Table.Cell>
-                  <Table.Cell>
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm">{f.nombre}</span>
-                      {@render tipoBadge(f.tipo)}
-                    </div>
-                  </Table.Cell>
-                  <Table.Cell class="text-xs text-muted-foreground">
-                    {cuentaNombre.get(String(f.cuenta_id)) || '—'}
-                  </Table.Cell>
-                  <Table.Cell class="text-right font-mono text-sm">
-                    {#if f.tipo === 'Entrada'}
-                      <span class="text-primary">+{formatARS(f.importe)}</span>
-                    {:else}
-                      <span class="text-destructive">-{formatARS(f.importe)}</span>
-                    {/if}
-                  </Table.Cell>
-                </Table.Row>
-              {/each}
-            </Table.Body>
-            {@render totalesFooter(3)}
-          </Table.Root>
-        </div>
-      {/if}
-
-      <Alert.Root class="border-primary/45 bg-primary/10 text-primary">
-        <CheckCircleIcon data-icon="inline-start" />
-        <Alert.Description>
-          Se guardarán los cambios pendientes y se firmará el período <strong>{periodoKey}</strong>. Esta acción no se puede deshacer.
-        </Alert.Description>
-      </Alert.Root>
-
-      {#if store.error}
-        <Alert.Root variant="destructive">
-          <AlertTriangleIcon data-icon="inline-start" />
-          <Alert.Description>{store.error}</Alert.Description>
-        </Alert.Root>
-      {/if}
-    </div>
-
-    <Dialog.Footer>
-      <Button variant="outline" onclick={() => { confirmarFirma = false }} disabled={firmando}>
-        Cancelar
-      </Button>
-      <Button variant="secondary" onclick={confirmarYFirmar} disabled={firmando || store.busy}>
-        {#if firmando}
-          Firmando…
-        {:else}
-          <LockIcon data-icon="inline-start" />
-          Confirmar y firmar
-        {/if}
-      </Button>
-    </Dialog.Footer>
-  </Dialog.Content>
-</Dialog.Root>
+<ConfirmarFirmaDialog
+  bind:open={confirmarFirma}
+  bind:firmando={firmando}
+  {periodoKey}
+  {filasParaConfirmar}
+  {cuentaNombre}
+  {totalIngresos}
+  {totalEgresos}
+  {saldoPeriodo}
+  storeError={store.error}
+  storeBusy={store.busy}
+  onConfirm={confirmarYFirmar}
+  onCancel={() => { confirmarFirma = false }}
+/>
