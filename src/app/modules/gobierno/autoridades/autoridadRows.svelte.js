@@ -9,6 +9,8 @@ import { buildVigenteByCargo } from '$app/modules/gobierno/constants.js'
  * @param {() => any[]} deps.getCargos - Getter reactivo de cargos
  * @param {() => any[]} deps.getAutoridades - Getter reactivo de autoridades
  * @param {() => string} deps.getOrganismo - Getter reactivo de organismo
+ * @param {() => number | null} [deps.getEjercicioId] - Getter del ejercicio en curso (para filtrar vigentes)
+ * @param {() => number | null} [deps.getEjercicioHistoricoId] - Getter del ejercicio seleccionado para histórico
  * @returns {{
  *   rows: any[], rowsHistorico: any[],
  *   tieneAutoridadesVigentes: boolean, tieneAlgunaAutoridad: boolean,
@@ -16,7 +18,7 @@ import { buildVigenteByCargo } from '$app/modules/gobierno/constants.js'
  *   personaEnOtroCargo: (personaId: any, exceptoAutoridadId?: any) => any | null,
  * }}
  */
-export function createAutoridadRows({ getCargos, getAutoridades, getOrganismo }) {
+export function createAutoridadRows({ getCargos, getAutoridades, getOrganismo, getEjercicioId, getEjercicioHistoricoId }) {
   const buildAutoridadRow = (c, a, historico = false) => {
     const duracionMeses = c.duracion_meses ?? ''
     const fechaAsuncion = dateToInput(a?.fecha_asuncion)
@@ -53,13 +55,21 @@ export function createAutoridadRows({ getCargos, getAutoridades, getOrganismo })
     const cargos = getCargos()
     const autoridades = getAutoridades()
     const organismo = getOrganismo()
+    const ejercicioId = getEjercicioId?.()
 
     const cargosOrg = cargos
       .filter((c) => String(c.organismo) === organismo)
       .filter((c) => c.activo === true || c.cargo_obligatorio === true)
       .sort((a, b) => Number(a.orden || 0) - Number(b.orden || 0))
 
-    const vigenteByCargo = buildVigenteByCargo(autoridades, organismo)
+    // Filtrar autoridades del ejercicio en curso antes de buscar vigentes.
+    // Esto evita que autoridades activas de ejercicios anteriores aparezcan
+    // como vigentes si no fueron correctamente cesadas.
+    const autoridadesEjercicio = ejercicioId != null
+      ? autoridades.filter((a) => Number(a.ejercicio_id) === Number(ejercicioId))
+      : autoridades
+
+    const vigenteByCargo = buildVigenteByCargo(autoridadesEjercicio, organismo)
 
     return cargosOrg.map((c) => {
       const a = vigenteByCargo.get(Number(c.id)) || null
@@ -77,9 +87,11 @@ export function createAutoridadRows({ getCargos, getAutoridades, getOrganismo })
     const cargos = getCargos()
     const autoridades = getAutoridades()
     const organismo = getOrganismo()
+    const ejercicioHistoricoId = getEjercicioHistoricoId?.()
     const cargoById = buildMapById(cargos)
     return autoridades
       .filter((a) => String(a.organismo) === organismo)
+      .filter((a) => ejercicioHistoricoId == null || Number(a.ejercicio_id) === Number(ejercicioHistoricoId))
       .map((a) => {
         const c = cargoById.get(Number(a.cargo_id)) || {}
         return buildAutoridadRow(c, a, true)

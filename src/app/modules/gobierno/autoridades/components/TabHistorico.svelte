@@ -3,28 +3,57 @@
   import { Badge } from '$lib/components/ui/badge'
   import * as Table from '$lib/components/ui/table'
   import * as Tabs from '$lib/components/ui/tabs'
+  import * as Select from '$lib/components/ui/select'
   import EmptyState from '$lib/components/EmptyState.svelte'
   import { ORGANISMOS, ORGANISMO_LABELS } from '$app/modules/gobierno/constants.js'
   import { formatFecha } from '$core/format/format'
   import HistoryIcon from '@lucide/svelte/icons/history'
 
   let { store } = $props()
+
+  // Ejercicios ordenados descendente para el selector (más reciente primero).
+  let ejerciciosOpciones = $derived(
+    [...(store.ejercicios || [])]
+      .sort((a, b) => Number(b.anio_inicio || 0) - Number(a.anio_inicio || 0))
+      .map((e) => ({ value: String(e.id), label: `${e.anio_inicio}-${e.anio_fin}` }))
+  )
 </script>
 
 <Card.Root>
   <Card.Header>
     <div class="flex flex-wrap items-center justify-between gap-3">
       <Card.Title class="text-base">Histórico de mandatos</Card.Title>
-      <Tabs.Root bind:value={store.organismo}>
-        <Tabs.List>
-          {#each ORGANISMOS as org}
-            <Tabs.Trigger value={org}>{ORGANISMO_LABELS[org]}</Tabs.Trigger>
-          {/each}
-        </Tabs.List>
-      </Tabs.Root>
+      <div class="flex items-center gap-3">
+        {#if ejerciciosOpciones.length > 1}
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-muted-foreground">Ejercicio:</span>
+            <Select.Root
+              type="single"
+              value={String(store.ejercicioHistorico ?? '')}
+              onValueChange={(v) => { store.ejercicioHistorico = v ? Number(v) : null }}
+            >
+              <Select.Trigger class="h-8 w-[130px] text-xs">
+                <Select.Value placeholder="Ejercicio…" />
+              </Select.Trigger>
+              <Select.Content>
+                {#each ejerciciosOpciones as opt (opt.value)}
+                  <Select.Item value={opt.value} class="text-xs">{opt.label}</Select.Item>
+                {/each}
+              </Select.Content>
+            </Select.Root>
+          </div>
+        {/if}
+        <Tabs.Root bind:value={store.organismo}>
+          <Tabs.List>
+            {#each ORGANISMOS as org}
+              <Tabs.Trigger value={org}>{ORGANISMO_LABELS[org]}</Tabs.Trigger>
+            {/each}
+          </Tabs.List>
+        </Tabs.Root>
+      </div>
     </div>
     <Card.Description class="text-xs">
-      Todos los mandatos del ejercicio (vigentes y cesados). Permite reconstruir quién ocupó cada cargo y desde qué acta.
+      Mandatos del ejercicio seleccionado (vigentes y cesados). Permite reconstruir quién ocupó cada cargo y desde qué acta.
     </Card.Description>
   </Card.Header>
   <Card.Content>
