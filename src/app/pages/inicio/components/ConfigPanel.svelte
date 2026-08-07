@@ -114,6 +114,7 @@
           <li>Tablas creadas: <strong>{store.repairResult.created}</strong></li>
           <li>Columnas agregadas: <strong>{store.repairResult.addedColumns}</strong></li>
           <li>Refs corregidas: <strong>{store.repairResult.repairedRefs}</strong></li>
+          <li>Columnas migradas a fórmula: <strong>{store.repairResult.migratedFormulas}</strong></li>
         </ul>
       </div>
     {/if}
