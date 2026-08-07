@@ -37,6 +37,21 @@ export function createGristStore(config) {
   let _unsub = null
   let _busy = false
 
+  /** Helper interno: ejecuta fn con manejo estándar de busy/error/notice */
+  const withOp = async (fn) => {
+    error = ''
+    notice = ''
+    _busy = true
+    try {
+      return await fn()
+    } catch (e) {
+      error = e?.message || String(e)
+      return undefined
+    } finally {
+      _busy = false
+    }
+  }
+
   const load = async () => {
     loading = true
     error = ''
@@ -77,10 +92,7 @@ export function createGristStore(config) {
    * @returns {Promise<object|null>} El registro guardado o null si falló
    */
   const save = async (record) => {
-    error = ''
-    notice = ''
-    _busy = true
-    try {
+    return withOp(async () => {
       if (!tableId) {
         error = `No se encontró la tabla ${tableKey}. Ejecutá "Actualizar schema" en Inicio.`
         return null
@@ -111,12 +123,7 @@ export function createGristStore(config) {
       return record.id
         ? records.find((r) => r.id === record.id) || null
         : null
-    } catch (e) {
-      error = e?.message || String(e)
-      return null
-    } finally {
-      _busy = false
-    }
+    })
   }
 
   /**
@@ -124,19 +131,12 @@ export function createGristStore(config) {
    * @param {number} id - Row id del registro a eliminar
    */
   const remove = async (id) => {
-    error = ''
-    notice = ''
-    _busy = true
-    try {
+    return withOp(async () => {
       if (!tableId) return
       await applyUserActions([['RemoveRecord', tableId, id]])
       notice = 'Registro eliminado.'
       await refresh()
-    } catch (e) {
-      error = e?.message || String(e)
-    } finally {
-      _busy = false
-    }
+    })
   }
 
   /**
@@ -162,17 +162,10 @@ export function createGristStore(config) {
    * @param {Array} actions - Array de acciones de applyUserActions
    */
   const exec = async (actions) => {
-    error = ''
-    _busy = true
-    try {
+    return withOp(async () => {
       const res = await applyUserActions(actions)
       return res
-    } catch (e) {
-      error = e?.message || String(e)
-      throw e
-    } finally {
-      _busy = false
-    }
+    })
   }
 
   return {
@@ -236,6 +229,7 @@ export function extendStore(base, extra) {
  *   loading: boolean, error: string, notice: string, busy: boolean,
  *   setLoading: (v: boolean) => void, setError: (v: string) => void,
  *   setNotice: (v: string) => void, setBusy: (v: boolean) => void, clearMessages: () => void,
+ *   wrapAsync: (fn: () => Promise<any>, successMsg?: string) => Promise<any>,
  * }}
  */
 export function createBaseState() {
@@ -243,6 +237,29 @@ export function createBaseState() {
   let error = $state('')
   let notice = $state('')
   let _busy = false
+
+  /**
+   * Ejecuta fn con manejo estándar de busy/error/notice.
+   * Setea busy=true, limpia mensajes, ejecuta fn, captura errores.
+   * @param {() => Promise<any>} fn
+   * @param {string} [successMsg] - Si se pasa, setea notice al éxito.
+   * @returns {Promise<any>} El retorno de fn, o undefined si falló.
+   */
+  const wrapAsync = async (fn, successMsg) => {
+    error = ''
+    notice = ''
+    _busy = true
+    try {
+      const res = await fn()
+      if (successMsg) notice = successMsg
+      return res
+    } catch (e) {
+      error = e?.message || String(e)
+      return undefined
+    } finally {
+      _busy = false
+    }
+  }
 
   return {
     get loading() { return loading },
@@ -254,6 +271,7 @@ export function createBaseState() {
     setNotice: (v) => { notice = v },
     setBusy: (v) => { _busy = v },
     clearMessages: () => { error = ''; notice = '' },
+    wrapAsync,
   }
 }
 

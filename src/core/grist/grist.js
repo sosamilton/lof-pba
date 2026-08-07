@@ -38,17 +38,13 @@ export const setWidgetOption = async (key, value) => {
   if (!isInGrist() || typeof window.grist.setOption !== 'function') return
   await window.grist.setOption(key, value)
   _currentOptions = { ..._currentOptions, [key]: value }
-  for (const cb of _optionsSubscribers) {
-    try { cb(_currentOptions) } catch (e) { console.error('[grist] options subscriber error:', e) }
-  }
+  notifySubscribers(_optionsSubscribers, _currentOptions)
 }
 
 const setupOnRecords = () => {
   if (!isBrowser() || !window.grist || typeof window.grist.onRecords !== 'function') return
   window.grist.onRecords((records, mappings) => {
-    for (const cb of _recordsSubscribers) {
-      try { cb(records, mappings) } catch (e) { console.error('[grist] onRecords subscriber error:', e) }
-    }
+    notifySubscribers(_recordsSubscribers, records, mappings)
   })
 }
 
@@ -56,9 +52,7 @@ const setupOnOptions = () => {
   if (!isBrowser() || !window.grist || typeof window.grist.onOptions !== 'function') return
   window.grist.onOptions((customOptions, interactionOptions) => {
     _currentOptions = customOptions
-    for (const cb of _optionsSubscribers) {
-      try { cb(customOptions, interactionOptions) } catch (e) { console.error('[grist] onOptions subscriber error:', e) }
-    }
+    notifySubscribers(_optionsSubscribers, customOptions, interactionOptions)
   })
 }
 
@@ -103,9 +97,7 @@ const ensureReady = () => {
 const setGristStatus = (status) => {
   _gristStatus = status
   _detected = status === 'ready'
-  for (const cb of _accessSubscribers) {
-    try { cb(status) } catch (e) { console.error('[grist] access subscriber error:', e) }
-  }
+  notifySubscribers(_accessSubscribers, status)
 }
 
 const tryListTables = async (timeoutMs) => {
@@ -162,10 +154,22 @@ export const gristReady = async () => {
   return true
 }
 
-export const listTables = async () => {
+/** Helper interno: garantiza plugin cargado + entorno Grist + ready antes de operar */
+const withGristContext = async () => {
   await ensureGristPluginLoaded()
   if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
   ensureReady()
+}
+
+/** Helper interno: notifica a todos los subscribers con try-catch individual */
+const notifySubscribers = (subscribers, ...args) => {
+  for (const cb of subscribers) {
+    try { cb(...args) } catch (e) { console.error('[grist] subscriber error:', e) }
+  }
+}
+
+export const listTables = async () => {
+  await withGristContext()
   if (_tablesCache) return _tablesCache
   _tablesCache = await window.grist.docApi.listTables()
   return _tablesCache
@@ -212,9 +216,7 @@ export const tableDataToRecords = (data) => {
  * @returns {Promise<Record<string, any>[]>}
  */
 export const fetchRecords = async (tableId, options = {}) => {
-  await ensureGristPluginLoaded()
-  if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
-  ensureReady()
+  await withGristContext()
   const data = await window.grist.docApi.fetchTable(tableId)
   let records = tableDataToRecords(data)
   if (options.filter) {
@@ -241,16 +243,12 @@ export const fetchRecords = async (tableId, options = {}) => {
 }
 
 export const fetchTableData = async (tableId) => {
-  await ensureGristPluginLoaded()
-  if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
-  ensureReady()
+  await withGristContext()
   return window.grist.docApi.fetchTable(tableId)
 }
 
 export const applyUserActions = async (actions) => {
-  await ensureGristPluginLoaded()
-  if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
-  ensureReady()
+  await withGristContext()
   const res = await window.grist.docApi.applyUserActions(actions)
   if (actions.some((a) => a[0] === 'AddTable')) {
     invalidateTablesCache()
@@ -259,9 +257,7 @@ export const applyUserActions = async (actions) => {
 }
 
 export const getApiContext = async () => {
-  await ensureGristPluginLoaded()
-  if (!isInGrist()) throw new Error('No está ejecutándose dentro de Grist')
-  ensureReady()
+  await withGristContext()
   const res = await window.grist.docApi.getAccessToken({ readOnly: false })
   const token = res?.token
   const baseUrl = String(res?.baseUrl || '').replace(/\/+$/, '')

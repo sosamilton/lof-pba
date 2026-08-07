@@ -30,12 +30,26 @@
   let filas = $state([])
   let cargandoPeriodo = $state(false)
   let eliminados = $state([])
-  let rowCounter = 0
   // Diálogo de confirmación de firma.
   let confirmarFirma = $state(false)
   let firmando = $state(false)
   // RowId de la fila recién agregada (para hacer foco después del render).
   let focusRowId = $state(null)
+
+  /** Genera un ID único para cada fila */
+  const newRowId = () => `r${crypto.randomUUID()}`
+
+  /** Transforma las filas con importe > 0 al formato que espera guardarCargaPIA */
+  const prepararFilasParaGuardar = () =>
+    filas
+      .filter((f) => Number(f.importe) > 0)
+      .map((f) => ({
+        rubro_id: Number(f.rubro_id),
+        importe: Number(f.importe),
+        cuenta_id: Number(f.cuenta_id),
+        detalle: f.detalle || '',
+        movimientoId: f.movimientoId || null,
+      }))
 
   // Períodos del ejercicio para el selector.
   let periodosEjercicio = $derived(generarPeriodosEjercicio(store.ejercicio))
@@ -71,6 +85,40 @@
       rubros: [...rubroMap.values()],
     }))
   })
+
+  /** Construye las filas de la matriz desde los rubros PIA + movimientos existentes */
+  const construirFilasDesdeRubros = (rubros, existentes, cuentaDefault) =>
+    [...rubros]
+      .sort((a, b) => normalize(a.grupo_rubro || '').localeCompare(normalize(b.grupo_rubro || ''))
+        || normalize(a.nombre_oficial || '').localeCompare(normalize(b.nombre_oficial || '')))
+      .flatMap((r) => {
+        const movs = existentes.get(Number(r.id)) || []
+        const base = {
+          rubro_id: r.id,
+          nombre: r.nombre_oficial || '(sin nombre)',
+          codigo: r.codigo_rubro || '',
+          tipo: r.tipo_rubro || 'Entrada',
+          grupo: r.grupo_rubro || 'Otros',
+        }
+        if (movs.length > 0) {
+          return movs.map((m) => ({
+            ...base,
+            rowId: newRowId(),
+            importe: String(m.importe || ''),
+            cuenta_id: m.cuenta_id ? String(m.cuenta_id) : cuentaDefault,
+            detalle: m.detalle || '',
+            movimientoId: m.id,
+          }))
+        }
+        return [{
+          ...base,
+          rowId: newRowId(),
+          importe: '',
+          cuenta_id: cuentaDefault,
+          detalle: '',
+          movimientoId: null,
+        }]
+      })
 
   // Totales calculados.
   let totalIngresos = $derived(filas.reduce((s, f) => f.tipo === 'Entrada' ? s + (Number(f.importe) || 0) : s, 0))
@@ -127,39 +175,8 @@
     try {
       const cuentaDefault = String(store.cuentaDefaultId || store.cuentas[0]?.id || '')
       const existentes = await store.getMovimientosPorRubro(periodoKey)
-      rowCounter = 0
       eliminados = []
-      filas = [...store.rubros]
-        .sort((a, b) => normalize(a.grupo_rubro || '').localeCompare(normalize(b.grupo_rubro || ''))
-          || normalize(a.nombre_oficial || '').localeCompare(normalize(b.nombre_oficial || '')))
-        .flatMap((r) => {
-          const movs = existentes.get(Number(r.id)) || []
-          const base = {
-            rubro_id: r.id,
-            nombre: r.nombre_oficial || '(sin nombre)',
-            codigo: r.codigo_rubro || '',
-            tipo: r.tipo_rubro || 'Entrada',
-            grupo: r.grupo_rubro || 'Otros',
-          }
-          if (movs.length > 0) {
-            return movs.map((m) => ({
-              ...base,
-              rowId: `r${rowCounter++}`,
-              importe: String(m.importe || ''),
-              cuenta_id: m.cuenta_id ? String(m.cuenta_id) : cuentaDefault,
-              detalle: m.detalle || '',
-              movimientoId: m.id,
-            }))
-          }
-          return [{
-            ...base,
-            rowId: `r${rowCounter++}`,
-            importe: '',
-            cuenta_id: cuentaDefault,
-            detalle: '',
-            movimientoId: null,
-          }]
-        })
+      filas = construirFilasDesdeRubros(store.rubros, existentes, cuentaDefault)
     } catch (e) {
       console.error('[CargaPIAMatrix] Error al precargar filas:', e)
     } finally {
@@ -198,9 +215,9 @@
     if (filasRubro.length >= MAX_FILAS_POR_RUBRO) return
     const usadas = new Set(filasRubro.map((f) => String(f.cuenta_id)).filter(Boolean))
     const disponible = store.cuentas.find((c) => !usadas.has(String(c.id)))
-    const newRowId = `r${rowCounter++}`
+    const newId = newRowId()
     filas = [...filas, {
-      rowId: newRowId,
+      rowId: newId,
       rubro_id: rubroFila.rubro_id,
       nombre: rubroFila.nombre,
       codigo: rubroFila.codigo,
@@ -211,7 +228,7 @@
       detalle: '',
       movimientoId: null,
     }]
-    focusRowId = newRowId
+    focusRowId = newId
   }
 
   /**
@@ -227,16 +244,7 @@
   }
 
   const guardar = async () => {
-    const validas = filas
-      .filter((f) => Number(f.importe) > 0)
-      .map((f) => ({
-        rubro_id: Number(f.rubro_id),
-        importe: Number(f.importe),
-        cuenta_id: Number(f.cuenta_id),
-        detalle: f.detalle || '',
-        movimientoId: f.movimientoId || null,
-      }))
-    const ok = await store.guardarCargaPIA({ fecha, filas: validas, eliminados })
+    const ok = await store.guardarCargaPIA({ fecha, filas: prepararFilasParaGuardar(), eliminados })
     if (ok) {
       await cargarFilas()
     }
@@ -251,15 +259,7 @@
     if (!periodoKey) return
     firmando = true
     try {
-      const validas = filas
-        .filter((f) => Number(f.importe) > 0)
-        .map((f) => ({
-          rubro_id: Number(f.rubro_id),
-          importe: Number(f.importe),
-          cuenta_id: Number(f.cuenta_id),
-          detalle: f.detalle || '',
-          movimientoId: f.movimientoId || null,
-        }))
+      const validas = prepararFilasParaGuardar()
       if (validas.length > 0 || eliminados.length > 0) {
         await store.guardarCargaPIA({ fecha, filas: validas, eliminados })
       }
@@ -281,6 +281,31 @@
     return unsub
   })
 </script>
+
+{#snippet tipoBadge(tipo)}
+  {#if tipo === 'Entrada'}
+    <Badge variant="outline" class="text-xs text-primary border-primary/30">Entrada</Badge>
+  {:else}
+    <Badge variant="outline" class="text-xs text-destructive border-destructive/30">Salida</Badge>
+  {/if}
+{/snippet}
+
+{#snippet totalesFooter(colspan)}
+  <Table.Footer>
+    <Table.Row>
+      <Table.Cell colspan={colspan} class="font-bold text-right text-sm">Total ingresos</Table.Cell>
+      <Table.Cell class="text-right font-bold text-primary">+{formatARS(totalIngresos)}</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell colspan={colspan} class="font-bold text-right text-sm">Total egresos</Table.Cell>
+      <Table.Cell class="text-right font-bold text-destructive">-{formatARS(totalEgresos)}</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell colspan={colspan} class="font-bold text-right text-sm">Saldo del período</Table.Cell>
+      <Table.Cell class="text-right font-bold">{formatARS(saldoPeriodo)}</Table.Cell>
+    </Table.Row>
+  </Table.Footer>
+{/snippet}
 
 <PageScaffold title="Carga PIA" loading={cargandoPeriodo && filas.length === 0} error={store.error} notice={store.notice}>
   <!-- Header con botón volver -->
@@ -344,11 +369,7 @@
                     <Table.Cell>
                       <div class="flex items-center gap-2">
                         <span>{f.nombre}</span>
-                        {#if f.tipo === 'Entrada'}
-                          <Badge variant="outline" class="text-xs text-primary border-primary/30">Entrada</Badge>
-                        {:else}
-                          <Badge variant="outline" class="text-xs text-destructive border-destructive/30">Salida</Badge>
-                        {/if}
+                        {@render tipoBadge(f.tipo)}
                       </div>
                     </Table.Cell>
                   {:else}
@@ -417,20 +438,7 @@
             {/each}
           {/each}
         </Table.Body>
-        <Table.Footer>
-          <Table.Row>
-            <Table.Cell colspan="5" class="font-bold text-right">Total ingresos</Table.Cell>
-            <Table.Cell class="text-right font-bold text-primary">+{formatARS(totalIngresos)}</Table.Cell>
-          </Table.Row>
-          <Table.Row>
-            <Table.Cell colspan="5" class="font-bold text-right">Total egresos</Table.Cell>
-            <Table.Cell class="text-right font-bold text-destructive">-{formatARS(totalEgresos)}</Table.Cell>
-          </Table.Row>
-          <Table.Row>
-            <Table.Cell colspan="5" class="font-bold text-right">Saldo del período</Table.Cell>
-            <Table.Cell class="text-right font-bold">{formatARS(saldoPeriodo)}</Table.Cell>
-          </Table.Row>
-        </Table.Footer>
+        {@render totalesFooter(5)}
       </Table.Root>
     </div>
 
@@ -488,11 +496,7 @@
                   <Table.Cell>
                     <div class="flex items-center gap-2">
                       <span class="text-sm">{f.nombre}</span>
-                      {#if f.tipo === 'Entrada'}
-                        <Badge variant="outline" class="text-xs text-primary border-primary/30">Entrada</Badge>
-                      {:else}
-                        <Badge variant="outline" class="text-xs text-destructive border-destructive/30">Salida</Badge>
-                      {/if}
+                      {@render tipoBadge(f.tipo)}
                     </div>
                   </Table.Cell>
                   <Table.Cell class="text-xs text-muted-foreground">
@@ -508,20 +512,7 @@
                 </Table.Row>
               {/each}
             </Table.Body>
-            <Table.Footer>
-              <Table.Row>
-                <Table.Cell colspan="3" class="font-bold text-right text-sm">Total ingresos</Table.Cell>
-                <Table.Cell class="text-right font-bold text-primary">+{formatARS(totalIngresos)}</Table.Cell>
-              </Table.Row>
-              <Table.Row>
-                <Table.Cell colspan="3" class="font-bold text-right text-sm">Total egresos</Table.Cell>
-                <Table.Cell class="text-right font-bold text-destructive">-{formatARS(totalEgresos)}</Table.Cell>
-              </Table.Row>
-              <Table.Row>
-                <Table.Cell colspan="3" class="font-bold text-right text-sm">Saldo del período</Table.Cell>
-                <Table.Cell class="text-right font-bold">{formatARS(saldoPeriodo)}</Table.Cell>
-              </Table.Row>
-            </Table.Footer>
+            {@render totalesFooter(3)}
           </Table.Root>
         </div>
       {/if}

@@ -1,5 +1,4 @@
 import {
-  applyUserActions,
   detectGrist,
   fetchRecords,
   gristReady,
@@ -12,7 +11,7 @@ import { REQUIRED_TABLES } from '$core/grist/schema'
 import { getSchemaDiff, ensureSchema } from '$setup/initLof'
 import { deduplicatePersonas } from '$setup/migracion'
 import { TABLE_PREFERRED_IDS, MESES, getModalidadGestion } from '$core/utils/utils'
-import { loadConfig, saveConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
+import { loadConfig, saveConfig, crearEjercicioApi } from '$app/pages/cooperadora/cooperadoraApi.js'
 import { notify, withNotify } from '$core/ui/notify.svelte'
 import { createBaseState } from '$core/grist/stores/gristStore.svelte'
 import { saldosStore } from '$app/modules/tesoreria/resumen/saldosStore.svelte.js'
@@ -90,6 +89,75 @@ const check = async () => {
   }
 }
 
+const loadSociosMetrics = async (tSocios) => {
+  if (!tSocios) return
+  const allSocios = await fetchRecords(tSocios)
+  sociosActivos = allSocios.filter((s) => !s.fecha_baja).length
+  const oneYearAgo = new Date()
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+  altasUltimoAnio = allSocios.filter((s) => s.fecha_alta && new Date(s.fecha_alta) >= oneYearAgo).length
+  bajasUltimoAnio = allSocios.filter((s) => s.fecha_baja && new Date(s.fecha_baja) >= oneYearAgo).length
+}
+
+const loadEjercicioEnCurso = async (tEjercicios) => {
+  if (!tEjercicios) return
+  const allEj = await fetchRecords(tEjercicios)
+  ejercicioEnCurso = allEj.find((e) => e.en_curso === true) || null
+  if (ejercicioEnCurso) {
+    const now = new Date()
+    const finAnio = Number(ejercicioEnCurso.anio_fin || 0)
+    const finMes = MESES.indexOf(ejercicioEnCurso.mes_inicio || 'Marzo')
+    if (finAnio > 0) {
+      const finDate = new Date(finAnio, finMes + 2, 1)
+      const diffDays = Math.ceil((finDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      ejercicioProximoVencer = diffDays > 0 && diffDays <= 90
+    }
+  }
+}
+
+const loadTableroCaja = async (config) => {
+  tableroError = ''
+  if (!config?.modulo_gestion_integral) return
+  const tCuentas = await resolveTableId(TABLE_PREFERRED_IDS.cuentas)
+  const tMovimientos = await resolveTableId(TABLE_PREFERRED_IDS.movimientos)
+  let cuentasData = []
+  let movimientosData = []
+  // Fix F6: capturar errores para mostrar aviso en lugar de silenciar.
+  if (tCuentas) {
+    try { cuentasData = await fetchRecords(tCuentas) }
+    catch (e) { tableroError = `No se pudieron cargar las cuentas: ${e?.message || e}` }
+  }
+  if (tMovimientos) {
+    try { movimientosData = await fetchRecords(tMovimientos) }
+    catch (e) { tableroError = `No se pudieron cargar los movimientos: ${e?.message || e}` }
+  }
+  saldosStore.loadFromData({
+    movimientos: movimientosData,
+    ejercicio: ejercicioEnCurso,
+    cuentas: cuentasData,
+  })
+}
+
+const loadCargosAutoridades = async (tCargos, tAutoridades) => {
+  if (!tCargos || !tAutoridades || !ejercicioEnCurso) return
+  const allCargos = await fetchRecords(tCargos)
+  const obligatorios = allCargos.filter((c) => c.cargo_obligatorio === true && c.activo !== false)
+  cargosObligatorios = obligatorios.length
+  const allAuth = await fetchRecords(tAutoridades, {
+    filter: (a) => Number(a.ejercicio_id) === Number(ejercicioEnCurso.id) && a.activo !== false && !a.fecha_cese,
+  })
+  const cargosConAuth = new Set(allAuth.map((a) => Number(a.cargo_id)))
+  cargosCubiertos = obligatorios.filter((c) => cargosConAuth.has(Number(c.id))).length
+  const now = new Date()
+  const limit = new Date()
+  limit.setDate(limit.getDate() + 60)
+  vencimientosProximos = allAuth.filter((a) => {
+    if (!a.fecha_vencimiento) return false
+    const v = new Date(a.fecha_vencimiento)
+    return v >= now && v <= limit
+  })
+}
+
 const loadDashboard = async () => {
   dashLoading = true
   try {
@@ -98,74 +166,12 @@ const loadDashboard = async () => {
     const tCargos = await resolveTableId(TABLE_PREFERRED_IDS.cargos)
     const tAutoridades = await resolveTableId(TABLE_PREFERRED_IDS.autoridades)
 
-    if (tSocios) {
-      const allSocios = await fetchRecords(tSocios)
-      sociosActivos = allSocios.filter((s) => !s.fecha_baja).length
-      const oneYearAgo = new Date()
-      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
-      altasUltimoAnio = allSocios.filter((s) => s.fecha_alta && new Date(s.fecha_alta) >= oneYearAgo).length
-      bajasUltimoAnio = allSocios.filter((s) => s.fecha_baja && new Date(s.fecha_baja) >= oneYearAgo).length
-    }
+    await loadSociosMetrics(tSocios)
+    await loadEjercicioEnCurso(tEjercicios)
 
-    if (tEjercicios) {
-      const allEj = await fetchRecords(tEjercicios)
-      ejercicioEnCurso = allEj.find((e) => e.en_curso === true) || null
-      if (ejercicioEnCurso) {
-        const now = new Date()
-        const finAnio = Number(ejercicioEnCurso.anio_fin || 0)
-        const finMes = MESES.indexOf(ejercicioEnCurso.mes_inicio || 'Marzo')
-        if (finAnio > 0) {
-          const finDate = new Date(finAnio, finMes + 2, 1)
-          const diffDays = Math.ceil((finDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-          ejercicioProximoVencer = diffDays > 0 && diffDays <= 90
-        }
-      }
-    }
-
-    // Tablero de caja (Fase 2): cargar cuentas + movimientos del ejercicio
-    // en curso y delegar el cálculo de saldos a saldosStore via loadFromData
-    // (sin fetchs duplicados). Solo si el módulo de gestión integral está activo.
-    tableroError = ''
     const config = await loadConfig()
-    if (config?.modulo_gestion_integral) {
-      const tCuentas = await resolveTableId(TABLE_PREFERRED_IDS.cuentas)
-      const tMovimientos = await resolveTableId(TABLE_PREFERRED_IDS.movimientos)
-      let cuentasData = []
-      let movimientosData = []
-      // Fix F6: capturar errores para mostrar aviso en lugar de silenciar.
-      if (tCuentas) {
-        try { cuentasData = await fetchRecords(tCuentas) }
-        catch (e) { tableroError = `No se pudieron cargar las cuentas: ${e?.message || e}` }
-      }
-      if (tMovimientos) {
-        try { movimientosData = await fetchRecords(tMovimientos) }
-        catch (e) { tableroError = `No se pudieron cargar los movimientos: ${e?.message || e}` }
-      }
-      saldosStore.loadFromData({
-        movimientos: movimientosData,
-        ejercicio: ejercicioEnCurso,
-        cuentas: cuentasData,
-      })
-    }
-
-    if (tCargos && tAutoridades && ejercicioEnCurso) {
-      const allCargos = await fetchRecords(tCargos)
-      const obligatorios = allCargos.filter((c) => c.cargo_obligatorio === true && c.activo !== false)
-      cargosObligatorios = obligatorios.length
-      const allAuth = await fetchRecords(tAutoridades, {
-        filter: (a) => Number(a.ejercicio_id) === Number(ejercicioEnCurso.id) && a.activo !== false && !a.fecha_cese,
-      })
-      const cargosConAuth = new Set(allAuth.map((a) => Number(a.cargo_id)))
-      cargosCubiertos = obligatorios.filter((c) => cargosConAuth.has(Number(c.id))).length
-      const now = new Date()
-      const limit = new Date()
-      limit.setDate(limit.getDate() + 60)
-      vencimientosProximos = allAuth.filter((a) => {
-        if (!a.fecha_vencimiento) return false
-        const v = new Date(a.fecha_vencimiento)
-        return v >= now && v <= limit
-      })
-    }
+    await loadTableroCaja(config)
+    await loadCargosAutoridades(tCargos, tAutoridades)
 
     const now = new Date()
     alertaAsamblea = now.getMonth() === 4 && now.getDate() >= 15
@@ -188,21 +194,7 @@ const crearEjercicio = async () => {
   creating = true
   bs.clearMessages()
   try {
-    const tEjercicios = await resolveTableId(TABLE_PREFERRED_IDS.ejercicios)
-    if (!tEjercicios) { bs.setError('No se encontró la tabla ejercicios.'); return }
-    if (ejercicioEnCurso) {
-      await applyUserActions([['UpdateRecord', tEjercicios, ejercicioEnCurso.id, { en_curso: false }]])
-    }
-    await applyUserActions([['AddRecord', tEjercicios, null, {
-      anio_inicio: Number(nuevoEj.anio_inicio) || null,
-      anio_fin: Number(nuevoEj.anio_fin) || null,
-      mes_inicio: nuevoEj.mes_inicio || 'Marzo',
-      saldo_inicial_banco: Number(nuevoEj.saldo_inicial_banco || 0),
-      saldo_inicial_efectivo: Number(nuevoEj.saldo_inicial_efectivo || 0),
-      saldo_inicial_caja_chica: Number(nuevoEj.saldo_inicial_caja_chica || 0),
-      en_curso: true,
-      observaciones: 'Ejercicio creado desde Inicio',
-    }]])
+    await crearEjercicioApi(nuevoEj, ejercicioEnCurso ? [ejercicioEnCurso] : [], 'Ejercicio creado desde Inicio')
     notify.success('Ejercicio creado y activado.')
     showNuevoEjercicio = false
     nuevoEj = { anio_inicio: '', anio_fin: '', mes_inicio: 'Marzo', saldo_inicial_banco: 0, saldo_inicial_efectivo: 0, saldo_inicial_caja_chica: 0 }

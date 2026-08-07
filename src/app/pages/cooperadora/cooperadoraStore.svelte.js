@@ -9,7 +9,7 @@ import {
 } from '$core/grist/grist'
 import { normalizeFields, TABLE_PREFERRED_IDS } from '$core/utils/utils'
 import { ORGANISMOS, buildVigenteByCargo } from '$app/modules/gobierno/constants.js'
-import { loadConfig, saveConfig } from './cooperadoraApi.js'
+import { loadConfig, saveConfig, crearEjercicioApi } from './cooperadoraApi.js'
 import { applyBrandTheme } from '$core/ui/theme'
 import { notify } from '$core/ui/notify.svelte'
 import { createBaseState } from '$core/grist/stores/gristStore.svelte'
@@ -154,9 +154,7 @@ const _updateRecord = async (tableId, rec) => {
 }
 
 const saveCooperadora = async () => {
-  bs.clearMessages()
-  bs.setBusy(true)
-  try {
+  await bs.wrapAsync(async () => {
     if (!tEscuela || !tBanco || !tKiosco) {
       bs.setError('Faltan tablas de configuración. Ejecutá "Actualizar schema" en Inicio.')
       notify.error(bs.error); return
@@ -179,69 +177,46 @@ const saveCooperadora = async () => {
       color_primario: color_primario || config?.color_primario || '#16b378',
     })
     bs.setNotice('Datos guardados.'); notify.success(bs.notice)
-  } catch (e) { bs.setError(e?.message || String(e)); notify.error(bs.error) } finally { bs.setBusy(false) }
+  })
 }
 
 const validarDatos = async () => {
-  bs.clearMessages()
-  bs.setBusy(true)
-  try {
+  await bs.wrapAsync(async () => {
     if (!tEscuela) { bs.setError('No se encontró la tabla escuela.'); return }
     await applyUserActions([['UpdateRecord', tEscuela, escuela.id, { datos_validados: true }]])
     escuela.datos_validados = true
     bs.setNotice('Datos validados y bloqueados.'); notify.success(bs.notice)
-  } catch (e) { bs.setError(e?.message || String(e)); notify.error(bs.error) } finally { bs.setBusy(false) }
+  })
 }
 
 const validarBanco = async () => {
-  bs.clearMessages()
-  bs.setBusy(true)
-  try {
+  await bs.wrapAsync(async () => {
     if (!tBanco) { bs.setError('No se encontró la tabla datos_banco.'); return }
     await applyUserActions([['UpdateRecord', tBanco, banco.id, { banco_validado: true }]])
     banco.banco_validado = true
     bs.setNotice('Datos bancarios validados y bloqueados.'); notify.success(bs.notice)
-  } catch (e) { bs.setError(e?.message || String(e)); notify.error(bs.error) } finally { bs.setBusy(false) }
+  })
 }
 
 const createEjercicio = async () => {
-  bs.clearMessages()
-  bs.setBusy(true)
-  try {
+  await bs.wrapAsync(async () => {
     if (!tEjercicios) { bs.setError('No se encontró la tabla ejercicios.'); return }
-    const fields = normalizeFields({
-      anio_inicio: nuevoEj.anio_inicio ? Number(nuevoEj.anio_inicio) : null,
-      anio_fin: nuevoEj.anio_fin ? Number(nuevoEj.anio_fin) : null,
-      mes_inicio: nuevoEj.mes_inicio,
-      saldo_inicial_banco: Number(nuevoEj.saldo_inicial_banco || 0),
-      saldo_inicial_efectivo: Number(nuevoEj.saldo_inicial_efectivo || 0),
-      saldo_inicial_caja_chica: Number(nuevoEj.saldo_inicial_caja_chica || 0),
-      en_curso: true,
-    })
-    const toDeactivate = ejercicios.filter((e) => e.en_curso === true).map((e) => e.id)
-    const actions = [
-      ...toDeactivate.map((id) => ['UpdateRecord', tEjercicios, id, { en_curso: false }]),
-      ['AddRecord', tEjercicios, null, fields],
-    ]
-    await applyUserActions(actions)
-    ejercicios = await fetchRecords(tEjercicios)
+    ejercicios = await crearEjercicioApi(nuevoEj, ejercicios)
     bs.setNotice('Ejercicio creado.'); notify.success(bs.notice)
     nuevoEj = {
       anio_inicio: '', anio_fin: '', mes_inicio: nuevoEj.mes_inicio || 'Marzo',
       saldo_inicial_banco: 0, saldo_inicial_efectivo: 0, saldo_inicial_caja_chica: 0,
     }
-  } catch (e) { bs.setError(e?.message || String(e)) } finally { bs.setBusy(false) }
+  })
 }
 
 const setEjercicioEnCurso = async (id) => {
-  bs.clearMessages()
-  bs.setBusy(true)
-  try {
+  await bs.wrapAsync(async () => {
     const actions = ejercicios.map((e) => ['UpdateRecord', tEjercicios, e.id, { en_curso: e.id === id }])
     await applyUserActions(actions)
     ejercicios = await fetchRecords(tEjercicios)
     bs.setNotice('Ejercicio actualizado.'); notify.success(bs.notice)
-  } catch (e) { bs.setError(e?.message || String(e)) } finally { bs.setBusy(false) }
+  })
 }
 
 // --- Edición de saldos iniciales de un ejercicio ---
@@ -286,9 +261,7 @@ const tieneMovimientos = async (ejercicioId) => {
 }
 
 const saveEjercicio = async () => {
-  bs.clearMessages()
-  bs.setBusy(true)
-  try {
+  await bs.wrapAsync(async () => {
     if (!tEjercicios) { bs.setError('No se encontró la tabla ejercicios.'); return }
     if (!ejercicioEditando) return
     const fields = normalizeFields({
@@ -312,13 +285,11 @@ const saveEjercicio = async () => {
       try { await _onSaldosChanged(ejercicioGuardado) } catch { /* no-op */ }
     }
     bs.setNotice('Ejercicio guardado.'); notify.success(bs.notice)
-  } catch (e) { bs.setError(e?.message || String(e)) } finally { bs.setBusy(false) }
+  })
 }
 
 const deleteEjercicio = async (id) => {
-  bs.clearMessages()
-  bs.setBusy(true)
-  try {
+  await bs.wrapAsync(async () => {
     if (!tEjercicios) { bs.setError('No se encontró la tabla ejercicios.'); return }
     if (id == null) return
     const tiene = await tieneMovimientos(id)
@@ -334,13 +305,11 @@ const deleteEjercicio = async (id) => {
     await applyUserActions([['RemoveRecord', tEjercicios, id]])
     ejercicios = await fetchRecords(tEjercicios)
     bs.setNotice('Ejercicio eliminado.'); notify.success(bs.notice)
-  } catch (e) { bs.setError(e?.message || String(e)) } finally { bs.setBusy(false) }
+  })
 }
 
 const saveCargo = async (c) => {
-  bs.clearMessages()
-  bs.setBusy(true)
-  try {
+  await bs.wrapAsync(async () => {
     if (!tCargos) { bs.setError('No se encontró la tabla cargos.'); return }
     const fields = normalizeFields({
       organismo: c.organismo, nombre_cargo: c.nombre_cargo, nivel: c.nivel,
@@ -352,13 +321,11 @@ const saveCargo = async (c) => {
     await applyUserActions([['UpdateRecord', tCargos, c.id, fields]])
     await loadCargos()
     bs.setNotice('Cargo guardado.'); notify.success(bs.notice)
-  } catch (e) { bs.setError(e?.message || String(e)) } finally { bs.setBusy(false) }
+  })
 }
 
 const addCargo = async () => {
-  bs.clearMessages()
-  bs.setBusy(true)
-  try {
+  await bs.wrapAsync(async () => {
     if (!tCargos) { bs.setError('No se encontró la tabla cargos.'); return }
     if (!String(nuevoCargo.nombre_cargo || '').trim()) { bs.setError('Completá el nombre del cargo.'); return }
     const fields = normalizeFields({
@@ -377,7 +344,7 @@ const addCargo = async () => {
     }
     await loadCargos()
     bs.setNotice('Cargo agregado.'); notify.success(bs.notice)
-  } catch (e) { bs.setError(e?.message || String(e)) } finally { bs.setBusy(false) }
+  })
 }
 
 const setOrganismo = (v) => {

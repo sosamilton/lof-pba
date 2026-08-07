@@ -11,6 +11,8 @@ import {
   calcularResumenSemanal,
   isoWeekKey,
   generarPeriodosEjercicio,
+  weekKeyToRange,
+  proximoPeriodoACargar,
 } from '../shared/tesoreriaCalc.js'
 
 const cuentas = [
@@ -319,5 +321,72 @@ describe('calcularResumenMensual: períodos fuera del ejercicio', () => {
     expect(rows[0].ingresos).toBe(100)
     expect(rows[1].periodo).toBe('2026-04')
     expect(rows[1].origen).toBe('vacio')
+  })
+})
+
+describe('weekKeyToRange', () => {
+  it('convierte una semana ISO válida a rango legible', () => {
+    const r = weekKeyToRange('2026-W01')
+    expect(r.num).toBe(1)
+    expect(r.label).toMatch(/^Sem 1 · \d{2}\/\d{2}-\d{2}\/\d{2}$/)
+    expect(r.inicio).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(r.fin).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('el inicio es lunes y el fin es domingo (6 días después)', () => {
+    const r = weekKeyToRange('2026-W10')
+    const inicio = new Date(r.inicio)
+    const fin = new Date(r.fin)
+    const diff = Math.round((fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24))
+    expect(inicio.getUTCDay()).toBe(1) // lunes
+    expect(fin.getUTCDay()).toBe(0) // domingo
+    expect(diff).toBe(6)
+  })
+
+  it('maneja la semana 53 (año bisiesto)', () => {
+    const r = weekKeyToRange('2020-W53')
+    expect(r.num).toBe(53)
+    expect(r.inicio).toBe('2020-12-28')
+    expect(r.fin).toBe('2021-01-03')
+  })
+
+  it('devuelve label crudo e inicio/fin vacíos para input inválido', () => {
+    const r = weekKeyToRange('invalid')
+    expect(r.label).toBe('invalid')
+    expect(r.num).toBe(0)
+    expect(r.inicio).toBe('')
+    expect(r.fin).toBe('')
+  })
+
+  it('devuelve label crudo para input vacío', () => {
+    const r = weekKeyToRange('')
+    expect(r.label).toBe('')
+    expect(r.num).toBe(0)
+  })
+})
+
+describe('proximoPeriodoACargar', () => {
+  const ejercicio = { anio_inicio: 2026, anio_fin: 2027, mes_inicio: 'Marzo' }
+
+  it('devuelve el primer período sin datos', () => {
+    const conDatos = new Set(['2026-03', '2026-04'])
+    expect(proximoPeriodoACargar(ejercicio, conDatos)).toBe('2026-05')
+  })
+
+  it('devuelve el último período si todos tienen datos', () => {
+    const conDatos = new Set([
+      '2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08',
+      '2026-09', '2026-10', '2026-11', '2026-12', '2027-01', '2027-02',
+    ])
+    expect(proximoPeriodoACargar(ejercicio, conDatos)).toBe('2027-02')
+  })
+
+  it('devuelve el primer período si no hay datos', () => {
+    expect(proximoPeriodoACargar(ejercicio, new Set())).toBe('2026-03')
+  })
+
+  it('devuelve el mes actual si no hay ejercicio', () => {
+    const expected = new Date().toISOString().slice(0, 7)
+    expect(proximoPeriodoACargar(null, new Set())).toBe(expected)
   })
 })

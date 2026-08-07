@@ -68,6 +68,33 @@ const pickN = (arr, n) => {
   return [...out]
 }
 
+/** Genera una fecha YYYY-MM-DD */
+const genFecha = (year, month, day) =>
+  `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+
+/** Inserta registros en lotes para no exceder el límite de Grist */
+const chunkAndInsert = async (tableId, data, batchSize) => {
+  for (let i = 0; i < data.length; i += batchSize) {
+    await addRecords(tableId, data.slice(i, i + batchSize))
+  }
+}
+
+/** Construye un mapa de keyField → rowId desde los registros recuperados */
+const buildIdMap = (records, keyField) => {
+  const map = new Map()
+  for (const r of records) {
+    if (r[keyField]) map.set(String(r[keyField]), r.id)
+  }
+  return map
+}
+
+/** Elige una entrada del pool que no esté en usedSet; si no hay, elige cualquiera */
+const pickUnused = (pool, usedSet) => {
+  let entry = pool.find(([k]) => !usedSet.has(k))
+  if (!entry) entry = pick(pool)
+  return entry
+}
+
 const genDni = () => String(rand(10000000, 45000000))
 
 /** @param {string} dni @returns {string} */
@@ -90,25 +117,15 @@ const genFechaNacimiento = () => {
   const limiteMayor = new Date(hoy.getFullYear() - 18, hoy.getMonth(), hoy.getDate())
   if (Math.random() < 0.02) {
     // Menor de edad: nació entre hace 18 años y hoy.
-    const year = rand(limiteMayor.getFullYear() + 1, hoy.getFullYear())
-    const month = String(rand(1, 12)).padStart(2, '0')
-    const day = String(rand(1, 28)).padStart(2, '0')
-    return `${year}-${month}-${day}`
+    return genFecha(rand(limiteMayor.getFullYear() + 1, hoy.getFullYear()), rand(1, 12), rand(1, 28))
   }
   // Mayor de edad: nació entre 1950 y hace 18 años.
-  const year = rand(1950, limiteMayor.getFullYear())
-  const month = String(rand(1, 12)).padStart(2, '0')
-  const day = String(rand(1, 28)).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  return genFecha(rand(1950, limiteMayor.getFullYear()), rand(1, 12), rand(1, 28))
 }
 
 /** @param {number} anioInicio @returns {string} */
-const genFechaAlta = (anioInicio) => {
-  const year = anioInicio + rand(0, 1)
-  const month = String(rand(1, 12)).padStart(2, '0')
-  const day = String(rand(1, 28)).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
+const genFechaAlta = (anioInicio) =>
+  genFecha(anioInicio + rand(0, 1), rand(1, 12), rand(1, 28))
 
 /** @param {string|null} fechaAlta @returns {string|null} */
 const genFechaBaja = (fechaAlta) => {
@@ -195,18 +212,13 @@ export const generarDatosPrueba = async ({
     })
   }
 
-  for (let i = 0; i < personasData.length; i += batchSize) {
-    await addRecords(tPersonas, personasData.slice(i, i + batchSize))
-  }
+  await chunkAndInsert(tPersonas, personasData, batchSize)
   log('Personas cargadas, recuperando IDs...')
 
   // Recuperar IDs asignados por Grist (mapeo por dni que es único).
   // Solo necesitamos id y dni para resolver las Refs persona_id.
   const personasRecs = await fetchRecords(tPersonas, { columns: ['id', 'dni'] })
-  const dniToPersonaId = new Map()
-  for (const r of personasRecs) {
-    if (r.dni) dniToPersonaId.set(String(r.dni), r.id)
-  }
+  const dniToPersonaId = buildIdMap(personasRecs, 'dni')
   results.personas = personasData.length
 
   // --- 2. Socios (con persona_id resuelto) ---
@@ -232,8 +244,7 @@ export const generarDatosPrueba = async ({
   for (let i = 0; i < cantSocios; i++) {
     // Elegir una persona del pool. Se priorizan personas no usadas aún;
     // si hay más socios que personas, se permite reusar.
-    let entry = personasPool.find(([dni]) => !personasUsadas.has(dni))
-    if (!entry) entry = pick(personasPool)
+    const entry = pickUnused(personasPool, personasUsadas)
     if (!entry) continue
     personasUsadas.add(entry[0])
     const personaId = entry[1]
@@ -252,17 +263,12 @@ export const generarDatosPrueba = async ({
     })
   }
 
-  for (let i = 0; i < sociosData.length; i += batchSize) {
-    await addRecords(tSocios, sociosData.slice(i, i + batchSize))
-  }
+  await chunkAndInsert(tSocios, sociosData, batchSize)
   log('Socios cargados, recuperando IDs...')
 
   // Recuperar IDs de socios (mapeo por dni)
   const sociosRecs = await fetchRecords(tSocios, { columns: ['id', 'dni'] })
-  const dniToSocioId = new Map()
-  for (const r of sociosRecs) {
-    if (r.dni) dniToSocioId.set(String(r.dni), r.id)
-  }
+  const dniToSocioId = buildIdMap(sociosRecs, 'dni')
   results.socios = sociosData.length
 
   // --- 3. Movimientos (con todas las Refs resueltas) ---
@@ -331,9 +337,7 @@ export const generarDatosPrueba = async ({
     }
 
     // Fecha dentro del ejercicio
-    const month = String(rand(1, 12)).padStart(2, '0')
-    const day = String(rand(1, 28)).padStart(2, '0')
-    const fecha = `${anioInicio}-${month}-${day}`
+    const fecha = genFecha(anioInicio, rand(1, 12), rand(1, 28))
 
     movimientosData.push({
       fecha,
@@ -355,9 +359,7 @@ export const generarDatosPrueba = async ({
     })
   }
 
-  for (let i = 0; i < movimientosData.length; i += batchSize) {
-    await addRecords(tMovimientos, movimientosData.slice(i, i + batchSize))
-  }
+  await chunkAndInsert(tMovimientos, movimientosData, batchSize)
   results.movimientos = movimientosData.length
 
   // --- 4. Asamblea AGO + autoridades de CD y CRC ---
@@ -395,8 +397,8 @@ export const generarDatosPrueba = async ({
 
       // Designar autoridades: para cada cargo activo de CD y CRC, asignar una persona aleatoria
       const organismosTarget = ['CD', 'CRC']
-      const personasPool = personasRecs.filter((p) => p.id != null)
-      const personasUsadas = new Set()
+      const personasPoolAuth = personasRecs.filter((p) => p.id != null)
+      const personasUsadasAuth = new Set()
       const autoridadesData = []
 
       for (const org of organismosTarget) {
@@ -406,10 +408,10 @@ export const generarDatosPrueba = async ({
 
         for (const cargo of cargosOrg) {
           // Buscar persona no usada aún; si se agotan, reusar
-          let persona = personasPool.find((p) => !personasUsadas.has(p.id))
-          if (!persona) persona = pick(personasPool)
+          let persona = personasPoolAuth.find((p) => !personasUsadasAuth.has(p.id))
+          if (!persona) persona = pick(personasPoolAuth)
           if (!persona) continue
-          personasUsadas.add(persona.id)
+          personasUsadasAuth.add(persona.id)
 
           const duracionMeses = Number(cargo.duracion_meses) || 12
           const fechaAsuncion = fechaAsamblea
@@ -432,9 +434,7 @@ export const generarDatosPrueba = async ({
       }
 
       if (autoridadesData.length > 0) {
-        for (let i = 0; i < autoridadesData.length; i += batchSize) {
-          await addRecords(tAutoridades, autoridadesData.slice(i, i + batchSize))
-        }
+        await chunkAndInsert(tAutoridades, autoridadesData, batchSize)
         results.autoridades = autoridadesData.length
       }
     }
