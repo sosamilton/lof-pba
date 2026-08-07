@@ -123,7 +123,7 @@ export async function doInstall(s) {
     })
 
     const needsEjercicio = s.selectedModules.gestion_integral || s.selectedModules.carga_consolidada
-    const needsCargos = s.selectedModules.gestion_integral
+    const needsCargos = s.selectedModules.gestion_integral || s.selectedModules.carga_consolidada
 
     if (needsEjercicio) {
       const tEjercicios = await resolveTableId(TABLE_PREFERRED_IDS.ejercicios)
@@ -201,6 +201,8 @@ export async function doInstall(s) {
           cantMovimientos: Number(s.datosPruebaConfig.cantMovimientos) || 2000,
           batchSize: Number(s.datosPruebaConfig.batchSize) || 100,
           gestionIntegral: Boolean(s.selectedModules.gestion_integral),
+          cargaConsolidada: Boolean(s.selectedModules.carga_consolidada),
+          cantAsambleas: Number(s.datosPruebaConfig.cantAsambleas) || 1,
           onProgress: (msg) => { s.datosPruebaProgress = msg },
         })
       } catch (e) {

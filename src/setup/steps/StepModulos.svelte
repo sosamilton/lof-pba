@@ -59,8 +59,8 @@
             </div>
             <p class="text-[12px] text-muted-foreground mt-0.5 m-0 leading-relaxed">
               Genera personas, socios, movimientos
-              {#if store.selectedModules.gestion_integral}
-                , una asamblea AGO y autoridades de CD/CRC
+              {#if store.selectedModules.gestion_integral || store.selectedModules.carga_consolidada}
+                , asamblea(s) y autoridades de CD/CRC
               {/if}
               y planillas PIA/Nómina con Refs resueltas para probar performance
               de listados y filtros.
@@ -125,6 +125,20 @@
                   />
                   <Field.FieldDescription class="text-[11px]">
                     Para volúmenes altos (~10000) conviene aumentarlo.
+                  </Field.FieldDescription>
+                </Field.Field>
+                <Field.Field>
+                  <Field.FieldLabel for="dp-asambleas" class="text-[12px]">Asambleas</Field.FieldLabel>
+                  <Input
+                    id="dp-asambleas"
+                    type="number"
+                    min="1"
+                    max="12"
+                    bind:value={store.datosPruebaConfig.cantAsambleas}
+                    class="h-9"
+                  />
+                  <Field.FieldDescription class="text-[11px]">
+                    Más de 1 genera asambleas en distintos períodos para probar cierre y cambio de período.
                   </Field.FieldDescription>
                 </Field.Field>
               </div>

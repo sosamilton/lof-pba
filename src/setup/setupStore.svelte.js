@@ -148,6 +148,7 @@ export class SetupStore {
     cantSocios: 400,
     cantMovimientos: 2000,
     batchSize: 100,
+    cantAsambleas: 1,
   })
 
   localidades = localidades
