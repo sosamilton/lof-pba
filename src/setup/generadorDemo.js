@@ -550,7 +550,8 @@ export const generarDatosPrueba = async ({
 
             // En asambleas posteriores a la primera, las autoridades previas
             // quedan inactivas (cese por nueva designación).
-            const activo = aIdx === totalAsambleas - 1
+            // Solo las de la última asamblea quedan activas (vigentes).
+            const esUltima = aIdx === totalAsambleas - 1
 
             todasAutoridades.push({
               organismo: org,
@@ -560,9 +561,10 @@ export const generarDatosPrueba = async ({
               fecha_vencimiento: fechaVenc,
               tipo_origen: 'Asamblea',
               asamblea_id: asambleaId || null,
-              activo,
+              activo: esUltima,
               ejercicio_id: ejercicioId,
-              ...(aIdx > 0 ? { fecha_cese: fechaAsamblea } : {}),
+              // fecha_cese solo para autoridades de asambleas anteriores
+              ...(esUltima ? {} : { fecha_cese: fechaAsamblea }),
             })
           }
         }
