@@ -6,9 +6,9 @@
   import { Checkbox } from '$lib/components/ui/checkbox'
   import Combobox from '$lib/components/Combobox.svelte'
   import { Badge } from '$lib/components/ui/badge'
-  import { cueSedeLabel } from '$core/format'
-  import { EMAIL_INSTITUCIONAL_DOMAIN } from '$core/emailInstitucional'
-  import CuilInput from '$app/modules/comunidad/parts/CuilInput.svelte'
+  import { cueSedeLabel } from '$core/format/format'
+  import { EMAIL_INSTITUCIONAL_DOMAIN } from '$core/format/emailInstitucional'
+  import CuilInput from '$app/modules/comunidad/components/CuilInput.svelte'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check-big'
   import AlertCircleIcon from '@lucide/svelte/icons/circle-alert'
 

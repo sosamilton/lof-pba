@@ -25,7 +25,7 @@ import {
   formatCbu,
   isValidCbu,
   isValidCbuChecksum,
-} from '$core/format.js'
+} from '$core/format/format.js'
 
 describe('formatDni', () => {
   it('formats 8 digits with dots', () => {

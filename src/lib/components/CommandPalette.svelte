@@ -1,7 +1,7 @@
 <script>
   import * as Command from '$lib/components/ui/command'
-  import { keyboard, triggerContextAction } from '$core/keyboard.svelte'
-  import { navigate } from '$core/router.svelte'
+  import { keyboard, triggerContextAction } from '$core/ui/keyboard.svelte'
+  import { navigate } from '$core/ui/router.svelte'
   import HomeIcon from '@lucide/svelte/icons/home'
   import UsersIcon from '@lucide/svelte/icons/users'
   import ContactIcon from '@lucide/svelte/icons/contact'

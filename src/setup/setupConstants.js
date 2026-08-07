@@ -1,5 +1,6 @@
 import localidadesData from '$core/data/localidades-buenos-aires.json'
-import { MODULES, MESES, ORGANISMOS, ORGANISMO_LABELS } from '$core/utils'
+import { MODULES, MESES } from '$core/utils/utils'
+import { ORGANISMOS, ORGANISMO_LABELS } from '$app/modules/gobierno/constants.js'
 
 export const CUENTAS_OPCIONES = ['Banco', 'Efectivo', 'Caja Chica']
 export const currentYear = new Date().getFullYear()

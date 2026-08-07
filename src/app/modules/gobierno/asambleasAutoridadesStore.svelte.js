@@ -1,12 +1,12 @@
-import { createBaseState, resolveTableIds, fetchRelated } from '$core/stores/gristStore.svelte.js'
-import { fetchRecords, subscribeRecords } from '$core/grist.js'
+import { createBaseState, resolveTableIds, fetchRelated } from '$core/grist/stores/gristStore.svelte.js'
+import { fetchRecords, subscribeRecords } from '$core/grist/grist.js'
 import { createWidgetOptions } from './widgetOptions.svelte.js'
-import { createAutoridadRows } from './autoridadRows.svelte.js'
-import { createAsambleasManager } from './asambleasManager.svelte.js'
+import { createAutoridadRows } from './autoridades/autoridadRows.svelte.js'
+import { createAsambleasManager } from './asambleas/asambleasManager.svelte.js'
 import { createPersonaSearchDispatcher } from './personaSearchDispatcher.svelte.js'
-import { createCeseAutoridad } from './ceseAutoridad.svelte.js'
-import { createCargarAutoridades } from './cargarAutoridades.svelte.js'
-import { createReemplazoAutoridad } from './reemplazoAutoridad.svelte.js'
+import { createCeseAutoridad } from './autoridades/ceseAutoridad.svelte.js'
+import { createCargarAutoridades } from './autoridades/cargarAutoridades.svelte.js'
+import { createReemplazoAutoridad } from './autoridades/reemplazoAutoridad.svelte.js'
 
 const bs = createBaseState()
 const widgetOpts = createWidgetOptions()

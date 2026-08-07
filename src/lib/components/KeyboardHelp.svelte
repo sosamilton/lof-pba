@@ -1,6 +1,6 @@
 <script>
   import * as Dialog from '$lib/components/ui/dialog'
-  import { keyboard, NAV_SHORTCUTS } from '$core/keyboard.svelte'
+  import { keyboard, NAV_SHORTCUTS } from '$core/ui/keyboard.svelte'
 
   const shortcutLabels = {
     inicio: 'Ctrl+I',

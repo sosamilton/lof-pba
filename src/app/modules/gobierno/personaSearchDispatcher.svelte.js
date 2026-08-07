@@ -1,4 +1,4 @@
-import { usePersonaSearch } from '$core/usePersonaSearch.svelte.js'
+import { usePersonaSearch } from '$lib/hooks/usePersonaSearch.svelte.js'
 
 /**
  * Dispatcher central de búsqueda de personas.

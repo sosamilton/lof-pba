@@ -1,10 +1,10 @@
 <script>
   import { onMount, untrack } from 'svelte'
-  import { router, navigate } from '$core/router.svelte'
-  import { configStore } from '$core/stores/configStore.svelte'
-  import { getActiveMenuItems } from '$core/utils'
-  import { applyBrandTheme } from '$core/theme'
-  import { keyboard, NAV_SHORTCUTS, triggerContextAction } from '$core/keyboard.svelte'
+  import { router, navigate } from '$core/ui/router.svelte'
+  import { configStore } from '$core/grist/stores/configStore.svelte'
+  import { getActiveMenuItems } from '$core/utils/utils'
+  import { applyBrandTheme } from '$core/ui/theme'
+  import { keyboard, NAV_SHORTCUTS, triggerContextAction } from '$core/ui/keyboard.svelte'
   import * as Sidebar from '$lib/components/ui/sidebar'
   import CommandPalette from '$lib/components/CommandPalette.svelte'
   import KeyboardHelp from '$lib/components/KeyboardHelp.svelte'
@@ -17,7 +17,7 @@
   import BuildingIcon from '@lucide/svelte/icons/building-2'
   import CommandIcon from '@lucide/svelte/icons/command'
   import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
-  import { identidad } from '$core/identidad'
+  import { identidad } from '$core/data/identidad'
 
   let { title = identidad.nombre, children } = $props()
 

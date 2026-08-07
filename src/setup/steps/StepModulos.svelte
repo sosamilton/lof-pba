@@ -5,7 +5,7 @@
   import { Input } from '$lib/components/ui/input'
   import { Badge } from '$lib/components/ui/badge'
   import { MODULES } from '../setupStore.svelte'
-  import { identidad } from '$core/identidad'
+  import { identidad } from '$core/data/identidad'
 
   let { store } = $props()
 

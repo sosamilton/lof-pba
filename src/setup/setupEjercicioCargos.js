@@ -1,5 +1,5 @@
 import { loadSeedCsv } from './initLof'
-import { parseCsv, csvToObjects, normalizeSeedValue } from '$core/csv'
+import { parseCsv, csvToObjects, normalizeSeedValue } from '$core/utils/csv'
 
 /**
  * Gestión de cargos de gobierno: CRUD, reordenamiento, federación.

@@ -11,7 +11,7 @@ import {
   calcularResumenSemanal,
   isoWeekKey,
   generarPeriodosEjercicio,
-} from '../tesoreriaCalc.js'
+} from '../shared/tesoreriaCalc.js'
 
 const cuentas = [
   { id: 1, nombre_cuenta: 'Banco' },

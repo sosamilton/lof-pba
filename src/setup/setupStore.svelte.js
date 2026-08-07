@@ -1,8 +1,9 @@
-import { gristReady, listTables, resolveTableId, fetchRecords } from '$core/grist'
-import { TABLE_PREFERRED_IDS, MODULES, MESES, ORGANISMOS, ORGANISMO_LABELS } from '$core/utils'
-import { loadConfig, getTablesForModules } from '$core/configuracion'
-import { emailInstitucionalAlias } from '$core/emailInstitucional'
-import { loadEscuelasIndex } from '$core/escuelas'
+import { gristReady, listTables, resolveTableId, fetchRecords } from '$core/grist/grist'
+import { TABLE_PREFERRED_IDS, MODULES, MESES } from '$core/utils/utils'
+import { ORGANISMOS, ORGANISMO_LABELS } from '$app/modules/gobierno/constants.js'
+import { loadConfig, getTablesForModules } from '$app/pages/cooperadora/cooperadoraApi.js'
+import { emailInstitucionalAlias } from '$core/format/emailInstitucional'
+import { loadEscuelasIndex } from '$core/format/escuelas'
 import { CUENTAS_OPCIONES, currentYear, localidades, steps } from './setupConstants'
 import {
   onCueInput, onCuitInput, onTelefonoEscuelaInput, onTelefonoInput,

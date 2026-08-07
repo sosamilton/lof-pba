@@ -40,7 +40,7 @@
   import { Badge } from '$lib/components/ui/badge'
   import { Separator } from '$lib/components/ui/separator'
   import * as Carousel from '$lib/components/ui/carousel'
-  import { navigate } from '$core/router.svelte'
+  import { navigate } from '$core/ui/router.svelte'
   import CodeXmlIcon from '@lucide/svelte/icons/code-xml'
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link'
   import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
@@ -54,7 +54,7 @@
   import FileTextIcon from '@lucide/svelte/icons/file-text'
   import WalletIcon from '@lucide/svelte/icons/wallet'
   import GristIcon from '$lib/components/GristIcon.svelte'
-  import { identidad } from '$core/identidad'
+  import { identidad } from '$core/data/identidad'
   import data from './landing.json'
 
   const { problemas, funciones, capturas, roadmap } = data

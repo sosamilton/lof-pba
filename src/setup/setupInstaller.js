@@ -1,8 +1,8 @@
-import { gristReady, resolveTableId, applyUserActions, invalidateTablesCache, fetchRecords, addRecords } from '$core/grist'
+import { gristReady, resolveTableId, applyUserActions, invalidateTablesCache, fetchRecords, addRecords } from '$core/grist/grist'
 import { ensureSchema, initDemoData } from './initLof'
-import { TABLE_PREFERRED_IDS, MODULES } from '$core/utils'
-import { saveConfig } from '$core/configuracion'
-import { normalizeEmail, normalizeTelefonoForStorage, isValidCbuChecksum } from '$core/format'
+import { TABLE_PREFERRED_IDS, MODULES } from '$core/utils/utils'
+import { saveConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
+import { normalizeEmail, normalizeTelefonoForStorage, isValidCbuChecksum } from '$core/format/format'
 import { currentYear } from './setupConstants'
 
 /**

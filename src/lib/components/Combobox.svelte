@@ -5,7 +5,7 @@
   import { Badge } from '$lib/components/ui/badge'
   import CheckIcon from '@lucide/svelte/icons/check'
   import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down'
-  import { normalize } from '$core/utils'
+  import { normalize } from '$core/utils/utils'
 
   let {
     value = $bindable(),

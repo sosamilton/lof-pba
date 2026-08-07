@@ -1,10 +1,10 @@
 <script>
   import { onMount } from 'svelte'
-  import { retryAccess, subscribeAccess, getGristStatus } from '$core/grist'
+  import { retryAccess, subscribeAccess, getGristStatus } from '$core/grist/grist'
   import { Button } from '$lib/components/ui/button'
   import { Alert, AlertDescription } from '$lib/components/ui/alert'
   import ShieldCheckIcon from '@lucide/svelte/icons/shield-check'
-  import { identidad } from '$core/identidad'
+  import { identidad } from '$core/data/identidad'
 
   let status = $state(getGristStatus())
   let retrying = $state(false)

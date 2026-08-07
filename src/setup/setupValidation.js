@@ -1,4 +1,4 @@
-import { MODULES } from '$core/utils'
+import { MODULES } from '$core/utils/utils'
 
 /**
  * Validaciones del wizard: hasFieldErrors y canNext.
