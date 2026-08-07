@@ -27,6 +27,7 @@ export function createDashboardStore() {
   let altasUltimoAnio = $state(0)
   let bajasUltimoAnio = $state(0)
   let ejercicioEnCurso = $state(null)
+  let ejercicioProximoVencer = $state(false)
   let cargosObligatorios = $state(0)
   let cargosCubiertos = $state(0)
   let vencimientosProximos = $state([])
