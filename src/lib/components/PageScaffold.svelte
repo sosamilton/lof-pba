@@ -1,5 +1,5 @@
 <script>
-  import { isInGrist } from '$core/grist'
+  import { isInGrist } from '$core/grist/grist'
   import { Skeleton } from '$lib/components/ui/skeleton'
   import MessageBanner from './MessageBanner.svelte'
 

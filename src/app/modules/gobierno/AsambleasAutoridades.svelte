@@ -1,19 +1,19 @@
 <script>
   import { onMount } from 'svelte'
   import { asambleasAutoridadesStore as store } from './asambleasAutoridadesStore.svelte'
-  import { isInGrist } from '$core/grist'
+  import { isInGrist } from '$core/grist/grist'
   import * as Tabs from '$lib/components/ui/tabs'
   import { Skeleton } from '$lib/components/ui/skeleton'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
   import GavelIcon from '@lucide/svelte/icons/gavel'
   import UsersIcon from '@lucide/svelte/icons/users'
   import HistoryIcon from '@lucide/svelte/icons/history'
-  import TabAsambleas from './parts/TabAsambleas.svelte'
-  import TabAutoridades from './parts/TabAutoridades.svelte'
-  import TabHistorico from './parts/TabHistorico.svelte'
-  import DialogCargarAutoridades from './parts/DialogCargarAutoridades.svelte'
-  import DialogCese from './parts/DialogCese.svelte'
-  import DialogReemplazo from './parts/DialogReemplazo.svelte'
+  import TabAsambleas from './asambleas/components/TabAsambleas.svelte'
+  import TabAutoridades from './autoridades/components/TabAutoridades.svelte'
+  import TabHistorico from './autoridades/components/TabHistorico.svelte'
+  import DialogCargarAutoridades from './autoridades/components/DialogCargarAutoridades.svelte'
+  import DialogCese from './autoridades/components/DialogCese.svelte'
+  import DialogReemplazo from './autoridades/components/DialogReemplazo.svelte'
 
   onMount(async () => {
     if (!isInGrist()) return

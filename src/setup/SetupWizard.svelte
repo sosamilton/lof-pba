@@ -8,8 +8,8 @@
   import StepBancoKiosco from './steps/StepBancoKiosco.svelte'
   import StepEjercicioCargos from './steps/StepEjercicioCargos.svelte'
   import StepInstalar from './steps/StepInstalar.svelte'
-  import { applyBrandTheme } from '$core/theme'
-  import { identidad } from '$core/identidad'
+  import { applyBrandTheme } from '$core/ui/theme'
+  import { identidad } from '$core/data/identidad'
 
   const store = new SetupStore()
   const dev = import.meta.env.DEV

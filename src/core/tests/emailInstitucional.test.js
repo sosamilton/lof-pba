@@ -4,7 +4,7 @@ import {
   emailInstitucionalAlias,
   emailInstitucionalFromAlias,
   parseEmailInstitucionalInput,
-} from '$core/emailInstitucional.js'
+} from '$core/format/emailInstitucional.js'
 
 describe('EMAIL_INSTITUCIONAL_DOMAIN', () => {
   it('es @abc.gob.ar', () => {

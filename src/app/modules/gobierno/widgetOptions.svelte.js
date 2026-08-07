@@ -1,4 +1,4 @@
-import { getWidgetOptions, setWidgetOption } from '$core/grist.js'
+import { getWidgetOptions, setWidgetOption } from '$core/grist/grist.js'
 
 /**
  * Persistencia de widget options: tab activo y organismo seleccionado.

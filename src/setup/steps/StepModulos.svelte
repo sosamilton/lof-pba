@@ -5,7 +5,7 @@
   import { Input } from '$lib/components/ui/input'
   import { Badge } from '$lib/components/ui/badge'
   import { MODULES } from '../setupStore.svelte'
-  import { identidad } from '$core/identidad'
+  import { identidad } from '$core/data/identidad'
 
   let { store } = $props()
 
@@ -59,8 +59,8 @@
             </div>
             <p class="text-[12px] text-muted-foreground mt-0.5 m-0 leading-relaxed">
               Genera personas, socios, movimientos
-              {#if store.selectedModules.gestion_integral}
-                , una asamblea AGO y autoridades de CD/CRC
+              {#if store.selectedModules.gestion_integral || store.selectedModules.carga_consolidada}
+                , asamblea(s) y autoridades de CD/CRC
               {/if}
               y planillas PIA/Nómina con Refs resueltas para probar performance
               de listados y filtros.
@@ -125,6 +125,34 @@
                   />
                   <Field.FieldDescription class="text-[11px]">
                     Para volúmenes altos (~10000) conviene aumentarlo.
+                  </Field.FieldDescription>
+                </Field.Field>
+                <Field.Field>
+                  <Field.FieldLabel for="dp-ejercicios" class="text-[12px]">Ejercicios</Field.FieldLabel>
+                  <Input
+                    id="dp-ejercicios"
+                    type="number"
+                    min="1"
+                    max="5"
+                    bind:value={store.datosPruebaConfig.cantEjercicios}
+                    class="h-9"
+                  />
+                  <Field.FieldDescription class="text-[11px]">
+                    Crea ejercicios anteriores además del actual. Cada uno con su asamblea y autoridades, para probar el histórico multi-ejercicio.
+                  </Field.FieldDescription>
+                </Field.Field>
+                <Field.Field>
+                  <Field.FieldLabel for="dp-asambleas" class="text-[12px]">Asambleas por ejercicio</Field.FieldLabel>
+                  <Input
+                    id="dp-asambleas"
+                    type="number"
+                    min="1"
+                    max="12"
+                    bind:value={store.datosPruebaConfig.cantAsambleas}
+                    class="h-9"
+                  />
+                  <Field.FieldDescription class="text-[11px]">
+                    Más de 1 genera asambleas en distintos meses del ejercicio para probar cierre y cambio de período.
                   </Field.FieldDescription>
                 </Field.Field>
               </div>

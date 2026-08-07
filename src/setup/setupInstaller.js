@@ -1,8 +1,8 @@
-import { gristReady, resolveTableId, applyUserActions, invalidateTablesCache, fetchRecords, addRecords } from '$core/grist'
+import { gristReady, resolveTableId, applyUserActions, invalidateTablesCache, fetchRecords, addRecords } from '$core/grist/grist'
 import { ensureSchema, initDemoData } from './initLof'
-import { TABLE_PREFERRED_IDS, MODULES } from '$core/utils'
-import { saveConfig } from '$core/configuracion'
-import { normalizeEmail, normalizeTelefonoForStorage, isValidCbuChecksum } from '$core/format'
+import { TABLE_PREFERRED_IDS, MODULES } from '$core/utils/utils'
+import { saveConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
+import { normalizeEmail, normalizeTelefonoForStorage, isValidCbuChecksum } from '$core/format/format'
 import { currentYear } from './setupConstants'
 
 /**
@@ -123,7 +123,7 @@ export async function doInstall(s) {
     })
 
     const needsEjercicio = s.selectedModules.gestion_integral || s.selectedModules.carga_consolidada
-    const needsCargos = s.selectedModules.gestion_integral
+    const needsCargos = s.selectedModules.gestion_integral || s.selectedModules.carga_consolidada
 
     if (needsEjercicio) {
       const tEjercicios = await resolveTableId(TABLE_PREFERRED_IDS.ejercicios)
@@ -201,6 +201,9 @@ export async function doInstall(s) {
           cantMovimientos: Number(s.datosPruebaConfig.cantMovimientos) || 2000,
           batchSize: Number(s.datosPruebaConfig.batchSize) || 100,
           gestionIntegral: Boolean(s.selectedModules.gestion_integral),
+          cargaConsolidada: Boolean(s.selectedModules.carga_consolidada),
+          cantAsambleas: Number(s.datosPruebaConfig.cantAsambleas) || 1,
+          cantEjercicios: Number(s.datosPruebaConfig.cantEjercicios) || 1,
           onProgress: (msg) => { s.datosPruebaProgress = msg },
         })
       } catch (e) {

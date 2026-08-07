@@ -1,5 +1,5 @@
 import { DEMO_MODULES, DEMO_ESC_COOP, DEMO_BANCO, DEMO_KIOSCO, DEMO_EJERCICIO } from './demoData'
-import { emailInstitucionalAlias } from '$core/emailInstitucional'
+import { emailInstitucionalAlias } from '$core/format/emailInstitucional'
 import { currentYear } from './setupConstants'
 import { onCueInput, onCuitInput, onTelefonoEscuelaInput, onTelefonoInput, onEmailInput, onCbuInput } from './setupSchoolData'
 import { syncFederacionCargos, loadDefaultCargos } from './setupEjercicioCargos'

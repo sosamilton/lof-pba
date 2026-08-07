@@ -12,7 +12,7 @@ El análisis del código confirma que **no hay ninguna dependencia de red extern
 | --- | --- | --- |
 | `grist-plugin-api.js` | Bundle local en `public/` (955 KB) | No — se carga con URL relativa `./grist-plugin-api.js` |
 | Seeds CSV (`cargos`, `cuentas`, `rubros_pia`, etc.) | `public/seeds/` | No — `fetch('./seeds/name.csv')` al mismo origen |
-| Schema de tablas | `src/core/schema.json` | No — importado en build time |
+| Schema de tablas | `src/core/data/schema.json` | No — importado en build time |
 | Localidades de Buenos Aires | `src/core/data/localidades-buenos-aires.json` | No — importado en build time |
 | Estilos (Tailwind, shadcn-svelte) | Compilados a CSS en el build | No — sin Google Fonts, sin CDN |
 | Comunicación SPA ↔ Grist | `postMessage` del iframe | No — comunicación local entre iframe y parent |

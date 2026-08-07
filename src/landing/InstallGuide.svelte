@@ -4,7 +4,7 @@
   import * as Carousel from '$lib/components/ui/carousel'
   import * as Accordion from '$lib/components/ui/accordion'
   import { Separator } from '$lib/components/ui/separator'
-  import { navigate } from '$core/router.svelte'
+  import { navigate } from '$core/ui/router.svelte'
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left'
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link'
   import CopyIcon from '@lucide/svelte/icons/copy'
@@ -15,7 +15,7 @@
   import WifiIcon from '@lucide/svelte/icons/wifi'
   import FileTextIcon from '@lucide/svelte/icons/file-text'
   import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
-  import { identidad } from '$core/identidad'
+  import { identidad } from '$core/data/identidad'
   import data from './landing.json'
 
   let { guia_instalacion } = data

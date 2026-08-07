@@ -9,7 +9,7 @@ import {
   isAdult,
   daysSince,
   TABLE_PREFERRED_IDS
-} from '$core/utils'
+} from '$core/utils/utils'
 
 describe('normalize', () => {
   it('lowercases and trims', () => {

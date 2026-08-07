@@ -11,14 +11,14 @@ import {
   isValidEmail,
   formatCbu,
   isValidCbuChecksum,
-} from '$core/format'
+} from '$core/format/format'
 import {
   findEscuelaByCue,
   buildPrefillFromFicha,
   cueSearchState,
   fechaDescargaOficial,
-} from '$core/escuelas'
-import { parseEmailInstitucionalInput } from '$core/emailInstitucional'
+} from '$core/format/escuelas'
+import { parseEmailInstitucionalInput } from '$core/format/emailInstitucional'
 
 /**
  * Handlers de input para datos de escuela/cooperadora/banco.

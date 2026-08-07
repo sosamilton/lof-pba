@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { tableDataToRecords } from '$core/grist'
+import { tableDataToRecords } from '$core/grist/grist'
 
 describe('tableDataToRecords', () => {
   it('converts columnar data to record array', () => {

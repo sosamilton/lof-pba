@@ -3,7 +3,7 @@
   import { Badge } from '$lib/components/ui/badge'
   import * as Card from '$lib/components/ui/card'
   import { Separator } from '$lib/components/ui/separator'
-  import { navigate } from '$core/router.svelte'
+  import { navigate } from '$core/ui/router.svelte'
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left'
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link'
   import CodeXmlIcon from '@lucide/svelte/icons/code-xml'
@@ -17,7 +17,7 @@
   import UsersIcon from '@lucide/svelte/icons/users'
   import ShieldIcon from '@lucide/svelte/icons/shield'
   import BuildingIcon from '@lucide/svelte/icons/building'
-  import { identidad } from '$core/identidad'
+  import { identidad } from '$core/data/identidad'
   import data from './landing.json'
 
   const { principios } = data

@@ -1,12 +1,12 @@
-import { createBaseState, resolveTableIds, fetchRelated } from '$core/stores/gristStore.svelte.js'
-import { fetchRecords, subscribeRecords } from '$core/grist.js'
+import { createBaseState, resolveTableIds, fetchRelated } from '$core/grist/stores/gristStore.svelte.js'
+import { fetchRecords, subscribeRecords } from '$core/grist/grist.js'
 import { createWidgetOptions } from './widgetOptions.svelte.js'
-import { createAutoridadRows } from './autoridadRows.svelte.js'
-import { createAsambleasManager } from './asambleasManager.svelte.js'
+import { createAutoridadRows } from './autoridades/autoridadRows.svelte.js'
+import { createAsambleasManager } from './asambleas/asambleasManager.svelte.js'
 import { createPersonaSearchDispatcher } from './personaSearchDispatcher.svelte.js'
-import { createCeseAutoridad } from './ceseAutoridad.svelte.js'
-import { createCargarAutoridades } from './cargarAutoridades.svelte.js'
-import { createReemplazoAutoridad } from './reemplazoAutoridad.svelte.js'
+import { createCeseAutoridad } from './autoridades/ceseAutoridad.svelte.js'
+import { createCargarAutoridades } from './autoridades/cargarAutoridades.svelte.js'
+import { createReemplazoAutoridad } from './autoridades/reemplazoAutoridad.svelte.js'
 
 const bs = createBaseState()
 const widgetOpts = createWidgetOptions()
@@ -21,6 +21,8 @@ let tResoluciones = $state(null)
 // Datos principales
 let ejercicios = $state([])
 let ejercicio = $state(null)
+// Ejercicio seleccionado para el tab Histórico (null = ejercicio en curso).
+let ejercicioHistorico = $state(null)
 let cargos = $state([])
 let autoridades = $state([])
 let asambleas = $state([])
@@ -41,11 +43,16 @@ const load = async () => {
     ejercicios = await fetchRecords(tEjercicios)
     ejercicio = ejercicios.find((e) => e.en_curso === true) || null
     if (!ejercicio) return
+    // Default del histórico: ejercicio en curso
+    if (ejercicioHistorico === null) ejercicioHistorico = ejercicio.id
 
-    // Cargar tablas relacionadas en paralelo con fetchRelated
+    // Cargar tablas relacionadas en paralelo con fetchRelated.
+    // Autoridades: cargar TODAS (sin filtro de ejercicio) para que el
+    // tab Histórico pueda mostrar ejercicios anteriores.
+    // Asambleas: filtrar por ejercicio en curso (esa tab es del momento).
     const data = await fetchRelated(tIds, {
       cargos: { filter: (c) => c.activo === true || c.cargo_obligatorio === true },
-      autoridades: { filter: (a) => Number(a.ejercicio_id) === Number(ejercicio.id) },
+      autoridades: {},
       asambleas: {
         filter: (a) => Number(a.ejercicio_id) === Number(ejercicio.id),
         sort: (a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')),
@@ -68,9 +75,9 @@ const loadCargos = async () => {
 }
 
 const loadAutoridades = async () => {
-  autoridades = await fetchRecords(tAutoridades, {
-    filter: (a) => Number(a.ejercicio_id) === Number(ejercicio.id),
-  })
+  // Cargar todas las autoridades (todos los ejercicios) para que el
+  // tab Histórico pueda mostrar ejercicios anteriores.
+  autoridades = await fetchRecords(tAutoridades)
 }
 
 const loadAsambleas = async () => {
@@ -85,6 +92,8 @@ const autoridadRows = createAutoridadRows({
   getCargos: () => cargos,
   getAutoridades: () => autoridades,
   getOrganismo: () => widgetOpts.organismo,
+  getEjercicioId: () => ejercicio?.id ?? null,
+  getEjercicioHistoricoId: () => ejercicioHistorico,
 })
 
 const asambleasMgr = createAsambleasManager({
@@ -167,6 +176,8 @@ export const asambleasAutoridadesStore = {
   // datos principales
   get ejercicios() { return ejercicios },
   get ejercicio() { return ejercicio },
+  get ejercicioHistorico() { return ejercicioHistorico },
+  set ejercicioHistorico(v) { ejercicioHistorico = v },
   get cargos() { return cargos },
   get autoridades() { return autoridades },
   get asambleas() { return asambleas },

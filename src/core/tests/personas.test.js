@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { parseDni as normalizeDni, parseCuil as normalizeCuil, isValidDni, isValidCuil } from '$core/format'
-import { personaLabel } from '$core/personas'
+import { parseDni as normalizeDni, parseCuil as normalizeCuil, isValidDni, isValidCuil } from '$core/format/format'
+import { personaLabel } from '$app/modules/comunidad/personas/personasApi.js'
 
 describe('normalizeDni', () => {
   it('strips non-digits', () => {
