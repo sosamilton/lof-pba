@@ -54,6 +54,26 @@ const base = createGristStore({
 
 Devuelve `{ records, loading, error, notice, tableId, load, save, remove, refresh, clearMessages, setError, ... }` con estado reactivo. Los stores de módulo (`sociosStore`, `movimientosStore`, etc.) **extienden** este store base con estado y lógica de dominio específica (formularios, validaciones, vinculaciones entre tablas).
 
+### Facade con sub-stores
+
+Cuando un store crece demasiado, se descompone en **sub-stores** inyectados vía factory functions, con un **facade** que los compone y re-exporta getters reactivos. Patrón usado en `cooperadoraStore` y `inicioStore`:
+
+```js
+// cooperadoraStore.svelte.js — facade
+const ejercicios = createEjerciciosStore({ bs, getTEjercicios, getTMovimientos })
+const cargos = createCargosStore({ bs, getTCargos, getTAutoridades, getEjercicioEnCurso })
+
+// re-exporta getters reactivos del sub-store
+get ejercicios() { return ejercicios.ejercicios }
+get cargosObligatorios() { return cargos.cargosObligatorios }
+```
+
+- **`cooperadoraStore`** facade → compone `ejerciciosStore` + `cargosStore`; mantiene solo configuración (escuela, banco, kiosco).
+- **`inicioStore`** facade → delega métricas a `dashboardStore`; mantiene solo estado local (status, creating, nuevoEj, version).
+- **`asambleasAutoridadesStore`** — mismo modelo de factory con inyección de dependencias.
+
+Los sub-stores exponen getters sobre `$state` que el facade re-exporta, manteniendo reactividad transitiva.
+
 ### Hooks
 
 - **`beforeSave(fields, record)`** — transforma los campos antes de enviar a Grist (normalización, limpieza de vacíos). Devuelve los fields a guardar.
@@ -98,7 +118,7 @@ Siempre keyed, con key único (no el índice):
 
 ## 9. Normalización y validación de dominio
 
-`core/personas.js` y `core/format.js` centralizan normalización (storage) y formateo (display):
+`comunidad/personas/personasApi.js` y `core/format/format.js` centralizan normalización (storage) y formateo (display):
 
 - **Normalizar** antes de guardar: `normalizeDni`, `normalizeCuil`, `normalizeTelefono`, `normalizeEmailField`.
 - **Formatear** para mostrar: `formatDni`, `formatCuil`, `formatTelefono`, `formatARS`.
@@ -112,7 +132,7 @@ Los stores de módulo mantienen `*Warning = $state('')` por campo y bloquean el 
 
 ## 11. Manejo de entorno Grist
 
-Toda interacción con Grist pasa por `core/grist.js`, que:
+Toda interacción con Grist pasa por `core/grist/grist.js`, que:
 
 - Verifica `isInGrist()` antes de llamar a la API.
 - Carga `grist-plugin-api.js` bajo demanda (`ensureGristPluginLoaded`).
@@ -124,7 +144,7 @@ Los stores deben llamar a `gristReady()` antes de operar y manejar el caso "no e
 ## 12. Errores y notificaciones
 
 - Errores de dominio: se setean en `store.error` y se muestran con `MessageBanner`.
-- Feedback al usuario: `notify.svelte.js` (wrapper de `svelte-sonner`).
+- Feedback al usuario: `ui/notify.svelte.js` (wrapper de `svelte-sonner`).
 - No hay try/catch en cada línea: los stores capturan en el nivel de operación (`load`/`save`) y propagan al estado.
 
 ## 13. Convenciones de naming

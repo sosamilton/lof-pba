@@ -14,7 +14,7 @@ LOF es una **SPA sin backend propio**. Toda la persistencia vive en un **documen
 │   ┌──────────────────────── iframe: Custom Widget ─────────────────────┐    │
 │   │  LOF SPA (Svelte 5 + Vite)                                          │    │
 │   │                                                                     │    │
-│   │  UI ────────────► Stores (runes) ──────► core/grist.js ─────► API   │    │
+│   │  UI ────────────► Stores (runes) ──────► core/grist/grist.js ► API   │    │
 │   │  (modules)        createGristStore()    fetchRecords/applyUserActions│   │
 │   └─────────────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -38,37 +38,54 @@ Vista pública que se muestra cuando la app corre fuera de Grist. El contenido (
 ### 3. App — `src/app/`
 
 - **`AppShell.svelte`** — layout principal con sidebar (desktop) / drawer (mobile), menú dinámico según los módulos activos en la configuración, y branding desde la config de la cooperadora.
-- **`pages/`** — páginas de nivel superior (`Inicio`, `Cooperadora`).
-- **`modules/`** — módulos funcionales por dominio:
-  - `comunidad/` — `Socios`, `Personas` (+ stores).
-  - `tesoreria/` — `Movimientos` (+ store).
-  - `gobierno/` — `Gobierno` (+ store).
+- **`pages/`** — páginas de nivel superior, cada una en su propia carpeta con stores y componentes:
+  - `inicio/` — `Inicio.svelte` + `inicioStore` + `dashboardStore` (métricas) + `components/` (ResumenEjecutivo, TableroCaja, ConfigPanel, etc.).
+  - `cooperadora/` — `Cooperadora.svelte` + `cooperadoraStore` (facade) + `cargosStore` + `ejerciciosStore` + `cooperadoraApi` + `components/` (FormEscuela, FormBanco, TablaCargos, etc.).
+- **`modules/`** — módulos funcionales por dominio, cada uno subdividido por sub-dominio con `components/` para UI:
+  - `comunidad/personas/` — `Personas.svelte` + `personasStore` + `personasApi` + helpers (`personaFormManager`, `personaLinker`).
+  - `comunidad/socios/` — `Socios.svelte` + `sociosStore` + `socioValidator`.
+  - `comunidad/components/` — UI compartida del módulo (CuilInput, FilterBar, RecordList, etc.).
+  - `tesoreria/movimientos/` — `Movimientos.svelte` + `movimientosStore` + `form/` (lógica de formulario) + `components/`.
+  - `tesoreria/resumen/` — `ResumenMensual.svelte` + `resumenStore` + `saldosStore` + `cierresService`.
+  - `tesoreria/cargaPia/` — `CargaPIAMatrix.svelte` + `cargaPIAService` + `components/` (ConfirmarFirmaDialog).
+  - `tesoreria/shared/` — `tesoreriaCalc.js` (cálculos compartidos).
+  - `gobierno/asambleas/` — `asambleasManager` + `components/` (TabAsambleas).
+  - `gobierno/autoridades/` — `autoridadRows`, `cargarAutoridades`, `ceseAutoridad`, `reemplazoAutoridad` + `components/` (DialogCargar, DialogCese, DialogReemplazo, tabs).
+  - `gobierno/components/` — UI compartida (PersonaPicker).
 
-Cada módulo es una pareja `.svelte` (vista) + `*Store.svelte.js` (estado y lógica de dominio que extiende el store base de Grist).
+Cada módulo es una pareja `.svelte` (vista) + `*Store.svelte.js` (estado y lógica de dominio que extiende el store base de Grist). Las constantes de dominio viven en `constants.js` dentro de cada módulo (`comunidad/constants.js`, `gobierno/constants.js`).
 
 ### 4. Core — `src/core/`
 
-Núcleo de la aplicación, agnóstico de la UI:
+Núcleo de la aplicación, agnóstico de la UI. Subdividido por responsabilidad:
 
 | Archivo | Responsabilidad |
 | --- | --- |
-| `grist.js` | Detección de entorno, carga de `grist-plugin-api`, `fetchRecords`, `applyUserActions`, suscripciones (`onRecords`, `onOptions`, `onAccess`), resolución de tablas, access token. |
-| `stores/gristStore.svelte.js` | Factory `createGristStore()` que envuelve una tabla de Grist con estado reactivo (`$state`) y métodos `load/save/remove/refresh`. |
-| `stores/configStore.svelte.js` | Store para la tabla `configuracion`. |
-| `router.svelte.js` | Hash router reactivo; persiste `lastRoute` como widget option. |
-| `configuracion.js` | Lectura/escritura de la tabla `configuracion`; `isInstalled()`. |
-| `schema.js` / `schema.json` | Definición declarativa de tablas y columnas requeridas. |
-| `personas.js` | Normalización y validación de DNI, CUIL, teléfono, email; `findOrCreatePersona`. |
-| `format.js` | Formateo para display de DNI, CUIL, teléfono, fechas y ARS. |
-| `utils.js` | Constantes de dominio, `TABLE_PREFERRED_IDS`, `MODULES`, helpers de fechas. |
-| `csv.js` | Importación de seeds CSV. |
-| `notify.svelte.js` | Wrapper sobre `svelte-sonner`. |
-| `data/` | JSONs estáticos (localidades de Buenos Aires). |
+| `grist/grist.js` | Detección de entorno, carga de `grist-plugin-api`, `fetchRecords`, `applyUserActions`, suscripciones (`onRecords`, `onOptions`, `onAccess`), resolución de tablas, access token. |
+| `grist/schema.js` | Definición declarativa de tablas y columnas requeridas (importa `schema.json`). |
+| `grist/stores/gristStore.svelte.js` | Factory `createGristStore()` que envuelve una tabla de Grist con estado reactivo (`$state`) y métodos `load/save/remove/refresh`. |
+| `grist/stores/configStore.svelte.js` | Store para la tabla `configuracion`. |
+| `format/format.js` | Formateo para display de DNI, CUIL, teléfono, fechas y ARS. |
+| `format/emailInstitucional.js` | Generación de emails institucionales. |
+| `format/escuelas.js` | Búsqueda y validación de CUE contra índice oficial de PBA. |
+| `utils/utils.js` | Helpers genéricos: `TABLE_PREFERRED_IDS`, `MODULES`, helpers de fechas. |
+| `utils/csv.js` | Importación de seeds CSV. |
+| `ui/router.svelte.js` | Hash router reactivo; persiste `lastRoute` como widget option. |
+| `ui/keyboard.svelte.js` | Atajos de teclado globales. |
+| `ui/notify.svelte.js` | Wrapper sobre `svelte-sonner`. |
+| `ui/theme.js` | Tema dinámico (color de marca → OKLCH). |
+| `data/schema.json` | Definición declarativa de tablas y columnas (JSON estático). |
+| `data/identidad.json` / `identidad.js` | Identidad institucional (nombre, principios). |
+| `data/localidades-buenos-aires.json` | Localidades de toda la Provincia de Buenos Aires. |
 | `tests/` | Tests unitarios Vitest. |
 
-### 5. Design system — `src/lib/components/ui/`
+> **Nota:** la lógica de personas (`findOrCreatePersona`, normalización DNI/CUIL) se movió a `app/modules/comunidad/personas/personasApi.js` y la de configuración (`isInstalled()`) a `app/pages/cooperadora/cooperadoraApi.js`. Los hooks reactivos (`usePersonaSearch`, `useListFilter`, `useFieldWarnings`) se movieron a `src/lib/hooks/`.
 
-Componentes **shadcn-svelte** (basados en **bits-ui**): button, card, dialog, sheet, table, tabs, select, combobox, command, popover, tooltip, sonner, etc. Estilados con Tailwind 4 y variables CSS. Componentes propios de dominio (`Combobox`, `EmptyState`, `FormField`, `MessageBanner`, `PageScaffold`, `PersonaSearch`) viven en `src/lib/components/`.
+### 5. Design system — `src/lib/`
+
+- **`components/ui/`** — componentes **shadcn-svelte** (basados en **bits-ui**): button, card, dialog, sheet, table, tabs, select, combobox, command, popover, tooltip, sonner, etc. Estilados con Tailwind 4 y variables CSS.
+- **`components/`** — componentes propios de dominio (`Combobox`, `CommandPalette`, `EmptyState`, `MessageBanner`, `PageScaffold`, `SearchInput`, etc.).
+- **`hooks/`** — hooks reactivos reutilizables: `usePersonaSearch`, `useListFilter`, `useFieldWarnings`, `is-mobile`.
 
 ## Flujo de datos
 
@@ -93,7 +110,7 @@ Componentes **shadcn-svelte** (basados en **bits-ui**): button, card, dialog, sh
 
 ## Detección de entorno
 
-`detectGrist()` (en `core/grist.js`) implementa un *probe* con reintentos:
+`detectGrist()` (en `core/grist/grist.js`) implementa un *probe* con reintentos:
 
 1. Verifica que esté en browser y dentro de un iframe (`window.self !== window.top`).
 2. Carga `./grist-plugin-api.js` dinámicamente si no está presente.
@@ -110,7 +127,7 @@ Componentes **shadcn-svelte** (basados en **bits-ui**): button, card, dialog, sh
 
 ## Routing
 
-`router.svelte.js` expone una clase `Router` con `current = $state(...)` sincronizada a `window.location.hash`. El cambio de hash dispara `setWidgetOption('lastRoute', current)` para recordar la última pantalla al reabrir el widget. Se usa **hash routing** deliberadamente:
+`ui/router.svelte.js` expone una clase `Router` con `current = $state(...)` sincronizada a `window.location.hash`. El cambio de hash dispara `setWidgetOption('lastRoute', current)` para recordar la última pantalla al reabrir el widget. Se usa **hash routing** deliberadamente:
 
 - Funciona en GitHub Pages sin configuración de servidor.
 - Funciona dentro del iframe de Grist sin depender de rutas del host.
@@ -118,11 +135,11 @@ Componentes **shadcn-svelte** (basados en **bits-ui**): button, card, dialog, sh
 
 ## Resolución de tablas
 
-`TABLE_PREFERRED_IDS` (en `utils.js`) mapea cada *key* lógica (ej: `socios`) a una lista de nombres físicos candidatos (`['Socios', 'socios']`). `resolveTableId()` recorre los candidatos comparando contra `listTables()` (case-insensitive) y cachea el resultado. Esto hace la app **tolerante a variaciones de naming** en el documento Grist.
+`TABLE_PREFERRED_IDS` (en `utils/utils.js`) mapea cada *key* lógica (ej: `socios`) a una lista de nombres físicos candidatos (`['Socios', 'socios']`). `resolveTableId()` recorre los candidatos comparando contra `listTables()` (case-insensitive) y cachea el resultado. Esto hace la app **tolerante a variaciones de naming** en el documento Grist.
 
 ## Schema y migraciones
 
-`schema.json` describe cada tabla con sus columnas y tipos. `initLof.js` crea las tablas faltantes con `AddTable` y carga los seeds CSV. `migracion.js` aplica cambios incrementales (nuevas columnas, tablas) comparando el schema declarado contra el documento existente. `invalidateTablesCache()` se invoca tras `AddTable` para que `resolveTableId` vuelva a consultar.
+`data/schema.json` describe cada tabla con sus columnas y tipos. `initLof.js` crea las tablas faltantes con `AddTable` y carga los seeds CSV. `migracion.js` aplica la migración de datos legacy (vinculación de personas, deduplicación por DNI). `grist/schema.js` expone `ensureSchema` que detecta columnas que necesitan convertirse a fórmulas y las migra via `ModifyColumn`. `invalidateTablesCache()` se invoca tras `AddTable` para que `resolveTableId` vuelva a consultar.
 
 ## Despliegue
 

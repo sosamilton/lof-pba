@@ -44,7 +44,7 @@ La decisión arquitectónica más importante: **no hay backend propio**. Grist e
 - **Auditable**: fórmulas y datos visibles en el propio Grist.
 - **Autoinstalable**: Grist es software libre.
 
-La app se integra vía `grist-plugin-api` cargado en runtime dentro del iframe del widget. Toda la lógica de acceso vive en `core/grist.js`.
+La app se integra vía `grist-plugin-api` cargado en runtime dentro del iframe del widget. Toda la lógica de acceso vive en `core/grist/grist.js`.
 
 ### Hash routing propio
 
