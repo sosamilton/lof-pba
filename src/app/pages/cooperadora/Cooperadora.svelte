@@ -11,6 +11,7 @@
   import FormBanco from './components/FormBanco.svelte'
   import FormKiosco from './components/FormKiosco.svelte'
   import TablaCargos from './components/TablaCargos.svelte'
+  import ListaAsesores from './components/ListaAsesores.svelte'
   import ListaEjercicios from './components/ListaEjercicios.svelte'
   import DialogEditarEjercicio from './components/DialogEditarEjercicio.svelte'
 
@@ -190,6 +191,16 @@
         </Accordion.Trigger>
         <Accordion.Content>
           <TablaCargos {store} {escuelaValidada} tieneAutoridadesVigentes={store.tieneAutoridadesVigentes} />
+        </Accordion.Content>
+      </Accordion.Item>
+
+      <!-- Item 5: Asesor/a de la Cooperadora -->
+      <Accordion.Item value="asesor">
+        <Accordion.Trigger>
+          <span class="font-semibold">Asesor/a de la Cooperadora</span>
+        </Accordion.Trigger>
+        <Accordion.Content>
+          <ListaAsesores />
         </Accordion.Content>
       </Accordion.Item>
 
