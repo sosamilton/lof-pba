@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte'
-  import { isInGrist } from '$core/grist/grist'
+  import { isInGrist, subscribeAccess } from '$core/grist/grist'
   import { identidad } from '$core/data/identidad'
   import { inicioStore as store } from './inicioStore.svelte.js'
   import { cooperadoraStore } from '$app/pages/cooperadora/cooperadoraStore.svelte.js'
@@ -28,7 +28,16 @@
 
   let resumenAccordion = $state(['resumen-ejecutivo', 'tablero-caja'])
 
+  // Estado reactivo de Grist: isInGrist() lee una variable de módulo no
+  // reactiva (_gristStatus, plain let), por lo que {#if isInGrist()} no se
+  // re-evalúa cuando el estado cambia. Sincronizamos a un $state local via
+  // subscribeAccess para que la UI reaccione (mismo patrón que App.svelte).
+  let gristReady = $state(isInGrist())
+
   onMount(() => {
+    const unsubAccess = subscribeAccess((s) => {
+      gristReady = s === 'ready'
+    })
     cooperadoraStore.setOnSaldosChanged(async (ejercicioActualizado) => {
       if (ejercicioActualizado && store.moduloGestionIntegral) {
         store.saldos.loadFromData({
@@ -39,7 +48,11 @@
       }
     })
     cooperadoraStore.load()
-    return store.init()
+    const unsubInit = store.init()
+    return () => {
+      unsubAccess?.()
+      if (typeof unsubInit === 'function') unsubInit()
+    }
   })
 </script>
 
@@ -49,7 +62,7 @@
     <h1 class="text-lg font-bold">{identidad.nombre}</h1>
   </div>
 
-  {#if isInGrist()}
+  {#if gristReady}
     {#if store.loading}
       <div class="flex flex-col gap-4">
         <Skeleton class="h-8 w-48" />
@@ -146,6 +159,7 @@
         <SchemaErrorView
           status={store.status}
           creating={store.creating}
+          repairResult={store.repairResult}
           onCheck={store.check}
           onRepair={store.repairSchema}
         />

@@ -14,6 +14,7 @@
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import GavelIcon from '@lucide/svelte/icons/gavel'
   import BarChartIcon from '@lucide/svelte/icons/bar-chart'
+  import FileCheckIcon from '@lucide/svelte/icons/file-check'
   import BuildingIcon from '@lucide/svelte/icons/building-2'
   import CommandIcon from '@lucide/svelte/icons/command'
   import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
@@ -37,6 +38,7 @@
     movimientos: ArrowLeftRightIcon,
     resumen: BarChartIcon,
     gobierno: GavelIcon,
+    cierre: FileCheckIcon,
   }
 
   const shortcutLabels = {

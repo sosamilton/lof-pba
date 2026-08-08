@@ -18,6 +18,7 @@
     onpick = () => {},
     onunlink = () => {},
     compact = false,
+    showCategoria = false,
   } = $props()
 </script>
 
@@ -50,6 +51,9 @@
             <LinkIcon class="size-3 shrink-0 text-primary" />
             <span class="flex-1">{personaLabel(p)}</span>
             {#if p.dni}<span class="text-muted-foreground">· DNI {p.dni}</span>{/if}
+            {#if showCategoria && p.categoria}
+              <span class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{p.categoria}</span>
+            {/if}
           </button>
         {/each}
       </div>

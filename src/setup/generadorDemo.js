@@ -205,7 +205,7 @@ export const generarDatosPrueba = async ({
   onProgress = () => {},
 } = {}) => {
   const log = onProgress || (() => {})
-  const results = { personas: 0, socios: 0, movimientos: 0, asamblea: false, autoridades: 0, planillas: 0 }
+  const results = { personas: 0, socios: 0, movimientos: 0, asamblea: false, autoridades: 0, asesores: 0, planillas: 0 }
 
   // --- Resolver tablas ---
   const tPersonas = await resolveTableId(TABLE_PREFERRED_IDS.personas)
@@ -216,6 +216,7 @@ export const generarDatosPrueba = async ({
   const tEjercicios = await resolveTableId(TABLE_PREFERRED_IDS.ejercicios)
   const tCargos = await resolveTableId(TABLE_PREFERRED_IDS.cargos)
   const tAutoridades = await resolveTableId(TABLE_PREFERRED_IDS.autoridades)
+  const tAsesores = await resolveTableId(TABLE_PREFERRED_IDS.asesores)
   const tAsambleas = await resolveTableId(TABLE_PREFERRED_IDS.asambleas)
 
   if (!tPersonas || !tSocios || !tMovimientos) {
@@ -524,6 +525,7 @@ export const generarDatosPrueba = async ({
 
       let asambleasCreadas = 0
       const todasAutoridades = []
+      const todosAsesores = []
       const todasPlanillas = []
 
       // Generar asambleas + autoridades para cada ejercicio.
@@ -625,6 +627,60 @@ export const generarDatosPrueba = async ({
             version_formulario: '2024',
           })
         }
+
+        // --- Asesor del ejercicio ---
+        // El asesor es una función institucional derivada de la Dirección del
+        // establecimiento (Decreto 4767/72 art. 18-20).
+        //   - Primer ejercicio: tipo_origen='Director', persona con categoría 'Directivo'
+        //   - Ejercicios siguientes: puede ser 'Delegacion' (el Director delega
+        //     en un Docente, art. 18) o 'DesignacionCoopEscolar' (la Dirección
+        //     de Cooperación Escolar designa otro docente, art. 20).
+        if (tAsesores && personasPoolDirectivos.length > 0) {
+          const fechaAsuncionAsesor = genFecha(ejAnioInicio, 3, 1)
+          const esUltimoEj = esUltimoEjercicio
+          const esPrimerEjercicio = eIdx === 0
+
+          if (esPrimerEjercicio) {
+            // Primer ejercicio: el Director del establecimiento es el asesor
+            const directorPersona = personasPoolDirectivos[0]
+            todosAsesores.push({
+              persona_id: directorPersona.id,
+              tipo_origen: 'Director',
+              fecha_asuncion: fechaAsuncionAsesor,
+              ejercicio_id: ej.id,
+              ...(esUltimoEj
+                ? {}
+                : { fecha_cese: genFecha(Number(ej.anio_fin) || ejAnioInicio + 1, 2, 28), motivo_cese: 'CeseDireccion' }),
+            })
+          } else {
+            // Ejercicios siguientes: el Director puede delegar (art. 18) o la
+            // Dirección de Cooperación Escolar puede designar a otro docente (art. 20).
+            const directorPersona = personasPoolDirectivos[0]
+            const esDelegacion = Math.random() < 0.5
+            // Para delegación/designación se usa una persona Docente
+            const personasPoolDocentes = personasData
+              .filter((pd) => pd.categoria === 'Docente')
+              .map((pd) => personasRecs.find((p) => String(p.dni) === String(pd.dni)))
+              .filter(Boolean)
+            const asesorDesignado = personasPoolDocentes.length > 0
+              ? pick(personasPoolDocentes)
+              : personasPoolDirectivos.find((p) => p.id !== directorPersona.id) || directorPersona
+
+            todosAsesores.push({
+              persona_id: asesorDesignado.id,
+              tipo_origen: esDelegacion ? 'Delegacion' : 'DesignacionCoopEscolar',
+              persona_delegante_id: esDelegacion ? directorPersona.id : null,
+              fecha_asuncion: fechaAsuncionAsesor,
+              ejercicio_id: ej.id,
+              observaciones: esDelegacion
+                ? 'Delegación del Director/a del establecimiento (art. 18 Dec. 4767/72)'
+                : 'Designación por la Dirección de Cooperación Escolar (art. 20 Dec. 4767/72)',
+              ...(esUltimoEj
+                ? {}
+                : { fecha_cese: genFecha(Number(ej.anio_fin) || ejAnioInicio + 1, 2, 28), motivo_cese: esDelegacion ? 'FinDelegacion' : 'CeseDireccion' }),
+            })
+          }
+        }
       }
 
       if (todasAutoridades.length > 0) {
@@ -632,6 +688,15 @@ export const generarDatosPrueba = async ({
         results.autoridades = todasAutoridades.length
       }
       results.asamblea = asambleasCreadas > 0
+
+      // --- 4b. Asesores ---
+      if (tAsesores && todosAsesores.length > 0) {
+        log(`Generando ${todosAsesores.length} asesor(es)...`)
+        try {
+          await chunkAndInsert(tAsesores, todosAsesores, batchSize)
+          results.asesores = todosAsesores.length
+        } catch { /* sin tabla asesores */ }
+      }
       results.asambleasCreadas = asambleasCreadas
 
       // --- 5. Planillas generadas ---
@@ -650,6 +715,7 @@ export const generarDatosPrueba = async ({
     `Listo: ${results.personas} personas, ${results.socios} socios, ` +
     `${results.movimientos} movimientos` +
     (results.asamblea ? `, ${results.asambleasCreadas || 1} asamblea(s), ${results.autoridades} autoridades` : '') +
+    (results.asesores ? `, ${results.asesores} asesor(es)` : '') +
     (results.planillas ? `, ${results.planillas} planillas` : '') +
     '.'
   )

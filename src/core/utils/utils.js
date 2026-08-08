@@ -103,6 +103,7 @@ export const TABLE_PREFERRED_IDS = {
   socios: ['Socios', 'socios'],
   movimientos: ['Movimientos', 'movimientos'],
   autoridades: ['Autoridades', 'autoridades'],
+  asesores: ['Asesores', 'asesores'],
   asambleas: ['Asambleas', 'asambleas'],
   resoluciones: ['Resoluciones', 'resoluciones'],
   cuentas: ['Cuentas', 'cuentas'],
@@ -117,7 +118,7 @@ export const MODULES = {
   carga_consolidada: {
     label: 'Carga consolidada',
     description: 'Cargá los rubros PIA por período (mensual o anual). Ideal para cooperadoras que no registran cada movimiento individual.',
-    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asambleas', 'resoluciones', 'rubros_pia', 'planillas_generadas', 'configuracion', 'movimientos', 'cuentas', 'cierres_mensuales'],
+    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asesores', 'asambleas', 'resoluciones', 'rubros_pia', 'planillas_generadas', 'configuracion', 'movimientos', 'cuentas', 'cierres_mensuales'],
     menuItems: [
       { route: 'inicio', label: 'Inicio' },
       { route: 'socios', label: 'Socios' },
@@ -131,7 +132,7 @@ export const MODULES = {
   gestion_integral: {
     label: 'Gestión integral',
     description: 'Registrá gastos, movimientos, socios, asambleas y autoridades. Generá reportes PIA y nómina automáticamente.',
-    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asambleas', 'resoluciones', 'cuentas', 'rubros_pia', 'subrubros', 'movimientos', 'configuracion', 'planillas_generadas', 'cierres_mensuales'],
+    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asesores', 'asambleas', 'resoluciones', 'cuentas', 'rubros_pia', 'subrubros', 'movimientos', 'configuracion', 'planillas_generadas', 'cierres_mensuales'],
     menuItems: [
       { route: 'inicio', label: 'Inicio' },
       { route: 'cooperadora', label: 'Cooperadora' },
@@ -169,12 +170,14 @@ export const getActiveMenuItems = (config) => {
     items.push({ route: 'socios', label: 'Socios' })
     items.push({ route: 'personas', label: 'Personas' })
     items.push({ route: 'resumen', label: 'Resumen' })
+    items.push({ route: 'cierre', label: 'Cierre / Presentación' })
   } else if (isCargaConsolidada(config)) {
     items.push({ route: 'socios', label: 'Socios' })
     items.push({ route: 'personas', label: 'Personas' })
     items.push({ route: 'movimientos', label: 'Movimientos' })
     items.push({ route: 'gobierno', label: 'Asambleas y Autoridades' })
     items.push({ route: 'resumen', label: 'Resumen' })
+    items.push({ route: 'cierre', label: 'Cierre / Presentación' })
   }
 
   return items
