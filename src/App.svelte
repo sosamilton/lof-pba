@@ -19,6 +19,7 @@
   import Movimientos from '$app/modules/tesoreria/movimientos/Movimientos.svelte'
   import ResumenMensual from '$app/modules/tesoreria/resumen/ResumenMensual.svelte'
   import CargaPIAMatrix from '$app/modules/tesoreria/cargaPia/CargaPIAMatrix.svelte'
+  import Cierre from '$app/modules/tesoreria/cierre/Cierre.svelte'
   import Gobierno from '$app/modules/gobierno/AsambleasAutoridades.svelte'
 
   let ready = $state(false)
@@ -91,6 +92,8 @@
         <ResumenMensual />
       {:else if router.current.startsWith('carga-pia')}
         <CargaPIAMatrix />
+      {:else if router.current === 'cierre'}
+        <Cierre />
       {:else if router.current === 'gobierno'}
         <Gobierno />
       {:else}
