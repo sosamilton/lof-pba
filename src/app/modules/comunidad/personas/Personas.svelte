@@ -5,6 +5,7 @@
   import { CATEGORIAS_VINCULO } from '$app/modules/comunidad/constants.js'
   import { filterBySearch } from '$lib/hooks/useListFilter.svelte.js'
   import { personaLabel, buildPrefill, localidadesItems } from './personasApi.js'
+  import { loadConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
   import { notifyAfter } from '$core/ui/notify.svelte'
   import { Button } from '$lib/components/ui/button'
   import * as Card from '$lib/components/ui/card'
@@ -22,10 +23,12 @@
   import PersonaFormFields from '../components/PersonaFormFields.svelte'
   import CuilInput from '../components/CuilInput.svelte'
   import EmptyStates from '../components/EmptyStates.svelte'
+  import PersonaMovimientos from './components/PersonaMovimientos.svelte'
 
   let q = $state('')
   let tipoFilter = $state('')
   let categoriaFilter = $state('')
+  let esIntegral = $state(false)
 
   const isJuridica = (/** @type {any} */ p) => p.tipo_persona === 'Juridica'
 
@@ -41,9 +44,13 @@
 
   const handleSave = () => notifyAfter(store, store.savePersona)
 
-  onMount(() => {
+  onMount(async () => {
     const unsub = store.subscribe()
     store.load()
+    try {
+      const config = await loadConfig()
+      esIntegral = Boolean(config?.modulo_gestion_integral)
+    } catch { /* config opcional */ }
     return unsub
   })
 
@@ -204,6 +211,10 @@
             </div>
           </Card.Content>
         </Card.Root>
+
+        {#if esIntegral && store.form.id}
+          <PersonaMovimientos personaId={store.form.id} />
+        {/if}
       {:else}
         <EmptyStates
           filteredCount={filtered.length}

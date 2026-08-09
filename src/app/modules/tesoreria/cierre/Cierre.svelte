@@ -9,6 +9,7 @@
   import { Label } from '$lib/components/ui/label'
   import * as Select from '$lib/components/ui/select'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
+  import CierreAlertas from './components/CierreAlertas.svelte'
   import FileTextIcon from '@lucide/svelte/icons/file-text'
   import LockIcon from '@lucide/svelte/icons/lock'
   import UnlockIcon from '@lucide/svelte/icons/lock-open'
@@ -148,16 +149,7 @@
               <p class="font-medium">${store.cierreData.totalSalidas.toLocaleString('es-AR')}</p>
             </div>
           </div>
-          {#if !store.cierreData.asamblea}
-            <Alert.Root variant="destructive" class="mt-4">
-              <AlertTriangleIcon data-icon="inline-start" />
-              <Alert.Title>Sin asamblea AGO</Alert.Title>
-              <Alert.Description>
-                No se encontró una asamblea AGO para este ejercicio. Los datos del acta y resoluciones
-                quedarán vacíos en el PIA.
-              </Alert.Description>
-            </Alert.Root>
-          {/if}
+          <CierreAlertas data={store.cierreData} />
         </Card.Content>
       </Card.Root>
 

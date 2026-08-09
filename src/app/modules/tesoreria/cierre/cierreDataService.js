@@ -136,13 +136,13 @@ export const loadCierreData = async (ejercicioId) => {
   // Se carga desde la tabla `asesores`, no desde `autoridades`.
   let asesor = null
   if (tAsesores) {
-    const asesores = await fetchRecords(tAsesores, {
-      filter: (a) =>
-        a.activo !== false &&
-        (Number(a.ejercicio_id) === Number(ejercicioId) || !a.ejercicio_id),
-    })
+    const todosAsesores = await fetchRecords(tAsesores)
+    // Filtrar activos (activo === true o sin fecha_cese)
+    const activos = todosAsesores.filter((a) =>
+      a.activo === true || a.activo === 1 || (!a.fecha_cese && a.activo !== false && a.activo !== 0)
+    )
     // Preferir el que tenga ejercicio_id matching; si no, el activo sin ejercicio
-    asesor = asesores.find((a) => Number(a.ejercicio_id) === Number(ejercicioId)) || asesores[0] || null
+    asesor = activos.find((a) => Number(a.ejercicio_id) === Number(ejercicioId)) || activos[0] || null
   }
 
   // --- Socios: conteo por tipo ---
@@ -183,6 +183,47 @@ export const loadCierreData = async (ejercicioId) => {
   // --- Rubros PIA y Subrubros ---
   const rubros = tRubros ? await fetchRecords(tRubros) : []
   const subrubros = tSubrubros ? await fetchRecords(tSubrubros) : []
+
+  // Fixup: corregir campo_pdf de rubros PIA que tenían mapeos incorrectos
+  // (campos desplazados por una posición, rubros fijos mapeados a campos de
+  // descripción, etc.). Se aplica en runtime keyed por codigo_rubro para que
+  // cada rubro reciba su campo correcto sin importar qué versión del CSV se sembró.
+  const CAMPO_PDF_CORRECTO = {
+    'RP-CUOTA': 'Texto18',
+    'RP-DONACION': 'Texto19',
+    'RP-RIFAS': 'Texto20',
+    'RP-FESTIVALES': 'Texto21',
+    'RP-KIOSCO': 'Texto22',
+    'RP-INTERESES': 'Texto23',
+    'RP-REINTEGROS': 'Texto24',
+    'RO-SUBSIDIO': 'Texto25',
+    'OI-OTROS': 'INGRESO A|Texto26',
+    'GA-ROPA': 'Texto28',
+    'GA-LIBROS': 'Texto29',
+    'GA-EXCURSIONES': 'Texto30',
+    'GA-EMERGENCIAS': 'Texto31',
+    'GA-GOLOSINAS': 'Texto32',
+    'GA-OTROS': 'GASTOS F|Texto33',
+    'GE-MATDIDACTICO': 'Texto35',
+    'GE-MANTSUBSIDIO': 'Texto36',
+    'GE-MANTPROPIOS': 'Texto37',
+    'GE-LIMPIEZA': 'Texto38',
+    'GE-COMBUSTIBLE': 'Texto39',
+    'GE-LIBRERIA': 'Texto40',
+    'GE-MOBILIARIO': 'Texto41',
+    'GE-OTROS': 'GASTOS H|Texto42',
+    'GP-ORGRIFAS': 'Texto44',
+    'GP-ORGFESTIVALES': 'Texto45',
+    'GP-KIOSCO': 'Texto46',
+    'GP-OTROS': 'Texto47',
+    'OG-OTROS': 'GASTOS D|Texto54',
+  }
+  for (const r of rubros) {
+    const correcto = CAMPO_PDF_CORRECTO[r.codigo_rubro]
+    if (correcto && r.campo_pdf !== correcto) {
+      r.campo_pdf = correcto
+    }
+  }
 
   // --- Saldos finales ---
   // Saldo banco = saldo_inicial_banco + (entradas a banco) - (salidas de banco)

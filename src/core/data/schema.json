@@ -1481,6 +1481,42 @@
           }
         },
         {
+          "id": "domicilio",
+          "fields": {
+            "label": "Domicilio",
+            "type": "Text",
+            "isFormula": true,
+            "formula": "$persona_id.domicilio if $persona_id else None"
+          }
+        },
+        {
+          "id": "localidad",
+          "fields": {
+            "label": "Localidad",
+            "type": "Text",
+            "isFormula": true,
+            "formula": "$persona_id.localidad if $persona_id else None"
+          }
+        },
+        {
+          "id": "email",
+          "fields": {
+            "label": "Email",
+            "type": "Text",
+            "isFormula": true,
+            "formula": "$persona_id.email if $persona_id else None"
+          }
+        },
+        {
+          "id": "telefono",
+          "fields": {
+            "label": "Telefono",
+            "type": "Text",
+            "isFormula": true,
+            "formula": "$persona_id.telefono if $persona_id else None"
+          }
+        },
+        {
           "id": "tipo_origen",
           "fields": {
             "label": "Tipo de asesor",

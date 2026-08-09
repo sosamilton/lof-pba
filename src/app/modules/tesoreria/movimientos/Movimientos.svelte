@@ -10,26 +10,85 @@
   import PageScaff from '$lib/components/PageScaffold.svelte'
   import SearchInput from '$lib/components/SearchInput.svelte'
   import ListSkeleton from '$lib/components/ListSkeleton.svelte'
+  import Combobox from '$lib/components/Combobox.svelte'
   import { keyboard } from '$core/ui/keyboard.svelte'
+  import { personaLabel } from '$app/modules/comunidad/personas/personasApi.js'
   import PlusIcon from '@lucide/svelte/icons/plus'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
+  import XIcon from '@lucide/svelte/icons/x'
   import * as Alert from '$lib/components/ui/alert'
   import MovimientosList from './components/MovimientosList.svelte'
   import MovimientoForm from './components/MovimientoForm.svelte'
 
   let q = $state('')
   let tipo = $state('')
+  let rubroFiltro = $state('')         // filtro por rubro_id (categoría PIA)
+  let ejercicioFiltro = $state('')     // filtro por ejercicio_id
+  let periodoFiltro = $state('')       // filtro por período (YYYY-MM)
+  let personaFiltro = $state('')       // filtro por persona_id (solo integral)
+
+  let rubroById = $derived(buildMapById(store.rubros))
+  let cuentaById = $derived(buildMapById(store.cuentas))
+  let personaById = $derived(buildMapById(store.personas))
+
+  // Rubros para el filtro, filtrados por tipo si hay uno seleccionado
+  let rubrosFiltroOptions = $derived.by(() => {
+    const rubros = tipo
+      ? store.rubros.filter((r) => String(r.tipo_rubro || '') === tipo)
+      : store.rubros
+    return rubros
+      .slice()
+      .sort((a, b) => normalize(a.nombre_oficial).localeCompare(normalize(b.nombre_oficial)))
+      .map((r) => ({ value: String(r.id), label: r.nombre_oficial || '(sin nombre)' }))
+  })
+
+  // Ejercicios ordenados por año descendente
+  let ejerciciosOptions = $derived(
+    store.ejercicios
+      .slice()
+      .sort((a, b) => Number(b.anio_inicio || 0) - Number(a.anio_inicio || 0))
+      .map((e) => ({
+        value: String(e.id),
+        label: `${e.anio_inicio || '?'}-${e.anio_fin || '?'}`,
+      }))
+  )
+
+  // Períodos únicos (YYYY-MM) del ejercicio seleccionado
+  let periodosOptions = $derived.by(() => {
+    if (!ejercicioFiltro) return []
+    const base = store.records
+      .filter((m) => String(m.ejercicio_id) === ejercicioFiltro)
+      .map((m) => m.periodo)
+      .filter(Boolean)
+    return [...new Set(base)].sort().reverse().map((p) => ({ value: p, label: p }))
+  })
+
+  // Items de personas para el Combobox (solo modo integral)
+  let personaItems = $derived(
+    store.personas.map((p) => ({
+      value: String(p.id),
+      label: personaLabel(p),
+      sub: p.dni ? `DNI ${p.dni}` : '',
+    }))
+  )
 
   let filtered = $derived(
     filterBySearch(
-      store.records.filter((/** @type {any} */ m) => (tipo ? String(m.tipo_movimiento || '') === tipo : true)),
+      store.records
+        .filter((/** @type {any} */ m) => (tipo ? String(m.tipo_movimiento || '') === tipo : true))
+        .filter((/** @type {any} */ m) => (rubroFiltro ? String(m.rubro_id || '') === rubroFiltro : true))
+        .filter((/** @type {any} */ m) => (ejercicioFiltro ? String(m.ejercicio_id) === ejercicioFiltro : true))
+        .filter((/** @type {any} */ m) => (periodoFiltro ? String(m.periodo || '') === periodoFiltro : true))
+        .filter((/** @type {any} */ m) => {
+          if (!personaFiltro) return true
+          return String(m.persona_id) === personaFiltro || String(m.socio_id) === personaFiltro
+        }),
       q,
       (/** @type {any} */ m) => [m.detalle],
     ).sort((/** @type {any} */ a, /** @type {any} */ b) => String(b.fecha || '').localeCompare(String(a.fecha || ''))),
   )
 
-  let rubroById = $derived(buildMapById(store.rubros))
   let filteredRubros = $derived(
     store.form?.tipo_movimiento === 'Entrada' || store.form?.tipo_movimiento === 'Salida'
       ? store.rubros.filter((/** @type {any} */ r) => String(r.tipo_rubro || '') === store.form.tipo_movimiento)
@@ -47,11 +106,34 @@
     }
     return map
   })
-  let cuentaById = $derived(buildMapById(store.cuentas))
+
+  const esIntegral = $derived(store.modoGestion === 'gestion_integral')
+
+  // Cuando cambia el tipo, limpiar el filtro de rubro si no aplica
+  $effect(() => {
+    if (tipo && rubroFiltro) {
+      const rubro = rubroById.get(Number(rubroFiltro))
+      if (rubro && String(rubro.tipo_rubro || '') !== tipo) {
+        rubroFiltro = ''
+      }
+    }
+  })
+
+  // Cuando cambia el ejercicio, limpiar el filtro de período si no pertenece
+  $effect(() => {
+    if (periodoFiltro && ejercicioFiltro) {
+      const exists = periodosOptions.some((p) => p.value === periodoFiltro)
+      if (!exists) periodoFiltro = ''
+    }
+  })
 
   onMount(async () => {
     const unsub = store.subscribe()
     await store.loadAll()
+    // Ejercicio por defecto: el en curso
+    if (store.ejercicio?.id) {
+      ejercicioFiltro = String(store.ejercicio.id)
+    }
     const pending = keyboard.consumePendingAction()
     if (pending) pending.action()
     return unsub
@@ -73,7 +155,7 @@
     <SearchInput bind:value={q} placeholder="Buscar en detalle" ariaLabel="Buscar movimientos" />
     <Select.Root type="single" bind:value={tipo} allowDeselect={true}>
       <Select.Trigger class="w-[120px]" aria-label="Filtrar por tipo de movimiento">
-        <Select.Value placeholder="Todos" />
+        <Select.Value placeholder="Tipo" />
       </Select.Trigger>
       <Select.Content>
         <Select.Item value="Entrada">Entrada</Select.Item>
@@ -81,6 +163,53 @@
         <Select.Item value="Traspaso">Traspaso</Select.Item>
       </Select.Content>
     </Select.Root>
+    <Select.Root type="single" bind:value={rubroFiltro} allowDeselect={true}>
+      <Select.Trigger class="w-[180px]" aria-label="Filtrar por rubro">
+        <Select.Value placeholder="Rubro" />
+      </Select.Trigger>
+      <Select.Content>
+        {#each rubrosFiltroOptions as opt}
+          <Select.Item value={opt.value}>{opt.label}</Select.Item>
+        {/each}
+      </Select.Content>
+    </Select.Root>
+    <Select.Root type="single" bind:value={ejercicioFiltro} allowDeselect={true}>
+      <Select.Trigger class="w-[130px]" aria-label="Filtrar por ejercicio">
+        <Select.Value placeholder="Ejercicio" />
+      </Select.Trigger>
+      <Select.Content>
+        {#each ejerciciosOptions as opt}
+          <Select.Item value={opt.value}>{opt.label}</Select.Item>
+        {/each}
+      </Select.Content>
+    </Select.Root>
+    <Select.Root type="single" bind:value={periodoFiltro} allowDeselect={true}>
+      <Select.Trigger class="w-[120px]" aria-label="Filtrar por período" disabled={!ejercicioFiltro}>
+        <Select.Value placeholder={ejercicioFiltro ? 'Período' : 'Elegí ejercicio'} />
+      </Select.Trigger>
+      <Select.Content>
+        {#each periodosOptions as opt}
+          <Select.Item value={opt.value}>{opt.label}</Select.Item>
+        {/each}
+      </Select.Content>
+    </Select.Root>
+    {#if esIntegral}
+      <div class="flex items-center gap-1">
+        <div class="w-[200px]">
+          <Combobox
+            bind:value={personaFiltro}
+            items={personaItems}
+            placeholder="Persona"
+            searchPlaceholder="Buscar persona…"
+          />
+        </div>
+        {#if personaFiltro}
+          <Button variant="ghost" size="sm" onclick={() => (personaFiltro = '')} aria-label="Quitar filtro de persona">
+            <XIcon class="size-4" />
+          </Button>
+        {/if}
+      </div>
+    {/if}
     {#if store.modoGestion !== 'carga_consolidada'}
       <Button data-shortcut="new" onclick={() => store.nuevo()}>
         <PlusIcon data-icon="inline-start" />

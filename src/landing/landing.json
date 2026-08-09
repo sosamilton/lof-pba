@@ -86,12 +86,13 @@
         "Categorías: socio, docente, directivo, proveedor, donante",
         "Combobox con todas las localidades de la Provincia de Buenos Aires",
         "Habilitación electoral automática: socio activo con 30 días de antigüedad",
-        "Protección contra duplicados cuando varios usuarios cargan a la vez"
+        "Protección contra duplicados cuando varios usuarios cargan a la vez",
+        "Panel de movimientos de la persona seleccionada (modo gestión integral)"
       ]
     },
     {
       "titulo": "Tesorería al día",
-      "descripcion": "Registrás los movimientos y el sistema hace el resto: saldos, resúmenes y PIA.",
+      "descripcion": "Registrás los movimientos y el sistema hace el resto: saldos, resúmenes, filtros y PIA.",
       "icono": "arrow-left-right",
       "items": [
         "Ingresos, egresos y traspasos con rubro según la PIA",
@@ -101,7 +102,22 @@
         "Tablero de caja en Inicio: cuánto hay en cada cuenta",
         "Resumen mensual y semanal con arrastre de saldo",
         "Firma de períodos: sellás un mes y se bloquea la edición",
-        "Cuota societaria rápida con un solo clic"
+        "Cuota societaria rápida con un solo clic",
+        "Filtros por rubro, ejercicio, período y persona",
+        "Ejercicio en curso seleccionado por defecto al abrir el módulo"
+      ]
+    },
+    {
+      "titulo": "Cierre y presentación",
+      "descripcion": "Generá la PIA y la Nómina de autoridades en PDF desde los datos cargados durante el ejercicio.",
+      "icono": "file-text",
+      "items": [
+        "PIA oficial en PDF: cuadro de recursos y gastos por rubro, encabezado, acta, autoridades",
+        "Nómina de autoridades en PDF: Comisión Directiva, CRC y Federación",
+        "Mapeo automático de movimientos a los campos del formulario oficial",
+        "Alertas accionables: datos faltantes con links directos al módulo correspondiente",
+        "Previsualización antes de descargar",
+        "Datos del asesor, banco y kiosco integrados al documento"
       ]
     },
     {
@@ -271,19 +287,19 @@
   },
   "roadmap": [
     {
+      "estado": "hecho",
+      "titulo": "Generación automática de la PIA y la Nómina",
+      "descripcion": "Armado automático de la Planilla de Ingresos y Aportes y la Nómina de autoridades en PDF, desde los movimientos y datos cargados durante el ejercicio."
+    },
+    {
       "estado": "proximo",
       "titulo": "Actas y adjuntos",
       "descripcion": "Carga guiada de actas de Comisión Directiva y asambleas, comprobantes y archivos adjuntos con trazabilidad completa."
     },
     {
-      "estado": "proximo",
-      "titulo": "Generación automática de la PIA",
-      "descripcion": "Armado automático de la Planilla de Ingresos y Aportes desde los movimientos cargados por rubro, lista para imprimir o exportar."
-    },
-    {
       "estado": "despues",
-      "titulo": "Exportables y reportes",
-      "descripcion": "Exportación de la PIA, nómina de autoridades y balance de tesorería según modelo oficial, listos para imprimir o presentar."
+      "titulo": "Balance de tesorería exportable",
+      "descripcion": "Exportación del balance de tesorería según modelo oficial, listo para imprimir o presentar."
     },
     {
       "estado": "despues",
@@ -299,6 +315,11 @@
       "estado": "futuro",
       "titulo": "Integraciones",
       "descripcion": "Conexión con sistemas de la DIPREGEP y autocompletado de datos de la escuela desde el padrón oficial del Mapa Escolar (CUE, distrito, región, dirección)."
+    },
+    {
+      "estado": "futuro",
+      "titulo": "Conciliación bancaria",
+      "descripcion": "Carga de resúmenes del Banco Provincia y conciliación automática o guiada con los movimientos registrados."
     }
   ]
 }
