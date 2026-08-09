@@ -28,7 +28,8 @@
   }
 
   const ROADMAP_GROUPS = {
-    proximo: { label: 'Próximo', variant: 'default' },
+    hecho: { label: 'Listo', variant: 'default' },
+    proximo: { label: 'Próximo', variant: 'secondary' },
     despues: { label: 'Después', variant: 'secondary' },
     futuro: { label: 'A futuro', variant: 'outline' },
   }
@@ -252,7 +253,7 @@
     <div class="flex flex-col gap-2 mb-8">
       <h2 id="roadmap-heading" class="text-2xl font-bold tracking-tight">Lo que viene</h2>
       <p class="text-sm text-muted-foreground max-w-prose">
-        Menos planillas, más trazabilidad. Esto es lo que estamos construyendo.
+        Lo que ya está listo y lo que estamos construyendo. Menos planillas, más trazabilidad.
       </p>
     </div>
     <div class="flex flex-col gap-8">

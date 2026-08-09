@@ -57,7 +57,7 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 <summary><strong>Comunidad</strong></summary>
 
 - **Socios** — alta, edición y baja con búsqueda instantánea por apellido, DNI, CUIL, email, teléfono, localidad o domicilio. Filtros por estado (Activos/Bajas/Todos) y tipo (Activo/Honorario/Adherente). Baja con motivo (Renuncia, Falta de pago, Fallecimiento, CambioEscuela, Otro). Validación de mayoría de edad y habilitación electoral automática (activo + 30 días de antigüedad).
-- **Personas** — tabla unificada (single source of truth) que vincula socios, autoridades, docentes y directivos sin duplicar datos. Soporte para personas físicas y jurídicas. Combobox de localidades de toda la Provincia de Buenos Aires.
+- **Personas** — tabla unificada (single source of truth) que vincula socios, autoridades, docentes y directivos sin duplicar datos. Soporte para personas físicas y jurídicas. Combobox de localidades de toda la Provincia de Buenos Aires. Panel de movimientos de la persona seleccionada (modo gestión integral): muestra los últimos 5 movimientos asociados con tipo, fecha, detalle e importe.
 - **Vinculación automática**: al escribir DNI, busca persona existente y la vincula. Indicador visual de persona vinculada con botón para desvincular.
 - **Protección multiplayer**: evita duplicados cuando dos usuarios crean la misma persona simultáneamente.
 - **Normalización automática**: DNI/CUIL se guardan como dígitos crudos, teléfono con prefijo internacional, email en lowercase.
@@ -67,12 +67,22 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 <details>
 <summary><strong>Tesorería</strong></summary>
 
-- **Movimientos** — entradas, salidas y traspasos con rubro/subrubro según PIA, destino bancario (Cuenta corriente / Plazo fijo), socio o persona asociada, y combobox con búsqueda para listas grandes. Filtrado de rubros por tipo, subrubros dinámicos por rubro.
+- **Movimientos** — entradas, salidas y traspasos con rubro/subrubro según PIA, destino bancario (Cuenta corriente / Plazo fijo), socio o persona asociada, y combobox con búsqueda para listas grandes. Filtrado de rubros por tipo, subrubros dinámicos por rubro. Filtros por rubro, ejercicio, período y persona (ejercicio en curso seleccionado por defecto).
 - **Cuota societaria rápida** — atajo Ctrl+1 o botón para pre-cargar movimiento de cuota social en un click.
 - **Carga PIA consolidada** — matriz de carga por rubro con múltiples filas por cuenta (hasta 3), importe en formato pesos argentinos ($ 1.234,56), página dedicada con selector de período, todos los períodos del ejercicio visibles (incluso vacíos), confirmación de firma con resumen read-only de movimientos y totales, y firma de períodos (bloqueo de edición).
 - **Resumen** — vista mensual y semanal con arrastre de saldo, saldos iniciales por ejercicio, badge de estado por período (Falta cargar / Abierto / Firmado), botón de edición directa a la carga PIA, y cálculo del próximo período adeudado.
 - **Regla "detalle gana"**: si hay movimientos en un período, usa totales de movimientos; si no, usa cierres manuales. Permite mix de carga detallada y consolidada.
 - **Cierres mensuales** con firma de período y bloqueo de edición.
+
+</details>
+
+<details>
+<summary><strong>Cierre y presentación</strong></summary>
+
+- **PIA en PDF** — generación automática de la Planilla de Ingresos y Aportes desde los movimientos cargados por rubro durante el ejercicio. Mapeo a los campos AcroForm del formulario oficial de PBA, con encabezado, síntesis del acta, nómina de autoridades, cuadro de recursos y gastos, datos bancarios y kiosco.
+- **Nómina de autoridades en PDF** — Comisión Directiva (14 cargos), Comisión Revisora de Cuentas y representantes ante la Federación.
+- **Alertas accionables** — validación de datos faltantes (asesor, CD, CRC, AGO, movimientos, socios, datos bancarios) con links directos al módulo correspondiente para completarlos antes de generar el documento.
+- **Previsualización** antes de descargar, con totales de entradas y salidas del ejercicio.
 
 </details>
 
@@ -171,9 +181,10 @@ Si no se seleccionan los checkboxes, cada paso muestra un botón **"Precargar da
 
 | Estado | Item |
 | --- | --- |
+| Listo | PIA y Nómina en PDF — generación automática desde los datos del ejercicio |
 | Próximo | Adjuntos y actas — carga guiada de comprobantes con trazabilidad |
+| Después | Balance de tesorería exportable |
 | Después | Accesos y roles — permisos por tesorería, comisión, asesoría |
-| Después | Exportables — PIA, nómina de autoridades, balance de tesorería |
 | Futuro | App móvil — consulta de saldos, movimientos, notificaciones |
 | Futuro | Integraciones — DIPREGEP y herramientas de gestión escolar |
 
