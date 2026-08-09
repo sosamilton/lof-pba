@@ -1,5 +1,5 @@
 import { applyUserActions, fetchRecords } from '$core/grist/grist'
-import { normalizeFields } from '$core/utils/utils'
+import { normalizeFields, dateToInput } from '$core/utils/utils'
 import { buildVigenteByCargo } from '$app/modules/gobierno/constants.js'
 import { formatCuil } from '$core/format/format.js'
 import { notify } from '$core/ui/notify.svelte'
@@ -58,8 +58,8 @@ export function createCargosStore({ bs, getTCargos, getTAutoridades, getEjercici
         cargoNombre: c.nombre_cargo || '(sin nombre)',
         apellido_nombre: a?.apellido_nombre || '',
         cuil: formatCuil(a?.cuil || ''),
-        fecha_asuncion: a?.fecha_asuncion || '',
-        fecha_vencimiento: a?.fecha_vencimiento || '',
+        fecha_asuncion: dateToInput(a?.fecha_asuncion),
+        fecha_vencimiento: dateToInput(a?.fecha_vencimiento),
       }
     })
   })
