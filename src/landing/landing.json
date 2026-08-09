@@ -315,6 +315,11 @@
       "estado": "futuro",
       "titulo": "Integraciones",
       "descripcion": "Conexión con sistemas de la DIPREGEP y autocompletado de datos de la escuela desde el padrón oficial del Mapa Escolar (CUE, distrito, región, dirección)."
+    },
+    {
+      "estado": "futuro",
+      "titulo": "Conciliación bancaria",
+      "descripcion": "Carga de resúmenes del Banco Provincia y conciliación automática o guiada con los movimientos registrados."
     }
   ]
 }

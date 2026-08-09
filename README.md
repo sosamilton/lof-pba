@@ -186,6 +186,7 @@ Si no se seleccionan los checkboxes, cada paso muestra un botón **"Precargar da
 | Después | Balance de tesorería exportable |
 | Después | Accesos y roles — permisos por tesorería, comisión, asesoría |
 | Futuro | App móvil — consulta de saldos, movimientos, notificaciones |
+| Futuro | Conciliación bancaria — carga de resúmenes del Banco Provincia y conciliación automática o guiada |
 | Futuro | Integraciones — DIPREGEP y herramientas de gestión escolar |
 
 > El detalle completo de funcionalidades, capturas y lo que viene está en la [landing page](https://sosamilton.github.io/spa-cooperadora/).
