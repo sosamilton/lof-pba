@@ -136,13 +136,13 @@ export const loadCierreData = async (ejercicioId) => {
   // Se carga desde la tabla `asesores`, no desde `autoridades`.
   let asesor = null
   if (tAsesores) {
-    const asesores = await fetchRecords(tAsesores, {
-      filter: (a) =>
-        a.activo !== false &&
-        (Number(a.ejercicio_id) === Number(ejercicioId) || !a.ejercicio_id),
-    })
+    const todosAsesores = await fetchRecords(tAsesores)
+    // Filtrar activos (activo === true o sin fecha_cese)
+    const activos = todosAsesores.filter((a) =>
+      a.activo === true || a.activo === 1 || (!a.fecha_cese && a.activo !== false && a.activo !== 0)
+    )
     // Preferir el que tenga ejercicio_id matching; si no, el activo sin ejercicio
-    asesor = asesores.find((a) => Number(a.ejercicio_id) === Number(ejercicioId)) || asesores[0] || null
+    asesor = activos.find((a) => Number(a.ejercicio_id) === Number(ejercicioId)) || activos[0] || null
   }
 
   // --- Socios: conteo por tipo ---
