@@ -67,6 +67,56 @@ const fmtMonto = (val) => {
 }
 
 /**
+ * Normaliza una fecha de Grist a un objeto Date.
+ * Grist devuelve Date/DateTime como segundos desde epoch (número) o
+ * como array encoded ["d", timestamp] / ["D", timestamp, tz].
+ * También acepta strings ISO.
+ * @param {number|string|Date|Array} raw
+ * @returns {Date|null}
+ */
+const gristToDate = (raw) => {
+  if (!raw && raw !== 0) return null
+  if (raw instanceof Date) return raw
+  // Número: timestamp en segundos desde epoch (formato Grist Date/DateTime)
+  if (typeof raw === 'number') {
+    const d = new Date(raw * 1000)
+    return isNaN(d) ? null : d
+  }
+  // Array encoded de Grist: ["d", timestamp] o ["D", timestamp, timezone]
+  if (Array.isArray(raw) && raw.length >= 2 && typeof raw[1] === 'number') {
+    const d = new Date(raw[1] * 1000)
+    return isNaN(d) ? null : d
+  }
+  // String ISO o YYYY-MM-DD
+  const s = String(raw)
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const d = new Date(s)
+    return isNaN(d) ? null : d
+  }
+  // String numérico (timestamp en segundos)
+  const n = Number(s)
+  if (Number.isFinite(n) && n > 0) {
+    const d = new Date(n * 1000)
+    return isNaN(d) ? null : d
+  }
+  return null
+}
+
+/**
+ * Formatea una fecha de Grist como DD/MM/YYYY.
+ * @param {number|string|Date|Array} fecha
+ * @returns {string}
+ */
+const fmtFecha = (fecha) => {
+  const d = gristToDate(fecha)
+  if (!d) return ''
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const yyyy = d.getFullYear()
+  return `${dd}/${mm}/${yyyy}`
+}
+
+/**
  * Construye el mapa { fieldName: value } para el PIA.
  * @param {PiaData} data
  * @returns {Record<string, string>}
@@ -90,11 +140,9 @@ export const buildPiaFieldMap = (data) => {
   fields['BARRIO'] = escuela.barrio_paraje || ''
   fields['LOCALIDAD'] = escuela.localidad || ''
 
-  // ASESOR/A (email/tel izquierdo) — email_asesor, telefono_asesor
-  fields['EMAIL'] = escuela.email_asesor || ''
-  fields['TELÉFONO'] = escuela.telefono_asesor || ''
-
-  // COOPERADORA (email/tel derecho)
+  // Email/teléfono del asesor (izquierda) — desde el asesor activo, no de la escuela
+  // Se llenan más abajo cuando ya tenemos el asesor cargado
+  // Email/teléfono de la cooperadora (derecha)
   fields['EMAIL2'] = escuela.email_cooperadora || ''
   fields['TELÉFONO2'] = escuela.telefono_cooperadora || ''
 
@@ -108,7 +156,7 @@ export const buildPiaFieldMap = (data) => {
   if (asamblea) {
     fields['acta'] = String(asamblea.acta_numero || '')
     fields['foja'] = String(asamblea.acta_fojas || '')
-    const fecha = asamblea.fecha ? new Date(asamblea.fecha) : null
+    const fecha = gristToDate(asamblea.fecha)
     if (fecha) {
       fields['dia'] = String(fecha.getDate())
       fields['mes'] = String(fecha.getMonth() + 1)
@@ -129,11 +177,11 @@ export const buildPiaFieldMap = (data) => {
   // 6° Cuota social
   if (asamblea) {
     fields['6'] = asamblea.cuota_social_importe ? fmtMonto(asamblea.cuota_social_importe) : ''
-    // Check Box194 = Mensual, Check Box195 = Anual
+    // Check Box35 (X=519) = Mensual, Check Box34 (X=562) = Anual
     if (asamblea.cuota_social_modalidad === 'Mensual') {
-      fields['Check Box194'] = 'Yes'
+      fields['Check Box35'] = 'Yes'
     } else if (asamblea.cuota_social_modalidad === 'Anual') {
-      fields['Check Box195'] = 'Yes'
+      fields['Check Box34'] = 'Yes'
     }
   }
 
@@ -155,6 +203,8 @@ export const buildPiaFieldMap = (data) => {
     fields[`CUIL${idx}`] = cuil.prefix
     fields[`CUIL${idx + 14}`] = cuil.body
     fields[`CUIL${idx + 28}`] = cuil.suffix
+    // Vencimiento del mandato: Texto4-Texto17 (una por fila)
+    fields[`Texto${idx + 3}`] = a?.fecha_vencimiento ? fmtFecha(a.fecha_vencimiento) : ''
   }
 
   // --- Nómina CRC (3 roles pre-impresos: Titular Docente, Titular, Suplente) ---
@@ -173,6 +223,9 @@ export const buildPiaFieldMap = (data) => {
   const asesor = data.asesor
   fields['ASESOR/A'] = asesor?.apellido_nombre || ''
   fields['DNI4'] = asesor?.dni || ''
+  // Email/teléfono del asesor (campos izquierdos de la sección de contacto)
+  fields['EMAIL'] = asesor?.email || escuela.email_asesor || ''
+  fields['TELÉFONO'] = asesor?.telefono || escuela.telefono_asesor || ''
 
   // --- Federación (Titular + Suplente) ---
   const fed = data.autoridadesFed || []
@@ -276,13 +329,13 @@ export const buildPiaFieldMap = (data) => {
   }
 
   // --- Kiosco ---
-  // Check Box34 = SI, Check Box35 = NO
+  // Check Box194 (X=219) = Sí, Check Box195 (X=262) = No
   if (data.kiosco?.posee === true) {
-    fields['Check Box34'] = 'Yes'
+    fields['Check Box194'] = 'Yes'
   } else {
-    fields['Check Box35'] = 'Yes'
+    fields['Check Box195'] = 'Yes'
   }
-  // Modalidad: Check Box196 = Propio, Check Box197 = Licitado
+  // Modalidad: Check Box196 (X=471) = Propio, Check Box197 (X=534) = Licitado
   if (data.kiosco?.modalidad === 'Propio') fields['Check Box196'] = 'Yes'
   else if (data.kiosco?.modalidad === 'Licitado') fields['Check Box197'] = 'Yes'
 

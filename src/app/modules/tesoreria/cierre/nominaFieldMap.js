@@ -70,10 +70,33 @@ const TABLE_ROWS = [
  * @param {string|Date} fecha
  * @returns {string}
  */
+const gristToDate = (raw) => {
+  if (!raw && raw !== 0) return null
+  if (raw instanceof Date) return raw
+  if (typeof raw === 'number') {
+    const d = new Date(raw * 1000)
+    return isNaN(d) ? null : d
+  }
+  if (Array.isArray(raw) && raw.length >= 2 && typeof raw[1] === 'number') {
+    const d = new Date(raw[1] * 1000)
+    return isNaN(d) ? null : d
+  }
+  const s = String(raw)
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const d = new Date(s)
+    return isNaN(d) ? null : d
+  }
+  const n = Number(s)
+  if (Number.isFinite(n) && n > 0) {
+    const d = new Date(n * 1000)
+    return isNaN(d) ? null : d
+  }
+  return null
+}
+
 const fmtFecha = (fecha) => {
-  if (!fecha) return ''
-  const d = fecha instanceof Date ? fecha : new Date(fecha)
-  if (isNaN(d)) return ''
+  const d = gristToDate(fecha)
+  if (!d) return ''
   const dd = String(d.getDate()).padStart(2, '0')
   const mm = String(d.getMonth() + 1).padStart(2, '0')
   const yyyy = d.getFullYear()
