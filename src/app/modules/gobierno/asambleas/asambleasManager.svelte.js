@@ -8,9 +8,12 @@ import { extractRowId } from '$app/modules/comunidad/personas/personasApi.js'
  * @param {object} deps
  * @param {() => any | null} deps.getTAsambleas - Getter reactivo del tableId de asambleas
  * @param {() => any | null} deps.getTResoluciones - Getter reactivo del tableId de resoluciones
+ * @param {() => any | null} deps.getTAutoridades - Getter reactivo del tableId de autoridades
  * @param {() => any | null} deps.getEjercicio - Getter reactivo del ejercicio en curso
  * @param {() => any[]} deps.getAsambleas - Getter reactivo de asambleas
+ * @param {() => any[]} deps.getAutoridades - Getter reactivo de autoridades
  * @param {() => Promise<void>} deps.loadAsambleas - Callback para recargar asambleas
+ * @param {() => Promise<void>} deps.loadAutoridades - Callback para recargar autoridades
  * @param {object} deps.bs - Base state (setLoading, setError, setNotice, clearMessages, setBusy)
  * @returns {{
  *   selectedAsambleaId: any, asambleaForm: any | null, resoluciones: any[],
@@ -18,10 +21,12 @@ import { extractRowId } from '$app/modules/comunidad/personas/personasApi.js'
  *   newAsamblea: (tipo?: string) => void,
  *   addResolucion: () => void,
  *   removeResolucion: (idx: number) => void,
- *   saveAsamblea: () => Promise<void>,
+ *   saveAsamblea: () => Promise<any>,
+ *   deleteAsamblea: (asambleaId: any) => Promise<void>,
+ *   getLinkedAutoridadesCount: (asambleaId: any) => number,
  * }}
  */
-export function createAsambleasManager({ getTAsambleas, getTResoluciones, getEjercicio, getAsambleas, loadAsambleas, bs }) {
+export function createAsambleasManager({ getTAsambleas, getTResoluciones, getTAutoridades, getEjercicio, getAsambleas, getAutoridades, loadAsambleas, loadAutoridades, bs }) {
   let selectedAsambleaId = $state(null)
   let asambleaForm = $state(null)
   let resoluciones = $state([])
@@ -38,6 +43,9 @@ export function createAsambleasManager({ getTAsambleas, getTResoluciones, getEje
       cuota_social_importe: a?.cuota_social_importe ?? '',
       cuota_social_modalidad: a?.cuota_social_modalidad || 'Mensual',
       caja_chica_importe: a?.caja_chica_importe ?? '',
+      motivo_convocatoria: a?.motivo_convocatoria || '',
+      orden_del_dia: a?.orden_del_dia || '',
+      convocatoria_origen: a?.convocatoria_origen || '',
     }
     const tResoluciones = getTResoluciones()
     if (a?.id && tResoluciones) {
@@ -63,6 +71,9 @@ export function createAsambleasManager({ getTAsambleas, getTResoluciones, getEje
       cuota_social_importe: '',
       cuota_social_modalidad: 'Mensual',
       caja_chica_importe: '',
+      motivo_convocatoria: '',
+      orden_del_dia: '',
+      convocatoria_origen: '',
     }
     resoluciones = []
   }
@@ -78,17 +89,38 @@ export function createAsambleasManager({ getTAsambleas, getTResoluciones, getEje
       .map((r, i) => ({ ...r, numero: i + 1 }))
   }
 
-  const saveAsamblea = async () => {
+  const saveAsamblea = async (opts = {}) => {
     bs.clearMessages()
     bs.setBusy(true)
     try {
       const tAsambleas = getTAsambleas()
       if (!tAsambleas) {
         bs.setError('No se encontró la tabla asambleas. Ejecutá "Actualizar schema" en Inicio.')
-        return
+        return null
       }
       const ejercicio = getEjercicio()
+      if (!ejercicio || !ejercicio.id) {
+        bs.setError('No hay ejercicio activo. Configurá el ejercicio en la pantalla de Inicio.')
+        return null
+      }
       const f = asambleaForm || {}
+
+      // Validar: solo 1 AGO por año calendario
+      if (f.tipo_asamblea === 'AGO' && f.fecha) {
+        const year = String(f.fecha).slice(0, 4)
+        const asambleas = getAsambleas()
+        const existeAgoEseAnio = asambleas.find(
+          (a) =>
+            a.tipo_asamblea === 'AGO' &&
+            String(a.fecha).slice(0, 4) === year &&
+            Number(a.id) !== Number(f.id),
+        )
+        if (existeAgoEseAnio) {
+          bs.setError(`Ya existe una Asamblea Ordinaria en ${year} (fecha ${existeAgoEseAnio.fecha}). Solo puede haber una por año.`)
+          return null
+        }
+      }
+
       const fields = normalizeFields({
         fecha: f.fecha || '',
         tipo_asamblea: f.tipo_asamblea || '',
@@ -99,6 +131,9 @@ export function createAsambleasManager({ getTAsambleas, getTResoluciones, getEje
         cuota_social_importe: f.cuota_social_importe === '' ? '' : Number(f.cuota_social_importe),
         cuota_social_modalidad: f.cuota_social_modalidad || '',
         caja_chica_importe: f.caja_chica_importe === '' ? '' : Number(f.caja_chica_importe),
+        motivo_convocatoria: f.motivo_convocatoria || '',
+        orden_del_dia: f.orden_del_dia || '',
+        convocatoria_origen: f.convocatoria_origen || '',
       })
 
       let asambleaId = f.id
@@ -108,6 +143,7 @@ export function createAsambleasManager({ getTAsambleas, getTResoluciones, getEje
       } else {
         const res = await applyUserActions([['AddRecord', tAsambleas, null, fields]])
         asambleaId = extractRowId(res)
+        asambleaForm = { ...asambleaForm, id: asambleaId }
         bs.setNotice('Reunión creada.')
       }
 
@@ -137,7 +173,66 @@ export function createAsambleasManager({ getTAsambleas, getTResoluciones, getEje
       }
 
       await loadAsambleas()
-      if (!f.id) asambleaForm = null
+      if (!f.id && !opts.keepForm) asambleaForm = null
+      return asambleaId
+    } catch (e) {
+      bs.setError(e?.message || String(e))
+      return null
+    } finally {
+      bs.setBusy(false)
+    }
+  }
+
+  const getLinkedAutoridadesCount = (asambleaId) => {
+    const autoridades = getAutoridades()
+    return autoridades.filter(
+      (au) => Number(au.asamblea_id) === Number(asambleaId),
+    ).length
+  }
+
+  const deleteAsamblea = async (asambleaId) => {
+    bs.clearMessages()
+    bs.setBusy(true)
+    try {
+      const tAsambleas = getTAsambleas()
+      const tResoluciones = getTResoluciones()
+      const tAutoridades = getTAutoridades()
+      if (!tAsambleas) {
+        bs.setError('No se encontró la tabla asambleas.')
+        return
+      }
+
+      const actions = []
+
+      // Eliminar resoluciones vinculadas
+      if (tResoluciones) {
+        const resol = await fetchRecords(tResoluciones, {
+          filter: (r) => Number(r.asamblea_id) === Number(asambleaId),
+        })
+        for (const r of resol) {
+          actions.push(['RemoveRecord', tResoluciones, r.id])
+        }
+      }
+
+      // Eliminar autoridades vinculadas
+      if (tAutoridades) {
+        const auths = await fetchRecords(tAutoridades, {
+          filter: (au) => Number(au.asamblea_id) === Number(asambleaId),
+        })
+        for (const au of auths) {
+          actions.push(['RemoveRecord', tAutoridades, au.id])
+        }
+      }
+
+      // Eliminar la asamblea
+      actions.push(['RemoveRecord', tAsambleas, asambleaId])
+
+      await applyUserActions(actions)
+      bs.setNotice('Reunión eliminada.')
+      asambleaForm = null
+      selectedAsambleaId = null
+      await loadAsambleas()
+      if (loadAutoridades) await loadAutoridades()
     } catch (e) {
       bs.setError(e?.message || String(e))
     } finally {
@@ -154,5 +249,7 @@ export function createAsambleasManager({ getTAsambleas, getTResoluciones, getEje
     addResolucion,
     removeResolucion,
     saveAsamblea,
+    deleteAsamblea,
+    getLinkedAutoridadesCount,
   }
 }

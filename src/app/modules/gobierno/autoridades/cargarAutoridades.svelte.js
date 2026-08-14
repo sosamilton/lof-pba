@@ -21,7 +21,7 @@ import { parseDni as normalizeDni, isValidDni } from '$core/format/format.js'
  * @param {object} deps.bs - Base state
  * @returns {{
  *   cargarDraft: any | null,
- *   crearAgeYCargar: () => Promise<void>,
+ *   crearAgoYCargar: () => Promise<void>,
  *   openCargarAutoridades: (asambleaId: any, opts?: object) => void,
  *   closeCargarAutoridades: () => void,
  *   setDraftPersona: (idx: number, p: any) => void,
@@ -36,6 +36,8 @@ export function createCargarAutoridades({
 }) {
   let cargarDraft = $state(null)
 
+  const ORGANISMOS = ['CD', 'CRC', 'Federacion']
+
   const openCargarAutoridades = (asambleaId, opts = {}) => {
     const asambleas = getAsambleas()
     const cargos = getCargos()
@@ -43,21 +45,38 @@ export function createCargarAutoridades({
     const a = asambleaId ? asambleas.find((x) => Number(x.id) === Number(asambleaId)) || null : null
     const fecha = dateToInput(a?.fecha) || new Date().toISOString().slice(0, 10)
     const tipo = a?.tipo_asamblea || 'AGE'
+
+    // Detectar autoridades vigentes por organismo
+    const vigentesPorOrgano = {}
+    for (const org of ORGANISMOS) {
+      vigentesPorOrgano[org] = autoridades.filter(
+        (au) => au.activo !== false && !au.fecha_cese && String(au.organismo) === org,
+      )
+    }
+    const totalVigentes = Object.values(vigentesPorOrgano).reduce((sum, arr) => sum + arr.length, 0)
+
     const filas = cargos
-      .filter((c) => String(c.organismo) === 'CD' && (c.activo === true || c.cargo_obligatorio === true))
-      .sort((x, y) => Number(x.orden || 0) - Number(y.orden || 0))
+      .filter((c) =>
+        ORGANISMOS.includes(String(c.organismo)) &&
+        (c.activo === true || c.cargo_obligatorio === true),
+      )
+      .sort((x, y) => {
+        const orgOrder = ORGANISMOS.indexOf(String(x.organismo)) - ORGANISMOS.indexOf(String(y.organismo))
+        if (orgOrder !== 0) return orgOrder
+        return Number(x.orden || 0) - Number(y.orden || 0)
+      })
       .map((c) => {
-        // si ya existe autoridad vigente para este cargo, precargarla
         const existente = autoridades.find(
           (au) =>
             au.activo !== false &&
             !au.fecha_cese &&
-            String(au.organismo) === 'CD' &&
+            String(au.organismo) === String(c.organismo) &&
             Number(au.cargo_id) === Number(c.id),
         )
         return {
           cargoId: c.id,
           cargoNombre: c.nombre_cargo,
+          organismo: String(c.organismo),
           obligatorio: Boolean(c.cargo_obligatorio),
           duracionMeses: c.duracion_meses ?? '',
           persona_id: existente?.persona_id || null,
@@ -65,10 +84,26 @@ export function createCargarAutoridades({
           dni: existente?.dni || '',
           cuil: existente?.cuil || '',
           fecha_asuncion: dateToInput(existente?.fecha_asuncion) || fecha,
+          fecha_asuncion_existente: dateToInput(existente?.fecha_asuncion) || '',
+          fecha_vencimiento_existente: dateToInput(existente?.fecha_vencimiento) || '',
           yaExiste: Boolean(existente),
+          autoridadIdExistente: existente?.id || null,
         }
       })
-    cargarDraft = { asambleaId, asambleaFecha: fecha, tipo, filas, needsAgeCreation: opts.needsAgeCreation || false }
+
+    const todosSeleccionados = new Set(filas.map((f) => f.cargoId))
+    cargarDraft = {
+      asambleaId,
+      asambleaFecha: fecha,
+      tipo,
+      filas,
+      needsAgeCreation: opts.needsAgeCreation || false,
+      inlineMode: opts.inlineMode || false,
+      cargaMode: totalVigentes === 0 ? 'total' : 'parcial',
+      cargosSeleccionados: todosSeleccionados,
+      totalVigentes,
+      vigentesPorOrgano,
+    }
   }
 
   const closeCargarAutoridades = () => {
@@ -87,27 +122,48 @@ export function createCargarAutoridades({
     personaSearch.reset()
   }
 
-  const crearAgeYCargar = async () => {
+  const unlinkDraftPersona = (idx) => {
+    if (!cargarDraft) return
+    const fila = cargarDraft.filas[idx]
+    if (!fila) return
+    fila.persona_id = null
+    fila.apellido_nombre = ''
+    fila.dni = ''
+    fila.cuil = ''
+  }
+
+  const setCargaMode = (mode) => {
+    if (!cargarDraft) return
+    cargarDraft.cargaMode = mode
+    if (mode === 'total') {
+      cargarDraft.cargosSeleccionados = new Set(cargarDraft.filas.map((f) => f.cargoId))
+    }
+  }
+
+  const toggleCargoSeleccionado = (cargoId) => {
+    if (!cargarDraft) return
+    const sel = new Set(cargarDraft.cargosSeleccionados)
+    if (sel.has(cargoId)) sel.delete(cargoId)
+    else sel.add(cargoId)
+    cargarDraft.cargosSeleccionados = sel
+  }
+
+  const crearAgoYCargar = async () => {
     bs.clearMessages()
     bs.setBusy(true)
     try {
-      const tAsambleas = getTAsambleas()
-      if (!tAsambleas) {
-        bs.setError('No se encontró la tabla asambleas. Ejecutá "Actualizar schema" en Inicio.')
-        return
-      }
-      // Si ya existe una AGE pendiente (sin acta) en el ejercicio, reutilizarla
       const asambleas = getAsambleas()
+      // Si ya existe una AGO pendiente (sin acta) en el ejercicio, reutilizarla
       const pendiente = asambleas.find(
-        (a) => a.tipo_asamblea === 'AGE' && (!a.acta_numero || String(a.acta_numero).trim() === ''),
+        (a) => a.tipo_asamblea === 'AGO' && (!a.acta_numero || String(a.acta_numero).trim() === ''),
       )
       if (pendiente) {
         openCargarAutoridades(pendiente.id)
-        bs.setNotice('Ya existe una asamblea extraordinaria pendiente. Cargá las autoridades electas.')
+        bs.setNotice('Ya existe una asamblea ordinaria pendiente. Cargá las autoridades electas.')
         return
       }
-      // No crear la AGE todavía; se crea al guardar autoridades
-      openCargarAutoridades(null, { needsAgeCreation: true })
+      // No hay AGO pendiente: abrir wizard de AGO (lo maneja el store)
+      return 'needsWizard'
     } catch (e) {
       bs.setError(e?.message || String(e))
     } finally {
@@ -120,11 +176,25 @@ export function createCargarAutoridades({
     bs.setBusy(true)
     try {
       if (!cargarDraft) return
-      const { asambleaFecha, tipo, filas, needsAgeCreation } = cargarDraft
+      const { asambleaFecha, tipo, filas, needsAgeCreation, cargaMode, cargosSeleccionados } = cargarDraft
       let asambleaId = cargarDraft.asambleaId
       const ejercicio = getEjercicio()
       const tAsambleas = getTAsambleas()
       const tAutoridades = getTAutoridades()
+
+      // Filtrar filas según cargos seleccionados (carga parcial) o todas (carga total)
+      const filasAGuardar = cargaMode === 'total'
+        ? filas
+        : filas.filter((f) => cargosSeleccionados.has(f.cargoId))
+
+      // Verificar que haya al menos una fila con persona
+      const filasConPersona = filasAGuardar.filter(
+        (f) => f.persona_id || f.apellido_nombre.trim() || f.dni.trim(),
+      )
+      if (filasConPersona.length === 0) {
+        bs.setError('No hay personas para guardar.')
+        return
+      }
 
       // Si es una AGE nueva, crearla recién ahora (solo si hay autoridades para guardar)
       if (needsAgeCreation && !asambleaId) {
@@ -140,10 +210,44 @@ export function createCargarAutoridades({
         asambleaId = extractRowId(res)
       }
 
+      // Si carga total y hay autoridades vigentes, cesarlas primero
+      // (solo si su fecha_asuncion es anterior o igual a la de la nueva asamblea)
+      const cesarActions = []
+      if (cargaMode === 'total') {
+        const autoridades = getAutoridades()
+        const vigentes = autoridades.filter(
+          (au) => au.activo !== false && !au.fecha_cese &&
+          String(au.fecha_asuncion || '') <= String(asambleaFecha),
+        )
+        for (const au of vigentes) {
+          cesarActions.push(['UpdateRecord', tAutoridades, au.id, normalizeFields({
+            fecha_cese: asambleaFecha,
+            motivo_cese: 'Reemplazo',
+          })])
+        }
+      } else {
+        // Carga parcial: cesar solo las autoridades de los cargos seleccionados
+        // (solo si su fecha_asuncion es anterior o igual a la de la nueva asamblea)
+        const autoridades = getAutoridades()
+        for (const f of filasAGuardar) {
+          if (f.autoridadIdExistente && f.persona_id) {
+            const au = autoridades.find((a) => Number(a.id) === Number(f.autoridadIdExistente))
+            if (au && String(au.fecha_asuncion || '') <= String(asambleaFecha)) {
+              cesarActions.push(['UpdateRecord', tAutoridades, f.autoridadIdExistente, normalizeFields({
+                fecha_cese: asambleaFecha,
+                motivo_cese: 'Reemplazo',
+              })])
+            }
+          }
+        }
+      }
+      if (cesarActions.length > 0) {
+        await applyUserActions(cesarActions)
+      }
+
       const tipoOrigen = tipo === 'RCD' ? 'ReunionCD' : 'Asamblea'
       const actions = []
-      for (const f of filas) {
-        if (!f.apellido_nombre.trim() && !f.dni.trim()) continue
+      for (const f of filasConPersona) {
         let personaId = f.persona_id
         if (!personaId && f.dni && isValidDni(f.dni)) {
           const persona = await findOrCreatePersona({
@@ -156,10 +260,8 @@ export function createCargarAutoridades({
         }
         const fechaAsuncion = f.fecha_asuncion || asambleaFecha
         const fechaVenc = fechaAsuncion ? addMonths(fechaAsuncion, f.duracionMeses) : ''
-        // apellido_nombre, dni, cuil, domicilio, localidad son columnas formula
-        // en Grist (pull de $persona_id). No se guardan directamente en autoridades.
         const fields = normalizeFields({
-          organismo: 'CD',
+          organismo: f.organismo || 'CD',
           cargo_id: f.cargoId,
           ejercicio_id: ejercicio.id,
           persona_id: personaId || '',
@@ -171,12 +273,11 @@ export function createCargarAutoridades({
         })
         actions.push(['AddRecord', tAutoridades, null, fields])
       }
-      if (actions.length === 0) {
-        bs.setError('No hay personas para guardar.')
-        return
-      }
       await applyUserActions(actions)
-      bs.setNotice(`${actions.length} autoridad(es) registradas.`)
+      const msg = cesarActions.length > 0
+        ? `${actions.length} autoridad(es) registradas, ${cesarActions.length} cesada(s).`
+        : `${actions.length} autoridad(es) registradas.`
+      bs.setNotice(msg)
       await loadAsambleas()
       await loadAutoridades()
       closeCargarAutoridades()
@@ -189,10 +290,13 @@ export function createCargarAutoridades({
 
   return {
     get cargarDraft() { return cargarDraft },
-    crearAgeYCargar,
+    crearAgoYCargar,
     openCargarAutoridades,
     closeCargarAutoridades,
     setDraftPersona,
+    unlinkDraftPersona,
+    setCargaMode,
+    toggleCargoSeleccionado,
     saveAutoridadesFromAsamblea,
   }
 }

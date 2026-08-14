@@ -38,7 +38,18 @@ export const buildVigenteByCargo = (autoridades, organismo) => {
     if (a.activo === false) continue
     if (a.fecha_cese) continue
     const key = Number(a.cargo_id)
-    if (!map.has(key)) map.set(key, a)
+    const existing = map.get(key)
+    if (!existing) {
+      map.set(key, a)
+    } else {
+      // Si hay multiples activas sin cese para el mismo cargo,
+      // la vigente es la de fecha_asuncion mas reciente
+      const existingFecha = String(existing.fecha_asuncion || '')
+      const newFecha = String(a.fecha_asuncion || '')
+      if (newFecha > existingFecha) {
+        map.set(key, a)
+      }
+    }
   }
   return map
 }
