@@ -11,7 +11,6 @@
   import TabAsambleas from './asambleas/components/TabAsambleas.svelte'
   import TabAutoridades from './autoridades/components/TabAutoridades.svelte'
   import TabHistorico from './autoridades/components/TabHistorico.svelte'
-  import DialogCargarAutoridades from './autoridades/components/DialogCargarAutoridades.svelte'
   import DialogCese from './autoridades/components/DialogCese.svelte'
   import DialogReemplazo from './autoridades/components/DialogReemplazo.svelte'
 
@@ -73,7 +72,6 @@
     </Tabs.Root>
   {/if}
 
-  <DialogCargarAutoridades {store} />
   <DialogCese {store} />
   <DialogReemplazo {store} />
 </PageScaffold>
