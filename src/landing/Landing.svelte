@@ -55,12 +55,15 @@
   import FileTextIcon from '@lucide/svelte/icons/file-text'
   import WalletIcon from '@lucide/svelte/icons/wallet'
   import GristIcon from '$lib/components/GristIcon.svelte'
+  import ReleasesDialog from './ReleasesDialog.svelte'
+  import HistoryIcon from '@lucide/svelte/icons/history'
   import { identidad } from '$core/data/identidad'
   import data from './landing.json'
 
   const { problemas, funciones, capturas, roadmap } = data
   const enlaces = identidad.enlaces
   const versionActual = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
+  let showReleases = $state(false)
   const roadmapGroups = $derived(
     Object.fromEntries(
       Object.entries(ROADMAP_GROUPS).map(([key, group]) => [
@@ -89,6 +92,21 @@
         <Badge variant="secondary" class="hidden sm:inline-flex">{identidad.ubicacion}</Badge>
       </div>
       <div class="flex items-center gap-2">
+        {#if versionActual !== 'dev'}
+          <button
+            type="button"
+            onclick={() => (showReleases = true)}
+            class="cursor-pointer transition-opacity hover:opacity-80"
+            title="Ver historial de versiones"
+            aria-label="Ver historial de versiones"
+          >
+            <Badge variant="secondary" class="font-mono text-[10px]">v{versionActual}</Badge>
+          </button>
+        {/if}
+        <Button variant="ghost" size="sm" onclick={() => (showReleases = true)}>
+          <HistoryIcon data-icon="inline-start" />
+          <span class="hidden sm:inline">Novedades</span>
+        </Button>
         <Button variant="ghost" size="sm" onclick={() => navigate('sobre-lof')}>
           Sobre LOF
         </Button>
@@ -304,7 +322,15 @@
             <HeartHandshakeIcon class="size-5 text-primary" />
             <span class="font-bold">{identidad.nombre}</span>
             {#if versionActual !== 'dev'}
-              <Badge variant="secondary" class="font-mono text-[10px]">v{versionActual}</Badge>
+              <button
+                type="button"
+                onclick={() => (showReleases = true)}
+                class="cursor-pointer transition-opacity hover:opacity-80"
+                title="Ver historial de versiones"
+                aria-label="Ver historial de versiones"
+              >
+                <Badge variant="secondary" class="font-mono text-[10px]">v{versionActual}</Badge>
+              </button>
             {/if}
           </div>
           <p class="text-sm text-muted-foreground max-w-prose">
@@ -331,3 +357,5 @@
     </div>
   </footer>
 </main>
+
+<ReleasesDialog open={showReleases} onClose={() => (showReleases = false)} />
