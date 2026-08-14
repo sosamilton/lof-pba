@@ -26,6 +26,7 @@ let ejercicioHistorico = $state(null)
 let cargos = $state([])
 let autoridades = $state([])
 let asambleas = $state([])
+let pendingWizardTipo = $state(null)
 
 // --- Funciones de carga (permanecen en el store principal) ---
 const load = async () => {
@@ -99,9 +100,12 @@ const autoridadRows = createAutoridadRows({
 const asambleasMgr = createAsambleasManager({
   getTAsambleas: () => tAsambleas,
   getTResoluciones: () => tResoluciones,
+  getTAutoridades: () => tAutoridades,
   getEjercicio: () => ejercicio,
   getAsambleas: () => asambleas,
+  getAutoridades: () => autoridades,
   loadAsambleas,
+  loadAutoridades,
   bs,
 })
 
@@ -197,12 +201,26 @@ export const asambleasAutoridadesStore = {
   addResolucion: asambleasMgr.addResolucion,
   removeResolucion: asambleasMgr.removeResolucion,
   saveAsamblea: asambleasMgr.saveAsamblea,
+  deleteAsamblea: asambleasMgr.deleteAsamblea,
+  getLinkedAutoridadesCount: asambleasMgr.getLinkedAutoridadesCount,
   // cargarAutoridades
   get cargarDraft() { return cargarAuth.cargarDraft },
-  crearAgeYCargar: cargarAuth.crearAgeYCargar,
+  crearAgoYCargar: async () => {
+    const result = await cargarAuth.crearAgoYCargar()
+    if (result === 'needsWizard') {
+      widgetOpts.setTab('asambleas')
+      asambleasMgr.newAsamblea('AGO')
+      pendingWizardTipo = 'AGO'
+    }
+  },
+  get pendingWizardTipo() { return pendingWizardTipo },
+  clearPendingWizard: () => { pendingWizardTipo = null },
   openCargarAutoridades: cargarAuth.openCargarAutoridades,
   closeCargarAutoridades: cargarAuth.closeCargarAutoridades,
   saveAutoridadesFromAsamblea: cargarAuth.saveAutoridadesFromAsamblea,
+  unlinkDraftPersona: cargarAuth.unlinkDraftPersona,
+  setCargaMode: cargarAuth.setCargaMode,
+  toggleCargoSeleccionado: cargarAuth.toggleCargoSeleccionado,
   // ceseAutoridad
   get ceseTarget() { return ceseAuth.ceseTarget },
   openCese: ceseAuth.openCese,

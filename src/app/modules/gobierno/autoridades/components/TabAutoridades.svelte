@@ -47,9 +47,9 @@
     {:else if !store.tieneAutoridadesVigentes}
       <EmptyState
         title="Sin autoridades asignadas"
-        sub="No hay personas ocupando cargos en {ORGANISMO_LABELS[store.organismo]}. Convocá una Asamblea General Extraordinaria para elegir a las autoridades y cargarlas desde ahí."
-        actionLabel="Crear asamblea extraordinaria"
-        onaction={store.crearAgeYCargar}
+        sub="No hay personas ocupando cargos en {ORGANISMO_LABELS[store.organismo]}. Convocá una Asamblea General Ordinaria para elegir a las autoridades y cargarlas desde ahí."
+        actionLabel="+ Ordinaria/Autoridades"
+        onaction={store.crearAgoYCargar}
       >
         {#snippet icon()}
           <GavelIcon class="size-8 text-muted-foreground" />
@@ -130,7 +130,7 @@
         <Alert.Root variant="destructive" class="mt-3">
           <AlertCircleIcon class="size-4" />
           <Alert.Description>
-            Quedan pocos titulares vigentes ({store.quorumTitulares}). Si se pierde el quórum, considerá convocar una Asamblea Extraordinaria para elegir nuevas autoridades.
+            Quedan pocos titulares vigentes ({store.quorumTitulares}). Si se pierde el quórum, considerá convocar una Asamblea Ordinaria para elegir nuevas autoridades.
           </Alert.Description>
         </Alert.Root>
       {:else}
