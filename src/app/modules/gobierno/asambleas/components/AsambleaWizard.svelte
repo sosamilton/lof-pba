@@ -17,6 +17,8 @@
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left'
   import XIcon from '@lucide/svelte/icons/x'
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
+  import CheckIcon from '@lucide/svelte/icons/check'
+  import MinusIcon from '@lucide/svelte/icons/minus'
 
   let { store, wizardOpen = $bindable(false), askDelete = () => {} } = $props()
 
@@ -140,7 +142,7 @@
   }
 
   const handlePick = (globalIdx, p) => {
-    store.linkPersonaSearch(p)
+    store.setDraftPersona(globalIdx, p)
     focusNextCargo(globalIdx)
   }
 
@@ -379,10 +381,48 @@
 
           {#if store.cargarDraft.cargaMode === 'parcial'}
             <div class="flex flex-col gap-2">
-              <span class="text-xs font-semibold">Seleccioná los cargos a cargar:</span>
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-semibold">Seleccioná los cargos a cargar:</span>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-muted-foreground">{cargosSeleccionadosCount} seleccionado(s)</span>
+                  <button
+                    type="button"
+                    class="flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs font-medium transition-colors hover:bg-accent"
+                    onclick={() => {
+                      const st = store.globalSelectState()
+                      if (st === 'all') store.deselectAllCargos()
+                      else store.selectAllCargos()
+                    }}
+                  >
+                    {#if store.globalSelectState() === 'all'}
+                      <span class="flex size-3.5 items-center justify-center rounded-sm border border-primary bg-primary text-primary-foreground"><CheckIcon class="size-3" /></span>
+                      Desactivar todos
+                    {:else if store.globalSelectState() === 'partial'}
+                      <span class="flex size-3.5 items-center justify-center rounded-sm border border-primary bg-primary text-primary-foreground"><MinusIcon class="size-3" /></span>
+                      Activar todos
+                    {:else}
+                      <span class="flex size-3.5 items-center justify-center rounded-sm border border-input bg-background"></span>
+                      Activar todos
+                    {/if}
+                  </button>
+                </div>
+              </div>
               {#each filasPorOrganismo as [org, items] (org)}
                 <div class="flex flex-col gap-1">
-                  <span class="text-xs font-bold text-muted-foreground">{ORGANISMO_LABELS[org] || org}</span>
+                  <button
+                    type="button"
+                    class="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-bold text-muted-foreground transition-colors hover:bg-accent"
+                    onclick={() => store.toggleOrganismoCargos(org)}
+                  >
+                    {#if store.organismoSelectState(org) === 'all'}
+                      <span class="flex size-3.5 items-center justify-center rounded-sm border border-primary bg-primary text-primary-foreground"><CheckIcon class="size-3" /></span>
+                    {:else if store.organismoSelectState(org) === 'partial'}
+                      <span class="flex size-3.5 items-center justify-center rounded-sm border border-primary bg-primary text-primary-foreground"><MinusIcon class="size-3" /></span>
+                    {:else}
+                      <span class="flex size-3.5 items-center justify-center rounded-sm border border-input bg-background"></span>
+                    {/if}
+                    {ORGANISMO_LABELS[org] || org}
+                  </button>
                   {#each items as { fila: f, globalIdx } (f.cargoId)}
                     <label class="flex items-center gap-2 rounded-md border border-border px-2 py-1.5 text-xs transition-colors hover:bg-accent">
                       <Checkbox
@@ -453,7 +493,7 @@
                       />
                       <Field.Field>
                         <Field.FieldLabel class="text-[11px]">DNI</Field.FieldLabel>
-                        <Input bind:value={f.dni} class="h-8 text-xs" disabled={!!f.persona_id} />
+                        <Input value={f.dni} class="h-8 text-xs" disabled placeholder="Se completa al vincular persona" />
                       </Field.Field>
                       <Field.Field>
                         <Field.FieldLabel class="text-[11px]">Asunción</Field.FieldLabel>
