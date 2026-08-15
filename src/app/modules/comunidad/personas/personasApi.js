@@ -1,7 +1,7 @@
 import { applyUserActions, fetchRecords, resolveTableId, withMultiplayerProtection } from '$core/grist/grist'
 import { TABLE_PREFERRED_IDS } from '$core/utils/utils'
 import localidadesBA from '$core/data/localidades-buenos-aires.json'
-import { parseDni, parseCuil } from '$core/format/format.js'
+import { parseDni, parseCuil, isCuilPendiente } from '$core/format/format.js'
 
 const normalizeText = (s) => String(s || '').toLowerCase().trim()
 
@@ -27,6 +27,18 @@ export const findPersonaByDni = async (dni) => {
   const all = await fetchRecords(tableId, {
     columns: ['tipo_persona', 'dni', 'cuil', 'apellido', 'nombre', 'razon_social', 'domicilio', 'localidad', 'telefono', 'email', 'categoria'],
     filter: (p) => parseDni(p.dni) === d
+  })
+  return all[0] || null
+}
+
+export const findPersonaByCuil = async (cuil) => {
+  const c = parseCuil(cuil)
+  if (c.length !== 11) return null
+  const tableId = await resolveTableId(TABLE_PREFERRED_IDS.personas)
+  if (!tableId) return null
+  const all = await fetchRecords(tableId, {
+    columns: ['tipo_persona', 'dni', 'cuil', 'apellido', 'nombre', 'razon_social', 'domicilio', 'localidad', 'telefono', 'email', 'categoria'],
+    filter: (p) => parseCuil(p.cuil) === c
   })
   return all[0] || null
 }
@@ -81,7 +93,23 @@ export const updatePersona = async (id, data) => {
 
 export const findOrCreatePersona = async (data) => {
   const dni = parseDni(data.dni)
-  // 1. Si hay DNI, buscar persona existente primero
+  const cuil = parseCuil(data.cuil)
+  // 1. Si hay CUIL completo (no pendiente), buscar por CUIL primero
+  if (cuil && !isCuilPendiente(cuil)) {
+    const existing = await findPersonaByCuil(cuil)
+    if (existing) {
+      const updates = {}
+      for (const key of ['tipo_persona', 'dni', 'apellido', 'nombre', 'razon_social', 'domicilio', 'localidad', 'telefono', 'email', 'categoria']) {
+        if (data[key] && !existing[key]) updates[key] = data[key]
+      }
+      if (Object.keys(updates).length > 0) {
+        await updatePersona(existing.id, updates)
+        return { ...existing, ...updates }
+      }
+      return existing
+    }
+  }
+  // 2. Si hay DNI (y no se encontró por CUIL), buscar por DNI
   if (dni) {
     const existing = await findPersonaByDni(dni)
     if (existing) {
@@ -96,29 +124,43 @@ export const findOrCreatePersona = async (data) => {
       return existing
     }
   }
-  // 2. Crear con protección multiplayer: si otra instancia ya creó la persona,
+  // 3. Crear con protección multiplayer: si otra instancia ya creó la persona,
   //    withMultiplayerProtection retorna false y re-buscamos en vez de crear duplicado.
+  //    La verificación de existencia usa CUIL si está completo, si no DNI.
+  const checkExistence = async () => {
+    if (cuil && !isCuilPendiente(cuil)) return Boolean(await findPersonaByCuil(cuil))
+    if (dni) return Boolean(await findPersonaByDni(dni))
+    return false
+  }
   let createdPersona = null
   const created = await withMultiplayerProtection(
-    async () => dni ? Boolean(await findPersonaByDni(dni)) : false,
-    async () => { createdPersona = await createPersona({ ...data, dni }) }
+    checkExistence,
+    async () => { createdPersona = await createPersona({ ...data, dni, cuil }) }
   )
   if (created && createdPersona) {
     // Confirmar re-leyendo (con pequeño delay para que Grist indexe el registro)
+    await new Promise((r) => setTimeout(r, 150))
+    if (cuil && !isCuilPendiente(cuil)) {
+      const found = await findPersonaByCuil(cuil)
+      if (found) return found
+    }
     if (dni) {
-      await new Promise((r) => setTimeout(r, 150))
       const found = await findPersonaByDni(dni)
       if (found) return found
     }
     return createdPersona
   }
-  // 3. created === false: otra instancia creó la persona; re-buscar en vez de duplicar
+  // 4. created === false: otra instancia creó la persona; re-buscar en vez de duplicar
+  if (cuil && !isCuilPendiente(cuil)) {
+    const found = await findPersonaByCuil(cuil)
+    if (found) return found
+  }
   if (dni) {
     const found = await findPersonaByDni(dni)
     if (found) return found
   }
-  // 4. Último recurso: crear sin protección (sin DNI o caso edge)
-  return createPersona({ ...data, dni })
+  // 5. Último recurso: crear sin protección (sin CUIL ni DNI, o caso edge)
+  return createPersona({ ...data, dni, cuil })
 }
 
 export const personaLabel = (p) =>

@@ -6,7 +6,7 @@ import { formatDni, formatCuil, formatTelefonoNational } from '$core/format/form
  * Funciones puras que retornan objetos form listos para asignar a $state.
  */
 
-const CUIL_PREFIX_DEFAULT = '20'
+const CUIL_PREFIX_DEFAULT = '00'
 
 /**
  * Construye el form de socio desde un registro existente.

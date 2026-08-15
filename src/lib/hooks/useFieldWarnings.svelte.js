@@ -1,4 +1,4 @@
-import { formatCuil, formatTelefonoNational, parseCuil as normalizeCuil, normalizeTelefonoForStorage as normalizeTelefono, normalizeEmail as normalizeEmailField, isValidCuil, isValidCuilChecksum, isValidEmail as isValidEmailField } from '$core/format/format.js'
+import { formatCuil, formatTelefonoNational, parseCuil as normalizeCuil, normalizeTelefonoForStorage as normalizeTelefono, normalizeEmail as normalizeEmailField, isValidCuil, isValidCuilChecksum, isCuilPendiente, isValidEmail as isValidEmailField } from '$core/format/format.js'
 
 /**
  * Composable reutilizable para validación de campos con warnings visuales.
@@ -32,7 +32,9 @@ export function useFieldWarnings({ getForm = () => null } = {}) {
     if (!form) return
     const c = normalizeCuil(form.cuil)
     form.cuil = formatCuil(c)
-    if (c && isValidCuil(c) && !isValidCuilChecksum(c)) {
+    if (c && isCuilPendiente(c)) {
+      cuilWarning = 'CUIL pendiente (prefijo 00): completar prefijo real al editar la persona'
+    } else if (c && isValidCuil(c) && !isValidCuilChecksum(c)) {
       cuilWarning = 'CUIT/CUIL inválido (dígito verificador incorrecto)'
     } else {
       cuilWarning = ''
@@ -65,7 +67,8 @@ export function useFieldWarnings({ getForm = () => null } = {}) {
 
   const hasBlockingWarnings = () => {
     if (dniWarning && dniWarning !== 'Verificando DNI…' && !dniWarning.startsWith('Persona cargada')) return true
-    if (cuilWarning) return true
+    // CUIL pendiente (prefijo 00) no bloquea; solo CUIL inválido bloquea
+    if (cuilWarning && !cuilWarning.startsWith('CUIL pendiente')) return true
     if (telefonoWarning) return true
     if (emailWarning) return true
     return false
