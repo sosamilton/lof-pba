@@ -78,6 +78,47 @@ export const isValidCuilChecksum = (raw) => {
   return dv != null && dv === Number(c[10])
 }
 
+// Prefijo '00' = CUIL pendiente (cargado con solo DNI, sin prefijo real).
+// El DV se calcula sobre el prefijo '00' + DNI, por lo que el formato es
+// válido (11 dígitos) pero no es un CUIL real hasta que el usuario cambie
+// el prefijo (00 → 20/23/24/27 etc.) al editar la persona.
+const CUIL_PENDIENTE_PREFIX = '00'
+
+export const isCuilPendiente = (raw) => {
+  const c = parseCuil(raw)
+  return c.length === 11 && c.slice(0, 2) === CUIL_PENDIENTE_PREFIX
+}
+
+// Construye un CUIL pendiente (prefijo 00) a partir de un DNI.
+// El DV se calcula con el algoritmo oficial sobre '00' + DNI.
+export const buildCuilPendiente = (dni) => {
+  const d = onlyDigits(dni)
+  if (d.length < 7 || d.length > 8) return ''
+  const dni8 = d.padStart(8, '0')
+  const base = `${CUIL_PENDIENTE_PREFIX}${dni8}`.slice(0, 10)
+  const dv = calcularDigitoVerificador(base)
+  if (dv == null) return ''
+  return `${base}${dv}`
+}
+
+// Extrae el DNI de un CUIL/CUIT (dígitos 2-9, sin padding de ceros).
+// Para CUILes pendientes (prefijo 00), el DNI está en el middle.
+export const dniFromCuil = (raw) => {
+  const c = parseCuil(raw)
+  if (c.length < 10) return ''
+  const middle = c.slice(2, 10)
+  // Quitar ceros a la izquierda para obtener el DNI real
+  return middle.replace(/^0+/, '') || middle
+}
+
+// Es un CUIL válido (11 dígitos, checksum correcto) y NO pendiente.
+export const isCuilCompleto = (raw) => {
+  const c = parseCuil(raw)
+  if (c.length !== 11) return false
+  if (isCuilPendiente(c)) return false
+  return isValidCuilChecksum(c)
+}
+
 // ---------- Teléfono ----------
 // Argentina: código país +54, código de área 2/3/4 dígitos, número 6/7/8 (total 10 sin país).
 // Celular desde el exterior: +54 9 <área> <número>. Localmente: 15 <número>.

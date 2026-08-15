@@ -2,7 +2,7 @@
   import { Input } from '$lib/components/ui/input'
   import { Label } from '$lib/components/ui/label'
   import { Button } from '$lib/components/ui/button'
-  import { Checkbox } from '$lib/components/ui/checkbox'
+  import { Switch } from '$lib/components/ui/switch'
   import { EMAIL_INSTITUCIONAL_DOMAIN } from '$core/format/emailInstitucional'
   import LockIcon from '@lucide/svelte/icons/lock'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
@@ -70,10 +70,10 @@
     <div>
       <Label for="coop-tel">Teléfono cooperadora</Label>
       <Input id="coop-tel" bind:value={escuela.telefono_cooperadora} oninput={() => { onTelefonoInput(); onDirty() }} disabled={telefonoMismoQueEscuela} placeholder="+54 9 11 1234-5678" inputmode="tel" class="mt-1" />
-      <label class="flex items-center gap-2 mt-1 text-xs text-muted-foreground cursor-pointer">
-        <Checkbox checked={telefonoMismoQueEscuela} onCheckedChange={() => onToggleTelefono()} />
+      <div class="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+        <Switch checked={telefonoMismoQueEscuela} onCheckedChange={() => onToggleTelefono()} />
         Mismo que la escuela
-      </label>
+      </div>
     </div>
     <div>
       <Label for="email-escuela">Email institucional</Label>

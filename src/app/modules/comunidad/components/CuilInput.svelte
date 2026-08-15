@@ -19,6 +19,7 @@
   } = $props()
 
   const PREFIJOS_FISICA = [
+    { value: '00', label: '00 - Pendiente' },
     { value: '20', label: '20 - Varón' },
     { value: '23', label: '23 - Mixto/alternativo' },
     { value: '24', label: '24 - Reasignación' },

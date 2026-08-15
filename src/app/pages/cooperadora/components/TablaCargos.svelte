@@ -2,7 +2,6 @@
   import { Input } from '$lib/components/ui/input'
   import { Label } from '$lib/components/ui/label'
   import { Button } from '$lib/components/ui/button'
-  import { Checkbox } from '$lib/components/ui/checkbox'
   import { Switch } from '$lib/components/ui/switch'
   import * as Select from '$lib/components/ui/select'
   import * as Table from '$lib/components/ui/table'
@@ -68,7 +67,7 @@
                   <Input type="number" bind:value={fila.cargo.duracion_meses} class="h-8 text-sm" />
                 </Table.Cell>
                 <Table.Cell>
-                  <Checkbox bind:checked={fila.cargo.cargo_obligatorio} />
+                  <Switch bind:checked={fila.cargo.cargo_obligatorio} />
                 </Table.Cell>
                 <Table.Cell>
                   <Button variant="outline" size="sm" onclick={() => store.saveCargo(fila.cargo)}>Guardar</Button>
@@ -101,7 +100,7 @@
         </Select.Root>
       </div>
       <div><Label for="nc-orden">Orden</Label><Input id="nc-orden" type="number" bind:value={store.nuevoCargo.orden} class="mt-1" /></div>
-      <div class="flex flex-col gap-1"><Label class="text-xs font-medium text-muted-foreground">Obligatorio</Label><Checkbox bind:checked={store.nuevoCargo.cargo_obligatorio} class="mt-1" /></div>
+      <div class="flex flex-col gap-1"><Label class="text-xs font-medium text-muted-foreground">Obligatorio</Label><Switch bind:checked={store.nuevoCargo.cargo_obligatorio} class="mt-1" /></div>
       <div class="flex flex-col gap-1"><Label class="text-xs font-medium text-muted-foreground">Activo</Label><Switch bind:checked={store.nuevoCargo.activo} disabled={store.nuevoCargo.cargo_obligatorio} class="mt-1" /></div>
     </div>
     <div class="flex justify-end"><Button size="sm" onclick={store.addCargo} disabled={store.busy}>Agregar</Button></div>

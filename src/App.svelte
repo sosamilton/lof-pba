@@ -14,8 +14,7 @@
   import NeedsAccess from '$setup/NeedsAccess.svelte'
   import SetupWizard from '$setup/SetupWizard.svelte'
   import Cooperadora from '$app/pages/cooperadora/Cooperadora.svelte'
-  import Socios from '$app/modules/comunidad/socios/Socios.svelte'
-  import Personas from '$app/modules/comunidad/personas/Personas.svelte'
+  import Comunidad from '$app/modules/comunidad/Comunidad.svelte'
   import Movimientos from '$app/modules/tesoreria/movimientos/Movimientos.svelte'
   import ResumenMensual from '$app/modules/tesoreria/resumen/ResumenMensual.svelte'
   import CargaPIAMatrix from '$app/modules/tesoreria/cargaPia/CargaPIAMatrix.svelte'
@@ -82,10 +81,8 @@
     {#snippet children()}
       {#if router.current === 'cooperadora'}
         <Cooperadora />
-      {:else if router.current === 'socios'}
-        <Socios />
-      {:else if router.current === 'personas'}
-        <Personas />
+      {:else if router.current === 'comunidad'}
+        <Comunidad />
       {:else if router.current === 'movimientos'}
         <Movimientos />
       {:else if router.current === 'resumen'}

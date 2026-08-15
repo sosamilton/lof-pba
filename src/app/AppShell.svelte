@@ -10,7 +10,6 @@
   import KeyboardHelp from '$lib/components/KeyboardHelp.svelte'
   import HomeIcon from '@lucide/svelte/icons/home'
   import UsersIcon from '@lucide/svelte/icons/users'
-  import ContactIcon from '@lucide/svelte/icons/contact'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import GavelIcon from '@lucide/svelte/icons/gavel'
   import BarChartIcon from '@lucide/svelte/icons/bar-chart'
@@ -33,8 +32,7 @@
 
   const iconMap = {
     inicio: HomeIcon,
-    socios: UsersIcon,
-    personas: ContactIcon,
+    comunidad: UsersIcon,
     movimientos: ArrowLeftRightIcon,
     resumen: BarChartIcon,
     gobierno: GavelIcon,
@@ -43,8 +41,7 @@
 
   const shortcutLabels = {
     inicio: 'Ctrl+I',
-    socios: 'Ctrl+S',
-    personas: 'Ctrl+P',
+    comunidad: 'Ctrl+S',
     movimientos: 'Ctrl+M',
     resumen: 'Ctrl+R',
     gobierno: 'Ctrl+A',

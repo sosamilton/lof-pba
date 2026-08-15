@@ -183,7 +183,7 @@
                           results={store.personaResults}
                           excludePersonaIds={assignedPersonaIds}
                           onsearch={(v) => { store.personaSearch = v; store.doPersonaSearch(`cargar:${globalIdx}`) }}
-                          onpick={(p) => store.linkPersonaSearch(p)}
+                          onpick={(p) => store.setDraftPersona(globalIdx, p)}
                           onunlink={() => store.unlinkDraftPersona(globalIdx)}
                           compact
                           showCreateSocio
@@ -191,7 +191,7 @@
                         />
                         <Field.Field>
                           <Field.FieldLabel class="text-[11px]">DNI</Field.FieldLabel>
-                          <Input bind:value={f.dni} class="h-8 text-xs" disabled={!!f.persona_id} />
+                          <Input value={f.dni} class="h-8 text-xs" disabled placeholder="Se completa al vincular persona" />
                         </Field.Field>
                         <Field.Field>
                           <Field.FieldLabel class="text-[11px]">Asunción</Field.FieldLabel>

@@ -1,7 +1,6 @@
 import { applyUserActions } from '$core/grist/grist.js'
 import { normalizeFields, dateToInput, addMonths } from '$core/utils/utils.js'
-import { extractRowId, findOrCreatePersona, personaLabel } from '$app/modules/comunidad/personas/personasApi.js'
-import { parseDni as normalizeDni, isValidDni } from '$core/format/format.js'
+import { extractRowId, personaLabel } from '$app/modules/comunidad/personas/personasApi.js'
 
 /**
  * Cargar autoridades desde una asamblea (AGO/AGE).
@@ -91,7 +90,11 @@ export function createCargarAutoridades({
         }
       })
 
-    const todosSeleccionados = new Set(filas.map((f) => f.cargoId))
+    // En carga parcial, arrancar con NINGUNO seleccionado (el usuario suma
+    // solo los cargos que quiere cambiar). En carga total, todos.
+    const seleccionInicial = totalVigentes === 0
+      ? new Set(filas.map((f) => f.cargoId))
+      : new Set()
     cargarDraft = {
       asambleaId,
       asambleaFecha: fecha,
@@ -100,7 +103,7 @@ export function createCargarAutoridades({
       needsAgeCreation: opts.needsAgeCreation || false,
       inlineMode: opts.inlineMode || false,
       cargaMode: totalVigentes === 0 ? 'total' : 'parcial',
-      cargosSeleccionados: todosSeleccionados,
+      cargosSeleccionados: seleccionInicial,
       totalVigentes,
       vigentesPorOrgano,
     }
@@ -148,6 +151,52 @@ export function createCargarAutoridades({
     cargarDraft.cargosSeleccionados = sel
   }
 
+  const selectAllCargos = () => {
+    if (!cargarDraft) return
+    cargarDraft.cargosSeleccionados = new Set(cargarDraft.filas.map((f) => f.cargoId))
+  }
+
+  const deselectAllCargos = () => {
+    if (!cargarDraft) return
+    cargarDraft.cargosSeleccionados = new Set()
+  }
+
+  const toggleOrganismoCargos = (organismo) => {
+    if (!cargarDraft) return
+    const filasOrg = cargarDraft.filas.filter((f) => f.organismo === organismo)
+    const idsOrg = filasOrg.map((f) => f.cargoId)
+    const sel = new Set(cargarDraft.cargosSeleccionados)
+    const todosSeleccionados = idsOrg.every((id) => sel.has(id))
+    if (todosSeleccionados) {
+      idsOrg.forEach((id) => sel.delete(id))
+    } else {
+      idsOrg.forEach((id) => sel.add(id))
+    }
+    cargarDraft.cargosSeleccionados = sel
+  }
+
+  // Estado tri-estado de un organismo: 'all' | 'none' | 'partial'
+  const organismoSelectState = (organismo) => {
+    if (!cargarDraft) return 'none'
+    const filasOrg = cargarDraft.filas.filter((f) => f.organismo === organismo)
+    if (filasOrg.length === 0) return 'none'
+    const seleccionados = filasOrg.filter((f) => cargarDraft.cargosSeleccionados.has(f.cargoId)).length
+    if (seleccionados === 0) return 'none'
+    if (seleccionados === filasOrg.length) return 'all'
+    return 'partial'
+  }
+
+  // Estado tri-estado global: 'all' | 'none' | 'partial'
+  const globalSelectState = () => {
+    if (!cargarDraft) return 'none'
+    const total = cargarDraft.filas.length
+    if (total === 0) return 'none'
+    const seleccionados = cargarDraft.cargosSeleccionados.size
+    if (seleccionados === 0) return 'none'
+    if (seleccionados === total) return 'all'
+    return 'partial'
+  }
+
   const crearAgoYCargar = async () => {
     bs.clearMessages()
     bs.setBusy(true)
@@ -187,12 +236,10 @@ export function createCargarAutoridades({
         ? filas
         : filas.filter((f) => cargosSeleccionados.has(f.cargoId))
 
-      // Verificar que haya al menos una fila con persona
-      const filasConPersona = filasAGuardar.filter(
-        (f) => f.persona_id || f.apellido_nombre.trim() || f.dni.trim(),
-      )
+      // Verificar que haya al menos una fila con persona linkeada
+      const filasConPersona = filasAGuardar.filter((f) => f.persona_id)
       if (filasConPersona.length === 0) {
-        bs.setError('No hay personas para guardar.')
+        bs.setError('No hay personas vinculadas. Usá "Crear nueva persona" en cada cargo.')
         return
       }
 
@@ -248,23 +295,15 @@ export function createCargarAutoridades({
       const tipoOrigen = tipo === 'RCD' ? 'ReunionCD' : 'Asamblea'
       const actions = []
       for (const f of filasConPersona) {
-        let personaId = f.persona_id
-        if (!personaId && f.dni && isValidDni(f.dni)) {
-          const persona = await findOrCreatePersona({
-            dni: normalizeDni(f.dni),
-            cuil: f.cuil || '',
-            apellido: f.apellido_nombre.split(',')[0]?.trim() || '',
-            nombre: f.apellido_nombre.split(',')[1]?.trim() || '',
-          })
-          personaId = persona?.id || null
-        }
+        const personaId = f.persona_id
+        if (!personaId) continue // sin persona linkeada, no se guarda
         const fechaAsuncion = f.fecha_asuncion || asambleaFecha
         const fechaVenc = fechaAsuncion ? addMonths(fechaAsuncion, f.duracionMeses) : ''
         const fields = normalizeFields({
           organismo: f.organismo || 'CD',
           cargo_id: f.cargoId,
           ejercicio_id: ejercicio.id,
-          persona_id: personaId || '',
+          persona_id: personaId,
           fecha_asuncion: fechaAsuncion || '',
           fecha_vencimiento: fechaVenc || '',
           tipo_origen: tipoOrigen,
@@ -297,6 +336,11 @@ export function createCargarAutoridades({
     unlinkDraftPersona,
     setCargaMode,
     toggleCargoSeleccionado,
+    selectAllCargos,
+    deselectAllCargos,
+    toggleOrganismoCargos,
+    organismoSelectState,
+    globalSelectState,
     saveAutoridadesFromAsamblea,
   }
 }
