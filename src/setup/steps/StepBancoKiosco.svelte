@@ -2,7 +2,7 @@
   import * as Card from '$lib/components/ui/card'
   import { Input } from '$lib/components/ui/input'
   import { Label } from '$lib/components/ui/label'
-  import { Checkbox } from '$lib/components/ui/checkbox'
+  import { Switch } from '$lib/components/ui/switch'
   import { Separator } from '$lib/components/ui/separator'
   import { CUENTAS_OPCIONES_EXPORT as CUENTAS_OPCIONES } from '../setupStore.svelte'
 
@@ -74,10 +74,10 @@
     <h2 class="text-[17px] font-bold mb-1.5">Kiosco / librería</h2>
     <p class="text-[13px] text-muted-foreground mb-4">¿La cooperadora gestiona un kiosco o librería escolar en este ejercicio?</p>
 
-    <label class="flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors hover:border-primary/30 {store.kiosco.posee ? 'border-primary/40 bg-primary/5' : 'border-border'} mb-3">
-      <Checkbox bind:checked={store.kiosco.posee} />
+    <div class="flex items-center gap-2.5 p-3 rounded-xl border transition-colors {store.kiosco.posee ? 'border-primary/40 bg-primary/5' : 'border-border'} mb-3">
+      <Switch bind:checked={store.kiosco.posee} />
       <span class="text-sm font-bold">Tiene kiosco o librería</span>
-    </label>
+    </div>
 
     {#if store.kiosco.posee}
       <div class="grid gap-3 max-[600px]:grid-cols-1 sm:grid-cols-2">

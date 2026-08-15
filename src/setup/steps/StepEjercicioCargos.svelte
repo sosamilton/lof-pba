@@ -4,7 +4,7 @@
   import { Label } from '$lib/components/ui/label'
   import { Button } from '$lib/components/ui/button'
   import { Separator } from '$lib/components/ui/separator'
-  import { Checkbox } from '$lib/components/ui/checkbox'
+  import { Switch } from '$lib/components/ui/switch'
   import PlusIcon from '@lucide/svelte/icons/plus'
   import TrashIcon from '@lucide/svelte/icons/trash'
   import ChevronUpIcon from '@lucide/svelte/icons/chevron-up'
@@ -171,13 +171,13 @@
         <h3 class="text-sm font-extrabold">{ORGANISMO_LABELS['Federacion'] || 'Federación'}</h3>
       </div>
 
-      <label class="flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors hover:border-primary/30 {store.federacionAdherida ? 'border-primary/40 bg-primary/5' : 'border-border'} mb-3">
-        <Checkbox checked={store.federacionAdherida} onchange={() => store.toggleFederacion()} />
+      <div class="flex items-center gap-2.5 p-3 rounded-xl border transition-colors {store.federacionAdherida ? 'border-primary/40 bg-primary/5' : 'border-border'} mb-3">
+        <Switch checked={store.federacionAdherida} onCheckedChange={() => store.toggleFederacion()} />
         <div>
           <div class="text-sm font-bold">Adherida a la Federación de Cooperadoras</div>
           <div class="text-[13px] text-muted-foreground mt-0.5">Muchas cooperadoras no están federadas. Marcá esta opción solo si tu cooperadora está adherida.</div>
         </div>
-      </label>
+      </div>
 
       {#if store.federacionAdherida}
         {@const grupoFed = store.cargosPorOrganismo('Federacion')}

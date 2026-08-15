@@ -3,7 +3,7 @@
   import { Input } from '$lib/components/ui/input'
   import { Label } from '$lib/components/ui/label'
   import * as InputGroup from '$lib/components/ui/input-group'
-  import { Checkbox } from '$lib/components/ui/checkbox'
+  import { Switch } from '$lib/components/ui/switch'
   import Combobox from '$lib/components/Combobox.svelte'
   import { Badge } from '$lib/components/ui/badge'
   import { cueSedeLabel } from '$core/format/format'
@@ -135,10 +135,10 @@
         {#if store.telefonoWarning}
           <span class="text-xs text-destructive">{store.telefonoWarning}</span>
         {/if}
-        <label class="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 cursor-pointer">
-          <Checkbox checked={store.telefonoMismoQueEscuela} onCheckedChange={(e) => store.toggleTelefonoMismoQueEscuela()} disabled={!escuelaEnabled} />
+        <div class="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+          <Switch checked={store.telefonoMismoQueEscuela} onCheckedChange={(e) => store.toggleTelefonoMismoQueEscuela()} disabled={!escuelaEnabled} />
           Mismo que la escuela
-        </label>
+        </div>
       </div>
       <div class="flex flex-col gap-1">
         <Label class="text-xs font-bold text-muted-foreground">Color de marca</Label>

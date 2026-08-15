@@ -2,6 +2,7 @@
   import * as Card from '$lib/components/ui/card'
   import * as Field from '$lib/components/ui/field'
   import { Checkbox } from '$lib/components/ui/checkbox'
+  import { Switch } from '$lib/components/ui/switch'
   import { Input } from '$lib/components/ui/input'
   import { Badge } from '$lib/components/ui/badge'
   import { MODULES } from '../setupStore.svelte'
@@ -24,8 +25,8 @@
 
       <div class="flex flex-col gap-3">
         <!-- Check 1: precargar datos demo en todos los pasos -->
-        <label class="flex items-start gap-3 p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/5 cursor-pointer">
-          <Checkbox
+        <div class="flex items-start gap-3 p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/5">
+          <Switch
             checked={store.precargarDemoPorDefecto}
             onCheckedChange={(v) => {
               store.precargarDemoPorDefecto = v
@@ -44,11 +45,11 @@
               que aparecía en cada paso.
             </p>
           </div>
-        </label>
+        </div>
 
         <!-- Check 2: cargar datos de prueba (generador) -->
-        <label class="flex items-start gap-3 p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/5 cursor-pointer">
-          <Checkbox
+        <div class="flex items-start gap-3 p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/5">
+          <Switch
             checked={store.cargarDatosPrueba}
             onCheckedChange={(v) => { store.cargarDatosPrueba = v }}
             class="mt-0.5"
@@ -66,7 +67,7 @@
               de listados y filtros.
             </p>
           </div>
-        </label>
+        </div>
 
         {#if store.precargarDemoPorDefecto}
           <div class="p-3 rounded-lg border border-primary/30 bg-primary/5 text-[12px] text-muted-foreground">

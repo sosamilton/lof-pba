@@ -2,7 +2,7 @@
   import * as Card from '$lib/components/ui/card'
   import { Badge } from '$lib/components/ui/badge'
   import { Separator } from '$lib/components/ui/separator'
-  import { Checkbox } from '$lib/components/ui/checkbox'
+  import { Switch } from '$lib/components/ui/switch'
   import { Button } from '$lib/components/ui/button'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
   import RefreshIcon from '@lucide/svelte/icons/refresh-cw'
@@ -38,10 +38,10 @@
         <div class="text-sm font-medium">Generación automática de períodos</div>
         <div class="text-xs text-muted-foreground">Crea un nuevo ejercicio automáticamente 2 meses antes del vencimiento</div>
       </div>
-      <label class="flex items-center gap-2 cursor-pointer">
-        <Checkbox bind:checked={store.generarPeriodosAuto} onCheckedChange={(v) => store.onPeriodosAutoChange(v)} disabled={store.savingConfig} />
+      <div class="flex items-center gap-2">
+        <Switch checked={store.generarPeriodosAuto} onCheckedChange={(v) => store.onPeriodosAutoChange(v)} disabled={store.savingConfig} />
         <span class="text-sm">{store.generarPeriodosAuto ? 'Activado' : 'Desactivado'}</span>
-      </label>
+      </div>
     </div>
 
     <Separator />

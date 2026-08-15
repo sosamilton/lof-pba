@@ -300,7 +300,7 @@
             <!-- Toggle socio -->
             <Separator />
             <div class="flex items-center gap-3">
-              <Switch bind:checked={store.esSocio} />
+              <Switch checked={store.esSocio} onCheckedChange={(v) => store.esSocio = v} />
               <span class="text-sm font-medium">Es socio</span>
             </div>
 
