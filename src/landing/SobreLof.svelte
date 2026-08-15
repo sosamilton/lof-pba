@@ -17,6 +17,9 @@
   import UsersIcon from '@lucide/svelte/icons/users'
   import ShieldIcon from '@lucide/svelte/icons/shield'
   import BuildingIcon from '@lucide/svelte/icons/building'
+  import GraduationCapIcon from '@lucide/svelte/icons/graduation-cap'
+  import HandHeartIcon from '@lucide/svelte/icons/hand-heart'
+  import LightbulbIcon from '@lucide/svelte/icons/lightbulb'
   import { identidad } from '$core/data/identidad'
   import data from './landing.json'
 
@@ -65,8 +68,62 @@
           Sobre LOF
         </h1>
         <p class="max-w-2xl text-base text-muted-foreground sm:text-lg">
-          Por qué este sistema se llama así, qué significa y quién lo construye.
+          Por qué existe esta herramienta, qué significa su nombre y quién la construye.
         </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- POR QUÉ EXISTE: la historia -->
+  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="historia-heading">
+    <div class="flex flex-col gap-2 mb-6">
+      <h2 id="historia-heading" class="text-2xl font-bold tracking-tight">Por qué existe LOF</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        La historia detrás de una herramienta que nació en el maternal.
+      </p>
+    </div>
+
+    <div class="flex flex-col gap-5">
+      <!-- El origen -->
+      <div class="flex items-start gap-4 p-5 rounded-xl border border-border bg-muted/5">
+        <div class="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+          <GraduationCapIcon class="size-5" />
+        </div>
+        <div class="flex flex-col gap-2">
+          <h3 class="text-base font-bold">El punto de partida</h3>
+          <p class="text-sm text-muted-foreground leading-relaxed">
+            Todo empezó cuando fui padre. En el maternal vi de cerca lo difícil que es construir y sostener la participación de la comunidad, atravesada por una carga administrativa que abruma. La educación pública —sobre todo cuando gobiernos que la desfinancian y la postergan— necesita del apoyo y el sostén comunitario como forma de resistencia, para garantizar un mejor futuro.
+          </p>
+        </div>
+      </div>
+
+      <!-- La construcción colectiva -->
+      <div class="flex items-start gap-4 p-5 rounded-xl border border-border bg-muted/5">
+        <div class="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+          <HandHeartIcon class="size-5" />
+        </div>
+        <div class="flex flex-col gap-2">
+          <h3 class="text-base font-bold">No es de una sola persona</h3>
+          <p class="text-sm text-muted-foreground leading-relaxed">
+            Esa motivación fue el origen, pero la herramienta no existiría sin los docentes, directivos y familias que pusieron tiempo, compromiso y visión para pensarla, mejorarla y hacerla útil. Se construye desde el territorio, con una lógica colaborativa, soberana y autogestiva.
+          </p>
+        </div>
+      </div>
+
+      <!-- La visión a futuro -->
+      <div class="flex items-start gap-4 p-5 rounded-xl border border-border bg-muted/5">
+        <div class="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+          <LightbulbIcon class="size-5" />
+        </div>
+        <div class="flex flex-col gap-2">
+          <h3 class="text-base font-bold">La visión</h3>
+          <p class="text-sm text-muted-foreground leading-relaxed">
+            Ojalá esta herramienta siga creciendo hasta simplificar todo lo administrativo, para que la gestión pase a un segundo plano y la participación comunitaria ocupe el primero. Tecnología al servicio de las personas: para complementar, asistir y aliviar los procesos más tediosos que impiden construir lazos y reorientan las prioridades.
+          </p>
+          <blockquote class="border-l-2 border-primary/40 pl-3 text-sm font-medium text-foreground italic mt-1">
+            Si la tecnología no sirve para tener más tiempo en construir lazos humanos, simplificando los procesos administrativos y burocráticos, no sirve para nada.
+          </blockquote>
+        </div>
       </div>
     </div>
   </section>

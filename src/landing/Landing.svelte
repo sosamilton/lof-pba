@@ -60,7 +60,7 @@
   import { identidad } from '$core/data/identidad'
   import data from './landing.json'
 
-  const { problemas, funciones, capturas, roadmap } = data
+  const { problemas, funciones, titulo_seccion, subtitulo_seccion, capturas, roadmap } = data
   const enlaces = identidad.enlaces
   const versionActual = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
   let showReleases = $state(false)
@@ -192,9 +192,9 @@
   <!-- FUNCIONES -->
   <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="funciones-heading">
     <div class="flex flex-col gap-2 mb-6">
-      <h2 id="funciones-heading" class="text-2xl font-bold tracking-tight">Cómo te ayuda todos los días</h2>
+      <h2 id="funciones-heading" class="text-2xl font-bold tracking-tight">{titulo_seccion || 'Cómo te ayuda todos los días'}</h2>
       <p class="text-sm text-muted-foreground max-w-prose">
-        Cuatro áreas para la gestión diaria de tu cooperadora, alineadas con el estatuto modelo y la PIA.
+        {subtitulo_seccion || 'Áreas para la gestión diaria de tu cooperadora, alineadas con el estatuto modelo y la PIA.'}
       </p>
     </div>
     <div class="grid gap-4 sm:grid-cols-2">

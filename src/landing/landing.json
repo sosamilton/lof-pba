@@ -63,82 +63,85 @@
       "icono": "gavel"
     }
   ],
+  "titulo_seccion": "Todo lo que necesitás para gestionar la cooperadora",
+  "subtitulo_seccion": "Desde la primera configuración hasta la rendición anual, en un solo lugar.",
   "funciones": [
     {
-      "titulo": "Empezar es simple",
-      "descripcion": "Un asistente te guía paso a paso para dejar la cooperadora lista en minutos.",
+      "titulo": "Puesta en marcha",
+      "descripcion": "De documento vacío a cooperadora configurada en menos de 5 minutos.",
       "icono": "rocket",
       "items": [
-        "Datos de la escuela, la cooperadora y el ejercicio",
-        "Cargos del estatuto al mínimo legal (Decreto 4767/72)",
-        "Validación automática de CUIT, CUE, CBU y teléfono",
-        "El color de tu cooperadora se convierte en el tema de la app",
-        "Módulo opcional de kiosco o librería escolar"
+        "Wizard guiado: escuela, cooperadora, ejercicio y cargos del estatuto",
+        "Autocompletado de datos desde el padrón oficial de escuelas (CUE)",
+        "Validación de CUIT, CBU y teléfono con algoritmos oficiales",
+        "Cargos obligatorios y opcionales del estatuto, listos para usar",
+        "El color de tu cooperadora personaliza toda la app en vivo",
+        "Dos modos: gestión integral o solo carga de la PIA"
       ]
     },
     {
-      "titulo": "Comunidad",
-      "descripcion": "Un único padrón que vincula socios, autoridades, docentes y directivos sin duplicar datos.",
+      "titulo": "El padrón de tu comunidad",
+      "descripcion": "Una sola base de personas que alimenta socios, autoridades y movimientos.",
       "icono": "users",
       "items": [
-        "Listado unificado de personas y socios con filtros por vínculo, estado y tipo",
-        "Personas físicas y jurídicas con campos específicos según el tipo",
-        "Toggle \"Es socio\" para dar de alta un socio sin salir del formulario de persona",
+        "Personas y socios en un solo lugar, sin duplicar datos",
         "Búsqueda instantánea por apellido, DNI, CUIL, email o teléfono",
-        "Altas, bajas y reactivaciones con historial",
-        "Categorías: socio, docente, directivo, proveedor, donante",
-        "Combobox con todas las localidades de la Provincia de Buenos Aires",
-        "Habilitación electoral automática: socio activo con 30 días de antigüedad",
-        "CUIL obligatorio con prefijo pendiente cuando solo se carga el DNI",
-        "Protección contra duplicados cuando varios usuarios cargan a la vez",
-        "Panel de movimientos de la persona seleccionada (modo gestión integral)"
+        "Filtros por vínculo, estado, tipo y categoría",
+        "Habilitación electoral automática según estatuto modelo",
+        "Cambiar una persona actualiza automáticamente socios y autoridades",
+        "Altas, bajas y reactivaciones con historial completo"
       ]
     },
     {
-      "titulo": "Tesorería al día",
-      "descripcion": "Registrás los movimientos y el sistema hace el resto: saldos, resúmenes, filtros y PIA.",
+      "titulo": "Tesorería transparente",
+      "descripcion": "Cada peso entra y sale con rubro, cuenta y trazabilidad.",
       "icono": "arrow-left-right",
       "items": [
         "Ingresos, egresos y traspasos con rubro según la PIA",
-        "Carga PIA por rubro: una pantalla con todos los rubros del mes",
-        "Múltiples cuentas por rubro (banco, efectivo, caja chica)",
-        "Importe en pesos argentinos con formato automático",
-        "Tablero de caja en Inicio: cuánto hay en cada cuenta",
-        "Resumen mensual y semanal con arrastre de saldo",
-        "Firma de períodos: sellás un mes y se bloquea la edición",
-        "Cuota societaria rápida con un solo clic",
-        "Filtros por rubro, ejercicio, período y persona",
-        "Ejercicio en curso seleccionado por defecto al abrir el módulo"
+        "Tablero de caja: cuánto hay en banco, efectivo y caja chica",
+        "Resumen mensual con arrastre de saldo y firma de períodos",
+        "Carga consolidada de la PIA por rubro en una sola pantalla",
+        "Cuota societaria rápida con un clic o Ctrl+1",
+        "Filtros por rubro, ejercicio, período y persona"
       ]
     },
     {
-      "titulo": "Cierre y presentación",
-      "descripcion": "Generá la PIA y la Nómina de autoridades en PDF desde los datos cargados durante el ejercicio.",
+      "titulo": "Gobierno y actas",
+      "descripcion": "Asambleas, autoridades y resoluciones vinculadas al ejercicio.",
+      "icono": "gavel",
+      "items": [
+        "Asambleas AGO, AGE y RCD con resoluciones y padrón electoral",
+        "Carga de autoridades desde el wizard de asambleas",
+        "Vencimientos de mandato calculados automáticamente",
+        "Ceses y reemplazos con historial completo",
+        "Alerta de quórum bajo y detección de personas en otro cargo",
+        "Comisión Directiva, CRC y Federación, todo vinculado"
+      ]
+    },
+    {
+      "titulo": "Documentación oficial",
+      "descripcion": "La PIA y la Nómina se generan solas desde los datos del ejercicio.",
       "icono": "file-text",
       "items": [
-        "PIA oficial en PDF: cuadro de recursos y gastos por rubro, encabezado, acta, autoridades",
-        "Nómina de autoridades en PDF: Comisión Directiva, CRC y Federación",
+        "PIA oficial en PDF con cuadro de recursos y gastos por rubro",
+        "Nómina de autoridades en PDF: CD, CRC y Federación",
         "Mapeo automático de movimientos a los campos del formulario oficial",
-        "Alertas accionables: datos faltantes con links directos al módulo correspondiente",
+        "Alertas accionables: te avisa qué datos faltan antes de cerrar",
         "Previsualización antes de descargar",
         "Datos del asesor, banco y kiosco integrados al documento"
       ]
     },
     {
-      "titulo": "Gobierno y asambleas",
-      "descripcion": "Comisión Directiva, Comisión Revisora de Cuentas y asambleas, todo vinculado al ejercicio.",
-      "icono": "gavel",
+      "titulo": "Diseñada para todos",
+      "descripcion": "Accesible, offline y sin depender de nadie. Software libre de verdad.",
+      "icono": "accessibility",
       "items": [
-        "Comisión Directiva inicializada desde los cargos del estatuto",
-        "Comisión Revisora de Cuentas y Asesoría",
-        "Vencimientos de mandato calculados automáticamente",
-        "Ceses y reemplazos con historial completo",
-        "Asambleas (AGO, AGE, RCD) con resoluciones",
-        "Carga de autoridades desde el wizard de asambleas con selección por organismo",
-        "Toggle global y por organismo para elegir qué cargos cargar (total o parcial)",
-        "Creación de persona y socio desde el wizard, con validación de CUIL/DNI",
-        "Padrón electoral automático según estatuto modelo",
-        "Alerta de quórum bajo y detección de personas en otro cargo"
+        "Navegación completa por teclado con atajos (Ctrl+K, Ctrl+1, ?)",
+        "Paleta de comandos para buscar y ejecutar acciones sin mouse",
+        "Soporte para lectores de pantalla y ARIA labels",
+        "100% offline: sin nube, sin telemetría, sin publicidades",
+        "Responsive: funciona en desktop y mobile",
+        "Software libre AGPL-3.0 sobre Grist, sin lock-in"
       ]
     }
   ],
