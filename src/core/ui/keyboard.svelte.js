@@ -75,8 +75,7 @@ export const keyboard = new KeyboardManager()
  */
 export const NAV_SHORTCUTS = {
   i: { route: 'inicio', label: 'Inicio' },
-  s: { route: 'socios', label: 'Socios' },
-  p: { route: 'personas', label: 'Personas' },
+  c: { route: 'comunidad', label: 'Comunidad' },
   m: { route: 'movimientos', label: 'Movimientos' },
   r: { route: 'resumen', label: 'Resumen' },
   a: { route: 'gobierno', label: 'Asambleas y Autoridades' },

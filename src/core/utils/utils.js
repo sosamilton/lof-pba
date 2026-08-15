@@ -121,8 +121,7 @@ export const MODULES = {
     tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asesores', 'asambleas', 'resoluciones', 'rubros_pia', 'planillas_generadas', 'configuracion', 'movimientos', 'cuentas', 'cierres_mensuales'],
     menuItems: [
       { route: 'inicio', label: 'Inicio' },
-      { route: 'socios', label: 'Socios' },
-      { route: 'personas', label: 'Personas' },
+      { route: 'comunidad', label: 'Comunidad' },
       { route: 'movimientos', label: 'Movimientos' },
       { route: 'gobierno', label: 'Asambleas y Autoridades' },
       { route: 'resumen', label: 'Resumen' }
@@ -136,10 +135,10 @@ export const MODULES = {
     menuItems: [
       { route: 'inicio', label: 'Inicio' },
       { route: 'cooperadora', label: 'Cooperadora' },
-      { route: 'socios', label: 'Socios' },
+      { route: 'comunidad', label: 'Comunidad' },
       { route: 'movimientos', label: 'Movimientos' },
       { route: 'gobierno', label: 'Asambleas y Autoridades' },
-      { route: 'personas', label: 'Personas' }
+      { route: 'resumen', label: 'Resumen' }
     ],
     implemented: true
   },
@@ -167,13 +166,11 @@ export const getActiveMenuItems = (config) => {
   if (config.modulo_gestion_integral) {
     items.push({ route: 'movimientos', label: 'Movimientos' })
     items.push({ route: 'gobierno', label: 'Asambleas y Autoridades' })
-    items.push({ route: 'socios', label: 'Socios' })
-    items.push({ route: 'personas', label: 'Personas' })
+    items.push({ route: 'comunidad', label: 'Comunidad' })
     items.push({ route: 'resumen', label: 'Resumen' })
     items.push({ route: 'cierre', label: 'Cierre / Presentación' })
   } else if (isCargaConsolidada(config)) {
-    items.push({ route: 'socios', label: 'Socios' })
-    items.push({ route: 'personas', label: 'Personas' })
+    items.push({ route: 'comunidad', label: 'Comunidad' })
     items.push({ route: 'movimientos', label: 'Movimientos' })
     items.push({ route: 'gobierno', label: 'Asambleas y Autoridades' })
     items.push({ route: 'resumen', label: 'Resumen' })

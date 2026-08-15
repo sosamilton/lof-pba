@@ -91,7 +91,7 @@
         titulo: 'Sin socios cargados',
         desc: 'No hay socios activos para este ejercicio. Los totales de socios en el PIA quedarán en cero.',
         accion: 'Cargar socios',
-        ruta: 'socios',
+        ruta: 'comunidad',
       })
     }
 
