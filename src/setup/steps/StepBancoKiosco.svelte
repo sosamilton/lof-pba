@@ -53,7 +53,7 @@
 <Card.Root class="mb-4">
   <Card.Content class="pt-6">
     <h2 class="text-[17px] font-bold mb-1.5">Cuenta preferida para movimientos</h2>
-    <p class="text-[13px] text-muted-foreground mb-4">¿En qué cuenta se registran los movimientos por defecto? Podés cambiarlo en cada movimiento.</p>
+    <p class="text-[13px] text-muted-foreground mb-4">Al cargar un movimiento, esta cuenta queda preseleccionada para no tener que elegirla cada vez. Podés cambiarla en cada movimiento si hace falta.</p>
 
     <div class="flex flex-col gap-2">
       {#each CUENTAS_OPCIONES as c}

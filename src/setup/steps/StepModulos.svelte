@@ -168,7 +168,7 @@
 <Card.Root class="mb-4">
   <Card.Content class="pt-6">
     <h2 class="text-[17px] font-bold mb-1.5">¿Cómo vas a usar {identidad.nombre}?</h2>
-    <p class="text-[13px] text-muted-foreground mb-4">Elegí el tipo de gestión. Podés cambiarlo más adelante.</p>
+    <p class="text-[13px] text-muted-foreground mb-4">Elegí el tipo de gestión según cuánto quieras registrar en la app. Podés cambiar de modo más adelante desde la configuración.</p>
 
     <div class="flex flex-col gap-2.5">
       {#each modeKeys as [key, mod]}
@@ -198,7 +198,7 @@
 
     {#if optionalKeys.length > 0}
       <div class="mt-4 pt-4 border-t border-border">
-        <div class="text-[13px] font-bold mb-2.5 text-muted-foreground">Complementos opcionales</div>
+        <div class="text-[13px] font-bold mb-2.5 text-muted-foreground">Complementos opcionales (podés activarlos o no)</div>
         <div class="flex flex-col gap-2.5">
           {#each optionalKeys as [key, mod]}
             <label class="flex items-start gap-2.5 p-3 rounded-xl border bg-muted/5 cursor-pointer transition-colors hover:border-primary/30 {store.selectedModules[key] ? 'border-primary/40 bg-primary/5' : 'border-border'}">

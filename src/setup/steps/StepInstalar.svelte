@@ -8,7 +8,7 @@
 <Card.Root class="mb-4">
   <Card.Content class="pt-6">
     <h2 class="text-[17px] font-bold mb-1.5">Revisá y instalá</h2>
-    <p class="text-[13px] text-muted-foreground mb-4">Se crearán las tablas necesarias y se guardará la configuración.</p>
+    <p class="text-[13px] text-muted-foreground mb-4">Revisá que todo esté bien antes de instalar. Al confirmar, se crean las tablas en la base de datos y se guarda la configuración. Después de esto, la app queda lista para usar.</p>
 
     <div class="flex flex-col gap-3.5">
       <div class="p-3 rounded-lg border border-border bg-muted/5">
@@ -41,7 +41,7 @@
         {/if}
       </div>
       <div class="p-3 rounded-lg border border-border bg-muted/5">
-        <div class="font-extrabold text-[13px] mb-1.5">Cuenta default</div>
+        <div class="font-extrabold text-[13px] mb-1.5">Cuenta preferida para movimientos</div>
         <div class="text-[13px] text-muted-foreground">{store.cuentaDefault}</div>
       </div>
       <div class="p-3 rounded-lg border border-border bg-muted/5">
