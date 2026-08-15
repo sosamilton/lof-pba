@@ -42,14 +42,13 @@ Vista pública que se muestra cuando la app corre fuera de Grist. El contenido (
   - `inicio/` — `Inicio.svelte` + `inicioStore` + `dashboardStore` (métricas) + `components/` (ResumenEjecutivo, TableroCaja, ConfigPanel, etc.).
   - `cooperadora/` — `Cooperadora.svelte` + `cooperadoraStore` (facade) + `cargosStore` + `ejerciciosStore` + `cooperadoraApi` + `components/` (FormEscuela, FormBanco, TablaCargos, etc.).
 - **`modules/`** — módulos funcionales por dominio, cada uno subdividido por sub-dominio con `components/` para UI:
-  - `comunidad/personas/` — `Personas.svelte` + `personasStore` + `personasApi` + helpers (`personaFormManager`, `personaLinker`).
-  - `comunidad/socios/` — `Socios.svelte` + `sociosStore` + `socioValidator`.
-  - `comunidad/components/` — UI compartida del módulo (CuilInput, FilterBar, RecordList, etc.).
+  - `comunidad/` — `Comunidad.svelte` + `comunidadStore` (padrón unificado de personas y socios). Reutiliza `personas/personasApi` + `personas/personaFormManager` + `personas/personaLinker` + `socios/socioValidator` + `constants.js`.
+  - `comunidad/components/` — UI compartida del módulo (CuilInput, FilterBar, RecordList, PersonaFormFields, EmptyStates).
   - `tesoreria/movimientos/` — `Movimientos.svelte` + `movimientosStore` + `form/` (lógica de formulario) + `components/`.
   - `tesoreria/resumen/` — `ResumenMensual.svelte` + `resumenStore` + `saldosStore` + `cierresService`.
   - `tesoreria/cargaPia/` — `CargaPIAMatrix.svelte` + `cargaPIAService` + `components/` (ConfirmarFirmaDialog).
   - `tesoreria/shared/` — `tesoreriaCalc.js` (cálculos compartidos).
-  - `gobierno/asambleas/` — `asambleasManager` + `components/` (TabAsambleas).
+  - `gobierno/asambleas/` — `asambleasManager` + `components/` (TabAsambleas, AsambleaWizard).
   - `gobierno/autoridades/` — `autoridadRows`, `cargarAutoridades`, `ceseAutoridad`, `reemplazoAutoridad` + `components/` (DialogCargar, DialogCese, DialogReemplazo, tabs).
   - `gobierno/components/` — UI compartida (PersonaPicker).
 

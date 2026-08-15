@@ -52,7 +52,7 @@ const base = createGristStore({
 })
 ```
 
-Devuelve `{ records, loading, error, notice, tableId, load, save, remove, refresh, clearMessages, setError, ... }` con estado reactivo. Los stores de módulo (`sociosStore`, `movimientosStore`, etc.) **extienden** este store base con estado y lógica de dominio específica (formularios, validaciones, vinculaciones entre tablas).
+Devuelve `{ records, loading, error, notice, tableId, load, save, remove, refresh, clearMessages, setError, ... }` con estado reactivo. Los stores de módulo (`comunidadStore`, `movimientosStore`, etc.) **extienden** este store base con estado y lógica de dominio específica (formularios, validaciones, vinculaciones entre tablas).
 
 ### Facade con sub-stores
 
@@ -122,7 +122,7 @@ Siempre keyed, con key único (no el índice):
 
 - **Normalizar** antes de guardar: `normalizeDni`, `normalizeCuil`, `normalizeTelefono`, `normalizeEmailField`.
 - **Formatear** para mostrar: `formatDni`, `formatCuil`, `formatTelefono`, `formatARS`.
-- **Validar** con warnings en vivo en el form: `isValidDni`, `isValidCuil`, `isValidCuilChecksum`, `isValidEmailField`.
+- **Validar** con warnings en vivo en el form: `isValidDni`, `isValidCuil`, `isValidCuilChecksum`, `isCuilPendiente`, `isValidEmailField`. El CUIL pendiente (prefijo `00`) genera un warning no bloqueante; un CUIL real inválido (checksum mal) bloquea el guardado.
 
 Los stores de módulo mantienen `*Warning = $state('')` por campo y bloquean el guardado si hay warnings activos.
 

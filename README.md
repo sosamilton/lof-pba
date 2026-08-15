@@ -56,9 +56,14 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 <details>
 <summary><strong>Comunidad</strong></summary>
 
-- **Socios** — alta, edición y baja con búsqueda instantánea por apellido, DNI, CUIL, email, teléfono, localidad o domicilio. Filtros por estado (Activos/Bajas/Todos) y tipo (Activo/Honorario/Adherente). Baja con motivo (Renuncia, Falta de pago, Fallecimiento, CambioEscuela, Otro). Validación de mayoría de edad y habilitación electoral automática (activo + 30 días de antigüedad).
-- **Personas** — tabla unificada (single source of truth) que vincula socios, autoridades, docentes y directivos sin duplicar datos. Soporte para personas físicas y jurídicas. Combobox de localidades de toda la Provincia de Buenos Aires. Panel de movimientos de la persona seleccionada (modo gestión integral): muestra los últimos 5 movimientos asociados con tipo, fecha, detalle e importe.
-- **Vinculación automática**: al escribir DNI, busca persona existente y la vincula. Indicador visual de persona vinculada con botón para desvincular.
+- **Padrón unificado** — un solo listado de personas y socios con filtros por vínculo (socios/no socios), estado (Activos/Bajas/Todos), tipo de socio (Activo/Honorario/Adherente), tipo de persona (Física/Jurídica) y categoría (Socio/Docente/Directivo/Proveedor/Donante). Badges visuales por persona: Socio Activo/Baja, No socio, Física/Jurídica.
+- **Toggle "Es socio"** — desde el mismo formulario de persona, un switch activa los campos de socio (tipo, fecha de alta, baja con motivo). No hace falta ir a otro módulo para dar de alta un socio.
+- **Personas físicas y jurídicas** — campos específicos según el tipo: apellido + nombre + DNI + CUIL para físicas; razón social + CUIT para jurídicas.
+- **CUIL obligatorio con prefijo pendiente** — cuando solo se carga el DNI, se genera un CUIL con prefijo `00` (pendiente) que no se usa para deduplicación. El usuario puede completar el CUIL real después.
+- **Búsqueda instantánea** por apellido, DNI, CUIL, email, teléfono, localidad o domicilio. Vinculación automática al escribir DNI: busca persona existente y la vincula.
+- **Bajas y reactivaciones** con motivo (Renuncia, Falta de pago, Fallecimiento, CambioEscuela, Otro). Validación de mayoría de edad y habilitación electoral automática (activo + 30 días de antigüedad).
+- **Combobox de localidades** de toda la Provincia de Buenos Aires.
+- **Panel de movimientos** de la persona seleccionada (modo gestión integral): muestra los últimos 5 movimientos asociados.
 - **Protección multiplayer**: evita duplicados cuando dos usuarios crean la misma persona simultáneamente.
 - **Normalización automática**: DNI/CUIL se guardan como dígitos crudos, teléfono con prefijo internacional, email en lowercase.
 
@@ -93,6 +98,7 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 - **Comisión Revisora de Cuentas** (titular docente, titular socio, suplente) y Asesoría.
 - **Autoridades** con vencimiento de mandato, ceses (Renuncia, FinMandato, Reemplazo, Otro) y reemplazos con historial completo.
 - **Asambleas** (AGO/AGE/RCD) con resoluciones vinculadas al ejercicio.
+- **Carga de autoridades desde el wizard de asambleas** — wizard inline con selección de cargos por organismo (CD, CRC, Federación). Toggle global y por organismo para elegir qué cargos cargar (carga total o parcial). Creación de persona y socio desde el flujo, con validación de CUIL/DNI y PersonaPicker unificado.
 - **Histórico** de autoridades por período con filtros por organismo.
 - **Padrón electoral automático** según estatuto modelo.
 - **Detección de conflictos**: persona en otro cargo, quórum bajo.
@@ -103,7 +109,7 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 <summary><strong>Experiencia de usuario</strong></summary>
 
 - **Paleta de comandos** (Ctrl+K) tipo VS Code con acciones del módulo actual, navegación y acciones rápidas.
-- **Atajos de teclado** completos: Ctrl+N (nuevo), Ctrl+F (buscar), Ctrl+1 (cuota social), Ctrl+I/S/P/M/R/A (navegación), `/` (enfocar búsqueda), `?` (ayuda).
+- **Atajos de teclado** completos: Ctrl+N (nuevo), Ctrl+F (buscar), Ctrl+1 (cuota social), Ctrl+I/C/M/R/A (navegación), `/` (enfocar búsqueda), `?` (ayuda).
 - **Sidebar dinámico colapsable**: el menú se genera según módulos activos, con atajos de teclado por item.
 - **Combobox con búsqueda** y modo "large" para listas grandes (> 50 items, requiere 3 caracteres).
 - **Tema dinámico**: la app toma el color de marca de cada cooperadora como tema primario (OKLCH para light/dark). Título de pestaña dinámico con el nombre de la institución.
@@ -155,7 +161,7 @@ docker compose -f docker-compose.dev.yml up
 
 ### Seeder de datos de prueba (dev)
 
-En entorno de desarrollo, el primer paso del setup wizard incluye dos checkboxes para agilizar pruebas:
+En entorno de desarrollo, el primer paso del setup wizard incluye dos switches para agilizar pruebas:
 
 - **Precargar datos demo en todos los pasos** — rellena automáticamente los campos de cada paso (módulos, escuela, banco, ejercicio, cargos) con datos de ejemplo. Reemplaza al botón "Precargar datos demo" que aparece en cada paso cuando no está activo.
 - **Cargar datos de prueba tras instalar** — ejecuta un seeder que genera personas, socios, movimientos, una asamblea AGO y autoridades de CD/CRC con todas las Refs resueltas, para probar performance de listados y filtros. Al activarlo se despliega un formulario para customizar las cantidades de cada entidad (personas, socios, movimientos y tamaño de lote), con valores por defecto de 500/400/2000/100.
@@ -182,6 +188,7 @@ Si no se seleccionan los checkboxes, cada paso muestra un botón **"Precargar da
 | Estado | Item |
 | --- | --- |
 | Listo | PIA y Nómina en PDF — generación automática desde los datos del ejercicio |
+| Listo | Comunidad unificada y carga de autoridades desde asambleas — padrón unificado con toggle de socio, wizard inline con selección por organismo |
 | Próximo | Adjuntos y actas — carga guiada de comprobantes con trazabilidad |
 | Después | Balance de tesorería exportable |
 | Después | Accesos y roles — permisos por tesorería, comisión, asesoría |

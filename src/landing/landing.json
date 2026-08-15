@@ -77,15 +77,19 @@
       ]
     },
     {
-      "titulo": "Socios y personas",
+      "titulo": "Comunidad",
       "descripcion": "Un único padrón que vincula socios, autoridades, docentes y directivos sin duplicar datos.",
       "icono": "users",
       "items": [
+        "Listado unificado de personas y socios con filtros por vínculo, estado y tipo",
+        "Personas físicas y jurídicas con campos específicos según el tipo",
+        "Toggle \"Es socio\" para dar de alta un socio sin salir del formulario de persona",
         "Búsqueda instantánea por apellido, DNI, CUIL, email o teléfono",
         "Altas, bajas y reactivaciones con historial",
         "Categorías: socio, docente, directivo, proveedor, donante",
         "Combobox con todas las localidades de la Provincia de Buenos Aires",
         "Habilitación electoral automática: socio activo con 30 días de antigüedad",
+        "CUIL obligatorio con prefijo pendiente cuando solo se carga el DNI",
         "Protección contra duplicados cuando varios usuarios cargan a la vez",
         "Panel de movimientos de la persona seleccionada (modo gestión integral)"
       ]
@@ -130,6 +134,9 @@
         "Vencimientos de mandato calculados automáticamente",
         "Ceses y reemplazos con historial completo",
         "Asambleas (AGO, AGE, RCD) con resoluciones",
+        "Carga de autoridades desde el wizard de asambleas con selección por organismo",
+        "Toggle global y por organismo para elegir qué cargos cargar (total o parcial)",
+        "Creación de persona y socio desde el wizard, con validación de CUIL/DNI",
         "Padrón electoral automático según estatuto modelo",
         "Alerta de quórum bajo y detección de personas en otro cargo"
       ]
@@ -150,8 +157,8 @@
         "imagen": "img/screenshot/cooperadora.png"
       },
       {
-        "titulo": "Socios",
-        "descripcion": "Padrón de socios con búsqueda, altas y bajas.",
+        "titulo": "Comunidad",
+        "descripcion": "Padrón unificado de personas y socios con búsqueda, filtros y altas.",
         "imagen": "img/screenshot/socio.png"
       },
       {
@@ -290,6 +297,11 @@
       "estado": "hecho",
       "titulo": "Generación automática de la PIA y la Nómina",
       "descripcion": "Armado automático de la Planilla de Ingresos y Aportes y la Nómina de autoridades en PDF, desde los movimientos y datos cargados durante el ejercicio."
+    },
+    {
+      "estado": "hecho",
+      "titulo": "Comunidad unificada y carga de autoridades desde asambleas",
+      "descripcion": "Fusión de los módulos de Personas y Socios en un solo padrón con toggle de socio. Wizard de asambleas con carga de autoridades inline, selección por organismo y creación de persona + socio desde el flujo."
     },
     {
       "estado": "proximo",

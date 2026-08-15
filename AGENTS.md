@@ -33,7 +33,7 @@ Cuando se solicite una modificación, un fix, una mejora o una nueva funcionalid
 
 ## Datos de prueba (dev only)
 
-`src/setup/generadorDemo.js` genera datos de prueba (personas → socios → movimientos → asamblea AGO + autoridades de CD/CRC, todas con Refs resueltas) para probar performance de listados/filtros. Se invoca desde el último paso del setup wizard con un checkbox visible solo cuando `import.meta.env.DEV` es true. El módulo se carga via `import()` dinámico dentro de un guard DEV, así que **no viaja en el bundle de producción** (verificado: `grep -l generarDatosPrueba dist/assets/*.js` no encuentra nada tras `npm run build`).
+`src/setup/generadorDemo.js` genera datos de prueba (personas → socios → movimientos → asamblea AGO + autoridades de CD/CRC, todas con Refs resueltas) para probar performance de listados/filtros. Se invoca desde el primer paso del setup wizard con un switch visible solo cuando `import.meta.env.DEV` es true. El módulo se carga via `import()` dinámico dentro de un guard DEV, así que **no viaja en el bundle de producción** (verificado: `grep -l generarDatosPrueba dist/assets/*.js` no encuentra nada tras `npm run build`).
 
 Para cambiar el volumen de datos, editar los defaults en `generarDatosPrueba()` o pasar parámetros al invocarla. Para volúmenes mayores (~10000), considerar aumentar `batchSize` y monitorear memoria del sandbox de Grist.
 
