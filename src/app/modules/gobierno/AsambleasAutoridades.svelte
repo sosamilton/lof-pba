@@ -38,7 +38,7 @@
       {#if store.ejercicio}
         Ejercicio en curso: <span class="font-mono">{store.ejercicio.anio_inicio}-{store.ejercicio.anio_fin}</span>
       {:else}
-        No hay ejercicio en curso. Activá uno en "Cooperadora".
+        No hay ejercicio en curso. Activá uno en "Institucional".
       {/if}
     </p>
   </div>

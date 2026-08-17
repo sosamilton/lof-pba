@@ -38,7 +38,7 @@
     {#if store.rows.length === 0}
       <EmptyState
         title="Sin cargos para este organismo"
-        sub="Configurá los cargos del estatuto en 'Cooperadora' para gestionar las autoridades aquí."
+        sub="Configurá los cargos del estatuto en 'Institucional' para gestionar las autoridades aquí."
       >
         {#snippet icon()}
           <UsersIcon class="size-8 text-muted-foreground" />

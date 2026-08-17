@@ -75,7 +75,7 @@ export function createFormLogic({ formState, relatedData, base, cierresService }
   }
 
   const validate = () => {
-    if (!relatedData.ejercicio) return 'No hay ejercicio en curso. Activá uno en "Cooperadora".'
+    if (!relatedData.ejercicio) return 'No hay ejercicio en curso. Activá uno en "Institucional".'
     if (!formState.form?.fecha) return 'Completá la fecha.'
     if (!formState.form?.tipo_movimiento) return 'Elegí el tipo de movimiento.'
     if (!formState.form?.importe || Number(formState.form.importe) <= 0) return 'Completá el importe (mayor a 0).'

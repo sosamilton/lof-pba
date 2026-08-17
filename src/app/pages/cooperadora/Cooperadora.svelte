@@ -1,11 +1,16 @@
 <script>
   import { onMount } from 'svelte'
   import { cooperadoraStore as store } from './cooperadoraStore.svelte'
-  import * as Accordion from '$lib/components/ui/accordion'
+  import * as Tabs from '$lib/components/ui/tabs'
+  import * as Card from '$lib/components/ui/card'
   import { Badge } from '$lib/components/ui/badge'
   import { Skeleton } from '$lib/components/ui/skeleton'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
   import LockIcon from '@lucide/svelte/icons/lock'
+  import BuildingIcon from '@lucide/svelte/icons/building'
+  import UsersIcon from '@lucide/svelte/icons/users'
+  import UserCogIcon from '@lucide/svelte/icons/user-cog'
+  import CalendarRangeIcon from '@lucide/svelte/icons/calendar-range'
   import { emailInstitucionalAlias, parseEmailInstitucionalInput } from '$core/format/emailInstitucional'
   import FormEscuela from './components/FormEscuela.svelte'
   import FormBanco from './components/FormBanco.svelte'
@@ -106,7 +111,7 @@
   })
 </script>
 
-<PageScaffold title="Cooperadora" loading={store.loading} error={store.error} notice={store.notice}>
+<PageScaffold title="Institucional" loading={store.loading} error={store.error} notice={store.notice}>
   {#snippet skeleton()}
     <div class="flex flex-col gap-4">
       <Skeleton class="h-8 w-48" />
@@ -114,115 +119,126 @@
       <Skeleton class="h-64 w-full" />
     </div>
   {/snippet}
-  <div class="flex flex-col gap-2 w-full">
-    <Accordion.Root type="multiple" value={['escuela', 'ejercicios']}>
-      <!-- Item 1: Escuela y cooperadora -->
-      <Accordion.Item value="escuela">
-        <Accordion.Trigger>
-          <span class="font-semibold">Escuela y cooperadora</span>
+  <div class="flex flex-col gap-4 w-full">
+    <Tabs.Root value="datos-generales">
+      <Tabs.List class="mb-4">
+        <Tabs.Trigger value="datos-generales" class="px-3">
+          <BuildingIcon data-icon="inline-start" />
+          Datos generales
+        </Tabs.Trigger>
+        <Tabs.Trigger value="cargos" class="px-3">
+          <UsersIcon data-icon="inline-start" />
+          Cargos
+        </Tabs.Trigger>
+        <Tabs.Trigger value="asesor" class="px-3">
+          <UserCogIcon data-icon="inline-start" />
+          Asesor institucional
+        </Tabs.Trigger>
+        <Tabs.Trigger value="ejercicios" class="px-3">
+          <CalendarRangeIcon data-icon="inline-start" />
+          Ejercicios
+        </Tabs.Trigger>
+      </Tabs.List>
+
+      <!-- Tab: Datos generales (escuela, banco, kiosco) -->
+      <Tabs.Content value="datos-generales" class="flex flex-col gap-4">
+        <Card.Root>
+          <Card.Header>
+            <Card.Title class="text-base flex items-center gap-2">
+              Escuela y cooperadora
+              {#if escuelaValidada}
+                <Badge variant="secondary"><LockIcon class="size-3" /> Validado</Badge>
+              {/if}
+            </Card.Title>
+          </Card.Header>
+          <Card.Content>
+            <FormEscuela
+              escuela={store.escuela}
+              {escuelaValidada}
+              {escuelaDirty}
+              {emailEscuelaAlias}
+              {emailEscuelaBloqueado}
+              {telefonoMismoQueEscuela}
+              colorPrimario={store.color_primario}
+              busy={store.busy}
+              onCueInput={store.onCueInput}
+              onCuitInput={store.onCuitInput}
+              onTelefonoInput={store.onTelefonoInput}
+              onTelefonoEscuelaInput={store.onTelefonoEscuelaInput}
+              onEmailEscuelaInput={onEmailEscuelaInput}
+              onColorChange={(v) => { store.setColor_primario(v); escuelaDirty = true }}
+              onDirty={() => { escuelaDirty = true }}
+              onToggleTelefono={toggleTelefonoMismoQueEscuela}
+              onValidar={store.validarDatos}
+              onSave={handleSave}
+            />
+          </Card.Content>
+        </Card.Root>
+
+        <Card.Root>
+          <Card.Header>
+            <Card.Title class="text-base flex items-center gap-2">
+              Datos bancarios
+              {#if bancoValidado}
+                <Badge variant="secondary"><LockIcon class="size-3" /> Validado</Badge>
+              {/if}
+            </Card.Title>
+          </Card.Header>
+          <Card.Content>
+            <FormBanco
+              banco={store.banco}
+              {bancoValidado}
+              busy={store.busy}
+              onValidar={store.validarBanco}
+            />
+          </Card.Content>
+        </Card.Root>
+
+        <Card.Root>
+          <Card.Header>
+            <Card.Title class="text-base">Kiosco / Librería</Card.Title>
+          </Card.Header>
+          <Card.Content>
+            <FormKiosco
+              kiosco={store.kiosco}
+              busy={store.busy}
+              onSave={handleSave}
+              saveDisabled={escuelaValidada && !escuelaDirty && !kioscoDirty}
+            />
+          </Card.Content>
+        </Card.Root>
+      </Tabs.Content>
+
+      <!-- Tab: Cargos (definición + comisión directiva vigente) -->
+      <Tabs.Content value="cargos" class="flex flex-col gap-4">
+        <div class="flex items-center gap-2">
+          <h2 class="text-sm font-semibold">Comisión Directiva y Cargos</h2>
           {#if escuelaValidada}
-            <Badge variant="secondary" class="ml-2"><LockIcon class="size-3" /> Validado</Badge>
+            <Badge variant="secondary"><LockIcon class="size-3" /> Read-only</Badge>
           {/if}
-        </Accordion.Trigger>
-        <Accordion.Content>
-          <FormEscuela
-            escuela={store.escuela}
-            {escuelaValidada}
-            {escuelaDirty}
-            {emailEscuelaAlias}
-            {emailEscuelaBloqueado}
-            {telefonoMismoQueEscuela}
-            colorPrimario={store.color_primario}
-            busy={store.busy}
-            onCueInput={store.onCueInput}
-            onCuitInput={store.onCuitInput}
-            onTelefonoInput={store.onTelefonoInput}
-            onTelefonoEscuelaInput={store.onTelefonoEscuelaInput}
-            onEmailEscuelaInput={onEmailEscuelaInput}
-            onColorChange={(v) => { store.setColor_primario(v); escuelaDirty = true }}
-            onDirty={() => { escuelaDirty = true }}
-            onToggleTelefono={toggleTelefonoMismoQueEscuela}
-            onValidar={store.validarDatos}
-            onSave={handleSave}
-          />
-        </Accordion.Content>
-      </Accordion.Item>
+        </div>
+        <TablaCargos {store} {escuelaValidada} tieneAutoridadesVigentes={store.tieneAutoridadesVigentes} />
+      </Tabs.Content>
 
-      <!-- Item 2: Datos bancarios -->
-      <Accordion.Item value="banco">
-        <Accordion.Trigger>
-          <span class="font-semibold">Datos bancarios</span>
-          {#if bancoValidado}
-            <Badge variant="secondary" class="ml-2"><LockIcon class="size-3" /> Validado</Badge>
-          {/if}
-        </Accordion.Trigger>
-        <Accordion.Content>
-          <FormBanco
-            banco={store.banco}
-            {bancoValidado}
-            busy={store.busy}
-            onValidar={store.validarBanco}
-          />
-        </Accordion.Content>
-      </Accordion.Item>
+      <!-- Tab: Asesor institucional -->
+      <Tabs.Content value="asesor" class="flex flex-col gap-4">
+        <ListaAsesores />
+      </Tabs.Content>
 
-      <!-- Item 3: Kiosco / Librería -->
-      <Accordion.Item value="kiosco">
-        <Accordion.Trigger>
-          <span class="font-semibold">Kiosco / Librería</span>
-        </Accordion.Trigger>
-        <Accordion.Content>
-          <FormKiosco
-            kiosco={store.kiosco}
-            busy={store.busy}
-            onSave={handleSave}
-            saveDisabled={escuelaValidada && !escuelaDirty && !kioscoDirty}
-          />
-        </Accordion.Content>
-      </Accordion.Item>
-
-      <!-- Item 4: Comisión Directiva y Cargos -->
-      <Accordion.Item value="comision">
-        <Accordion.Trigger>
-          <span class="font-semibold">Comisión Directiva y Cargos</span>
-          {#if escuelaValidada}
-            <Badge variant="secondary" class="ml-2"><LockIcon class="size-3" /> Read-only</Badge>
-          {/if}
-        </Accordion.Trigger>
-        <Accordion.Content>
-          <TablaCargos {store} {escuelaValidada} tieneAutoridadesVigentes={store.tieneAutoridadesVigentes} />
-        </Accordion.Content>
-      </Accordion.Item>
-
-      <!-- Item 5: Asesor/a de la Cooperadora -->
-      <Accordion.Item value="asesor">
-        <Accordion.Trigger>
-          <span class="font-semibold">Asesor/a de la Cooperadora</span>
-        </Accordion.Trigger>
-        <Accordion.Content>
-          <ListaAsesores />
-        </Accordion.Content>
-      </Accordion.Item>
-
-      <!-- Item 5: Ejercicios -->
-      <Accordion.Item value="ejercicios">
-        <Accordion.Trigger>
-          <span class="font-semibold">Ejercicios</span>
-        </Accordion.Trigger>
-        <Accordion.Content>
-          <ListaEjercicios
-            ejercicios={store.ejercicios}
-            nuevoEj={store.nuevoEj}
-            creating={store.busy}
-            busy={store.busy}
-            onEditar={abrirEditarEjercicio}
-            onActivar={confirmarActivarEjercicio}
-            onEliminar={confirmarEliminarEjercicio}
-            onCrear={store.createEjercicio}
-          />
-        </Accordion.Content>
-      </Accordion.Item>
-    </Accordion.Root>
+      <!-- Tab: Ejercicios -->
+      <Tabs.Content value="ejercicios" class="flex flex-col gap-4">
+        <ListaEjercicios
+          ejercicios={store.ejercicios}
+          nuevoEj={store.nuevoEj}
+          creating={store.busy}
+          busy={store.busy}
+          onEditar={abrirEditarEjercicio}
+          onActivar={confirmarActivarEjercicio}
+          onEliminar={confirmarEliminarEjercicio}
+          onCrear={store.createEjercicio}
+        />
+      </Tabs.Content>
+    </Tabs.Root>
   </div>
 
 </PageScaffold>

@@ -134,7 +134,7 @@ export const MODULES = {
     tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asesores', 'asambleas', 'resoluciones', 'cuentas', 'rubros_pia', 'subrubros', 'movimientos', 'configuracion', 'planillas_generadas', 'cierres_mensuales'],
     menuItems: [
       { route: 'inicio', label: 'Inicio' },
-      { route: 'cooperadora', label: 'Cooperadora' },
+      { route: 'cooperadora', label: 'Institucional' },
       { route: 'comunidad', label: 'Comunidad' },
       { route: 'movimientos', label: 'Movimientos' },
       { route: 'gobierno', label: 'Asambleas y Autoridades' },
@@ -162,6 +162,9 @@ const isCargaConsolidada = (config) =>
 export const getActiveMenuItems = (config) => {
   if (!config) return [{ route: 'inicio', label: 'Inicio' }]
   const items = [{ route: 'inicio', label: 'Inicio' }]
+  // Información institucional/formal de la cooperadora (escuela, banco,
+  // kiosco, cargos, asesor, ejercicios). Visible en ambas modalidades.
+  items.push({ route: 'cooperadora', label: 'Institucional' })
 
   if (config.modulo_gestion_integral) {
     items.push({ route: 'movimientos', label: 'Movimientos' })
