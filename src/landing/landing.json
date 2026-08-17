@@ -67,16 +67,16 @@
   "subtitulo_seccion": "Desde la primera configuración hasta la rendición anual, en un solo lugar.",
   "funciones": [
     {
-      "titulo": "Puesta en marcha",
-      "descripcion": "De documento vacío a cooperadora configurada en menos de 5 minutos.",
-      "icono": "rocket",
+      "titulo": "Institucional",
+      "descripcion": "Los datos formales de tu cooperadora, desde la primera configuración hasta el día a día.",
+      "icono": "building",
       "items": [
         "Wizard guiado: escuela, cooperadora, ejercicio y cargos del estatuto",
         "Autocompletado de datos desde el padrón oficial de escuelas (CUE)",
-        "Validación de CUIT, CBU y teléfono con algoritmos oficiales",
-        "Cargos obligatorios y opcionales del estatuto, listos para usar",
-        "El color de tu cooperadora personaliza toda la app en vivo",
-        "Dos modos: gestión integral o solo carga de la PIA"
+        "Escuela, banco y kiosco en un solo lugar, con validación de CUIT y CBU",
+        "Cargos del estatuto por organismo: CD, CRC y Federación",
+        "Asesor institucional con delegación y registro de ceses",
+        "Ejercicios fiscales con saldo inicial y color que personaliza la app"
       ]
     },
     {
@@ -155,8 +155,8 @@
         "imagen": "img/screenshot/inicio.png"
       },
       {
-        "titulo": "Cooperadora",
-        "descripcion": "Datos de la institución, ejercicio y configuración general.",
+        "titulo": "Institucional",
+        "descripcion": "Datos formales de la escuela, cooperadora, banco y kiosco, cargos de la Comisión Directiva, asesor institucional y ejercicios.",
         "imagen": "img/screenshot/cooperadora.png"
       },
       {
