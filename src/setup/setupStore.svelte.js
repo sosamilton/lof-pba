@@ -155,6 +155,35 @@ export class SetupStore {
     cantEjercicios: 1,
   })
 
+  // Estimación de movimientos según el modo seleccionado.
+  // - Integral: usa cantMovimientos directo (repartido entre ejercicios).
+  // - Consolidada: rubros (~20) × cuentas (3) × períodos (12) × 0.7 (30% vacíos) × ejercicios
+  get movimientosEstimados() {
+    const cantEj = Number(this.datosPruebaConfig.cantEjercicios) || 1
+    if (this.selectedModules.carga_consolidada) {
+      const periodos = 12 // Mayo-Mayo = 12 períodos
+      const rubros = 20 // aproximado de rubros PIA Entrada+Salida
+      const cuentas = 3 // Banco, Efectivo, Caja Chica
+      const estimadoPorEj = Math.round(rubros * cuentas * periodos * 0.7)
+      return estimadoPorEj * cantEj
+    }
+    return Number(this.datosPruebaConfig.cantMovimientos) || 2000
+  }
+
+  // Descripción de los datos de prueba según el modo.
+  get datosPruebaDescripcion() {
+    const cantEj = Number(this.datosPruebaConfig.cantEjercicios) || 1
+    if (this.selectedModules.carga_consolidada) {
+      const periodos = 12
+      const firmados = Math.floor(periodos * 0.7)
+      const abiertos = periodos - firmados
+      const ejTxt = cantEj > 1 ? ` en ${cantEj} ejercicios` : ''
+      return `${this.movimientosEstimados} movimientos${ejTxt} (${firmados} períodos firmados, ${abiertos} abiertos por ejercicio) · ${this.datosPruebaConfig.cantPersonas} personas, ${this.datosPruebaConfig.cantSocios} socios`
+    }
+    const ejTxt = cantEj > 1 ? ` en ${cantEj} ejercicios` : ''
+    return `${this.movimientosEstimados} movimientos${ejTxt} · ${this.datosPruebaConfig.cantPersonas} personas, ${this.datosPruebaConfig.cantSocios} socios`
+  }
+
   localidades = localidades
   steps = steps
 

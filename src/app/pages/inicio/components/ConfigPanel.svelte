@@ -21,15 +21,18 @@
 <Card.Root class="pt-2 border-0 shadow-none">
   <Card.Content class="flex flex-col gap-4 pt-4">
     <div class="flex items-center justify-between rounded-lg border border-border px-4 py-3">
-      <div class="flex flex-col gap-1">
+      <div>
         <div class="text-sm font-medium">Modalidad de gestión</div>
         <div class="text-xs text-muted-foreground">Forma en que la cooperadora administra su información</div>
       </div>
-      <div class="flex flex-wrap items-center gap-2 justify-end">
-        <Badge variant="secondary" class="font-medium">{store.modalidadGestion}</Badge>
-        {#if store.moduloKiosco}
-          <Badge variant="outline" class="font-medium">Kiosco / Librería</Badge>
-        {/if}
+      <div class="flex items-center gap-2">
+        <span class="text-sm">{store.modalidadGestion}</span>
+        <Switch
+          checked={store.moduloGestionIntegral}
+          onCheckedChange={(v) => store.onModalidadChange(v ? 'gestion_integral' : 'carga_consolidada')}
+          disabled={store.savingConfig}
+        />
+        <span class="text-sm text-muted-foreground">{store.moduloGestionIntegral ? 'Integral' : 'Consolidada'}</span>
       </div>
     </div>
 
