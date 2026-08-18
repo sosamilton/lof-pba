@@ -5,6 +5,26 @@
  * la lógica de saldos/resúmenes independientemente de los stores reactivos.
  */
 
+/**
+ * Normaliza un valor de fecha de Grist a un objeto Date.
+ * Grist devuelve fechas como:
+ * - Número (timestamp en segundos desde epoch)
+ * - Array encoded: ["d", timestamp] o ["D", timestamp, timezone]
+ * - String ISO o YYYY-MM-DD
+ * @param {any} v
+ * @returns {Date}
+ */
+function gristDate(v) {
+  if (!v && v !== 0) return new Date(NaN)
+  if (typeof v === 'number') return new Date(v * 1000)
+  if (Array.isArray(v) && v.length >= 2 && typeof v[1] === 'number') return new Date(v[1] * 1000)
+  const s = String(v)
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return new Date(s)
+  const n = Number(s)
+  if (Number.isFinite(n) && n > 0) return new Date(n * 1000)
+  return new Date(s)
+}
+
 // Mapa nombre_cuenta → campo saldo_inicial_* en ejercicios.
 // El modelo asume 1 cuenta por tipo (Banco / Efectivo / Caja Chica).
 export const SALDO_INICIAL_POR_CUENTA = {
@@ -64,6 +84,22 @@ export function calcularSaldoTotal(saldosPorCuenta) {
 }
 
 /**
+ * Extrae el período (YYYY-MM) de un movimiento.
+ * Prioriza m.periodo (fórmula de Grist), pero si no está disponible
+ * (null, undefined, vacío), lo calcula desde m.fecha usando gristDate.
+ * @param {any} m
+ * @returns {string}
+ */
+function periodoDeMovimiento(m) {
+  const p = String(m.periodo || '')
+  if (p && /^\d{4}-\d{2}$/.test(p)) return p
+  // Fallback: calcular desde fecha (formato Grist: número, array, o string)
+  const d = gristDate(m.fecha)
+  if (isNaN(d.getTime())) return ''
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+/**
  * Suma los importes de movimientos de un período (YYYY-MM) por tipo.
  * Traspaso no se cuenta como ingreso/egreso (movimiento interno).
  * @param {any[]} movimientos
@@ -74,7 +110,7 @@ export function totalesDesdeDetalle(movimientos, periodoKey) {
   let ingresos = 0
   let egresos = 0
   for (const m of movimientos) {
-    if (String(m.periodo || '') !== periodoKey) continue
+    if (periodoDeMovimiento(m) !== periodoKey) continue
     const importe = Number(m.importe) || 0
     const tipo = String(m.tipo_movimiento || '')
     if (tipo === 'Entrada') ingresos += importe
@@ -154,7 +190,7 @@ export function cierresPorPeriodo(cierres, ejercicioId) {
 export function periodosConDetalle(movimientos) {
   const set = new Set()
   for (const m of movimientos) {
-    const p = String(m.periodo || '')
+    const p = periodoDeMovimiento(m)
     if (p) set.add(p)
   }
   return set
@@ -208,11 +244,12 @@ export function calcularResumenMensual(movimientos, cierres, ejercicio) {
 
 /**
  * Clave de semana ISO (YYYY-Www) a partir de una fecha.
- * @param {string} dateStr
+ * Acepta el formato de Grist (número, array, o string).
+ * @param {any} dateVal
  * @returns {string}
  */
-export function isoWeekKey(dateStr) {
-  const d = new Date(dateStr)
+export function isoWeekKey(dateVal) {
+  const d = gristDate(dateVal)
   if (isNaN(d.getTime())) return ''
   const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
   const dayNum = tmp.getUTCDay() || 7
@@ -268,16 +305,23 @@ export function calcularResumenSemanal(movimientos, ejercicio) {
     if (tipo === 'Entrada') porSemana.get(sem).ingresos += importe
     else if (tipo === 'Salida') porSemana.get(sem).egresos += importe
   }
-  const ordenadas = [...porSemana.keys()].sort()
+  // Ordenar por fecha de inicio (lunes de cada semana), no por clave ISO.
+  // Esto asegura orden cronológico correcto cuando el ejercicio cruza años
+  // (ej. Mayo-Mayo: sem 18-53 del año 1 van antes que sem 1-17 del año 2).
+  const semanasConRango = [...porSemana.keys()].map((k) => ({ key: k, range: weekKeyToRange(k) }))
+  semanasConRango.sort((a, b) => a.range.inicio.localeCompare(b.range.inicio))
+
   let acumulado = saldoInicialEjercicio(ejercicio)
-  return ordenadas.map((sem) => {
-    const r = porSemana.get(sem)
-    const { label } = weekKeyToRange(sem)
+  return semanasConRango.map(({ key, range }, idx) => {
+    const r = porSemana.get(key)
+    // Numeración secuencial relativa al ejercicio (Sem 1, Sem 2, ...)
+    const semNum = idx + 1
+    const label = `Sem ${semNum} · ${range.inicio.slice(8, 10)}/${range.inicio.slice(5, 7)}-${range.fin.slice(8, 10)}/${range.fin.slice(5, 7)}`
     const saldoInicial = acumulado
     const saldoPeriodo = saldoInicial + r.ingresos - r.egresos
     acumulado = saldoPeriodo
     return {
-      periodo: sem,
+      periodo: key,
       label,
       ingresos: r.ingresos,
       egresos: r.egresos,

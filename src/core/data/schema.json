@@ -1162,6 +1162,76 @@
       ]
     },
     {
+      "id": "cargas",
+      "title": "Cargas consolidadas",
+      "columns": [
+        {
+          "id": "ejercicio_id",
+          "fields": {
+            "label": "Ejercicio",
+            "type": "Ref:ejercicios"
+          }
+        },
+        {
+          "id": "periodo",
+          "fields": {
+            "label": "Periodo",
+            "type": "Text"
+          }
+        },
+        {
+          "id": "estado",
+          "fields": {
+            "label": "Estado",
+            "type": "Choice",
+            "widgetOptions": "{\"choices\":[\"borrador\",\"firmado\"]}"
+          }
+        },
+        {
+          "id": "fecha_creacion",
+          "fields": {
+            "label": "Fecha de creacion",
+            "type": "DateTime"
+          }
+        },
+        {
+          "id": "creado_por",
+          "fields": {
+            "label": "Creado por",
+            "type": "Text"
+          }
+        },
+        {
+          "id": "fecha_firma",
+          "fields": {
+            "label": "Fecha de firma",
+            "type": "DateTime"
+          }
+        },
+        {
+          "id": "firmado_por",
+          "fields": {
+            "label": "Firmado por",
+            "type": "Text"
+          }
+        },
+        {
+          "id": "observaciones",
+          "fields": {
+            "label": "Observaciones",
+            "type": "Text"
+          }
+        },
+        {
+          "id": "version",
+          "fields": {
+            "label": "Version",
+            "type": "Int"
+          }
+        }
+      ]
+    },
+    {
       "id": "movimientos",
       "title": "Movimientos",
       "columns": [
@@ -1293,6 +1363,13 @@
           "fields": {
             "label": "Fecha de carga",
             "type": "DateTime"
+          }
+        },
+        {
+          "id": "carga_id",
+          "fields": {
+            "label": "Carga consolidada",
+            "type": "Ref:cargas"
           }
         }
       ]
