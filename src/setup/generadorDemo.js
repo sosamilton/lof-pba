@@ -205,7 +205,7 @@ export const generarDatosPrueba = async ({
   onProgress = () => {},
 } = {}) => {
   const log = onProgress || (() => {})
-  const results = { personas: 0, socios: 0, movimientos: 0, asamblea: false, autoridades: 0, asesores: 0, planillas: 0 }
+  const results = { personas: 0, socios: 0, movimientos: 0, cargas: 0, cargasFirmadas: 0, asamblea: false, autoridades: 0, asesores: 0, planillas: 0 }
 
   // --- Resolver tablas ---
   const tPersonas = await resolveTableId(TABLE_PREFERRED_IDS.personas)
@@ -218,6 +218,8 @@ export const generarDatosPrueba = async ({
   const tAutoridades = await resolveTableId(TABLE_PREFERRED_IDS.autoridades)
   const tAsesores = await resolveTableId(TABLE_PREFERRED_IDS.asesores)
   const tAsambleas = await resolveTableId(TABLE_PREFERRED_IDS.asambleas)
+  const tCargas = await resolveTableId(TABLE_PREFERRED_IDS.cargas)
+  const tCierres = await resolveTableId(TABLE_PREFERRED_IDS.cierres_mensuales)
 
   if (!tPersonas || !tSocios || !tMovimientos) {
     throw new Error('Faltan tablas base (personas, socios o movimientos). Ejecutá el setup primero.')
@@ -360,26 +362,68 @@ export const generarDatosPrueba = async ({
 
   const movimientosData = []
 
-  if (cargaConsolidada) {
-    // --- Modo PIA: 1 movimiento por rubro por cuenta por período ---
-    // Respeta la lógica de CargaPIAMatrix: cada rubro tiene una fila por cuenta,
-    // con un importe por período. Los períodos se generan desde el ejercicio.
-    const periodos = generarPeriodosEjercicioLocal(ejercicioRec)
+  /**
+   * Genera movimientos + cargas para un ejercicio en modo consolidada.
+   * @param {number} ejId - ID del ejercicio en Grist
+   * @param {any} ejRec - Registro del ejercicio (anio_inicio, anio_fin, mes_inicio)
+   * @param {boolean} esUltimoEjercicio - Si es el ejercicio en curso
+   * @returns {Promise<{cargas: number, cargasFirmadas: number}>}
+   */
+  const generarMovimientosConsolidada = async (ejId, ejRec, esUltimoEjercicio) => {
+    const periodos = generarPeriodosEjercicioLocal(ejRec)
     const todosRubros = rubrosRecs.filter((r) => r.tipo_rubro === 'Entrada' || r.tipo_rubro === 'Salida')
-    log(`Generando movimientos PIA: ${todosRubros.length} rubros × ${cuentaIds.length} cuentas × ${periodos.length} períodos...`)
+    log(`Generando cargas y movimientos: ${todosRubros.length} rubros × ${cuentaIds.length} cuentas × ${periodos.length} períodos...`)
 
-    for (const periodo of periodos) {
+    // Los primeros ~70% de períodos quedan firmados (historial),
+    // el resto en borrador (para probar edición).
+    const firmarHastaIdx = Math.floor(periodos.length * 0.7)
+    /** @type {{id: number, periodo: string, firmado: boolean}[]} */
+    const cargasCreadas = []
+
+    for (let pIdx = 0; pIdx < periodos.length; pIdx++) {
+      const periodo = periodos[pIdx]
       const [year, month] = periodo.split('-').map(Number)
-      const fecha = genFecha(year, month, 15)
+      const esFirmada = pIdx < firmarHastaIdx
+
+      // Crear la carga en Grist
+      let cargaId = null
+      if (tCargas) {
+        try {
+          const cargaFields = {
+            ejercicio_id: ejId,
+            periodo: periodo,
+            estado: esFirmada ? 'firmado' : 'borrador',
+            fecha_creacion: new Date().toISOString(),
+            creado_por: 'demo',
+            observaciones: esFirmada ? 'Carga demo firmada' : 'Carga demo en borrador',
+            version: 1,
+            ...(esFirmada ? {
+              fecha_firma: new Date().toISOString(),
+              firmado_por: 'demo',
+            } : {}),
+          }
+          const cargaRes = await applyUserActions([['AddRecord', tCargas, null, cargaFields]])
+          cargaId = extractRowId(cargaRes)
+          if (cargaId != null) {
+            cargasCreadas.push({ id: cargaId, periodo, firmado: esFirmada })
+          }
+        } catch (e1) {
+          console.warn('[demo] No se pudo crear carga para', periodo, ':', e1?.message || e1)
+        }
+      }
+
+      // Generar movimientos para esta carga
       for (const rubro of todosRubros) {
-        // 1 movimiento por cuenta para este rubro en este período.
-        // No todas las combinaciones tienen importe (simula carga parcial).
         for (const cuentaId of cuentaIds) {
           if (Math.random() < 0.3) continue // 30% de celdas vacías
           const tipo = rubro.tipo_rubro === 'Entrada' ? 'Entrada' : 'Salida'
+          // Distribuir movimientos en diferentes días del mes para que
+          // el resumen semanal muestre múltiples semanas.
+          const dia = rand(1, 28)
+          const fecha = genFecha(year, month, dia)
           movimientosData.push({
             fecha,
-            ejercicio_id: ejercicioId,
+            ejercicio_id: ejId,
             tipo_movimiento: tipo,
             rubro_id: rubro.id,
             subrubro_id: null,
@@ -390,18 +434,49 @@ export const generarDatosPrueba = async ({
             cuenta_destino_id: null,
             socio_id: null,
             persona_id: null,
+            carga_id: cargaId,
             fuera_de_termino: false,
-            periodo_cerrado: false,
+            periodo_cerrado: esFirmada,
             creado_por: 'demo',
             creado_el: new Date().toISOString(),
           })
         }
       }
     }
-  } else {
-    // --- Modo gestion_integral: movimientos aleatorios ---
-    log(`Generando ${cantMovimientos} movimientos...`)
-    for (let i = 0; i < cantMovimientos; i++) {
+
+    // Crear cierres_mensuales firmados para los períodos firmados
+    if (tCierres) {
+      const cierresActions = []
+      for (const carga of cargasCreadas) {
+        if (!carga.firmado) continue
+        cierresActions.push(['AddRecord', tCierres, null, {
+          periodo: carga.periodo,
+          ejercicio_id: ejId,
+          firmado: true,
+          firmado_por: 'demo',
+          firmado_el: new Date().toISOString(),
+          es_carga_manual: false,
+        }])
+      }
+      if (cierresActions.length > 0) {
+        try { await applyUserActions(cierresActions) } catch (e2) { console.warn('[demo] No se pudieron crear cierres:', e2) }
+      }
+    }
+
+    return {
+      cargas: cargasCreadas.length,
+      cargasFirmadas: cargasCreadas.filter((c) => c.firmado).length,
+    }
+  }
+
+  /**
+   * Genera movimientos aleatorios para un ejercicio en modo integral.
+   * @param {number} ejId - ID del ejercicio en Grist
+   * @param {number} anioEj - Año de inicio del ejercicio
+   * @param {number} cantidad - Cantidad de movimientos a generar
+   */
+  const generarMovimientosIntegral = (ejId, anioEj, cantidad) => {
+    for (let i = 0; i < cantidad; i++) {
       const tipo = pick(TIPOS_MOV)
       let rubroId = null
       if (tipo === 'Entrada' && rubrosEntrada.length > 0) rubroId = pick(rubrosEntrada)
@@ -416,7 +491,6 @@ export const generarDatosPrueba = async ({
         cuentaDestinoId = pick(cuentaIds.filter((c) => c !== cuentaId))
       }
 
-      // Asociar a socio/persona ~40% de las veces
       let socioId = null
       let personaId = null
       if (dnisSocios.length > 0 && Math.random() < 0.4) {
@@ -427,12 +501,11 @@ export const generarDatosPrueba = async ({
         personaId = dniToPersonaId.get(pick(dnisPersonas))
       }
 
-      // Fecha dentro del ejercicio
-      const fecha = genFecha(anioInicio, rand(1, 12), rand(1, 28))
+      const fecha = genFecha(anioEj, rand(1, 12), rand(1, 28))
 
       movimientosData.push({
         fecha,
-        ejercicio_id: ejercicioId,
+        ejercicio_id: ejId,
         tipo_movimiento: tipo,
         rubro_id: rubroId,
         subrubro_id: null,
@@ -449,6 +522,18 @@ export const generarDatosPrueba = async ({
         creado_el: new Date().toISOString(),
       })
     }
+  }
+
+  // --- 3. Generar movimientos para el ejercicio principal ---
+  if (cargaConsolidada) {
+    // --- Modo carga consolidada: cargas + movimientos por rubro/cuenta/período ---
+    const res = await generarMovimientosConsolidada(ejercicioId, ejercicioRec, true)
+    results.cargas = res.cargas
+    results.cargasFirmadas = res.cargasFirmadas
+  } else {
+    // --- Modo gestion_integral: movimientos aleatorios ---
+    log(`Generando ${cantMovimientos} movimientos...`)
+    generarMovimientosIntegral(ejercicioId, anioInicio, cantMovimientos)
   }
 
   await chunkAndInsert(tMovimientos, movimientosData, batchSize)
@@ -528,7 +613,8 @@ export const generarDatosPrueba = async ({
       const todosAsesores = []
       const todasPlanillas = []
 
-      // Generar asambleas + autoridades para cada ejercicio.
+      // Generar asambleas + autoridades (y movimientos para ejercicios
+      // anteriores) para cada ejercicio.
       // Los ejercicios anteriores se procesan primero (orden cronológico).
       ejerciciosParaGenerar.sort((a, b) => Number(a.anio_inicio) - Number(b.anio_inicio))
 
@@ -538,6 +624,27 @@ export const generarDatosPrueba = async ({
         const periodos = generarPeriodosEjercicioLocal(ej)
         const totalAsambleas = Math.min(cantAsambleas, periodos.length || 1)
         const ejAnioInicio = Number(ej.anio_inicio) || anioInicio
+
+        // Generar movimientos para ejercicios anteriores (el último ya
+        // tuvo sus movimientos generados en la sección 3).
+        if (!esUltimoEjercicio) {
+          if (cargaConsolidada) {
+            log(`Generando cargas y movimientos para ejercicio ${ejAnioInicio}-${ej.anio_fin}...`)
+            const res = await generarMovimientosConsolidada(ej.id, ej, false)
+            results.cargas += res.cargas
+            results.cargasFirmadas += res.cargasFirmadas
+          } else {
+            const cantEj = Math.floor(cantMovimientos / cantEjercicios)
+            log(`Generando ${cantEj} movimientos para ejercicio ${ejAnioInicio}-${ej.anio_fin}...`)
+            generarMovimientosIntegral(ej.id, ejAnioInicio, cantEj)
+          }
+          // Insertar los movimientos de este ejercicio en Grist
+          const movsEj = movimientosData.filter((m) => Number(m.ejercicio_id) === Number(ej.id))
+          if (movsEj.length > 0) {
+            await chunkAndInsert(tMovimientos, movsEj, batchSize)
+            results.movimientos += movsEj.length
+          }
+        }
 
         for (let aIdx = 0; aIdx < totalAsambleas; aIdx++) {
           const periodo = periodos.length > 0
@@ -714,6 +821,7 @@ export const generarDatosPrueba = async ({
   log(
     `Listo: ${results.personas} personas, ${results.socios} socios, ` +
     `${results.movimientos} movimientos` +
+    (results.cargas ? `, ${results.cargas} cargas (${results.cargasFirmadas} firmadas)` : '') +
     (results.asamblea ? `, ${results.asambleasCreadas || 1} asamblea(s), ${results.autoridades} autoridades` : '') +
     (results.asesores ? `, ${results.asesores} asesor(es)` : '') +
     (results.planillas ? `, ${results.planillas} planillas` : '') +

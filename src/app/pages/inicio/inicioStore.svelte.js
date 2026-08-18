@@ -102,6 +102,38 @@ const onPeriodosAutoChange = async (v) => {
   } finally { savingConfig = false }
 }
 
+/**
+ * Cambia la modalidad de gestión entre carga_consolidada y gestion_integral.
+ * @param {'carga_consolidada' | 'gestion_integral'} nuevaModalidad
+ */
+const onModalidadChange = async (nuevaModalidad) => {
+  savingConfig = true
+  try {
+    const config = await loadConfig()
+    const updates = {}
+    if (nuevaModalidad === 'carga_consolidada') {
+      updates.modulo_gestion_integral = false
+      updates.modulo_carga_consolidada = true
+      // Limpiar flags legacy si existieran
+      updates.modulo_solo_pia = false
+      updates.modulo_gestion_etapas = false
+    } else {
+      updates.modulo_gestion_integral = true
+      updates.modulo_carga_consolidada = false
+      updates.modulo_solo_pia = false
+      updates.modulo_gestion_etapas = false
+    }
+    await saveConfig({ ...config, ...updates })
+    // Actualizar el estado del dashboard sin recargar todo
+    dash.modalidadGestion = nuevaModalidad === 'carga_consolidada' ? 'Carga consolidada' : 'Gestión integral'
+    dash.moduloGestionIntegral = nuevaModalidad === 'gestion_integral'
+    notify.success(`Modalidad cambiada a: ${dash.modalidadGestion}`)
+  } catch (e) {
+    bs.setError(e?.message || String(e))
+    notify.error('No se pudo cambiar la modalidad.')
+  } finally { savingConfig = false }
+}
+
 const doDedup = async () => {
   if (!confirm('Se buscarán y fusionarán personas con DNI duplicado. ¿Continuar?')) return
   migrating = true
@@ -183,6 +215,7 @@ export const inicioStore = {
   get nuevoEj() { return nuevoEj },
   // Acciones
   onPeriodosAutoChange,
+  onModalidadChange,
   setShowNuevoEjercicio,
   init,
   check,

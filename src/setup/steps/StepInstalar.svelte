@@ -79,7 +79,7 @@
             <div>
             <div class="font-bold text-[13px] text-amber-700 dark:text-amber-400">Cargar datos de prueba (dev)</div>
             <p class="text-[12px] text-muted-foreground mt-0.5 m-0">
-              Genera {store.datosPruebaConfig.cantPersonas} personas, {store.datosPruebaConfig.cantSocios} socios, {store.datosPruebaConfig.cantMovimientos} movimientos
+              Genera {store.datosPruebaDescripcion}
               {#if store.selectedModules.gestion_integral}
                 , 1 asamblea AGO y autoridades de CD/CRC
               {/if}

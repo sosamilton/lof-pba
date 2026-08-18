@@ -21,6 +21,8 @@ let _allMovimientos = $state([])
 /** @type {any[]} */
 let cierres = $state([])
 /** @type {any[]} */
+let cargas = $state([])
+/** @type {any[]} */
 let cuentas = $state([])
 /** @type {any[]} */
 let ejercicios = $state([])
@@ -45,17 +47,19 @@ const load = async () => {
   if (!isInGrist()) { bs.setLoading(false); return }
   try {
     const tIds = await resolveTableIds([
-      'movimientos', 'cierres_mensuales', 'ejercicios', 'cuentas',
+      'movimientos', 'cierres_mensuales', 'ejercicios', 'cuentas', 'cargas',
     ])
     const data = await fetchRelated(tIds, {
       movimientos: {},
       cierres_mensuales: {},
       ejercicios: {},
       cuentas: { sort: (a, b) => Number(a.orden || 0) - Number(b.orden || 0) },
+      cargas: {},
     })
     cuentas = data.cuentas || []
     ejercicios = data.ejercicios || []
     cierres = data.cierres_mensuales || []
+    cargas = data.cargas || []
     _allMovimientos = data.movimientos || []
     if (!selectedEjercicioId) {
       const enCurso = ejercicios.find((e) => e.en_curso === true) || null
@@ -185,13 +189,24 @@ const periodoTieneDetalle = (periodo) => periodosConDetalle.has(String(periodo))
 const cierreDePeriodo = (periodo) => cierresPorPeriodo.get(String(periodo)) || null
 
 // True si un período está firmado (no editable).
+// Considera tanto cierres_mensuales (legacy) como cargas (nuevo modelo).
+// Un período está firmado si: tiene un cierre firmado, o si todas sus
+// cargas están en estado 'firmado'.
 const periodoFirmado = (periodoKey) => {
   if (!ejercicio) return false
+  // Check legacy cierres_mensuales
   const c = cierres.find(
     (cl) => Number(cl.ejercicio_id) === Number(ejercicio.id)
       && String(cl.periodo || '') === String(periodoKey)
   )
-  return c?.firmado === true
+  if (c?.firmado === true) return true
+  // Check cargas: si hay cargas para este período y todas están firmadas
+  const cargasPeriodo = cargas.filter(
+    (cg) => Number(cg.ejercicio_id) === Number(ejercicio.id)
+      && String(cg.periodo || '') === String(periodoKey)
+  )
+  if (cargasPeriodo.length > 0 && cargasPeriodo.every((cg) => cg.estado === 'firmado')) return true
+  return false
 }
 
 export const resumenStore = {

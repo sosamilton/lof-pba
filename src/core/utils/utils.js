@@ -140,6 +140,7 @@ export const TABLE_PREFERRED_IDS = {
   personas: ['Personas', 'personas'],
   socios: ['Socios', 'socios'],
   movimientos: ['Movimientos', 'movimientos'],
+  cargas: ['Cargas', 'cargas'],
   autoridades: ['Autoridades', 'autoridades'],
   asesores: ['Asesores', 'asesores'],
   asambleas: ['Asambleas', 'asambleas'],
@@ -156,7 +157,7 @@ export const MODULES = {
   carga_consolidada: {
     label: 'Carga consolidada',
     description: 'Cargá los rubros PIA por período (mensual o anual). Ideal para cooperadoras que no registran cada movimiento individual.',
-    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asesores', 'asambleas', 'resoluciones', 'rubros_pia', 'planillas_generadas', 'configuracion', 'movimientos', 'cuentas', 'cierres_mensuales'],
+    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asesores', 'asambleas', 'resoluciones', 'rubros_pia', 'planillas_generadas', 'configuracion', 'movimientos', 'cargas', 'cuentas', 'cierres_mensuales'],
     menuItems: [
       { route: 'inicio', label: 'Inicio' },
       { route: 'comunidad', label: 'Comunidad' },
@@ -169,7 +170,7 @@ export const MODULES = {
   gestion_integral: {
     label: 'Gestión integral',
     description: 'Registrá gastos, movimientos, socios, asambleas y autoridades. Generá reportes PIA y nómina automáticamente.',
-    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asesores', 'asambleas', 'resoluciones', 'cuentas', 'rubros_pia', 'subrubros', 'movimientos', 'configuracion', 'planillas_generadas', 'cierres_mensuales'],
+    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asesores', 'asambleas', 'resoluciones', 'cuentas', 'rubros_pia', 'subrubros', 'movimientos', 'cargas', 'configuracion', 'planillas_generadas', 'cierres_mensuales'],
     menuItems: [
       { route: 'inicio', label: 'Inicio' },
       { route: 'cooperadora', label: 'Institucional' },

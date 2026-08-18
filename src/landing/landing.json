@@ -44,7 +44,7 @@
     },
     {
       "titulo": "¿Rendir la PIA es un dolor de cabeza cada año?",
-      "descripcion": "Cargás los movimientos por rubro del Plan Institucional Anual y el sistema los agrupa automáticamente. La PIA se arma sola desde los datos cargados mes a mes.",
+      "descripcion": "Cargás los movimientos por rubro del Plan Institucional Anual, agrupados en cargas por período. El sistema consolida automáticamente todas las cargas de un período y la PIA se arma sola desde los datos cargados mes a mes.",
       "icono": "file-text"
     },
     {
@@ -99,8 +99,9 @@
       "items": [
         "Ingresos, egresos y traspasos con rubro según la PIA",
         "Tablero de caja: cuánto hay en banco, efectivo y caja chica",
-        "Resumen mensual con arrastre de saldo y firma de períodos",
-        "Carga consolidada de la PIA por rubro en una sola pantalla",
+        "Resumen mensual y semanal con arrastre de saldo y firma de períodos",
+        "Carga consolidada por rubro con múltiples cargas por período",
+        "Gestión por etapas: cargas parciales que se consolidan al firmar el período",
         "Cuota societaria rápida con un clic o Ctrl+1",
         "Filtros por rubro, ejercicio, período y persona"
       ]
@@ -309,6 +310,11 @@
       "estado": "hecho",
       "titulo": "Módulo Institucional con gestión de cargos y autoridades",
       "descripcion": "Separación de la información institucional como módulo de primera clase en el sidebar. Cargos del estatuto y autoridades vigentes con cese, reemplazo y alerta de quórum en un solo lugar. Gobierno se enfoca en asambleas e histórico de mandatos."
+    },
+    {
+      "estado": "hecho",
+      "titulo": "Cargas consolidadas con firma a nivel período",
+      "descripcion": "Modelo de cargas que agrupa movimientos por período, permitiendo múltiples cargas en un mismo período abierto. Firma y reapertura a nivel período (no por carga individual). Resumen semanal con numeración secuencial por ejercicio. Layout de dos columnas en la gestión por etapas, igual que Comunidad."
     },
     {
       "estado": "proximo",
