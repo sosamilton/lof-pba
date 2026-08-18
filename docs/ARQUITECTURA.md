@@ -9,7 +9,8 @@ LOF es una **SPA sin backend propio**. Toda la persistencia vive en un **documen
 ```
 ┌─────────────────────────── Grist Document (host) ───────────────────────────┐
 │  Tablas: configuracion, escuela, ejercicios, personas, socios, movimientos, │
-│          autoridades, asambleas, resoluciones, cuentas, rubros_pia, ...     │
+│          cargas, cierres_mensuales, autoridades, asambleas, resoluciones,    │
+│          cuentas, rubros_pia, ...                                            │
 │                                                                             │
 │   ┌──────────────────────── iframe: Custom Widget ─────────────────────┐    │
 │   │  LOF SPA (Svelte 5 + Vite)                                          │    │
@@ -44,10 +45,10 @@ Vista pública que se muestra cuando la app corre fuera de Grist. El contenido (
 - **`modules/`** — módulos funcionales por dominio, cada uno subdividido por sub-dominio con `components/` para UI:
   - `comunidad/` — `Comunidad.svelte` + `comunidadStore` (padrón unificado de personas y socios). Reutiliza `personas/personasApi` + `personas/personaFormManager` + `personas/personaLinker` + `socios/socioValidator` + `constants.js`.
   - `comunidad/components/` — UI compartida del módulo (CuilInput, FilterBar, RecordList, PersonaFormFields, EmptyStates).
-  - `tesoreria/movimientos/` — `Movimientos.svelte` + `movimientosStore` + `form/` (lógica de formulario) + `components/`.
-  - `tesoreria/resumen/` — `ResumenMensual.svelte` + `resumenStore` + `saldosStore` + `cierresService`.
-  - `tesoreria/cargaPia/` — `CargaPIAMatrix.svelte` + `cargaPIAService` + `components/` (ConfirmarFirmaDialog).
-  - `tesoreria/shared/` — `tesoreriaCalc.js` (cálculos compartidos).
+  - `tesoreria/movimientos/` — `Movimientos.svelte` + `movimientosStore` + `form/` (lógica de formulario) + `components/`. En modo `carga_consolidada` embebe `CargaPIAMatrix` con layout de dos columnas (lista de períodos + matriz editable).
+  - `tesoreria/resumen/` — `ResumenMensual.svelte` + `resumenStore` + `saldosStore` + `cierresService`. Vista mensual y semanal con arrastre de saldo y firma/reapertura a nivel período.
+  - `tesoreria/cargaPia/` — `CargaPIAMatrix.svelte` (matriz editable por rubro con layout Comunidad-style) + `cargaPIAService` (guardar/cargar movimientos con `carga_id`) + `cargasService` (CRUD de cargas, firma/cierre y reapertura a nivel período) + `components/` (ConfirmarFirmaDialog).
+  - `tesoreria/shared/` — `tesoreriaCalc.js` (cálculos compartidos: `gristDate()`, `periodoDeMovimiento()`, `isoWeekKey()`, `calcularResumenSemanal()` con numeración secuencial por ejercicio).
   - `gobierno/asambleas/` — `asambleasManager` + `components/` (TabAsambleas, AsambleaWizard).
   - `gobierno/autoridades/` — `autoridadRows`, `cargarAutoridades`, `ceseAutoridad`, `reemplazoAutoridad` + `components/` (DialogCargar, DialogCese, DialogReemplazo, TabHistorico). **Nota:** cese y reemplazo se invocan desde Institucional (cargosStore), pero las factories viven aquí por afinidad de dominio. Gobierno solo usa `cargarAutoridades` (carga desde asamblea) y `TabHistorico`.
   - `gobierno/components/` — UI compartida (PersonaPicker).

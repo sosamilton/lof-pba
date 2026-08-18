@@ -72,10 +72,10 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 <details>
 <summary><strong>Tesorería</strong></summary>
 
-- **Movimientos** — entradas, salidas y traspasos con rubro/subrubro según PIA, destino bancario (Cuenta corriente / Plazo fijo), socio o persona asociada, y combobox con búsqueda para listas grandes. Filtrado de rubros por tipo, subrubros dinámicos por rubro. Filtros por rubro, ejercicio, período y persona (ejercicio en curso seleccionado por defecto).
+- **Movimientos** — entradas, salidas y traspasos con rubro/subrubro según PIA, destino bancario (Cuenta corriente / Plazo fijo), socio o persona asociada, y combobox con búsqueda para listas grandes. Filtrado de rubros por tipo, subrubros dinámicos por rubro. Filtros por rubro, ejercicio, período y persona (ejercicio en curso seleccionado por defecto). Selector de ejercicio con label "en curso".
 - **Cuota societaria rápida** — atajo Ctrl+1 o botón para pre-cargar movimiento de cuota social en un click.
-- **Carga PIA consolidada** — matriz de carga por rubro con múltiples filas por cuenta (hasta 3), importe en formato pesos argentinos ($ 1.234,56), página dedicada con selector de período, todos los períodos del ejercicio visibles (incluso vacíos), confirmación de firma con resumen read-only de movimientos y totales, y firma de períodos (bloqueo de edición).
-- **Resumen** — vista mensual y semanal con arrastre de saldo, saldos iniciales por ejercicio, badge de estado por período (Falta cargar / Abierto / Firmado), botón de edición directa a la carga PIA, y cálculo del próximo período adeudado.
+- **Gestión por etapas (carga consolidada)** — matriz de carga por rubro con múltiples filas por cuenta (hasta 3), importe en formato pesos argentinos ($ 1.234,56). Layout de dos columnas (lista de períodos + matriz editable) igual que Comunidad. Múltiples cargas por período: cada carga es una carga parcial que se consolida al firmar el período. Selector de carga dentro del período. Firma y cierre a nivel período (bloquea todas las cargas). Reapertura devuelve todas las cargas a borrador. Períodos firmados son read-only.
+- **Resumen** — vista mensual y semanal con arrastre de saldo, saldos iniciales por ejercicio, badge de estado por período (Falta cargar / Abierto / Firmado), botón de firma y reapertura a nivel período. Resumen semanal con numeración secuencial por ejercicio (Sem 1, Sem 2, ... Sem N) en orden cronológico.
 - **Regla "detalle gana"**: si hay movimientos en un período, usa totales de movimientos; si no, usa cierres manuales. Permite mix de carga detallada y consolidada.
 - **Cierres mensuales** con firma de período y bloqueo de edición.
 
@@ -175,7 +175,7 @@ docker compose -f docker-compose.dev.yml up
 En entorno de desarrollo, el primer paso del setup wizard incluye dos switches para agilizar pruebas:
 
 - **Precargar datos demo en todos los pasos** — rellena automáticamente los campos de cada paso (módulos, escuela, banco, ejercicio, cargos) con datos de ejemplo. Reemplaza al botón "Precargar datos demo" que aparece en cada paso cuando no está activo.
-- **Cargar datos de prueba tras instalar** — ejecuta un seeder que genera personas, socios, movimientos, una asamblea AGO y autoridades de CD/CRC con todas las Refs resueltas, para probar performance de listados y filtros. Al activarlo se despliega un formulario para customizar las cantidades de cada entidad (personas, socios, movimientos y tamaño de lote), con valores por defecto de 500/400/2000/100.
+- **Cargar datos de prueba tras instalar** — ejecuta un seeder que genera personas, socios, movimientos, una asamblea AGO y autoridades de CD/CRC con todas las Refs resueltas, para probar performance de listados y filtros. Al activarlo se despliega un formulario para customizar las cantidades de cada entidad (personas, socios, movimientos y tamaño de lote), con valores por defecto de 500/400/2000/100. La estimación de movimientos se ajusta según el modo: en gestión integral usa la cantidad directa; en carga consolidada calcula automáticamente según rubros × cuentas × períodos × ejercicios. El seeder genera cargas y movimientos para todos los ejercicios configurados, no solo el principal.
 
 Si no se seleccionan los checkboxes, cada paso muestra un botón **"Precargar datos demo"** que rellena solo ese paso, permitiendo editar los valores o ajustar configuraciones antes de continuar. El seeder solo está disponible cuando `import.meta.env.DEV` es true y no viaja en el bundle de producción.
 
@@ -201,6 +201,7 @@ Si no se seleccionan los checkboxes, cada paso muestra un botón **"Precargar da
 | Listo | PIA y Nómina en PDF — generación automática desde los datos del ejercicio |
 | Listo | Comunidad unificada y carga de autoridades desde asambleas — padrón unificado con toggle de socio, wizard inline con selección por organismo |
 | Listo | Módulo Institucional — separación de la información formal como módulo de primera clase, con cargos, autoridades vigentes, ceses, reemplazos e histórico interactivo |
+| Listo | Cargas consolidadas con firma a nivel período — múltiples cargas por período, firma/cierre a nivel período, resumen semanal secuencial, layout de dos columnas en gestión por etapas |
 | Próximo | Adjuntos y actas — carga guiada de comprobantes con trazabilidad |
 | Después | Balance de tesorería exportable |
 | Después | Accesos y roles — permisos por tesorería, comisión, asesoría |

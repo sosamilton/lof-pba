@@ -8,38 +8,38 @@ Trabajo planificado para LOF, agrupado por área. Cada ítem incluye el contexto
 
 ### Saldos iniciales por ejercicio
 
-**Contexto.** Hoy los movimientos se registran contra el ejercicio en curso, pero no hay forma de arrastrar el saldo inicial al abrir un nuevo ejercicio. Sin ese saldo, los resúmenes y el tablero de caja muestran solo el movimiento del período, no la posición real de la cooperadora.
+**Contexto.** Los movimientos se registran contra el ejercicio en curso, y el saldo inicial se guarda en la tabla `ejercicios` (campos `saldo_inicial_banco`, `saldo_inicial_efectivo`, `saldo_inicial_caja_chica`). El resumen arrstra el saldo inicial al calcular los totales de cada período.
 
-**Pendiente.**
-- Definir dónde se guarda el saldo inicial: ¿en la tabla `ejercicios` (un campo `saldo_inicial`), en una tabla aparte de saldos por cuenta, o derivado del cierre del ejercicio anterior?
-- Decidir si el saldo inicial es por cuenta (caja + cada banco) o un único saldo consolidado.
+**Resuelto.** ✅ Los saldos iniciales viven en `ejercicios` y se editan desde Institucional → Ejercicios. El resumen mensual y semanal los usa como punto de partida.
 
 ### Resúmenes semanales y mensuales
 
-**Contexto.** El marco de PBA pide balances mensuales de tesorería firmados por la CD. Hoy no hay resúmenes agregados por período: solo el listado de movimientos.
+**Contexto.** El marco de PBA pide balances mensuales de tesorería firmados por la CD.
 
-**Pendiente.**
-- Generar resúmenes agregados por semana y por mes (ingresos, egresos, saldo del período).
-- Definir si el resumen mensual es el único obligatorio (por la normativa) y el semanal queda como vista opcional, o si ambos son necesarios.
+**Resuelto.** ✅
+- Resumen mensual con arrastre de saldo, ingresos, egresos y estado del período (Falta cargar / Abierto / Firmado).
+- Resumen semanal con numeración secuencial por ejercicio (Sem 1, Sem 2, ... Sem N) en orden cronológico.
+- Firma y reapertura a nivel período (no por carga individual).
 
 ### Tablero económico de caja
 
-**Contexto.** Hoy el dashboard del Inicio muestra socios activos, altas/bajas y vencimientos, pero no la posición económica de la cooperadora. Un tesorero necesita ver de un vistazo cuánto hay, cuánto se debe y cómo se compone el saldo entre caja y bancos.
+**Contexto.** El dashboard del Inicio muestra socios activos, altas/bajas y vencimientos, más la posición económica de la cooperadora.
 
-**Pendiente.**
-- Tablero de caja que muestre: saldo total, saldo por cuenta (caja/bancos), ingresos y egresos del período, y deudas pendientes si las hubiera.
-- Que sea fácil de entender para alguien sin formación contable.
+**Resuelto.** ✅ Tablero de caja con saldo total y saldo por cuenta (Banco, Efectivo, Caja Chica).
 
 ### Carga periódica y totalizadores
 
-**Contexto.** El setup ofrece tres modos de gestión: `solo_pia` (solo nómina y presentación), `gestion_integral` (carga detallada de movimientos) y `gestion_etapas` (carga por etapas). Hoy solo se usa la carga detallada. Algunas cooperadoras no quieren o no pueden cargar cada movimiento: necesitan cargar totales por período.
+**Contexto.** El setup ofrece dos modos de gestión de tesorería: `gestion_integral` (carga detallada de movimientos) y `carga_consolidada` (carga por etapas con totales por rubro).
 
-**Pendiente.**
-- Carga periódica de totales por período (semana o mes) como alternativa a la carga detallada.
-- El totalizador debe poder **recalcularse** si la cooperadora carga movimientos detallados después: si hay detalle, el total del período se deriva de los movimientos; si no hay, se carga a mano.
-- Para el modo `solo_pia` / consolidado, pensar la carga como la entrada de los otros métodos de organización administrativa que propone el setup.
+**Resuelto.** ✅
+- Modelo de `cargas` que agrupa movimientos consolidados por período.
+- Múltiples cargas permitidas en un mismo período abierto.
+- Firma a nivel período (firma todas las cargas + crea `cierres_mensuales`).
+- Reapertura devuelve todas las cargas a borrador.
+- Layout de dos columnas en la gestión por etapas (lista de períodos + matriz editable), igual que Comunidad.
+- Regla "detalle gana": si hay movimientos detallados, el total del período se deriva de ellos; si no, de los cierres manuales.
 
 ### Decisiones abiertas de tesorería
 
-- **Recálculo automático:** si se gestiona con detalle, ¿es viable recalcular automáticamente el saldo de esa semana o mes? ¿Conviene ofrecer ambos niveles (semanal y mensual) o directamente solo el mensual?
-- **Modelo dual:** pensar bien esto para que funcione y sea fácil de gestionar tanto en el modelo detallado como en el consolidado, sin duplicar lógica ni confundir al usuario.
+- **Versionado de cargas:** tras firmar un período, si se reabre y se edita, ¿conviene guardar una versión histórica de la carga anterior? Por ahora no se versiona, pero el modelo de `cargas` con `version` y `fecha_firma` lo permite a futuro.
+- **Recálculo automático:** el total del período se recalcula siempre desde los movimientos. No hay total "manual" que se desincronice.
