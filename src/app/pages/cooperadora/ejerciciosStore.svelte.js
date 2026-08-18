@@ -1,5 +1,5 @@
 import { applyUserActions, fetchRecords } from '$core/grist/grist'
-import { normalizeFields } from '$core/utils/utils'
+import { normalizeFields, fechasEjercicio } from '$core/utils/utils'
 import { crearEjercicioApi } from './cooperadoraApi.js'
 import { notify } from '$core/ui/notify.svelte'
 
@@ -25,7 +25,7 @@ export function createEjerciciosStore({ bs, getTEjercicios, getTMovimientos }) {
   /** @type {Record<string, any> | null} */
   let ejercicioEnCurso = $state(null)
   let nuevoEj = $state({
-    anio_inicio: '', anio_fin: '', mes_inicio: 'Marzo',
+    anio_inicio: '', anio_fin: '', mes_inicio: 'Mayo',
     saldo_inicial_banco: 0, saldo_inicial_efectivo: 0, saldo_inicial_caja_chica: 0,
   })
 
@@ -55,7 +55,7 @@ export function createEjerciciosStore({ bs, getTEjercicios, getTMovimientos }) {
       ejercicioEnCurso = ejercicios.find((e) => e.en_curso === true) || null
       bs.setNotice('Ejercicio creado.'); notify.success(bs.notice)
       nuevoEj = {
-        anio_inicio: '', anio_fin: '', mes_inicio: nuevoEj.mes_inicio || 'Marzo',
+        anio_inicio: '', anio_fin: '', mes_inicio: nuevoEj.mes_inicio || 'Mayo',
         saldo_inicial_banco: 0, saldo_inicial_efectivo: 0, saldo_inicial_caja_chica: 0,
       }
     })
@@ -107,12 +107,14 @@ export function createEjerciciosStore({ bs, getTEjercicios, getTMovimientos }) {
       const tEj = getTEjercicios()
       if (!tEj) { bs.setError('No se encontró la tabla ejercicios.'); return }
       if (!ejercicioEditando) return
+      // Autocalcular fecha_inicio/fecha_fin si no vienen provistos explícitamente.
+      const { fechaInicio, fechaFin } = fechasEjercicio(ejercicioEditando)
       const fields = normalizeFields({
         anio_inicio: Number(ejercicioEditando.anio_inicio) || null,
         anio_fin: Number(ejercicioEditando.anio_fin) || null,
-        mes_inicio: ejercicioEditando.mes_inicio || 'Marzo',
-        fecha_inicio: ejercicioEditando.fecha_inicio || null,
-        fecha_fin: ejercicioEditando.fecha_fin || null,
+        mes_inicio: ejercicioEditando.mes_inicio || 'Mayo',
+        fecha_inicio: ejercicioEditando.fecha_inicio || fechaInicio || null,
+        fecha_fin: ejercicioEditando.fecha_fin || fechaFin || null,
         observaciones: ejercicioEditando.observaciones || '',
         saldo_inicial_banco: Number(ejercicioEditando.saldo_inicial_banco) || 0,
         saldo_inicial_efectivo: Number(ejercicioEditando.saldo_inicial_efectivo) || 0,

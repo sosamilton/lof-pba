@@ -4,15 +4,11 @@
   import { isInGrist } from '$core/grist/grist'
   import * as Tabs from '$lib/components/ui/tabs'
   import { Skeleton } from '$lib/components/ui/skeleton'
-  import PageScaffold from '$lib/components/PageScaffold.svelte'
+  import PageScaff from '$lib/components/PageScaffold.svelte'
   import GavelIcon from '@lucide/svelte/icons/gavel'
-  import UsersIcon from '@lucide/svelte/icons/users'
   import HistoryIcon from '@lucide/svelte/icons/history'
   import TabAsambleas from './asambleas/components/TabAsambleas.svelte'
-  import TabAutoridades from './autoridades/components/TabAutoridades.svelte'
   import TabHistorico from './autoridades/components/TabHistorico.svelte'
-  import DialogCese from './autoridades/components/DialogCese.svelte'
-  import DialogReemplazo from './autoridades/components/DialogReemplazo.svelte'
 
   onMount(async () => {
     if (!isInGrist()) return
@@ -23,7 +19,7 @@
   })
 </script>
 
-<PageScaffold title="Asambleas y Autoridades" loading={store.loading} error={store.error} notice={store.notice}>
+<PageScaff title="Asambleas y Autoridades" loading={store.loading} error={store.error} notice={store.notice}>
   {#snippet skeleton()}
     <div class="flex flex-col gap-4">
       <Skeleton class="h-8 w-64" />
@@ -50,10 +46,6 @@
           <GavelIcon data-icon="inline-start" />
           Asambleas y reuniones
         </Tabs.Trigger>
-        <Tabs.Trigger value="autoridades" class="px-3">
-          <UsersIcon data-icon="inline-start" />
-          Autoridades vigentes
-        </Tabs.Trigger>
         <Tabs.Trigger value="historico" class="px-3">
           <HistoryIcon data-icon="inline-start" />
           Histórico
@@ -63,15 +55,9 @@
       <Tabs.Content value="asambleas">
         <TabAsambleas {store} />
       </Tabs.Content>
-      <Tabs.Content value="autoridades">
-        <TabAutoridades {store} />
-      </Tabs.Content>
       <Tabs.Content value="historico">
         <TabHistorico {store} />
       </Tabs.Content>
     </Tabs.Root>
   {/if}
-
-  <DialogCese {store} />
-  <DialogReemplazo {store} />
-</PageScaffold>
+</PageScaff>

@@ -4,11 +4,13 @@
   import * as Tabs from '$lib/components/ui/tabs'
   import * as Card from '$lib/components/ui/card'
   import { Badge } from '$lib/components/ui/badge'
+  import { Button } from '$lib/components/ui/button'
   import { Skeleton } from '$lib/components/ui/skeleton'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
   import LockIcon from '@lucide/svelte/icons/lock'
   import BuildingIcon from '@lucide/svelte/icons/building'
-  import UsersIcon from '@lucide/svelte/icons/users'
+  import UserCheckIcon from '@lucide/svelte/icons/user-check'
+  import HistoryIcon from '@lucide/svelte/icons/history'
   import UserCogIcon from '@lucide/svelte/icons/user-cog'
   import CalendarRangeIcon from '@lucide/svelte/icons/calendar-range'
   import { emailInstitucionalAlias, parseEmailInstitucionalInput } from '$core/format/emailInstitucional'
@@ -19,9 +21,13 @@
   import ListaAsesores from './components/ListaAsesores.svelte'
   import ListaEjercicios from './components/ListaEjercicios.svelte'
   import DialogEditarEjercicio from './components/DialogEditarEjercicio.svelte'
+  import DialogCese from '$app/modules/gobierno/autoridades/components/DialogCese.svelte'
+  import DialogReemplazo from '$app/modules/gobierno/autoridades/components/DialogReemplazo.svelte'
+  import DialogHistorico from './components/DialogHistorico.svelte'
 
   let dialogEjercicioAbierto = $state(false)
   let ejercicioEditandoId = $state(null)
+  let dialogHistoricoAbierto = $state(false)
 
   const abrirEditarEjercicio = (e) => {
     store.setEditandoEjercicio(e)
@@ -127,8 +133,8 @@
           Datos generales
         </Tabs.Trigger>
         <Tabs.Trigger value="cargos" class="px-3">
-          <UsersIcon data-icon="inline-start" />
-          Cargos
+          <UserCheckIcon data-icon="inline-start" />
+          Autoridades
         </Tabs.Trigger>
         <Tabs.Trigger value="asesor" class="px-3">
           <UserCogIcon data-icon="inline-start" />
@@ -209,12 +215,20 @@
         </Card.Root>
       </Tabs.Content>
 
-      <!-- Tab: Cargos (definición + comisión directiva vigente) -->
+      <!-- Tab: Autoridades (vigentes + cargos del estatuto) -->
       <Tabs.Content value="cargos" class="flex flex-col gap-4">
-        <div class="flex items-center gap-2">
-          <h2 class="text-sm font-semibold">Comisión Directiva y Cargos</h2>
-          {#if escuelaValidada}
-            <Badge variant="secondary"><LockIcon class="size-3" /> Read-only</Badge>
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <h2 class="text-sm font-semibold">Autoridades vigentes</h2>
+            {#if escuelaValidada}
+              <Badge variant="secondary"><LockIcon class="size-3" /> Validado</Badge>
+            {/if}
+          </div>
+          {#if store.tieneAutoridadesVigentes}
+            <Button variant="outline" size="sm" onclick={() => (dialogHistoricoAbierto = true)}>
+              <HistoryIcon data-icon="inline-start" />
+              Ver histórico
+            </Button>
           {/if}
         </div>
         <TablaCargos {store} {escuelaValidada} tieneAutoridadesVigentes={store.tieneAutoridadesVigentes} />
@@ -251,3 +265,7 @@
   onClose={cerrarEditarEjercicio}
   onSave={confirmarGuardarEjercicio}
 />
+
+<DialogCese {store} />
+<DialogReemplazo {store} />
+<DialogHistorico bind:open={dialogHistoricoAbierto} {store} />

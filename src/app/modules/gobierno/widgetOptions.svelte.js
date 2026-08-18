@@ -27,7 +27,11 @@ export function createWidgetOptions() {
 
   const initFromOptions = async () => {
     const opts = await getWidgetOptions()
-    if (opts?.gobiernoTab) tab = opts.gobiernoTab
+    if (opts?.gobiernoTab) {
+      // 'autoridades' fue removido como tab (movido a Institucional).
+      // Si estaba persistido, volver al tab por defecto.
+      tab = opts.gobiernoTab === 'autoridades' ? 'asambleas' : opts.gobiernoTab
+    }
     if (opts?.gobiernoOrganismo) organismo = opts.gobiernoOrganismo
   }
 

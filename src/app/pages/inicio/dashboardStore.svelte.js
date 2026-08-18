@@ -55,7 +55,7 @@ export function createDashboardStore() {
     if (ejercicioEnCurso) {
       const now = new Date()
       const finAnio = Number(ejercicioEnCurso.anio_fin || 0)
-      const finMes = MESES.indexOf(ejercicioEnCurso.mes_inicio || 'Marzo')
+      const finMes = MESES.indexOf(ejercicioEnCurso.mes_inicio || 'Mayo')
       if (finAnio > 0) {
         const finDate = new Date(finAnio, finMes + 2, 1)
         const diffDays = Math.ceil((finDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))

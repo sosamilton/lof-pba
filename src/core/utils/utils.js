@@ -93,6 +93,44 @@ export const MESES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ]
 
+// Mapa nombre de mes → número (1-12). Compatible con MESES.
+export const MES_NUMERO = {
+  Enero: 1, Febrero: 2, Marzo: 3, Abril: 4, Mayo: 5, Junio: 6,
+  Julio: 7, Agosto: 8, Septiembre: 9, Octubre: 10, Noviembre: 11, Diciembre: 12,
+}
+
+const _pad2 = (n) => String(n).padStart(2, '0')
+
+/**
+ * Calcula las fechas de inicio y fin de un ejercicio económico a partir de
+ * mes_inicio + anio_inicio + anio_fin.
+ *
+ * - fecha_inicio = primer día de mes_inicio del anio_inicio (ej. 01/05/2026).
+ * - fecha_fin = último día del mes anterior a mes_inicio del anio_fin
+ *   (ej. 30/04/2027), de modo que el ejercicio cubra exactamente 12 meses
+ *   consecutivos desde fecha_inicio.
+ *
+ * @param {{ mes_inicio?: string, anio_inicio?: number|string, anio_fin?: number|string }} ej
+ * @returns {{ fechaInicio: string, fechaFin: string }} Fechas en formato YYYY-MM-DD (vacías si faltan datos)
+ */
+export const fechasEjercicio = (ej) => {
+  const anioInicio = Number(ej?.anio_inicio)
+  const anioFin = Number(ej?.anio_fin)
+  const mesInicioNum = MES_NUMERO[String(ej?.mes_inicio || '')] || 0
+  const fechaInicio = anioInicio && mesInicioNum ? `${anioInicio}-${_pad2(mesInicioNum)}-01` : ''
+  let fechaFin = ''
+  if (anioFin && mesInicioNum) {
+    const mesFin = mesInicioNum - 1
+    if (mesFin < 1) {
+      fechaFin = `${anioFin - 1}-12-31`
+    } else {
+      const ultimoDia = new Date(anioFin, mesFin, 0).getDate()
+      fechaFin = `${anioFin}-${_pad2(mesFin)}-${_pad2(ultimoDia)}`
+    }
+  }
+  return { fechaInicio, fechaFin }
+}
+
 export const TABLE_PREFERRED_IDS = {
   escuela: ['Escuela', 'escuela'],
   datos_banco: ['Datos_banco', 'datos_banco'],

@@ -39,7 +39,7 @@ export const DEMO_KIOSCO = (currentYear) => ({
 })
 
 export const DEMO_EJERCICIO = (currentYear) => ({
-  mes_inicio: 'Marzo',
+  mes_inicio: 'Mayo',
   anio_inicio: currentYear,
   anio_fin: currentYear + 1
 })
