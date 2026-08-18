@@ -1,6 +1,6 @@
 import { gristReady, resolveTableId, applyUserActions, invalidateTablesCache, fetchRecords, addRecords } from '$core/grist/grist'
 import { ensureSchema, initDemoData } from './initLof'
-import { TABLE_PREFERRED_IDS, MODULES } from '$core/utils/utils'
+import { TABLE_PREFERRED_IDS, MODULES, fechasEjercicio } from '$core/utils/utils'
 import { saveConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
 import { normalizeEmail, normalizeTelefonoForStorage, isValidCbuChecksum } from '$core/format/format'
 import { currentYear } from './setupConstants'
@@ -131,10 +131,13 @@ export async function doInstall(s) {
         let existingEj = []
         try { existingEj = await fetchRecords(tEjercicios) } catch { /* empty */ }
         if (existingEj.length === 0) {
+          const { fechaInicio, fechaFin } = fechasEjercicio(s.ejercicio)
           await applyUserActions([['AddRecord', tEjercicios, null, {
             anio_inicio: Number(s.ejercicio.anio_inicio) || currentYear,
             anio_fin: Number(s.ejercicio.anio_fin) || currentYear + 1,
-            mes_inicio: s.ejercicio.mes_inicio || 'Marzo',
+            mes_inicio: s.ejercicio.mes_inicio || 'Mayo',
+            fecha_inicio: fechaInicio || null,
+            fecha_fin: fechaFin || null,
             saldo_inicial_banco: Number(s.ejercicio.saldo_inicial_banco) || 0,
             saldo_inicial_efectivo: Number(s.ejercicio.saldo_inicial_efectivo) || 0,
             saldo_inicial_caja_chica: Number(s.ejercicio.saldo_inicial_caja_chica) || 0,
@@ -156,6 +159,7 @@ export async function doInstall(s) {
             nombre_cargo: c.nombre_cargo,
             orden: c.orden,
             duracion_meses: Number(c.duracion_meses) || 12,
+            grupo_renovacion: c.grupo_renovacion || null,
             cargo_obligatorio: Boolean(c.cargo_obligatorio),
             nivel: c.nivel || null,
             activo: Boolean(c.activo)

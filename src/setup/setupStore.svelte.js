@@ -27,6 +27,7 @@ import { doInstall } from './setupInstaller'
  * @property {string} nombre_cargo
  * @property {number} orden
  * @property {number} duracion_meses
+ * @property {string} grupo_renovacion - 'A' | 'B' | '' (solo CD; renovación por mitades art. 15)
  * @property {boolean} cargo_obligatorio
  * @property {string} nivel
  * @property {boolean} activo
@@ -117,7 +118,9 @@ export class SetupStore {
   cuentaDefault = $state('Banco')
 
   ejercicio = $state({
-    mes_inicio: 'Marzo',
+    // El ejercicio económico de las cooperadoras escolares bonaerenses es
+    // fijo: 01/05 → 30/04 (Decreto 4767/72). No es personalizable.
+    mes_inicio: 'Mayo',
     anio_inicio: currentYear,
     anio_fin: currentYear + 1,
     // Saldos iniciales del ejercicio (punto de partida del sistema).
