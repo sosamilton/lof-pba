@@ -92,16 +92,27 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 </details>
 
 <details>
+<summary><strong>Institucional</strong></summary>
+
+- **Datos generales** — escuela, cooperadora, banco y kiosco/librería en un solo lugar, con validación de CUIT, CBU y autocompletado de CUE desde el padrón oficial de PBA.
+- **Cargos del estatuto** — definición de cargos por organismo (CD, CRC, Federación) con orden, duración, grupo de renovación (A/B para CD, art. 15) y nivel (Titular/Suplente). Sección plegable con nota de que los cambios estructurales requieren asamblea.
+- **Autoridades vigentes** — tabla de quién ocupa cada cargo hoy, con fecha de asunción, vencimiento, origen (Asamblea/RCD) y acciones de **Cese** y **Reemplazo** sin salir de la página.
+- **Histórico de autoridades** — diálogo con selector de ejercicio y filas expandibles por cargo que muestran la cadena completa de reemplazos a través de todos los ejercicios.
+- **Alerta de quórum** — contador de titulares vigentes y alerta si baja del mínimo. Detección de persona en otro cargo del mismo organismo.
+- **Asesor institucional** — delegación del director, registro de ceses y histórico.
+- **Ejercicios fiscales** — creación, activación y edición de ejercicios con saldos iniciales.
+
+</details>
+
+<details>
 <summary><strong>Gobierno</strong></summary>
 
-- **Comisión Directiva** inicializada desde los cargos del estatuto (Decreto 4767/72).
-- **Comisión Revisora de Cuentas** (titular docente, titular socio, suplente) y Asesoría.
-- **Autoridades** con vencimiento de mandato, ceses (Renuncia, FinMandato, Reemplazo, Otro) y reemplazos con historial completo.
 - **Asambleas** (AGO/AGE/RCD) con resoluciones vinculadas al ejercicio.
 - **Carga de autoridades desde el wizard de asambleas** — wizard inline con selección de cargos por organismo (CD, CRC, Federación). Toggle global y por organismo para elegir qué cargos cargar (carga total o parcial). Creación de persona y socio desde el flujo, con validación de CUIL/DNI y PersonaPicker unificado.
-- **Histórico** de autoridades por período con filtros por organismo.
+- **Histórico de mandatos** — tabla de todos los mandatos por ejercicio (vigentes y cesados), con filtro por organismo. Memoria institucional de quién ocupó cada cargo y desde qué acta.
 - **Padrón electoral automático** según estatuto modelo.
-- **Detección de conflictos**: persona en otro cargo, quórum bajo.
+
+> Los ceses, reemplazos y la gestión cotidiana de autoridades vigentes se gestionan desde el módulo **Institucional**.
 
 </details>
 
@@ -189,6 +200,7 @@ Si no se seleccionan los checkboxes, cada paso muestra un botón **"Precargar da
 | --- | --- |
 | Listo | PIA y Nómina en PDF — generación automática desde los datos del ejercicio |
 | Listo | Comunidad unificada y carga de autoridades desde asambleas — padrón unificado con toggle de socio, wizard inline con selección por organismo |
+| Listo | Módulo Institucional — separación de la información formal como módulo de primera clase, con cargos, autoridades vigentes, ceses, reemplazos e histórico interactivo |
 | Próximo | Adjuntos y actas — carga guiada de comprobantes con trazabilidad |
 | Después | Balance de tesorería exportable |
 | Después | Accesos y roles — permisos por tesorería, comisión, asesoría |
