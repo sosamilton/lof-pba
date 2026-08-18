@@ -35,13 +35,18 @@ export function createRelatedData({ base }) {
 
   const setCierres = (v) => { cierres = v }
 
+  const setEjercicio = (ejId) => {
+    const found = ejercicios.find((e) => Number(e.id) === Number(ejId)) || null
+    if (found) ejercicio = found
+  }
+
   const loadAll = async () => {
     await base.load()
     if (base.error) return
 
     try {
       const tIds = await resolveTableIds([
-        'ejercicios', 'rubros_pia', 'subrubros', 'cuentas', 'socios', 'personas', 'cierres_mensuales',
+        'ejercicios', 'rubros_pia', 'subrubros', 'cuentas', 'socios', 'personas', 'cierres_mensuales', 'cargas',
       ])
 
       const data = await fetchRelated(tIds, {
@@ -95,6 +100,7 @@ export function createRelatedData({ base }) {
     get modoGestion() { return modoGestion },
     get cierres() { return cierres },
     setCierres,
+    setEjercicio,
     loadAll,
   }
 }

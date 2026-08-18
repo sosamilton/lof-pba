@@ -5,6 +5,7 @@ import { createCierresService } from '../resumen/cierresService.svelte.js'
 import { createPersonasSelector } from './form/personasSelector.svelte.js'
 import { createFormLogic } from './form/movimientosFormLogic.svelte.js'
 import { createCargaPIAService } from '../cargaPia/cargaPIAService.svelte.js'
+import { createCargasService } from '../cargaPia/cargasService.svelte.js'
 
 const base = createGristStore({
   tableKey: 'movimientos',
@@ -25,6 +26,7 @@ const cierresService = createCierresService({ relatedData, base })
 const personasSelector = createPersonasSelector({ relatedData, formState })
 const formLogic = createFormLogic({ formState, relatedData, base, cierresService })
 const cargaPIAService = createCargaPIAService({ relatedData, base, cierresService })
+const cargasService = createCargasService({ relatedData, base })
 
 let _relatedUnsub = null
 
@@ -76,10 +78,23 @@ export const movimientosStore = extendStore(base, {
   // cargaPIAService
   guardarCargaPIA: cargaPIAService.guardarCargaPIA,
   getMovimientosPorRubro: cargaPIAService.getMovimientosPorRubro,
+  // cargasService
+  get cargas() { return cargasService.cargas },
+  loadCargas: cargasService.loadCargas,
+  crearCarga: cargasService.crearCarga,
+  firmarCarga: cargasService.firmarCarga,
+  reabrirCarga: cargasService.reabrirCarga,
+  eliminarCarga: cargasService.eliminarCarga,
+  getCarga: cargasService.getCarga,
+  migrarCargasLegacy: cargasService.migrarCargasLegacy,
+  cerrarPeriodo: cargasService.cerrarPeriodo,
+  reabrirPeriodo: cargasService.reabrirPeriodo,
+  periodoFirmado: cargasService.periodoFirmado,
   // cierresService
   firmarPeriodo: cierresService.firmarPeriodo,
   periodoFirmado: cierresService.periodoFirmado,
   // local
   loadAll: relatedData.loadAll,
+  setEjercicio: relatedData.setEjercicio,
   subscribe,
 })

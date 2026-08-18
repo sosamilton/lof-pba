@@ -20,6 +20,7 @@
   import * as Alert from '$lib/components/ui/alert'
   import MovimientosList from './components/MovimientosList.svelte'
   import MovimientoForm from './components/MovimientoForm.svelte'
+  import CargaPIAMatrix from '../cargaPia/CargaPIAMatrix.svelte'
 
   let q = $state('')
   let tipo = $state('')
@@ -151,112 +152,116 @@
   {#snippet skeleton()}
     <ListSkeleton filters={1} />
   {/snippet}
-  <div class="mb-4 flex flex-wrap items-center gap-3">
-    <SearchInput bind:value={q} placeholder="Buscar en detalle" ariaLabel="Buscar movimientos" />
-    <Select.Root type="single" bind:value={tipo} allowDeselect={true}>
-      <Select.Trigger class="w-[120px]" aria-label="Filtrar por tipo de movimiento">
-        <Select.Value placeholder="Tipo" />
-      </Select.Trigger>
-      <Select.Content>
-        <Select.Item value="Entrada">Entrada</Select.Item>
-        <Select.Item value="Salida">Salida</Select.Item>
-        <Select.Item value="Traspaso">Traspaso</Select.Item>
-      </Select.Content>
-    </Select.Root>
-    <Select.Root type="single" bind:value={rubroFiltro} allowDeselect={true}>
-      <Select.Trigger class="w-[180px]" aria-label="Filtrar por rubro">
-        <Select.Value placeholder="Rubro" />
-      </Select.Trigger>
-      <Select.Content>
-        {#each rubrosFiltroOptions as opt}
-          <Select.Item value={opt.value}>{opt.label}</Select.Item>
-        {/each}
-      </Select.Content>
-    </Select.Root>
-    <Select.Root type="single" bind:value={ejercicioFiltro} allowDeselect={true}>
-      <Select.Trigger class="w-[130px]" aria-label="Filtrar por ejercicio">
-        <Select.Value placeholder="Ejercicio" />
-      </Select.Trigger>
-      <Select.Content>
-        {#each ejerciciosOptions as opt}
-          <Select.Item value={opt.value}>{opt.label}</Select.Item>
-        {/each}
-      </Select.Content>
-    </Select.Root>
-    <Select.Root type="single" bind:value={periodoFiltro} allowDeselect={true}>
-      <Select.Trigger class="w-[120px]" aria-label="Filtrar por período" disabled={!ejercicioFiltro}>
-        <Select.Value placeholder={ejercicioFiltro ? 'Período' : 'Elegí ejercicio'} />
-      </Select.Trigger>
-      <Select.Content>
-        {#each periodosOptions as opt}
-          <Select.Item value={opt.value}>{opt.label}</Select.Item>
-        {/each}
-      </Select.Content>
-    </Select.Root>
-    {#if esIntegral}
-      <div class="flex items-center gap-1">
-        <div class="w-[200px]">
-          <Combobox
-            bind:value={personaFiltro}
-            items={personaItems}
-            placeholder="Persona"
-            searchPlaceholder="Buscar persona…"
-          />
+  {#if store.modoGestion === 'carga_consolidada'}
+    <!-- Modo carga consolidada: CargaPIAMatrix maneja su propio header + layout -->
+    <CargaPIAMatrix embedded={true} />
+  {:else}
+    <!-- Modo gestión integral: listado + formulario individual -->
+    <div class="mb-4 flex flex-wrap items-center gap-3">
+      <SearchInput bind:value={q} placeholder="Buscar en detalle" ariaLabel="Buscar movimientos" />
+      <Select.Root type="single" bind:value={tipo} allowDeselect={true}>
+        <Select.Trigger class="w-[120px]" aria-label="Filtrar por tipo de movimiento">
+          <Select.Value placeholder="Tipo" />
+        </Select.Trigger>
+        <Select.Content>
+          <Select.Item value="Entrada">Entrada</Select.Item>
+          <Select.Item value="Salida">Salida</Select.Item>
+          <Select.Item value="Traspaso">Traspaso</Select.Item>
+        </Select.Content>
+      </Select.Root>
+      <Select.Root type="single" bind:value={rubroFiltro} allowDeselect={true}>
+        <Select.Trigger class="w-[180px]" aria-label="Filtrar por rubro">
+          <Select.Value placeholder="Rubro" />
+        </Select.Trigger>
+        <Select.Content>
+          {#each rubrosFiltroOptions as opt}
+            <Select.Item value={opt.value}>{opt.label}</Select.Item>
+          {/each}
+        </Select.Content>
+      </Select.Root>
+      <Select.Root type="single" bind:value={ejercicioFiltro} allowDeselect={true}>
+        <Select.Trigger class="w-[130px]" aria-label="Filtrar por ejercicio">
+          <Select.Value placeholder="Ejercicio" />
+        </Select.Trigger>
+        <Select.Content>
+          {#each ejerciciosOptions as opt}
+            <Select.Item value={opt.value}>{opt.label}</Select.Item>
+          {/each}
+        </Select.Content>
+      </Select.Root>
+      <Select.Root type="single" bind:value={periodoFiltro} allowDeselect={true}>
+        <Select.Trigger class="w-[120px]" aria-label="Filtrar por período" disabled={!ejercicioFiltro}>
+          <Select.Value placeholder={ejercicioFiltro ? 'Período' : 'Elegí ejercicio'} />
+        </Select.Trigger>
+        <Select.Content>
+          {#each periodosOptions as opt}
+            <Select.Item value={opt.value}>{opt.label}</Select.Item>
+          {/each}
+        </Select.Content>
+      </Select.Root>
+      {#if esIntegral}
+        <div class="flex items-center gap-1">
+          <div class="w-[200px]">
+            <Combobox
+              bind:value={personaFiltro}
+              items={personaItems}
+              placeholder="Persona"
+              searchPlaceholder="Buscar persona…"
+            />
+          </div>
+          {#if personaFiltro}
+            <Button variant="ghost" size="sm" onclick={() => (personaFiltro = '')} aria-label="Quitar filtro de persona">
+              <XIcon class="size-4" />
+            </Button>
+          {/if}
         </div>
-        {#if personaFiltro}
-          <Button variant="ghost" size="sm" onclick={() => (personaFiltro = '')} aria-label="Quitar filtro de persona">
-            <XIcon class="size-4" />
-          </Button>
-        {/if}
-      </div>
-    {/if}
-    {#if store.modoGestion !== 'carga_consolidada'}
+      {/if}
       <Button data-shortcut="new" onclick={() => store.nuevo()}>
         <PlusIcon data-icon="inline-start" />
         Nuevo movimiento
       </Button>
       <button data-shortcut="cuota" onclick={store.nuevoCuotaSocietaria} class="hidden" aria-hidden="true" tabindex="-1"></button>
-    {/if}
-    <span class="text-sm text-muted-foreground">{filtered.length} movimientos</span>
-  </div>
-
-  {#if !store.ejercicio}
-    <EmptyState
-      title="No hay ejercicio en curso"
-      sub="Activá un ejercicio en Inicio → Información institucional para registrar movimientos."
-    />
-  {:else}
-    <div class="grid gap-4" style="grid-template-columns: {filtered.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
-      <MovimientosList
-        items={filtered}
-        selectedId={store.selectedId}
-        onSelect={(m) => store.select(m)}
-        {rubroById}
-        {cuentaById}
-      />
-
-      <div>
-        {#if store.form}
-          <MovimientoForm {store} {filteredRubros} {subrubrosByRubro} {cuentaById} />
-        {:else if filtered.length === 0}
-          <EmptyState
-            title={store.modoGestion === 'carga_consolidada' ? "Sin movimientos en este período" : "Listo para cargar movimientos"}
-            sub={store.modoGestion === 'carga_consolidada' ? "Los movimientos se cargan desde Resumen → Cargar PIA por rubro." : "Creá el primer movimiento para empezar."}
-            actionLabel={store.modoGestion === 'carga_consolidada' ? null : "Nuevo movimiento"}
-            onaction={store.modoGestion === 'carga_consolidada' ? null : () => store.nuevo()}
-          >
-            {#snippet actionIcon()}
-              <PlusIcon data-icon="inline-start" />
-            {/snippet}
-          </EmptyState>
-        {:else}
-          <div class="flex flex-col items-center gap-2 py-12 text-center">
-            <ArrowLeftRightIcon class="size-8 text-muted-foreground" />
-            <p class="text-sm text-muted-foreground">Seleccioná un movimiento o creá uno nuevo.</p>
-          </div>
-        {/if}
-      </div>
+      <span class="text-sm text-muted-foreground">{filtered.length} movimientos</span>
     </div>
+
+    {#if !store.ejercicio}
+      <EmptyState
+        title="No hay ejercicio en curso"
+        sub="Activá un ejercicio en Inicio → Información institucional para registrar movimientos."
+      />
+    {:else}
+      <div class="grid gap-4" style="grid-template-columns: {filtered.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
+        <MovimientosList
+          items={filtered}
+          selectedId={store.selectedId}
+          onSelect={(m) => store.select(m)}
+          {rubroById}
+          {cuentaById}
+        />
+
+        <div>
+          {#if store.form}
+            <MovimientoForm {store} {filteredRubros} {subrubrosByRubro} {cuentaById} />
+          {:else if filtered.length === 0}
+            <EmptyState
+              title="Listo para cargar movimientos"
+              sub="Creá el primer movimiento para empezar."
+              actionLabel="Nuevo movimiento"
+              onaction={() => store.nuevo()}
+            >
+              {#snippet actionIcon()}
+                <PlusIcon data-icon="inline-start" />
+              {/snippet}
+            </EmptyState>
+          {:else}
+            <div class="flex flex-col items-center gap-2 py-12 text-center">
+              <ArrowLeftRightIcon class="size-8 text-muted-foreground" />
+              <p class="text-sm text-muted-foreground">Seleccioná un movimiento o creá uno nuevo.</p>
+            </div>
+          {/if}
+        </div>
+      </div>
+    {/if}
   {/if}
 
 </PageScaff>
