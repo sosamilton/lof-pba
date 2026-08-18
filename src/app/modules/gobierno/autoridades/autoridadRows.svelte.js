@@ -9,7 +9,7 @@ import { buildVigenteByCargo } from '$app/modules/gobierno/constants.js'
  * @param {() => any[]} deps.getCargos - Getter reactivo de cargos
  * @param {() => any[]} deps.getAutoridades - Getter reactivo de autoridades
  * @param {() => string} deps.getOrganismo - Getter reactivo de organismo
- * @param {() => number | null} [deps.getEjercicioId] - Getter del ejercicio en curso (para filtrar vigentes)
+ * @param {() => number | null} [deps.getEjercicioId] - Reservado (no se usa para filtrar vigentes; la vigencia se determina por fechas, no por ejercicio)
  * @param {() => number | null} [deps.getEjercicioHistoricoId] - Getter del ejercicio seleccionado para histórico
  * @returns {{
  *   rows: any[], rowsHistorico: any[],
@@ -55,21 +55,21 @@ export function createAutoridadRows({ getCargos, getAutoridades, getOrganismo, g
     const cargos = getCargos()
     const autoridades = getAutoridades()
     const organismo = getOrganismo()
-    const ejercicioId = getEjercicioId?.()
 
     const cargosOrg = cargos
       .filter((c) => String(c.organismo) === organismo)
       .filter((c) => c.activo === true || c.cargo_obligatorio === true)
       .sort((a, b) => Number(a.orden || 0) - Number(b.orden || 0))
 
-    // Filtrar autoridades del ejercicio en curso antes de buscar vigentes.
-    // Esto evita que autoridades activas de ejercicios anteriores aparezcan
-    // como vigentes si no fueron correctamente cesadas.
-    const autoridadesEjercicio = ejercicioId != null
-      ? autoridades.filter((a) => Number(a.ejercicio_id) === Number(ejercicioId))
-      : autoridades
-
-    const vigenteByCargo = buildVigenteByCargo(autoridadesEjercicio, organismo)
+    // Las autoridades vigentes se determinan por fechas (activo !== false y
+    // sin fecha_cese), NO por ejercicio_id. Esto es clave porque el mandato
+    // de la Comisión Directiva dura 2 años y atraviesa dos ejercicios
+    // económicos: una autoridad electa en el ejercicio 2025/26 sigue vigente
+    // en 2026/27 y 2027/28 hasta que se la cese/reemplace. El ejercicio_id
+    // queda como metadata del ejercicio de elección, no como filtro de
+    // vigencia. Post-vencimiento sin cese: la autoridad permanece activa
+    // hasta la renovación (no hay auto-expiración por fecha_vencimiento).
+    const vigenteByCargo = buildVigenteByCargo(autoridades, organismo)
 
     return cargosOrg.map((c) => {
       const a = vigenteByCargo.get(Number(c.id)) || null

@@ -59,7 +59,7 @@
     },
     {
       "titulo": "¿Las autoridades y los mandatos son un rompecabezas?",
-      "descripcion": "Cargás la Comisión Directiva una sola vez y el sistema calcula los vencimientos, te avisa cuando un cargo queda vacante y registra ceses y reemplazos con historial completo.",
+      "descripcion": "Cargás las autoridades desde la asamblea y el sistema calcula los vencimientos, te avisa cuando un cargo queda vacante y registra ceses y reemplazos con historial completo.",
       "icono": "gavel"
     }
   ],
@@ -67,16 +67,16 @@
   "subtitulo_seccion": "Desde la primera configuración hasta la rendición anual, en un solo lugar.",
   "funciones": [
     {
-      "titulo": "Puesta en marcha",
-      "descripcion": "De documento vacío a cooperadora configurada en menos de 5 minutos.",
-      "icono": "rocket",
+      "titulo": "Institucional",
+      "descripcion": "Los datos formales de tu cooperadora, desde la primera configuración hasta el día a día.",
+      "icono": "building",
       "items": [
-        "Wizard guiado: escuela, cooperadora, ejercicio y cargos del estatuto",
-        "Autocompletado de datos desde el padrón oficial de escuelas (CUE)",
-        "Validación de CUIT, CBU y teléfono con algoritmos oficiales",
-        "Cargos obligatorios y opcionales del estatuto, listos para usar",
-        "El color de tu cooperadora personaliza toda la app en vivo",
-        "Dos modos: gestión integral o solo carga de la PIA"
+        "Escuela, banco y kiosco con validación de CUIT, CBU y autocompletado de CUE",
+        "Cargos del estatuto por organismo: CD, CRC y Federación",
+        "Autoridades vigentes con cese, reemplazo y alerta de quórum bajo",
+        "Histórico de mandatos: quién ocupó cada cargo en cada ejercicio",
+        "Asesor institucional con delegación y registro de ceses",
+        "Ejercicios fiscales con saldo inicial y color que personaliza la app"
       ]
     },
     {
@@ -107,14 +107,13 @@
     },
     {
       "titulo": "Gobierno y actas",
-      "descripcion": "Asambleas, autoridades y resoluciones vinculadas al ejercicio.",
+      "descripcion": "Asambleas, reuniones de CD y resoluciones vinculadas al ejercicio.",
       "icono": "gavel",
       "items": [
         "Asambleas AGO, AGE y RCD con resoluciones y padrón electoral",
-        "Carga de autoridades desde el wizard de asambleas",
+        "Carga de autoridades desde el wizard de asambleas, por organismo",
+        "Histórico de mandatos: quién ocupó cada cargo y desde qué acta",
         "Vencimientos de mandato calculados automáticamente",
-        "Ceses y reemplazos con historial completo",
-        "Alerta de quórum bajo y detección de personas en otro cargo",
         "Comisión Directiva, CRC y Federación, todo vinculado"
       ]
     },
@@ -155,8 +154,8 @@
         "imagen": "img/screenshot/inicio.png"
       },
       {
-        "titulo": "Cooperadora",
-        "descripcion": "Datos de la institución, ejercicio y configuración general.",
+        "titulo": "Institucional",
+        "descripcion": "Datos formales, cargos del estatuto, autoridades vigentes con cese y reemplazo, histórico de mandatos, asesor y ejercicios.",
         "imagen": "img/screenshot/cooperadora.png"
       },
       {
@@ -171,7 +170,7 @@
       },
       {
         "titulo": "Asambleas",
-        "descripcion": "Gestión de asambleas y resoluciones vinculadas al ejercicio.",
+        "descripcion": "Asambleas y reuniones de CD con resoluciones y carga de autoridades desde el wizard.",
         "imagen": "img/screenshot/asamblea.png"
       }
     ]
@@ -305,6 +304,11 @@
       "estado": "hecho",
       "titulo": "Comunidad unificada y carga de autoridades desde asambleas",
       "descripcion": "Fusión de los módulos de Personas y Socios en un solo padrón con toggle de socio. Wizard de asambleas con carga de autoridades inline, selección por organismo y creación de persona + socio desde el flujo."
+    },
+    {
+      "estado": "hecho",
+      "titulo": "Módulo Institucional con gestión de cargos y autoridades",
+      "descripcion": "Separación de la información institucional como módulo de primera clase en el sidebar. Cargos del estatuto y autoridades vigentes con cese, reemplazo y alerta de quórum en un solo lugar. Gobierno se enfoca en asambleas e histórico de mandatos."
     },
     {
       "estado": "proximo",

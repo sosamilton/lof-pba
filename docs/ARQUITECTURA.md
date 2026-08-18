@@ -40,7 +40,7 @@ Vista pública que se muestra cuando la app corre fuera de Grist. El contenido (
 - **`AppShell.svelte`** — layout principal con sidebar (desktop) / drawer (mobile), menú dinámico según los módulos activos en la configuración, y branding desde la config de la cooperadora.
 - **`pages/`** — páginas de nivel superior, cada una en su propia carpeta con stores y componentes:
   - `inicio/` — `Inicio.svelte` + `inicioStore` + `dashboardStore` (métricas) + `components/` (ResumenEjecutivo, TableroCaja, ConfigPanel, etc.).
-  - `cooperadora/` — `Cooperadora.svelte` + `cooperadoraStore` (facade) + `cargosStore` + `ejerciciosStore` + `cooperadoraApi` + `components/` (FormEscuela, FormBanco, TablaCargos, etc.).
+  - `cooperadora/` — **Institucional** (ruta interna `cooperadora`, visible como "Institucional" en el sidebar). `Cooperadora.svelte` + `cooperadoraStore` (facade) + `cargosStore` (cargos + autoridades vigentes + cese + reemplazo + histórico) + `ejerciciosStore` + `cooperadoraApi` + `components/` (FormEscuela, FormBanco, TablaCargos, DialogHistorico, ListaAsesores, ListaEjercicios, etc.).
 - **`modules/`** — módulos funcionales por dominio, cada uno subdividido por sub-dominio con `components/` para UI:
   - `comunidad/` — `Comunidad.svelte` + `comunidadStore` (padrón unificado de personas y socios). Reutiliza `personas/personasApi` + `personas/personaFormManager` + `personas/personaLinker` + `socios/socioValidator` + `constants.js`.
   - `comunidad/components/` — UI compartida del módulo (CuilInput, FilterBar, RecordList, PersonaFormFields, EmptyStates).
@@ -49,7 +49,7 @@ Vista pública que se muestra cuando la app corre fuera de Grist. El contenido (
   - `tesoreria/cargaPia/` — `CargaPIAMatrix.svelte` + `cargaPIAService` + `components/` (ConfirmarFirmaDialog).
   - `tesoreria/shared/` — `tesoreriaCalc.js` (cálculos compartidos).
   - `gobierno/asambleas/` — `asambleasManager` + `components/` (TabAsambleas, AsambleaWizard).
-  - `gobierno/autoridades/` — `autoridadRows`, `cargarAutoridades`, `ceseAutoridad`, `reemplazoAutoridad` + `components/` (DialogCargar, DialogCese, DialogReemplazo, tabs).
+  - `gobierno/autoridades/` — `autoridadRows`, `cargarAutoridades`, `ceseAutoridad`, `reemplazoAutoridad` + `components/` (DialogCargar, DialogCese, DialogReemplazo, TabHistorico). **Nota:** cese y reemplazo se invocan desde Institucional (cargosStore), pero las factories viven aquí por afinidad de dominio. Gobierno solo usa `cargarAutoridades` (carga desde asamblea) y `TabHistorico`.
   - `gobierno/components/` — UI compartida (PersonaPicker).
 
 Cada módulo es una pareja `.svelte` (vista) + `*Store.svelte.js` (estado y lógica de dominio que extiende el store base de Grist). Las constantes de dominio viven en `constants.js` dentro de cada módulo (`comunidad/constants.js`, `gobierno/constants.js`).

@@ -1,5 +1,5 @@
 import { applyUserActions, fetchRecords, resolveTableId } from '$core/grist/grist'
-import { TABLE_PREFERRED_IDS, MODULES } from '$core/utils/utils'
+import { TABLE_PREFERRED_IDS, MODULES, fechasEjercicio } from '$core/utils/utils'
 
 /** @returns {Promise<Record<string, any> | null>} */
 export const loadConfig = async () => {
@@ -53,12 +53,17 @@ export const crearEjercicioApi = async (nuevoEj, ejerciciosActuales = [], observ
   const tEjercicios = await resolveTableId(TABLE_PREFERRED_IDS.ejercicios)
   if (!tEjercicios) throw new Error('No se encontró la tabla ejercicios.')
   const toDeactivate = ejerciciosActuales.filter((e) => e.en_curso === true).map((e) => e.id)
+  // Autocalcular fecha_inicio/fecha_fin desde mes_inicio + anios si no vienen
+  // provistos explícitamente (ej. 01/05/2026 → 30/04/2027).
+  const { fechaInicio, fechaFin } = fechasEjercicio(nuevoEj)
   const actions = [
     ...toDeactivate.map((id) => ['UpdateRecord', tEjercicios, id, { en_curso: false }]),
     ['AddRecord', tEjercicios, null, {
       anio_inicio: nuevoEj.anio_inicio ? Number(nuevoEj.anio_inicio) : null,
       anio_fin: nuevoEj.anio_fin ? Number(nuevoEj.anio_fin) : null,
-      mes_inicio: nuevoEj.mes_inicio || 'Marzo',
+      mes_inicio: nuevoEj.mes_inicio || 'Mayo',
+      fecha_inicio: nuevoEj.fecha_inicio || fechaInicio || null,
+      fecha_fin: nuevoEj.fecha_fin || fechaFin || null,
       saldo_inicial_banco: Number(nuevoEj.saldo_inicial_banco || 0),
       saldo_inicial_efectivo: Number(nuevoEj.saldo_inicial_efectivo || 0),
       saldo_inicial_caja_chica: Number(nuevoEj.saldo_inicial_caja_chica || 0),

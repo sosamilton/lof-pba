@@ -78,6 +78,7 @@ export function createCargarAutoridades({
           organismo: String(c.organismo),
           obligatorio: Boolean(c.cargo_obligatorio),
           duracionMeses: c.duracion_meses ?? '',
+          grupoRenovacion: c.grupo_renovacion || '',
           persona_id: existente?.persona_id || null,
           apellido_nombre: existente?.apellido_nombre || '',
           dni: existente?.dni || '',

@@ -32,6 +32,7 @@
 
   const iconMap = {
     inicio: HomeIcon,
+    cooperadora: BuildingIcon,
     comunidad: UsersIcon,
     movimientos: ArrowLeftRightIcon,
     resumen: BarChartIcon,

@@ -27,12 +27,16 @@ export function reordenar(s, org, index, dir) {
 
 export function addCargo(s, org) {
   const grupo = cargosPorOrganismo(s, org)
+  // Duración por defecto según organismo: CD = 24 meses (art. 15 Decreto 4767/72),
+  // CRC y Federación = 12 meses.
+  const duracionDefault = org === 'CD' ? 24 : 12
   const nuevo = {
     _uid: ++s.cargoUid,
     organismo: org,
     nombre_cargo: '',
     orden: grupo.length + 1,
-    duracion_meses: 12,
+    duracion_meses: duracionDefault,
+    grupo_renovacion: '',
     cargo_obligatorio: false,
     nivel: 'Titular',
     activo: true
@@ -92,28 +96,34 @@ export async function loadDefaultCargos(s) {
       nombre_cargo: c.nombre_cargo || '',
       orden: Number(c.orden) || 0,
       duracion_meses: Number(c.duracion_meses) || 12,
+      grupo_renovacion: c.grupo_renovacion || '',
       cargo_obligatorio: Boolean(c.cargo_obligatorio),
       nivel: c.nivel || '',
       activo: c.activo !== false
     }))
   } catch (e) {
     // Mínimo del Estatuto Modelo (Decreto 4767/72) + cargos opcionales del PIA.
+    // Duración de mandato: CD = 24 meses (2 años, art. 15), CRC = 12 meses (1 año).
+    // grupo_renovacion: la CD se renueva por mitades anualmente (art. 15).
+    //   Grupo A: Presidente, Secretario, Tesorero, Vocal Titular 1, Vocal Suplente 1.
+    //   Grupo B: Vicepresidente, Prosecretario, Protesorero, Vocales Titulares 2-3, Vocal Suplente 2.
+    // CRC y Federación no tienen grupo (mandato anual / opcional).
     s.cargos = [
-      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Presidente/a', orden: 1, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Titular', activo: true },
-      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Vicepresidente/a', orden: 2, duracion_meses: 12, cargo_obligatorio: false, nivel: 'Titular', activo: true },
-      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Secretario/a', orden: 3, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Titular', activo: true },
-      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Prosecretario/a', orden: 4, duracion_meses: 12, cargo_obligatorio: false, nivel: 'Titular', activo: true },
-      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Tesorero/a', orden: 5, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Titular', activo: true },
-      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Protesorero/a', orden: 6, duracion_meses: 12, cargo_obligatorio: false, nivel: 'Titular', activo: true },
-      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Vocal Titular 1', orden: 7, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Titular', activo: true },
-      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Vocal Titular 2', orden: 8, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Titular', activo: true },
-      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Vocal Titular 3', orden: 9, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Titular', activo: true },
-      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Vocal Suplente 1', orden: 10, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Suplente', activo: true },
-      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Vocal Suplente 2', orden: 11, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Suplente', activo: true },
-      { _uid: ++s.cargoUid, organismo: 'CRC', nombre_cargo: 'Revisor/a Titular Docente', orden: 1, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Titular', activo: true },
-      { _uid: ++s.cargoUid, organismo: 'CRC', nombre_cargo: 'Revisor/a Titular Socio', orden: 2, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Titular', activo: true },
-      { _uid: ++s.cargoUid, organismo: 'CRC', nombre_cargo: 'Revisor/a Suplente', orden: 3, duracion_meses: 12, cargo_obligatorio: true, nivel: 'Suplente', activo: true },
-      { _uid: ++s.cargoUid, organismo: 'CRC', nombre_cargo: 'Asesor/a', orden: 4, duracion_meses: 12, cargo_obligatorio: false, nivel: '', activo: true },
+      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Presidente/a', orden: 1, duracion_meses: 24, grupo_renovacion: 'A', cargo_obligatorio: true, nivel: 'Titular', activo: true },
+      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Vicepresidente/a', orden: 2, duracion_meses: 24, grupo_renovacion: 'B', cargo_obligatorio: false, nivel: 'Titular', activo: true },
+      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Secretario/a', orden: 3, duracion_meses: 24, grupo_renovacion: 'A', cargo_obligatorio: true, nivel: 'Titular', activo: true },
+      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Prosecretario/a', orden: 4, duracion_meses: 24, grupo_renovacion: 'B', cargo_obligatorio: false, nivel: 'Titular', activo: true },
+      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Tesorero/a', orden: 5, duracion_meses: 24, grupo_renovacion: 'A', cargo_obligatorio: true, nivel: 'Titular', activo: true },
+      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Protesorero/a', orden: 6, duracion_meses: 24, grupo_renovacion: 'B', cargo_obligatorio: false, nivel: 'Titular', activo: true },
+      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Vocal Titular 1', orden: 7, duracion_meses: 24, grupo_renovacion: 'A', cargo_obligatorio: true, nivel: 'Titular', activo: true },
+      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Vocal Titular 2', orden: 8, duracion_meses: 24, grupo_renovacion: 'B', cargo_obligatorio: true, nivel: 'Titular', activo: true },
+      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Vocal Titular 3', orden: 9, duracion_meses: 24, grupo_renovacion: 'B', cargo_obligatorio: true, nivel: 'Titular', activo: true },
+      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Vocal Suplente 1', orden: 10, duracion_meses: 24, grupo_renovacion: 'A', cargo_obligatorio: true, nivel: 'Suplente', activo: true },
+      { _uid: ++s.cargoUid, organismo: 'CD', nombre_cargo: 'Vocal Suplente 2', orden: 11, duracion_meses: 24, grupo_renovacion: 'B', cargo_obligatorio: true, nivel: 'Suplente', activo: true },
+      { _uid: ++s.cargoUid, organismo: 'CRC', nombre_cargo: 'Revisor/a Titular Docente', orden: 1, duracion_meses: 12, grupo_renovacion: '', cargo_obligatorio: true, nivel: 'Titular', activo: true },
+      { _uid: ++s.cargoUid, organismo: 'CRC', nombre_cargo: 'Revisor/a Titular Socio', orden: 2, duracion_meses: 12, grupo_renovacion: '', cargo_obligatorio: true, nivel: 'Titular', activo: true },
+      { _uid: ++s.cargoUid, organismo: 'CRC', nombre_cargo: 'Revisor/a Suplente', orden: 3, duracion_meses: 12, grupo_renovacion: '', cargo_obligatorio: true, nivel: 'Suplente', activo: true },
+      { _uid: ++s.cargoUid, organismo: 'CRC', nombre_cargo: 'Asesor/a', orden: 4, duracion_meses: 12, grupo_renovacion: '', cargo_obligatorio: false, nivel: '', activo: true },
     ]
   }
 }

@@ -604,6 +604,14 @@
             "label": "Activo",
             "type": "Bool"
           }
+        },
+        {
+          "id": "grupo_renovacion",
+          "fields": {
+            "label": "Grupo de renovación",
+            "type": "Choice",
+            "widgetOptions": "{\"choices\":[\"A\",\"B\"]}"
+          }
         }
       ]
     },

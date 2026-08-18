@@ -492,7 +492,7 @@ export const generarDatosPrueba = async ({
       if (ejercicioRec) {
         ejerciciosParaGenerar.push({ ...ejercicioRec })
         const anioBase = Number(ejercicioRec.anio_inicio) || anioInicio
-        const mesInicio = ejercicioRec.mes_inicio || 'Marzo'
+        const mesInicio = ejercicioRec.mes_inicio || 'Mayo'
         for (let e = 1; e < cantEjercicios; e++) {
           const anioInicioEj = anioBase - e
           // Crear ejercicio anterior en Grist

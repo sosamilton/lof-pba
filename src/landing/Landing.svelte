@@ -8,7 +8,6 @@
   import BuildingIcon from '@lucide/svelte/icons/building'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import GavelIcon from '@lucide/svelte/icons/gavel'
-  import RocketIcon from '@lucide/svelte/icons/rocket'
 
   const iconMap = {
     database: DatabaseIcon,
@@ -20,7 +19,6 @@
     building: BuildingIcon,
     'arrow-left-right': ArrowLeftRightIcon,
     gavel: GavelIcon,
-    rocket: RocketIcon,
     'refresh-cw': RefreshCwIcon,
     'book-open': BookOpenIcon,
     'file-text': FileTextIcon,

@@ -61,16 +61,18 @@ Cuando un store crece demasiado, se descompone en **sub-stores** inyectados vía
 ```js
 // cooperadoraStore.svelte.js — facade
 const ejercicios = createEjerciciosStore({ bs, getTEjercicios, getTMovimientos })
-const cargos = createCargosStore({ bs, getTCargos, getTAutoridades, getEjercicioEnCurso })
+const cargos = createCargosStore({ bs, getTCargos, getTAutoridades, getTAsambleas, getEjercicioEnCurso })
 
 // re-exporta getters reactivos del sub-store
 get ejercicios() { return ejercicios.ejercicios }
 get cargosObligatorios() { return cargos.cargosObligatorios }
+get ceseTarget() { return cargos.ceseTarget }
+get reemplazoTarget() { return cargos.reemplazoTarget }
 ```
 
-- **`cooperadoraStore`** facade → compone `ejerciciosStore` + `cargosStore`; mantiene solo configuración (escuela, banco, kiosco).
+- **`cooperadoraStore`** facade → compone `ejerciciosStore` + `cargosStore` (cargos, autoridades vigentes, cese, reemplazo, histórico, personaSearch); mantiene solo configuración (escuela, banco, kiosco).
 - **`inicioStore`** facade → delega métricas a `dashboardStore`; mantiene solo estado local (status, creating, nuevoEj, version).
-- **`asambleasAutoridadesStore`** — mismo modelo de factory con inyección de dependencias.
+- **`asambleasAutoridadesStore`** — mismo modelo de factory con inyección de dependencias. Maneja asambleas, carga de autoridades desde wizard, e histórico. **Nota:** cese y reemplazo se invocan desde `cargosStore` (Institucional), no desde este store. Las factories `createCeseAutoridad` y `createReemplazoAutoridad` viven en `gobierno/autoridades/` pero se instancian desde `cargosStore`.
 
 Los sub-stores exponen getters sobre `$state` que el facade re-exporta, manteniendo reactividad transitiva.
 

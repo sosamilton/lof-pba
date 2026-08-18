@@ -24,7 +24,7 @@ let repairResult = $state(null)
 let savingConfig = $state(false)
 
 let showNuevoEjercicio = $state(false)
-let nuevoEj = $state({ anio_inicio: '', anio_fin: '', mes_inicio: 'Marzo', saldo_inicial_banco: 0, saldo_inicial_efectivo: 0, saldo_inicial_caja_chica: 0 })
+let nuevoEj = $state({ anio_inicio: '', anio_fin: '', mes_inicio: 'Mayo', saldo_inicial_banco: 0, saldo_inicial_efectivo: 0, saldo_inicial_caja_chica: 0 })
 
 // Versión instalada (guardada en configuracion al final del setup) vs versión
 // actual del bundle que corre (horneada en build time). Si difieren, la app
@@ -77,7 +77,7 @@ const crearEjercicio = async () => {
     await crearEjercicioApi(nuevoEj, dash.ejercicioEnCurso ? [dash.ejercicioEnCurso] : [], 'Ejercicio creado desde Inicio')
     notify.success('Ejercicio creado y activado.')
     showNuevoEjercicio = false
-    nuevoEj = { anio_inicio: '', anio_fin: '', mes_inicio: 'Marzo', saldo_inicial_banco: 0, saldo_inicial_efectivo: 0, saldo_inicial_caja_chica: 0 }
+    nuevoEj = { anio_inicio: '', anio_fin: '', mes_inicio: 'Mayo', saldo_inicial_banco: 0, saldo_inicial_efectivo: 0, saldo_inicial_caja_chica: 0 }
     await dash.loadDashboard()
   } catch (e) {
     bs.setError(e?.message || String(e))

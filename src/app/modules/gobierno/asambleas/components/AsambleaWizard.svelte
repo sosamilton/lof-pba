@@ -95,6 +95,19 @@
   const isRcd = $derived(store.asambleaForm?.tipo_asamblea === 'RCD')
   const isAgo = $derived(store.asambleaForm?.tipo_asamblea === 'AGO')
 
+  // Art. 10 Decreto 4767/72: la Asamblea Ordinaria debe realizarse en la
+  // segunda quincena de mayo. Advertencia (no bloqueante) si la fecha de la
+  // AGO no cae en ese período.
+  const agoFueraDeTermino = $derived.by(() => {
+    if (!isAgo) return false
+    const f = String(store.asambleaForm?.fecha || '')
+    const m = f.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+    if (!m) return false
+    const mes = Number(m[2])
+    const dia = Number(m[3])
+    return mes !== 5 || dia < 15
+  })
+
   // Helper: agrupar filas por organismo con índice global
   const filasPorOrganismo = $derived.by(() => {
     if (!store.cargarDraft) return []
@@ -192,6 +205,12 @@
           <Field.Field>
             <Field.FieldLabel for="wiz-fecha">Fecha</Field.FieldLabel>
             <Input id="wiz-fecha" type="date" bind:value={store.asambleaForm.fecha} />
+            {#if agoFueraDeTermino}
+              <Field.FieldDescription class="text-amber-600 dark:text-amber-500">
+                <AlertTriangleIcon class="inline size-3 align-text-bottom" />
+                El art. 10 del Decreto 4767/72 prevé la Asamblea Ordinaria para la segunda quincena de mayo. La fecha ingresada está fuera de ese período.
+              </Field.FieldDescription>
+            {/if}
           </Field.Field>
           <Field.Field>
             <Field.FieldLabel for="wiz-acta">Acta N°</Field.FieldLabel>

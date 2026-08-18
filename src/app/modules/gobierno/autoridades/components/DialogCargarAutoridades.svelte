@@ -122,6 +122,7 @@
                           onCheckedChange={() => store.toggleCargoSeleccionado(f.cargoId)}
                         />
                         <span class="flex-1">{f.cargoNombre}</span>
+                        {#if f.grupoRenovacion}<Badge variant="secondary" class="text-[10px]">Grupo {f.grupoRenovacion}</Badge>{/if}
                         {#if f.obligatorio}<Badge variant="secondary">Obligatorio</Badge>{/if}
                         {#if f.yaExiste}
                           <Badge variant="outline">Vigente</Badge>
@@ -165,6 +166,7 @@
                     <div class="rounded-lg border border-border p-3">
                       <div class="mb-2 flex items-center gap-2">
                         <span class="text-sm font-bold">{f.cargoNombre}</span>
+                        {#if f.grupoRenovacion}<Badge variant="secondary" class="text-[10px]">Grupo {f.grupoRenovacion}</Badge>{/if}
                         {#if f.obligatorio}<Badge variant="secondary">Obligatorio</Badge>{/if}
                         {#if f.yaExiste}
                           <Badge variant="outline">Vigente</Badge>

@@ -41,6 +41,8 @@ let tCargos = $state(null)
 let tAutoridades = $state(null)
 /** @type {string | null} */
 let tMovimientos = $state(null)
+/** @type {string | null} */
+let tAsambleas = $state(null)
 
 // --- Configuración (escuela, banco, kiosco) — permanece en el store principal ---
 /** @type {Record<string, any>} */
@@ -62,6 +64,7 @@ const cargosMgr = createCargosStore({
   bs,
   getTCargos: () => tCargos,
   getTAutoridades: () => tAutoridades,
+  getTAsambleas: () => tAsambleas,
   getEjercicioEnCurso: () => ejerciciosMgr.ejercicioEnCurso,
 })
 
@@ -90,6 +93,7 @@ const load = async () => {
     tEjercicios = await resolveTableId(TABLE_PREFERRED_IDS.ejercicios)
     tCargos = await resolveTableId(TABLE_PREFERRED_IDS.cargos)
     tAutoridades = await resolveTableId(TABLE_PREFERRED_IDS.autoridades)
+    tAsambleas = await resolveTableId(TABLE_PREFERRED_IDS.asambleas)
     tMovimientos = await resolveTableId(TABLE_PREFERRED_IDS.movimientos)
     escuela = (await ensureOneRow(tEscuela)) || {}
     banco = (await ensureOneRow(tBanco)) || {}
@@ -105,6 +109,7 @@ const load = async () => {
     if (config?.color_primario) color_primario = config.color_primario
     await cargosMgr.loadCargos()
     await cargosMgr.loadAutoridades()
+    await cargosMgr.loadAsambleas()
   } catch (e) { bs.setError(e?.message || String(e)) } finally { bs.setLoading(false) }
 }
 
@@ -200,16 +205,41 @@ export const cooperadoraStore = {
   saveEjercicio: ejerciciosMgr.saveEjercicio,
   deleteEjercicio: ejerciciosMgr.deleteEjercicio,
   setOnSaldosChanged: ejerciciosMgr.setOnSaldosChanged,
-  // Cargos (delegado a sub-store)
+  // Cargos y autoridades (delegado a sub-store)
   get organismo() { return cargosMgr.organismo },
   get cargos() { return cargosMgr.cargos },
+  get todosLosCargos() { return cargosMgr.todosLosCargos },
   get nuevoCargo() { return cargosMgr.nuevoCargo },
   get comisionDirectiva() { return cargosMgr.comisionDirectiva },
   get tieneAutoridadesVigentes() { return cargosMgr.tieneAutoridadesVigentes },
+  get quorumTitulares() { return cargosMgr.quorumTitulares },
+  get asambleas() { return cargosMgr.asambleas },
+  personaEnOtroCargo: (...args) => cargosMgr.personaEnOtroCargo(...args),
   setOrganismo: cargosMgr.setOrganismo,
   loadCargos: cargosMgr.loadCargos,
+  loadTodosLosCargos: cargosMgr.loadTodosLosCargos,
+  loadAutoridades: cargosMgr.loadAutoridades,
+  loadAsambleas: cargosMgr.loadAsambleas,
   saveCargo: cargosMgr.saveCargo,
   addCargo: cargosMgr.addCargo,
+  // Cese de autoridad
+  get ceseTarget() { return cargosMgr.ceseTarget },
+  openCese: cargosMgr.openCese,
+  closeCese: cargosMgr.closeCese,
+  saveCese: cargosMgr.saveCese,
+  // Reemplazo de autoridad
+  get reemplazoTarget() { return cargosMgr.reemplazoTarget },
+  openReemplazo: cargosMgr.openReemplazo,
+  closeReemplazo: cargosMgr.closeReemplazo,
+  saveReemplazo: cargosMgr.saveReemplazo,
+  // Búsqueda de personas (para reemplazo)
+  get personaSearch() { return cargosMgr.personaSearch },
+  set personaSearch(v) { cargosMgr.personaSearch = v },
+  get personaResults() { return cargosMgr.personaResults },
+  get personaSearching() { return cargosMgr.personaSearching },
+  get searchTarget() { return cargosMgr.searchTarget },
+  doPersonaSearch: cargosMgr.doPersonaSearch,
+  linkPersonaSearch: cargosMgr.linkPersonaSearch,
   // Lifecycle
   load,
   subscribe,

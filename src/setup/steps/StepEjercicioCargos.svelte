@@ -24,13 +24,40 @@
     CRC: 'Controla y revisa las cuentas y los movimientos financieros.',
     Federacion: 'Órgano al que adherís si tu cooperadora está federada.',
   }
+
+  // El ejercicio económico de las cooperadoras escolares bonaerenses es fijo
+  // (01/05 → 30/04, Decreto 4767/72). Lo mostramos como referencia y avisamos
+  // si el usuario se aparta del régimen.
+  const MES_NUMERO = {
+    Enero: 1, Febrero: 2, Marzo: 3, Abril: 4, Mayo: 5, Junio: 6,
+    Julio: 7, Agosto: 8, Septiembre: 9, Octubre: 10, Noviembre: 11, Diciembre: 12,
+  }
+  const pad2 = (n) => String(n).padStart(2, '0')
+  const ultimoDiaMes = (anio, mes) => new Date(anio, mes, 0).getDate()
+  // Fechas de inicio/fin calculadas desde mes_inicio + anio_inicio/anio_fin.
+  const fechaInicio = $derived.by(() => {
+    const anio = Number(store.ejercicio.anio_inicio)
+    const mes = MES_NUMERO[store.ejercicio.mes_inicio] || 1
+    if (!anio) return ''
+    return `${anio}-${pad2(mes)}-01`
+  })
+  const fechaFin = $derived.by(() => {
+    const anioFin = Number(store.ejercicio.anio_fin)
+    const mesInicio = MES_NUMERO[store.ejercicio.mes_inicio] || 1
+    if (!anioFin) return ''
+    // El ejercicio termina el último día del mes anterior al mes_inicio del anio_fin.
+    const mesFin = mesInicio - 1
+    if (mesFin < 1) return `${anioFin - 1}-12-31`
+    return `${anioFin}-${pad2(mesFin)}-${pad2(ultimoDiaMes(anioFin, mesFin))}`
+  })
+  const esEjercicioNormativo = $derived(store.ejercicio.mes_inicio === 'Mayo')
 </script>
 
 <!-- Ejercicio -->
 <Card.Root class="mb-4">
   <Card.Content class="pt-6">
     <h2 class="text-[17px] font-bold mb-1.5">Ejercicio en curso</h2>
-    <p class="text-[13px] text-muted-foreground mb-4">El ejercicio es el período anual de gestión de la cooperadora. Por defecto va de marzo a marzo del año siguiente; confirmá o ajustá las fechas.</p>
+    <p class="text-[13px] text-muted-foreground mb-4">El ejercicio económico de las cooperadoras escolares bonaerenses es <strong class="text-foreground">fijo: del 1° de mayo al 30 de abril del año siguiente</strong> (Decreto 4767/72). No es un período que la cooperadora pueda elegir libremente.</p>
 
     <div class="grid gap-3 max-[600px]:grid-cols-1 sm:grid-cols-3">
       <div class="flex flex-col gap-1">
@@ -40,6 +67,9 @@
             <option value={mes}>{mes}</option>
           {/each}
         </select>
+        {#if !esEjercicioNormativo}
+          <span class="text-xs text-destructive">La normativa establece mayo como mes de inicio. Solo cambiá este valor si tu cooperadora tiene una excepción documentada.</span>
+        {/if}
       </div>
       <div class="flex flex-col gap-1">
         <Label class="text-xs font-bold text-muted-foreground">Año de inicio</Label>
@@ -54,7 +84,10 @@
       </div>
     </div>
     <div class="mt-3 p-3 rounded-lg border border-border bg-muted/5 text-[13px] text-muted-foreground">
-      Ejercicio: <span class="font-bold text-foreground">{store.ejercicio.mes_inicio} {store.ejercicio.anio_inicio}</span> → <span class="font-bold text-foreground">{store.ejercicio.anio_fin}</span>
+      Ejercicio: <span class="font-bold text-foreground">{store.ejercicio.mes_inicio} {store.ejercicio.anio_inicio}</span> → <span class="font-bold text-foreground">{store.ejercicio.mes_inicio} {store.ejercicio.anio_fin}</span>
+      {#if fechaInicio && fechaFin}
+        <span class="ml-2 text-muted-foreground/80">({fechaInicio} → {fechaFin})</span>
+      {/if}
     </div>
   </Card.Content>
 </Card.Root>
@@ -133,6 +166,21 @@
           </select>
           <span class="text-[10px] text-muted-foreground leading-tight">Titular o suplente.</span>
         </div>
+        {#if org === 'CD'}
+          <div class="flex flex-col gap-1 w-[110px]">
+            <Label class="text-[11px] text-muted-foreground">Grupo renov.</Label>
+            <select
+              value={cargo.grupo_renovacion || ''}
+              onchange={(e) => { cargo.grupo_renovacion = e.target.value; store.cargos = [...store.cargos] }}
+              class="flex h-9 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              <option value="">—</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+            </select>
+            <span class="text-[10px] text-muted-foreground leading-tight">Mitad que renueva cada año (art. 15).</span>
+          </div>
+        {/if}
         {#if cargo.cargo_obligatorio}
           <div class="flex flex-col gap-1 w-[130px]">
             <Label class="text-[11px] text-muted-foreground">Gestión</Label>
