@@ -2,6 +2,12 @@ import { fetchRecords, resolveTableId } from '$core/grist/grist'
 import { TABLE_PREFERRED_IDS, MESES, getModalidadGestion } from '$core/utils/utils'
 import { loadConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
 import { saldosStore } from '$app/modules/tesoreria/resumen/saldosStore.svelte.js'
+import {
+  calcularMorosidad as _calcularMorosidad,
+  mayorEgreso as _mayorEgreso,
+  gristDate as _gristDate,
+  periodoDeMovimiento as _periodoDeMovimiento,
+} from '$app/modules/tesoreria/shared/tesoreriaCalc.js'
 
 /**
  * Factory: sub-store para las métricas del dashboard de Inicio.
@@ -37,6 +43,13 @@ export function createDashboardStore() {
   let periodosAutoLoaded = $state(false)
   let versionInstalada = $state(null)
   let shaInstalado = $state(null)
+  // KPIs de tesorería (morosidad y mayor gasto)
+  let morosidadPct = $state(null) // null = sin datos
+  let mayorGasto = $state(null) // { nombre, importe } | null
+  // Situación actual: última carga, período actual, movimientos del mes
+  let ultimaCarga = $state(null) // { fecha: Date|null, periodo: string, cantidad: number } | null
+  let periodoActual = $state('') // 'YYYY-MM'
+  let movimientosMes = $state(0) // cantidad de movimientos del mes actual
 
   const loadSociosMetrics = async (tSocios) => {
     if (!tSocios) return
@@ -66,7 +79,7 @@ export function createDashboardStore() {
 
   const loadTableroCaja = async (config) => {
     tableroError = ''
-    if (!config?.modulo_gestion_integral) return
+    // Los saldos por cuenta son útiles en cualquier modo de gestión.
     const tCuentas = await resolveTableId(TABLE_PREFERRED_IDS.cuentas)
     const tMovimientos = await resolveTableId(TABLE_PREFERRED_IDS.movimientos)
     let cuentasData = []
@@ -121,6 +134,7 @@ export function createDashboardStore() {
       const config = await loadConfig()
       await loadTableroCaja(config)
       await loadCargosAutoridades(tCargos, tAutoridades)
+      await loadKpisTesoreria(config)
 
       const now = new Date()
       alertaAsamblea = now.getMonth() === 4 && now.getDate() >= 15
@@ -136,6 +150,77 @@ export function createDashboardStore() {
       // Dashboard errors are non-fatal
     } finally {
       dashLoading = false
+    }
+  }
+
+  /**
+   * Carga la situación actual (última carga, período actual, movimientos del mes)
+   * en cualquier modo, y los KPIs de morosidad y mayor gasto solo en gestión integral.
+   * Errores no fatales (los KPIs quedan en null).
+   */
+  const loadKpisTesoreria = async (config) => {
+    morosidadPct = null
+    mayorGasto = null
+    ultimaCarga = null
+    periodoActual = ''
+    movimientosMes = 0
+    if (!ejercicioEnCurso) return
+    try {
+      const tMovimientos = await resolveTableId(TABLE_PREFERRED_IDS.movimientos)
+      if (!tMovimientos) return
+      const allMovs = await fetchRecords(tMovimientos)
+      const ejId = Number(ejercicioEnCurso.id)
+      const movsEj = allMovs.filter((m) => Number(m.ejercicio_id) === ejId)
+
+      // Situación actual (en cualquier modo)
+      const now = new Date()
+      periodoActual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+      movimientosMes = movsEj.filter((m) => _periodoDeMovimiento(m) === periodoActual).length
+
+      // Última carga: movimiento con fecha más reciente del ejercicio
+      let masReciente = null
+      let masRecienteFecha = null
+      for (const m of movsEj) {
+        const d = _gristDate(m.fecha)
+        if (isNaN(d.getTime())) continue
+        if (!masRecienteFecha || d.getTime() > masRecienteFecha.getTime()) {
+          masRecienteFecha = d
+          masReciente = m
+        }
+      }
+      if (masReciente) {
+        ultimaCarga = {
+          fecha: masRecienteFecha,
+          periodo: _periodoDeMovimiento(masReciente),
+          cantidad: movsEj.length,
+        }
+      } else if (movsEj.length > 0) {
+        const sorted = [...movsEj].sort((a, b) =>
+          String(b.periodo || '').localeCompare(String(a.periodo || ''))
+        )
+        ultimaCarga = {
+          fecha: null,
+          periodo: String(sorted[0]?.periodo || ''),
+          cantidad: movsEj.length,
+        }
+      }
+
+      // Morosidad y mayor gasto: solo en gestión integral
+      if (!config?.modulo_gestion_integral) return
+      const tRubros = await resolveTableId(TABLE_PREFERRED_IDS.rubros_pia)
+      const tAsambleas = await resolveTableId(TABLE_PREFERRED_IDS.asambleas)
+      const tSocios = await resolveTableId(TABLE_PREFERRED_IDS.socios)
+      if (!tRubros) return
+      const [rubros, asambleas, socios] = await Promise.all([
+        fetchRecords(tRubros),
+        tAsambleas ? fetchRecords(tAsambleas) : Promise.resolve([]),
+        tSocios ? fetchRecords(tSocios) : Promise.resolve([]),
+      ])
+      const morosidad = _calcularMorosidad(ejercicioEnCurso, movsEj, rubros, socios, asambleas)
+      morosidadPct = morosidad.tieneDatos ? morosidad.morosidad * 100 : null
+      mayorGasto = _mayorEgreso(movsEj, rubros)
+    } catch {
+      // KPIs no críticos: silenciar
     }
   }
 
@@ -162,6 +247,11 @@ export function createDashboardStore() {
     get periodosAutoLoaded() { return periodosAutoLoaded },
     get versionInstalada() { return versionInstalada },
     get shaInstalado() { return shaInstalado },
+    get morosidadPct() { return morosidadPct },
+    get mayorGasto() { return mayorGasto },
+    get ultimaCarga() { return ultimaCarga },
+    get periodoActual() { return periodoActual },
+    get movimientosMes() { return movimientosMes },
     loadDashboard,
   }
 }

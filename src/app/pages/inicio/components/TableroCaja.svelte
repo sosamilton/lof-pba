@@ -2,6 +2,7 @@
   import * as Card from '$lib/components/ui/card'
   import { Separator } from '$lib/components/ui/separator'
   import { Skeleton } from '$lib/components/ui/skeleton'
+  import { LineChart } from 'layerchart'
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
 
   let {
@@ -77,6 +78,18 @@
             </div>
           </div>
         </div>
+        {#if saldos?.serieSaldo && saldos.serieSaldo.length > 1}
+          <Separator />
+          <div class="text-xs font-medium text-muted-foreground">Evolución del saldo del ejercicio</div>
+          <div style="height: 120px;">
+            <LineChart
+              data={saldos.serieSaldo}
+              x="periodo"
+              y="saldo"
+              series={[{ key: 'saldo', label: 'Saldo', color: 'var(--color-primary)' }]}
+            />
+          </div>
+        {/if}
       </div>
     {/if}
   </Card.Content>
