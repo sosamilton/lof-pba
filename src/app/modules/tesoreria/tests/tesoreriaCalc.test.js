@@ -13,6 +13,18 @@ import {
   generarPeriodosEjercicio,
   weekKeyToRange,
   proximoPeriodoACargar,
+  findRubroCuotaSocial,
+  distribucionPorRubro,
+  distribucionPorGrupo,
+  rubrosSinMovimiento,
+  serieMensual,
+  labelPeriodo,
+  comparativaInterAnual,
+  ejercicioAnterior,
+  mesesTranscurridosEjercicio,
+  calcularMorosidad,
+  saludOperativa,
+  mayorEgreso,
 } from '../shared/tesoreriaCalc.js'
 
 const cuentas = [
@@ -388,5 +400,268 @@ describe('proximoPeriodoACargar', () => {
   it('devuelve el mes actual si no hay ejercicio', () => {
     const expected = new Date().toISOString().slice(0, 7)
     expect(proximoPeriodoACargar(null, new Set())).toBe(expected)
+  })
+})
+
+// ===========================================================================
+// Estadísticas / tableros
+// ===========================================================================
+
+const rubros = [
+  { id: 100, nombre_oficial: 'Cuota Social', grupo_rubro: 'Recursos Propios', tipo_rubro: 'Entrada', fijo: true },
+  { id: 101, nombre_oficial: 'Subsidio Oficial', grupo_rubro: 'Recursos Oficiales', tipo_rubro: 'Entrada', fijo: false },
+  { id: 200, nombre_oficial: 'Gastos Papelería', grupo_rubro: 'Gastos Escuela', tipo_rubro: 'Salida', fijo: true },
+  { id: 201, nombre_oficial: 'Mantenimiento', grupo_rubro: 'Gastos Escuela', tipo_rubro: 'Salida', fijo: false },
+  { id: 202, nombre_oficial: 'Servicios', grupo_rubro: 'Gastos Entidad', tipo_rubro: 'Salida', fijo: true },
+]
+
+const socios = [
+  { id: 1, activo: true, apellido: 'Pérez', nombre: 'Juan' },
+  { id: 2, activo: true, apellido: 'Gómez', nombre: 'Ana' },
+  { id: 3, activo: false, fecha_baja: '2026-01-01', apellido: 'Baja', nombre: 'Luis' },
+]
+
+const asambleas = [
+  { ejercicio_id: 10, tipo_asamblea: 'AGO', cuota_social_importe: 1000, cuota_social_modalidad: 'Mensual' },
+]
+
+const movsEj = [
+  mov({ rubro_id: 100, tipo_movimiento: 'Entrada', importe: 1000, periodo: '2026-03', socio_id: 1 }),
+  mov({ rubro_id: 100, tipo_movimiento: 'Entrada', importe: 1000, periodo: '2026-04', socio_id: 1 }),
+  mov({ rubro_id: 101, tipo_movimiento: 'Entrada', importe: 500, periodo: '2026-03' }),
+  mov({ rubro_id: 200, tipo_movimiento: 'Salida', importe: 300, periodo: '2026-03' }),
+  mov({ rubro_id: 200, tipo_movimiento: 'Salida', importe: 200, periodo: '2026-04' }),
+  mov({ rubro_id: 201, tipo_movimiento: 'Salida', importe: 800, periodo: '2026-05' }),
+  mov({ tipo_movimiento: 'Traspaso', importe: 999, cuenta_id: 1, cuenta_destino_id: 2, periodo: '2026-03' }),
+]
+
+describe('findRubroCuotaSocial', () => {
+  it('encuentra rubro por nombre "cuota"', () => {
+    expect(findRubroCuotaSocial(rubros)?.id).toBe(100)
+  })
+  it('encuentra rubro por "aporte socio"', () => {
+    const r = [{ id: 9, nombre_oficial: 'Aporte Societario' }]
+    expect(findRubroCuotaSocial(r)?.id).toBe(9)
+  })
+  it('devuelve null si no hay match', () => {
+    expect(findRubroCuotaSocial([{ id: 1, nombre_oficial: 'Otros' }])).toBeNull()
+  })
+  it('devuelve null con array vacío', () => {
+    expect(findRubroCuotaSocial([])).toBeNull()
+  })
+})
+
+describe('distribucionPorRubro', () => {
+  it('agrupa por rubro y separa Entrada/Salida', () => {
+    const d = distribucionPorRubro(movsEj, rubros)
+    const entradas = d.filter((x) => x.tipo === 'Entrada')
+    const salidas = d.filter((x) => x.tipo === 'Salida')
+    expect(entradas.length).toBe(2) // Cuota + Subsidio
+    expect(salidas.length).toBe(2) // Papelería + Mantenimiento
+  })
+  it('suma importes y cuenta movimientos', () => {
+    const d = distribucionPorRubro(movsEj, rubros)
+    const cuota = d.find((x) => x.rubroId === 100)
+    expect(cuota.importe).toBe(2000)
+    expect(cuota.cantidad).toBe(2)
+  })
+  it('ignora traspasos', () => {
+    const d = distribucionPorRubro(movsEj, rubros)
+    expect(d.find((x) => x.tipo === 'Traspaso')).toBeUndefined()
+  })
+  it('filtra por tipo Salida', () => {
+    const d = distribucionPorRubro(movsEj, rubros, 'Salida')
+    expect(d.every((x) => x.tipo === 'Salida')).toBe(true)
+    expect(d.length).toBe(2)
+  })
+  it('ordena por importe descendente dentro de cada tipo', () => {
+    const d = distribucionPorRubro(movsEj, rubros, 'Salida')
+    expect(d[0].importe).toBeGreaterThanOrEqual(d[1].importe)
+  })
+  it('maneja arrays vacíos', () => {
+    expect(distribucionPorRubro([], rubros)).toEqual([])
+  })
+})
+
+describe('distribucionPorGrupo', () => {
+  it('agrupa por grupo_rubro', () => {
+    const d = distribucionPorGrupo(movsEj, rubros)
+    const grupos = new Set(d.map((x) => x.grupo))
+    expect(grupos.has('Recursos Propios')).toBe(true)
+    expect(grupos.has('Gastos Escuela')).toBe(true)
+  })
+  it('suma importes dentro del grupo', () => {
+    const d = distribucionPorGrupo(movsEj, rubros)
+    const gastosEscuelaSalida = d.find((x) => x.grupo === 'Gastos Escuela' && x.tipo === 'Salida')
+    expect(gastosEscuelaSalida.importe).toBe(1300) // 300+200+800
+  })
+})
+
+describe('rubrosSinMovimiento', () => {
+  it('lista rubros sin movimiento', () => {
+    const sin = rubrosSinMovimiento(movsEj, rubros)
+    const ids = sin.map((r) => r.id)
+    expect(ids).toContain(202) // Servicios sin movimiento
+    expect(ids).not.toContain(100) // Cuota tiene movimiento
+  })
+  it('filtra solo fijos', () => {
+    const sin = rubrosSinMovimiento(movsEj, rubros, { soloFijos: true })
+    const ids = sin.map((r) => r.id)
+    expect(ids).toContain(202) // Servicios (fijo) sin movimiento
+    expect(ids).not.toContain(201) // Mantenimiento (no fijo)
+  })
+  it('filtra por tipo', () => {
+    const sin = rubrosSinMovimiento(movsEj, rubros, { tipo: 'Salida' })
+    expect(sin.every((r) => r.tipo === 'Salida')).toBe(true)
+  })
+})
+
+describe('labelPeriodo', () => {
+  it('convierte YYYY-MM a Mes YYYY', () => {
+    expect(labelPeriodo('2026-03')).toBe('Mar 2026')
+  })
+  it('devuelve input si no matchea', () => {
+    expect(labelPeriodo('foo')).toBe('foo')
+  })
+})
+
+describe('serieMensual', () => {
+  it('devuelve serie con label legible', () => {
+    const s = serieMensual(movsEj, [], ejercicio, 1600)
+    expect(s.length).toBeGreaterThan(0)
+    expect(s[0].label).toMatch(/\w{3} \d{4}/)
+    expect(typeof s[0].saldo).toBe('number')
+  })
+})
+
+describe('ejercicioAnterior', () => {
+  it('devuelve el ejercicio inmediatamente anterior', () => {
+    const ejercicios = [
+      { id: 10, anio_inicio: 2026 },
+      { id: 9, anio_inicio: 2025 },
+      { id: 8, anio_inicio: 2024 },
+    ]
+    expect(ejercicioAnterior(ejercicios, ejercicios[0])?.id).toBe(9)
+  })
+  it('devuelve null si es el primero', () => {
+    const ejercicios = [{ id: 10, anio_inicio: 2026 }]
+    expect(ejercicioAnterior(ejercicios, ejercicios[0])).toBeNull()
+  })
+  it('maneja mismo anio_inicio con distinto anio_fin', () => {
+    const ejercicios = [
+      { id: 11, anio_inicio: 2024, anio_fin: 2026 },
+      { id: 10, anio_inicio: 2024, anio_fin: 2025 },
+    ]
+    expect(ejercicioAnterior(ejercicios, ejercicios[0])?.id).toBe(10)
+  })
+  it('con 3 ejercicios devuelve el inmediato anterior', () => {
+    const ejercicios = [
+      { id: 12, anio_inicio: 2026, anio_fin: 2027 },
+      { id: 11, anio_inicio: 2025, anio_fin: 2026 },
+      { id: 10, anio_inicio: 2024, anio_fin: 2025 },
+    ]
+    expect(ejercicioAnterior(ejercicios, ejercicios[0])?.id).toBe(11)
+  })
+})
+
+describe('comparativaInterAnual', () => {
+  it('alinea por mes relativo y devuelve series', () => {
+    const ejA = { id: 10, anio_inicio: 2026, anio_fin: 2027, mes_inicio: 'Marzo' }
+    const ejB = { id: 9, anio_inicio: 2025, anio_fin: 2026, mes_inicio: 'Marzo' }
+    const allMovs = [
+      ...movsEj.map((m) => ({ ...m, ejercicio_id: 10 })),
+      mov({ rubro_id: 100, tipo_movimiento: 'Entrada', importe: 500, periodo: '2025-03', ejercicio_id: 9 }),
+    ]
+    const r = comparativaInterAnual(ejA, ejB, allMovs)
+    expect(r.meses[0]).toBe('Mes 1')
+    expect(r.actual.ingresos[0]).toBe(1500) // cuota 1000 + subsidio 500
+    expect(r.anterior.ingresos[0]).toBe(500)
+  })
+  it('maneja ejercicio anterior null', () => {
+    const r = comparativaInterAnual(ejercicio, null, movsEj)
+    expect(r.anterior.ingresos.every((x) => x === 0)).toBe(true)
+  })
+})
+
+describe('mesesTranscurridosEjercicio', () => {
+  it('devuelve 0 si no hay ejercicio', () => {
+    expect(mesesTranscurridosEjercicio(null)).toBe(0)
+  })
+  it('devuelve cantidad de períodos hasta el mes actual o el final', () => {
+    // Ejercicio 2026-2027 mes Marzo → 12 períodos (Marzo 2026 a Febrero 2027)
+    const r = mesesTranscurridosEjercicio(ejercicio)
+    expect(r).toBeGreaterThanOrEqual(0)
+    expect(r).toBeLessThanOrEqual(12)
+  })
+})
+
+describe('calcularMorosidad', () => {
+  it('calcula esperado, cobrado y morosidad', () => {
+    // Mock mesesTranscurridos: forzamos ejercicio con mes actual dentro del rango
+    const ej = { ...ejercicio, anio_inicio: new Date().getFullYear(), anio_fin: new Date().getFullYear() + 1, mes_inicio: 'Enero' }
+    const m = calcularMorosidad(ej, movsEj, rubros, socios, asambleas)
+    expect(m.rubroCuotaId).toBe(100)
+    expect(m.importeCuota).toBe(1000)
+    expect(m.modalidad).toBe('Mensual')
+    expect(m.sociosActivos).toBe(2)
+    expect(m.cobrado).toBe(2000)
+    expect(m.esperado).toBeGreaterThan(0)
+    expect(m.morosidad).toBeGreaterThanOrEqual(0)
+    expect(m.morosidad).toBeLessThanOrEqual(1)
+  })
+  it('lista deudores (socios sin pago)', () => {
+    const ej = { ...ejercicio, anio_inicio: new Date().getFullYear(), anio_fin: new Date().getFullYear() + 1, mes_inicio: 'Enero' }
+    const m = calcularMorosidad(ej, movsEj, rubros, socios, asambleas)
+    // socio 1 pagó, socio 2 no → deudores contiene socio 2
+    const ids = m.deudores.map((d) => d.id)
+    expect(ids).toContain(2)
+    expect(ids).not.toContain(1)
+  })
+  it('tieneDatos=false si no hay rubro cuota ni asamblea', () => {
+    const m = calcularMorosidad(ejercicio, movsEj, [], socios, [])
+    expect(m.tieneDatos).toBe(false)
+    expect(m.esperado).toBe(0)
+  })
+})
+
+describe('saludOperativa', () => {
+  it('detecta períodos pendientes, abiertos y firmados', () => {
+    const cierres = [
+      { ejercicio_id: 10, periodo: '2026-03', firmado: true },
+    ]
+    const s = saludOperativa(ejercicio, movsEj, cierres, rubros)
+    expect(s.periodosFirmados).toContain('2026-03')
+    expect(s.periodosAbiertos.length + s.periodosPendientes.length + s.periodosFirmados.length).toBe(12)
+  })
+  it('cuenta movimientos fuera de término', () => {
+    const movsFT = [...movsEj, mov({ fuera_de_termino: true, importe: 500 })]
+    const s = saludOperativa(ejercicio, movsFT, [], rubros)
+    expect(s.fueraDeTermino.cantidad).toBe(1)
+    expect(s.fueraDeTermino.importe).toBe(500)
+  })
+  it('lista rubros fijos sin movimiento', () => {
+    const s = saludOperativa(ejercicio, movsEj, [], rubros)
+    const ids = s.rubrosFijosSinMovimiento.map((r) => r.id)
+    expect(ids).toContain(202) // Servicios fijo sin movimiento
+  })
+  it('detecta cierres duplicados', () => {
+    const cierres = [
+      { ejercicio_id: 10, periodo: '2026-03' },
+      { ejercicio_id: 10, periodo: '2026-03' },
+    ]
+    const s = saludOperativa(ejercicio, [], cierres, rubros)
+    expect(s.cierresDuplicados.length).toBe(1)
+    expect(s.cierresDuplicados[0].cantidad).toBe(2)
+  })
+})
+
+describe('mayorEgreso', () => {
+  it('devuelve el rubro con mayor egreso', () => {
+    const m = mayorEgreso(movsEj, rubros)
+    expect(m.nombre).toBe('Mantenimiento')
+    expect(m.importe).toBe(800)
+  })
+  it('devuelve null si no hay egresos', () => {
+    expect(mayorEgreso([], rubros)).toBeNull()
   })
 })

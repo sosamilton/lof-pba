@@ -1,10 +1,8 @@
 <script>
   import { onMount } from 'svelte'
   import { resumenStore as store } from './resumenStore.svelte.js'
-  import { formatARS } from '$core/utils/utils'
   import { navigate } from '$core/ui/router.svelte'
   import * as Card from '$lib/components/ui/card'
-  import * as Table from '$lib/components/ui/table'
   import * as Tabs from '$lib/components/ui/tabs'
   import * as Alert from '$lib/components/ui/alert'
   import { Badge } from '$lib/components/ui/badge'
@@ -13,9 +11,21 @@
   import { Skeleton } from '$lib/components/ui/skeleton'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
   import BarChartIcon from '@lucide/svelte/icons/bar-chart'
+  import PieChartIcon from '@lucide/svelte/icons/pie-chart'
+  import GitCompareIcon from '@lucide/svelte/icons/git-compare'
+  import UsersIcon from '@lucide/svelte/icons/users'
+  import HeartPulseIcon from '@lucide/svelte/icons/heart-pulse'
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
   import LockIcon from '@lucide/svelte/icons/lock'
   import FileTextIcon from '@lucide/svelte/icons/file-text'
+
+  import TabFlujoCaja from './components/TabFlujoCaja.svelte'
+  import TabGastosIngresos from './components/TabGastosIngresos.svelte'
+  import TabComparativa from './components/TabComparativa.svelte'
+  import TabMorosidad from './components/TabMorosidad.svelte'
+  import TabSaludOperativa from './components/TabSaludOperativa.svelte'
+
+  let tab = $state('flujo')
 
   onMount(() => {
     store.load()
@@ -37,7 +47,7 @@
       <Alert.Description>{store.error}</Alert.Description>
     </Alert.Root>
   {:else}
-    <!-- Selectores: ejercicio + vista -->
+    <!-- Selectores: ejercicio + cierre -->
     <div class="flex flex-wrap items-end gap-3 mb-4">
       <div class="flex flex-col gap-1">
         <Label class="text-xs font-bold text-muted-foreground" for="resumen_ej">Ejercicio</Label>
@@ -52,12 +62,6 @@
           {/each}
         </select>
       </div>
-      <Tabs.Root value={store.vista} onValueChange={(v) => store.setVista(v)}>
-        <Tabs.List class="h-9">
-          <Tabs.Trigger value="mensual" class="px-3">Mensual</Tabs.Trigger>
-          <Tabs.Trigger value="semanal" class="px-3">Semanal</Tabs.Trigger>
-        </Tabs.List>
-      </Tabs.Root>
       {#if store.ejercicio && store.ejercicio.cerrado !== true}
         <Button variant="outline" size="sm" onclick={() => navigate('cierre')} class="ml-auto">
           <FileTextIcon data-icon="inline-start" />
@@ -81,62 +85,64 @@
       </Alert.Root>
     {/if}
 
-    {#if store.resumen.length === 0}
+    {#if !store.ejercicio}
       <Card.Root>
         <Card.Content class="pt-6 text-center text-sm text-muted-foreground">
-          No hay períodos para este ejercicio.
+          No hay ejercicio seleccionado.
         </Card.Content>
       </Card.Root>
     {:else}
-      <Card.Root>
-        <Card.Content class="pt-6">
-          <Table.Root>
-            <Table.Header>
-              <Table.Row>
-                <Table.Head>Período</Table.Head>
-                <Table.Head class="text-right">Ingresos</Table.Head>
-                <Table.Head class="text-right">Egresos</Table.Head>
-                <Table.Head class="text-right">Saldo inicial</Table.Head>
-                <Table.Head class="text-right">Saldo del período</Table.Head>
-                <Table.Head class="text-center">Estado</Table.Head>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {#each store.resumen as r (r.periodo)}
-                <Table.Row>
-                  <Table.Cell class="font-mono text-xs">{r.label || r.periodo}</Table.Cell>
-                  <Table.Cell class="text-right text-primary">+{formatARS(r.ingresos)}</Table.Cell>
-                  <Table.Cell class="text-right text-destructive">-{formatARS(r.egresos)}</Table.Cell>
-                  <Table.Cell class="text-right">{formatARS(r.saldoInicial)}</Table.Cell>
-                  <Table.Cell class="text-right font-semibold">{formatARS(r.saldoPeriodo)}</Table.Cell>
-                  <Table.Cell class="text-center">
-                    {#if store.periodoFirmado(r.periodo)}
-                      <Badge variant="destructive">
-                        <LockIcon class="size-3" />
-                        Firmado
-                      </Badge>
-                    {:else if r.origen === 'vacio'}
-                      <Badge variant="outline" class="text-muted-foreground">Falta cargar</Badge>
-                    {:else}
-                      <Badge variant="secondary">Abierto</Badge>
-                    {/if}
-                  </Table.Cell>
-                </Table.Row>
-              {/each}
-            </Table.Body>
-            <Table.Footer>
-              <Table.Row>
-                <Table.Cell class="font-bold">Totales</Table.Cell>
-                <Table.Cell class="text-right font-bold text-primary">+{formatARS(store.totales.ingresos)}</Table.Cell>
-                <Table.Cell class="text-right font-bold text-destructive">-{formatARS(store.totales.egresos)}</Table.Cell>
-                <Table.Cell></Table.Cell>
-                <Table.Cell class="text-right font-bold">{formatARS(store.totales.saldoFinal)}</Table.Cell>
-                <Table.Cell></Table.Cell>
-              </Table.Row>
-            </Table.Footer>
-          </Table.Root>
-        </Card.Content>
-      </Card.Root>
+      <Tabs.Root value={tab} onValueChange={(v) => (tab = v)}>
+        <Tabs.List class="mb-4">
+          <Tabs.Trigger value="flujo" class="px-3">
+            <BarChartIcon class="size-3.5" />
+            Flujo de caja
+          </Tabs.Trigger>
+          <Tabs.Trigger value="gastos" class="px-3">
+            <PieChartIcon class="size-3.5" />
+            Gastos e ingresos
+          </Tabs.Trigger>
+          <Tabs.Trigger value="comparativa" class="px-3">
+            <GitCompareIcon class="size-3.5" />
+            Comparativa
+          </Tabs.Trigger>
+          <Tabs.Trigger value="morosidad" class="px-3">
+            <UsersIcon class="size-3.5" />
+            Morosidad
+          </Tabs.Trigger>
+          <Tabs.Trigger value="salud" class="px-3">
+            <HeartPulseIcon class="size-3.5" />
+            Salud operativa
+          </Tabs.Trigger>
+        </Tabs.List>
+
+        <Tabs.Content value="flujo">
+          <!-- Sub-tabs Mensual/Semanal dentro de Flujo de caja -->
+          <Tabs.Root value={store.vista} onValueChange={(v) => store.setVista(v)} class="mb-4">
+            <Tabs.List class="h-8">
+              <Tabs.Trigger value="mensual" class="px-3 text-xs">Mensual</Tabs.Trigger>
+              <Tabs.Trigger value="semanal" class="px-3 text-xs">Semanal</Tabs.Trigger>
+            </Tabs.List>
+          </Tabs.Root>
+          <TabFlujoCaja {store} />
+        </Tabs.Content>
+
+        <Tabs.Content value="gastos">
+          <TabGastosIngresos {store} />
+        </Tabs.Content>
+
+        <Tabs.Content value="comparativa">
+          <TabComparativa {store} />
+        </Tabs.Content>
+
+        <Tabs.Content value="morosidad">
+          <TabMorosidad {store} />
+        </Tabs.Content>
+
+        <Tabs.Content value="salud">
+          <TabSaludOperativa {store} />
+        </Tabs.Content>
+      </Tabs.Root>
     {/if}
   {/if}
 </PageScaffold>
