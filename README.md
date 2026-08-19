@@ -46,10 +46,11 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 <details>
 <summary><strong>Dashboard de inicio</strong></summary>
 
+- **Situación actual**: foto instantánea del estado operativo — saldos por cuenta (Banco, Efectivo, Caja Chica) en tarjetas individuales con saldo total, última carga de movimientos, período actual, ejercicio en curso y alerta cuando no hay ejercicio activo con CTA a gestionar ejercicios.
 - **Resumen ejecutivo**: ejercicio en curso con alerta de vencimiento, cargos obligatorios cubiertos (quórum), socios activos, altas/bajas del último año, vencimientos próximos (60 días), alerta de asamblea AGO (recordatorio en mayo).
 - **Tablero de caja**: saldos por cuenta (Banco, Efectivo, Caja Chica) y saldo total.
 - **Administración**: cambio de modalidad de gestión, generación automática de períodos, revalidar schema, reparar refs rotas, deduplicar personas por DNI, detección de versión desactualizada.
-- **Creación de nuevo ejercicio** automática (2 meses antes del vencimiento del actual).
+- **Creación de nuevo ejercicio** automática al cerrar el ejercicio activo (arrastra saldos finales como saldos iniciales del nuevo).
 
 </details>
 
@@ -75,7 +76,13 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 - **Movimientos** — entradas, salidas y traspasos con rubro/subrubro según PIA, destino bancario (Cuenta corriente / Plazo fijo), socio o persona asociada, y combobox con búsqueda para listas grandes. Filtrado de rubros por tipo, subrubros dinámicos por rubro. Filtros por rubro, ejercicio, período y persona (ejercicio en curso seleccionado por defecto). Selector de ejercicio con label "en curso".
 - **Cuota societaria rápida** — atajo Ctrl+1 o botón para pre-cargar movimiento de cuota social en un click.
 - **Gestión por etapas (carga consolidada)** — matriz de carga por rubro con múltiples filas por cuenta (hasta 3), importe en formato pesos argentinos ($ 1.234,56). Layout de dos columnas (lista de períodos + matriz editable) igual que Comunidad. Múltiples cargas por período: cada carga es una carga parcial que se consolida al firmar el período. Selector de carga dentro del período. Firma y cierre a nivel período (bloquea todas las cargas). Reapertura devuelve todas las cargas a borrador. Períodos firmados son read-only.
-- **Resumen** — vista mensual y semanal con arrastre de saldo, saldos iniciales por ejercicio, badge de estado por período (Falta cargar / Abierto / Firmado), botón de firma y reapertura a nivel período. Resumen semanal con numeración secuencial por ejercicio (Sem 1, Sem 2, ... Sem N) en orden cronológico.
+- **Resumen mensual** — vista mensual y semanal con arrastre de saldo, saldos iniciales por ejercicio, badge de estado por período (Falta cargar / Abierto / Firmado), botón de firma y reapertura a nivel período. Resumen semanal con numeración secuencial por ejercicio (Sem 1, Sem 2, ... Sem N) en orden cronológico.
+- **Resumen analítico con tabs** — 5 vistas de análisis con gráficos (LayerChart):
+  - **Flujo de caja**: entradas vs salidas por período con saldo acumulado.
+  - **Gastos e ingresos**: distribución por rubro, top gastos, comparación entradas/salidas.
+  - **Comparativa interanual**: compara el ejercicio actual con cualquier ejercicio anterior (selector flexible para 3+ ejercicios, no limitado a los últimos dos).
+  - **Morosidad**: en gestión integral, identifica socios deudores por nombre; en carga consolidada, estima morosidad global.
+  - **Salud operativa**: indicadores de carga por período, períodos firmados vs abiertos, tendencia de gastos.
 - **Regla "detalle gana"**: si hay movimientos en un período, usa totales de movimientos; si no, usa cierres manuales. Permite mix de carga detallada y consolidada.
 - **Cierres mensuales** con firma de período y bloqueo de edición.
 
@@ -86,6 +93,8 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 
 - **PIA en PDF** — generación automática de la Planilla de Ingresos y Aportes desde los movimientos cargados por rubro durante el ejercicio. Mapeo a los campos AcroForm del formulario oficial de PBA, con encabezado, síntesis del acta, nómina de autoridades, cuadro de recursos y gastos, datos bancarios y kiosco.
 - **Nómina de autoridades en PDF** — Comisión Directiva (14 cargos), Comisión Revisora de Cuentas y representantes ante la Federación.
+- **Cierre automático con próximo ejercicio** — al cerrar el ejercicio activo, el sistema calcula los saldos finales por cuenta, crea el próximo ejercicio automáticamente con esos saldos como saldos iniciales y lo marca como en curso. El botón alterna entre Cerrar y Reabrir sin recargar la página.
+- **PIA de ejercicios históricos** — muestra todas las autoridades designadas en el ejercicio seleccionado (no solo las vigentes), permitiendo generar la documentación de ejercicios anteriores correctamente.
 - **Alertas accionables** — validación de datos faltantes (asesor, CD, CRC, AGO, movimientos, socios, datos bancarios) con links directos al módulo correspondiente para completarlos antes de generar el documento.
 - **Previsualización** antes de descargar, con totales de entradas y salidas del ejercicio.
 
@@ -175,9 +184,17 @@ docker compose -f docker-compose.dev.yml up
 En entorno de desarrollo, el primer paso del setup wizard incluye dos switches para agilizar pruebas:
 
 - **Precargar datos demo en todos los pasos** — rellena automáticamente los campos de cada paso (módulos, escuela, banco, ejercicio, cargos) con datos de ejemplo. Reemplaza al botón "Precargar datos demo" que aparece en cada paso cuando no está activo.
-- **Cargar datos de prueba tras instalar** — ejecuta un seeder que genera personas, socios, movimientos, una asamblea AGO y autoridades de CD/CRC con todas las Refs resueltas, para probar performance de listados y filtros. Al activarlo se despliega un formulario para customizar las cantidades de cada entidad (personas, socios, movimientos y tamaño de lote), con valores por defecto de 500/400/2000/100. La estimación de movimientos se ajusta según el modo: en gestión integral usa la cantidad directa; en carga consolidada calcula automáticamente según rubros × cuentas × períodos × ejercicios. El seeder genera cargas y movimientos para todos los ejercicios configurados, no solo el principal.
+- **Cargar datos de prueba tras instalar** — ejecuta un seeder que genera datos realistas para probar performance de listados, filtros y reportes. El formulario pide primero la **cantidad de ejercicios** (campo principal, siempre editable) y un switch **"Customizar cantidades"**:
+  - **Customización apagada** (default): los demás campos (personas, socios, movimientos extra, batch, asambleas) se auto-sugieren según la cantidad de ejercicios y el modo de gestión seleccionado. Los valores se actualizan automáticamente al cambiar el número de ejercicios.
+  - **Customización encendida**: todos los campos son editables manualmente.
+- **Modo-aware**: el seeder ajusta los datos según el modo de gestión:
+  - **Gestión integral**: genera cuota social mensual por socio activo (90% pago, 10% morosidad natural) con importes realistas ($1500-5000 actual, $1000-3000 histórico), vinculada a `socio_id` y `persona_id` para probar morosidad individual. Más movimientos extra para variedad de gastos.
+  - **Carga consolidada**: genera movimientos PIA por rubro/cuenta/período con períodos firmados y abiertos. Menos socios porque no hay cuota social individual.
+- **Continuidad de autoridades**: cada ejercicio tiene sus autoridades de CD/CRC designadas, con ~60% de continuidad entre ejercicios (misma persona en el mismo cargo) y ~40% de renovación. Los ejercicios anteriores se crean como cerrados con `fecha_cierre`.
+- **Mínimo 1 asamblea por ejercicio**: la primera es siempre AGO; si se configuran más, se generan AGE adicionales para probar cambio de autoridades dentro del ejercicio.
+- **Estimación en tiempo real**: el formulario muestra cuántos movimientos y asambleas totales se generarán según la configuración.
 
-Si no se seleccionan los checkboxes, cada paso muestra un botón **"Precargar datos demo"** que rellena solo ese paso, permitiendo editar los valores o ajustar configuraciones antes de continuar. El seeder solo está disponible cuando `import.meta.env.DEV` es true y no viaja en el bundle de producción.
+El seeder solo está disponible cuando `import.meta.env.DEV` es true y no viaja en el bundle de producción.
 
 <p align="center">
   <img src="public/img/install/local-dev/setup-paso1.png" alt="Setup paso 1 con seeder de datos de prueba en dev" width="600" />
@@ -202,6 +219,9 @@ Si no se seleccionan los checkboxes, cada paso muestra un botón **"Precargar da
 | Listo | Comunidad unificada y carga de autoridades desde asambleas — padrón unificado con toggle de socio, wizard inline con selección por organismo |
 | Listo | Módulo Institucional — separación de la información formal como módulo de primera clase, con cargos, autoridades vigentes, ceses, reemplazos e histórico interactivo |
 | Listo | Cargas consolidadas con firma a nivel período — múltiples cargas por período, firma/cierre a nivel período, resumen semanal secuencial, layout de dos columnas en gestión por etapas |
+| Listo | Dashboard de inicio con situación actual — saldos por cuenta, última carga, período actual, alerta de ejercicio sin activar |
+| Listo | Resumen analítico con tabs y gráficos — flujo de caja, gastos/ingresos, comparativa interanual, morosidad y salud operativa |
+| Listo | Cierre automático con próximo ejercicio — al cerrar el activo, crea el siguiente con saldos arrastrados |
 | Próximo | Adjuntos y actas — carga guiada de comprobantes con trazabilidad |
 | Después | Balance de tesorería exportable |
 | Después | Accesos y roles — permisos por tesorería, comisión, asesoría |

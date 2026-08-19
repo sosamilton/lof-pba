@@ -100,6 +100,7 @@
         "Ingresos, egresos y traspasos con rubro según la PIA",
         "Tablero de caja: cuánto hay en banco, efectivo y caja chica",
         "Resumen mensual y semanal con arrastre de saldo y firma de períodos",
+        "Resumen analítico con gráficos: flujo de caja, gastos/ingresos, comparativa interanual, morosidad y salud operativa",
         "Carga consolidada por rubro con múltiples cargas por período",
         "Gestión por etapas: cargas parciales que se consolidan al firmar el período",
         "Cuota societaria rápida con un clic o Ctrl+1",
@@ -125,6 +126,7 @@
       "items": [
         "PIA oficial en PDF con cuadro de recursos y gastos por rubro",
         "Nómina de autoridades en PDF: CD, CRC y Federación",
+        "Cierre automático: al cerrar el ejercicio, crea el siguiente con saldos arrastrados",
         "Mapeo automático de movimientos a los campos del formulario oficial",
         "Alertas accionables: te avisa qué datos faltan antes de cerrar",
         "Previsualización antes de descargar",
@@ -315,6 +317,21 @@
       "estado": "hecho",
       "titulo": "Cargas consolidadas con firma a nivel período",
       "descripcion": "Modelo de cargas que agrupa movimientos por período, permitiendo múltiples cargas en un mismo período abierto. Firma y reapertura a nivel período (no por carga individual). Resumen semanal con numeración secuencial por ejercicio. Layout de dos columnas en la gestión por etapas, igual que Comunidad."
+    },
+    {
+      "estado": "hecho",
+      "titulo": "Dashboard de inicio con situación actual",
+      "descripcion": "Foto instantánea del estado operativo: saldos por cuenta en tarjetas individuales, última carga de movimientos, período actual, ejercicio en curso y alerta cuando no hay ejercicio activo."
+    },
+    {
+      "estado": "hecho",
+      "titulo": "Resumen analítico con tabs y gráficos",
+      "descripcion": "Cinco vistas de análisis con LayerChart: flujo de caja, distribución de gastos e ingresos, comparativa interanual con selector flexible, morosidad (individual en gestión integral, estimada en consolidada) y salud operativa."
+    },
+    {
+      "estado": "hecho",
+      "titulo": "Cierre automático con próximo ejercicio",
+      "descripcion": "Al cerrar el ejercicio activo, el sistema calcula saldos finales por cuenta, crea el próximo ejercicio automáticamente con esos saldos como saldos iniciales y lo marca como en curso. Botón reactivo entre Cerrar y Reabrir."
     },
     {
       "estado": "proximo",
