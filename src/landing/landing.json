@@ -414,6 +414,21 @@
       "descripcion": "No se pueden crear cargas para períodos futuros. El sistema bloquea cualquier intento de cargar datos adelantados."
     },
     {
+      "estado": "hecho",
+      "titulo": "Periodicidad configurable",
+      "descripcion": "Elegí con qué frecuencia gestionás la tesorería: mensual, semanal, trimestral, semestral o anual. Las cargas existentes se agrupan automáticamente al cambiar la periodicidad, sin necesidad de migrar datos."
+    },
+    {
+      "estado": "hecho",
+      "titulo": "Morosidad inteligente con detección de datos mixtos",
+      "descripcion": "El sistema detecta automáticamente si los movimientos están vinculados a socios o son cargas consolidadas. Si hay una mezcla por cambio de modo a mitad del ejercicio, calcula los deudores solo sobre el tramo con datos identificables."
+    },
+    {
+      "estado": "hecho",
+      "titulo": "Validación de no-futuro",
+      "descripcion": "No se pueden crear cargas para períodos futuros. El sistema bloquea cualquier intento de cargar datos adelantados."
+    },
+    {
       "estado": "proximo",
       "titulo": "Actas y adjuntos",
       "descripcion": "Carga guiada de actas de Comisión Directiva y asambleas, comprobantes y archivos adjuntos con trazabilidad completa."
