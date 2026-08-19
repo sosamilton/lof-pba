@@ -36,17 +36,6 @@
       </div>
     </div>
 
-    <div class="flex items-center justify-between rounded-lg border border-border px-4 py-3">
-      <div>
-        <div class="text-sm font-medium">Generación automática de períodos</div>
-        <div class="text-xs text-muted-foreground">Crea un nuevo ejercicio automáticamente 2 meses antes del vencimiento</div>
-      </div>
-      <div class="flex items-center gap-2">
-        <Switch checked={store.generarPeriodosAuto} onCheckedChange={(v) => store.onPeriodosAutoChange(v)} disabled={store.savingConfig} />
-        <span class="text-sm">{store.generarPeriodosAuto ? 'Activado' : 'Desactivado'}</span>
-      </div>
-    </div>
-
     <Separator />
 
     <div class="flex items-center gap-2">

@@ -1,6 +1,7 @@
 import { resolveTableIds } from '$core/grist/stores/gristStore.svelte.js'
 import { fetchRecords, applyUserActions } from '$core/grist/grist.js'
 import { normalizeFields } from '$core/utils/utils.js'
+import { generarPeriodosEjercicio } from '../shared/tesoreriaCalc.js'
 
 /**
  * Servicio CRUD para la entidad `cargas` (cargas consolidadas).
@@ -343,7 +344,38 @@ export function createCargasService({ relatedData, base }) {
           ? { ...c, estado: 'firmado', fecha_firma: now, firmado_por: relatedData.userName }
           : c
       )
-      base.setNotice(`Período ${periodoKey} firmado y cerrado.`)
+
+      // Crear automáticamente una carga en borrador para el próximo período
+      // del ejercicio, si existe y no tiene ya una carga creada.
+      const periodosEj = generarPeriodosEjercicio(relatedData.ejercicio)
+      const idxActual = periodosEj.indexOf(String(periodoKey))
+      if (idxActual >= 0 && idxActual < periodosEj.length - 1) {
+        const proximoPeriodo = periodosEj[idxActual + 1]
+        const yaTieneCarga = cargas.some(
+          (c) => Number(c.ejercicio_id) === ejId && String(c.periodo || '') === proximoPeriodo
+        )
+        if (!yaTieneCarga) {
+          const fieldsProximo = normalizeFields({
+            ejercicio_id: ejId,
+            periodo: proximoPeriodo,
+            estado: 'borrador',
+            fecha_creacion: now,
+            creado_por: relatedData.userName,
+          })
+          await applyUserActions([['AddRecord', tCargas, null, fieldsProximo]])
+          // Recargar cargas para incluir la nueva
+          const recs = await fetchRecords(tCargas, {
+            filter: (c) => Number(c.ejercicio_id) === ejId,
+            sort: (a, b) => String(b.periodo || '').localeCompare(String(a.periodo || '')),
+          })
+          cargas = recs
+          base.setNotice(`Período ${periodoKey} firmado y cerrado. Se creó la carga del período ${proximoPeriodo}.`)
+        } else {
+          base.setNotice(`Período ${periodoKey} firmado y cerrado.`)
+        }
+      } else {
+        base.setNotice(`Período ${periodoKey} firmado y cerrado. Es el último período del ejercicio.`)
+      }
       return true
     } catch (e) {
       base.setError(e?.message || String(e))
