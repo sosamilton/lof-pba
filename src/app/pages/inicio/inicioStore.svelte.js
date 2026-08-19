@@ -4,6 +4,9 @@ import {
   gristReady,
   isInGrist,
   subscribeRecords,
+  resolveTableId,
+  fetchRecords,
+  applyUserActions,
 } from '$core/grist/grist'
 import { REQUIRED_TABLES } from '$core/grist/schema'
 import { getSchemaDiff, ensureSchema } from '$setup/initLof'
@@ -13,6 +16,7 @@ import { notify, withNotify } from '$core/ui/notify.svelte'
 import { createBaseState } from '$core/grist/stores/gristStore.svelte'
 import { saldosStore } from '$app/modules/tesoreria/resumen/saldosStore.svelte.js'
 import { createDashboardStore } from './dashboardStore.svelte.js'
+import { TABLE_PREFERRED_IDS, normalizeFields } from '$core/utils/utils'
 
 const bs = createBaseState()
 
@@ -22,6 +26,9 @@ let migrating = $state(false)
 let dedupResult = $state(null)
 let repairResult = $state(null)
 let savingConfig = $state(false)
+let hasMovimientosSinCarga = $state(false)
+let migrandoCargas = $state(false)
+let migracionResult = $state(null)
 
 let showNuevoEjercicio = $state(false)
 let nuevoEj = $state({ anio_inicio: '', anio_fin: '', mes_inicio: 'Mayo', saldo_inicial_banco: 0, saldo_inicial_efectivo: 0, saldo_inicial_caja_chica: 0 })
@@ -61,6 +68,9 @@ const check = async () => {
     status = { tables, resolved, missing, schemaDiff }
     if (missing.length === 0 && schemaDiff?.missingTables?.length === 0 && schemaDiff?.missingColumns?.length === 0) {
       await dash.loadDashboard()
+      if (!dash.moduloGestionIntegral) {
+        await checkMovimientosSinCarga()
+      }
     }
   } catch (e) {
     bs.setError(e?.message || String(e))
@@ -127,11 +137,157 @@ const onModalidadChange = async (nuevaModalidad) => {
     // Actualizar el estado del dashboard sin recargar todo
     dash.modalidadGestion = nuevaModalidad === 'carga_consolidada' ? 'Carga consolidada' : 'Gestión integral'
     dash.moduloGestionIntegral = nuevaModalidad === 'gestion_integral'
+    if (nuevaModalidad === 'carga_consolidada') {
+      await checkMovimientosSinCarga()
+    } else {
+      hasMovimientosSinCarga = false
+      // Reset periodicidad a mensual en modo integral (no aplica)
+      if (dash.periodicidad !== 'mensual') {
+        await saveConfig({ ...(await loadConfig()), periodicidad: 'mensual' })
+        dash.periodicidad = 'mensual'
+        saldosStore.setPeriodicidad('mensual')
+      }
+    }
     notify.success(`Modalidad cambiada a: ${dash.modalidadGestion}`)
   } catch (e) {
     bs.setError(e?.message || String(e))
     notify.error('No se pudo cambiar la modalidad.')
   } finally { savingConfig = false }
+}
+
+/**
+ * Cambia la periodicidad de carga (mensual, semanal, trimestral, etc.).
+ * @param {string} nuevaPeriodicidad
+ */
+const onPeriodicidadChange = async (nuevaPeriodicidad) => {
+  if (!nuevaPeriodicidad || nuevaPeriodicidad === dash.periodicidad) return
+  savingConfig = true
+  try {
+    const config = await loadConfig()
+    await saveConfig({ ...config, periodicidad: nuevaPeriodicidad })
+    dash.periodicidad = nuevaPeriodicidad
+    saldosStore.setPeriodicidad(nuevaPeriodicidad)
+    notify.success(`Periodicidad cambiada a: ${nuevaPeriodicidad}`)
+  } catch (e) {
+    bs.setError(e?.message || String(e))
+    notify.error('No se pudo cambiar la periodicidad.')
+  } finally { savingConfig = false }
+}
+
+/**
+ * Verifica si hay movimientos sin carga_id en el ejercicio en curso.
+ * Solo relevante en modo carga_consolidada.
+ */
+const checkMovimientosSinCarga = async () => {
+  hasMovimientosSinCarga = false
+  if (!dash.ejercicioEnCurso) return
+  try {
+    const tMov = await resolveTableId(TABLE_PREFERRED_IDS.movimientos)
+    if (!tMov) return
+    const ejId = Number(dash.ejercicioEnCurso.id)
+    const movs = await fetchRecords(tMov, {
+      filter: (m) => Number(m.ejercicio_id) === ejId && !m.carga_id,
+    })
+    hasMovimientosSinCarga = movs.length > 0
+  } catch { /* non-fatal */ }
+}
+
+/**
+ * Migra movimientos sin carga a cargas consolidadas automáticamente.
+ * Crea una carga por período para los movimientos no vinculados.
+ */
+const migrarMovimientosLegacy = async () => {
+  if (!dash.ejercicioEnCurso) return
+  migrandoCargas = true
+  migracionResult = null
+  bs.clearMessages()
+  try {
+    const tMov = await resolveTableId(TABLE_PREFERRED_IDS.movimientos)
+    const tCargas = await resolveTableId(TABLE_PREFERRED_IDS.cargas)
+    if (!tMov || !tCargas) { bs.setError('No se encontraron las tablas necesarias.'); return }
+    const ejId = Number(dash.ejercicioEnCurso.id)
+
+    const allMovs = await fetchRecords(tMov, {
+      filter: (m) => Number(m.ejercicio_id) === ejId && !m.carga_id,
+    })
+    if (allMovs.length === 0) {
+      hasMovimientosSinCarga = false
+      notify.success('No hay movimientos para migrar.')
+      return
+    }
+
+    const porPeriodo = new Map()
+    for (const m of allMovs) {
+      const p = String(m.periodo || '')
+      if (!p) continue
+      if (!porPeriodo.has(p)) porPeriodo.set(p, [])
+      porPeriodo.get(p).push(m)
+    }
+
+    const cargasExistentes = await fetchRecords(tCargas, {
+      filter: (c) => Number(c.ejercicio_id) === ejId,
+    })
+    const periodosConCarga = new Set(cargasExistentes.map((c) => String(c.periodo || '')))
+
+    const actions = []
+    let cargasCreadas = 0
+    let movimientosVinculados = 0
+    const nuevasCargasIds = new Map()
+
+    for (const [periodo, movs] of porPeriodo) {
+      if (periodosConCarga.has(periodo)) {
+        const cargaExistente = cargasExistentes.find((c) => String(c.periodo) === periodo)
+        if (cargaExistente) {
+          for (const m of movs) {
+            actions.push(['UpdateRecord', tMov, Number(m.id), { carga_id: Number(cargaExistente.id) }])
+            movimientosVinculados++
+          }
+        }
+        continue
+      }
+      const cargaFields = normalizeFields({
+        ejercicio_id: ejId,
+        periodo: periodo,
+        estado: 'borrador',
+        fecha_creacion: new Date().toISOString(),
+        creado_por: 'SPA',
+        observaciones: 'Migración automática',
+        version: 1,
+      })
+      actions.push(['AddRecord', tCargas, null, cargaFields])
+      cargasCreadas++
+      nuevasCargasIds.set(periodo, actions.length - 1)
+      movimientosVinculados += movs.length
+    }
+
+    if (actions.length > 0) {
+      const res = await applyUserActions(actions)
+      if (res?.retValues && nuevasCargasIds.size > 0) {
+        const vincularActions = []
+        for (const [periodo, idxInActions] of nuevasCargasIds) {
+          const cargaId = res.retValues[idxInActions]
+          if (cargaId) {
+            const movs = porPeriodo.get(periodo)
+            for (const m of movs) {
+              vincularActions.push(['UpdateRecord', tMov, Number(m.id), { carga_id: Number(cargaId) }])
+            }
+          }
+        }
+        if (vincularActions.length > 0) {
+          await applyUserActions(vincularActions)
+        }
+      }
+    }
+
+    migracionResult = { cargasCreadas, movimientosVinculados }
+    hasMovimientosSinCarga = false
+    notify.success(`Migración completada: ${cargasCreadas} cargas creadas, ${movimientosVinculados} movimientos vinculados.`)
+  } catch (e) {
+    bs.setError(e?.message || String(e))
+    notify.error('No se pudo completar la migración.')
+  } finally {
+    migrandoCargas = false
+  }
 }
 
 const doDedup = async () => {
@@ -187,10 +343,14 @@ export const inicioStore = {
   get dedupResult() { return dedupResult },
   get repairResult() { return repairResult },
   get savingConfig() { return savingConfig },
+  get hasMovimientosSinCarga() { return hasMovimientosSinCarga },
+  get migrandoCargas() { return migrandoCargas },
+  get migracionResult() { return migracionResult },
   // Dashboard (delegado a sub-store)
   get dashLoading() { return dash.dashLoading },
   get moduloGestionIntegral() { return dash.moduloGestionIntegral },
   get modalidadGestion() { return dash.modalidadGestion },
+  get periodicidad() { return dash.periodicidad },
   get moduloKiosco() { return dash.moduloKiosco },
   get tableroError() { return dash.tableroError },
   get sociosActivos() { return dash.sociosActivos },
@@ -221,6 +381,9 @@ export const inicioStore = {
   // Acciones
   onPeriodosAutoChange,
   onModalidadChange,
+  onPeriodicidadChange,
+  migrarMovimientosLegacy,
+  checkMovimientosSinCarga,
   setShowNuevoEjercicio,
   init,
   check,

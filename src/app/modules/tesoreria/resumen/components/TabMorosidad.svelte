@@ -10,12 +10,14 @@
 
   let { store } = $props()
   let m = $derived(store.morosidad)
+  let v = $derived(m.vinculacion || {})
 
   let porcentajeCobrado = $derived(m.esperado > 0 ? (m.cobrado / m.esperado) * 100 : 0)
   let porcentajeMorosidad = $derived(m.morosidad * 100)
-  // En carga consolidada no hay socio_id en movimientos → no se pueden
-  // identificar deudores individuales, solo estimar.
+  // Hay datos vinculados a socios si hay movimientos con socio_id
   let esIntegral = $derived(store.modoGestion === 'gestion_integral')
+  // Modo mixto: hay vinculados Y no vinculados (cambio de gestión a mitad)
+  let esMixto = $derived(v.tieneVinculados && v.tieneNoVinculados)
 </script>
 
 {#if !m.tieneDatos}
@@ -90,19 +92,51 @@
     </Card.Content>
   </Card.Root>
 
-  <!-- Lista de deudores (solo gestión integral) -->
-  {#if esIntegral}
+  <!-- Aviso de modo mixto (cambio de gestión a mitad del ejercicio) -->
+  {#if esMixto}
+    <Card.Root class="mb-4 border-warning/30">
+      <Card.Content class="pt-4 text-sm">
+        <div class="flex items-start gap-2">
+          <AlertTriangleIcon class="size-4 text-warning shrink-0 mt-0.5" />
+          <div>
+            <strong>Datos parcialmente vinculados.</strong> Hay movimientos de cuota social
+            sin socio_id (carga consolidada) y otros con socio_id (gestión integral)
+            desde <span class="font-mono">{v.fechaCorte || 'fecha desconocida'}</span>.
+            <br>
+            Cobrado vinculado: <strong>{formatARS(v.cobradoVinculado)}</strong> sobre
+            esperado <strong>{formatARS(v.esperadoVinculado)}</strong>
+            ({v.mesesVinculados} meses con datos identificables).
+            Cobrado no vinculado (consolidado): <strong>{formatARS(v.cobradoNoVinculado)}</strong>.
+            <br>
+            <span class="text-muted-foreground">
+              La morosidad general usa el total cobrado. Los deudores se calculan
+              solo sobre el tramo vinculado ({v.mesesVinculados} meses).
+            </span>
+          </div>
+        </div>
+      </Card.Content>
+    </Card.Root>
+  {/if}
+
+  <!-- Lista de deudores (solo si hay datos vinculados a socios) -->
+  {#if v.tieneVinculados}
     <Card.Root>
       <Card.Header>
         <Card.Title class="text-sm flex items-center gap-2">
           Socios sin pago registrado
           <Badge variant="secondary">{m.deudores.length}</Badge>
+          {#if esMixto}
+            <span class="text-xs text-muted-foreground font-normal">
+              (solo desde {v.fechaCorte})
+            </span>
+          {/if}
         </Card.Title>
       </Card.Header>
       <Card.Content class="pt-4">
         {#if m.deudores.length === 0}
           <p class="text-sm text-muted-foreground text-center py-6">
-            Todos los socios activos tienen al menos un pago de cuota social registrado.
+            Todos los socios activos tienen al menos un pago de cuota social registrado
+            {#if esMixto}en el tramo vinculado{/if}.
           </p>
         {:else}
           <Table.Root>
@@ -137,11 +171,17 @@
       <Card.Content class="pt-4">
         <div class="flex items-center gap-2 text-sm text-muted-foreground">
           <AlertTriangleIcon class="size-4 shrink-0" />
-          En modo <strong>carga consolidada</strong> los movimientos no están vinculados
-          a socios individuales, por lo que no es posible identificar deudores.
-          La estimación de morosidad (esperado vs. cobrado) sigue disponible arriba.
-          Para identificar deudores, cambiá a <strong>gestión integral</strong> en
-          Inicio → Configuración.
+          {#if esIntegral}
+            No hay movimientos de cuota social con socio_id en este ejercicio.
+            Para identificar deudores, cargá pagos vinculando el socio en el
+            formulario de movimientos.
+          {:else}
+            En modo <strong>carga consolidada</strong> los movimientos no están vinculados
+            a socios individuales, por lo que no es posible identificar deudores.
+            La estimación de morosidad (esperado vs. cobrado) sigue disponible arriba.
+            Para identificar deudores, cambiá a <strong>gestión integral</strong> en
+            Inicio → Configuración.
+          {/if}
         </div>
       </Card.Content>
     </Card.Root>

@@ -51,6 +51,7 @@ export const movimientosStore = extendStore(base, {
   get userName() { return relatedData.userName },
   get cuentaDefaultId() { return relatedData.cuentaDefaultId },
   get modoGestion() { return relatedData.modoGestion },
+  get periodicidad() { return relatedData.periodicidad },
   get cierres() { return relatedData.cierres },
   // formState
   get selectedId() { return formState.selectedId },

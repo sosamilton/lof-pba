@@ -7,6 +7,7 @@ import {
   mayorEgreso as _mayorEgreso,
   gristDate as _gristDate,
   periodoDeMovimiento as _periodoDeMovimiento,
+  periodoActualKey as _periodoActualKey,
 } from '$app/modules/tesoreria/shared/tesoreriaCalc.js'
 
 /**
@@ -28,6 +29,7 @@ export function createDashboardStore() {
   let moduloGestionIntegral = $state(false)
   let modalidadGestion = $state('No configurado')
   let moduloKiosco = $state(false)
+  let periodicidad = $state('mensual')
   let tableroError = $state('') // Fix F6: avisa si falla la carga del tablero de caja.
   let sociosActivos = $state(0)
   let altasUltimoAnio = $state(0)
@@ -97,6 +99,7 @@ export function createDashboardStore() {
       movimientos: movimientosData,
       ejercicio: ejercicioEnCurso,
       cuentas: cuentasData,
+      periodicidad: String(config?.periodicidad || 'mensual'),
     })
   }
 
@@ -143,6 +146,7 @@ export function createDashboardStore() {
       moduloGestionIntegral = Boolean(config?.modulo_gestion_integral)
       modalidadGestion = getModalidadGestion(config)
       moduloKiosco = Boolean(config?.modulo_kiosco)
+      periodicidad = String(config?.periodicidad || 'mensual')
       periodosAutoLoaded = true
       versionInstalada = config?.version_instalada || null
       shaInstalado = config?.sha_instalado || null
@@ -174,8 +178,8 @@ export function createDashboardStore() {
 
       // Situación actual (en cualquier modo)
       const now = new Date()
-      periodoActual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-      movimientosMes = movsEj.filter((m) => _periodoDeMovimiento(m) === periodoActual).length
+      periodoActual = _periodoActualKey(periodicidad, ejercicioEnCurso)
+      movimientosMes = movsEj.filter((m) => _periodoDeMovimiento(m, periodicidad, ejercicioEnCurso) === periodoActual).length
 
       // Última carga: movimiento con fecha más reciente del ejercicio
       let masReciente = null
@@ -191,7 +195,7 @@ export function createDashboardStore() {
       if (masReciente) {
         ultimaCarga = {
           fecha: masRecienteFecha,
-          periodo: _periodoDeMovimiento(masReciente),
+          periodo: _periodoDeMovimiento(masReciente, periodicidad, ejercicioEnCurso),
           cantidad: movsEj.length,
         }
       } else if (movsEj.length > 0) {
@@ -242,6 +246,8 @@ export function createDashboardStore() {
     get moduloGestionIntegral() { return moduloGestionIntegral },
     set moduloGestionIntegral(v) { moduloGestionIntegral = v },
     get moduloKiosco() { return moduloKiosco },
+    get periodicidad() { return periodicidad },
+    set periodicidad(v) { periodicidad = v },
     get generarPeriodosAuto() { return generarPeriodosAuto },
     set generarPeriodosAuto(v) { generarPeriodosAuto = v },
     get periodosAutoLoaded() { return periodosAutoLoaded },

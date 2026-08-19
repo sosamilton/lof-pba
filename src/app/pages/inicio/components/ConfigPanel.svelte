@@ -4,6 +4,7 @@
   import { Separator } from '$lib/components/ui/separator'
   import { Switch } from '$lib/components/ui/switch'
   import { Button } from '$lib/components/ui/button'
+  import * as Select from '$lib/components/ui/select'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
   import RefreshIcon from '@lucide/svelte/icons/refresh-cw'
   import WrenchIcon from '@lucide/svelte/icons/wrench'
@@ -11,29 +12,91 @@
   import SettingsIcon from '@lucide/svelte/icons/settings'
   import TagIcon from '@lucide/svelte/icons/tag'
   import ArrowUpCircleIcon from '@lucide/svelte/icons/arrow-up-circle'
+  import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
+  import CalendarIcon from '@lucide/svelte/icons/calendar'
 
   let {
     store,
     identidadNombre = '',
   } = $props()
+
+  const PERIODICIDADES = [
+    { value: 'mensual', label: 'Mensual' },
+    { value: 'semanal', label: 'Semanal' },
+    { value: 'trimestral', label: 'Trimestral' },
+    { value: 'semestral', label: 'Semestral' },
+    { value: 'anual', label: 'Anual' },
+  ]
 </script>
 
 <Card.Root class="pt-2 border-0 shadow-none">
   <Card.Content class="flex flex-col gap-4 pt-4">
-    <div class="flex items-center justify-between rounded-lg border border-border px-4 py-3">
-      <div>
-        <div class="text-sm font-medium">Modalidad de gestión</div>
-        <div class="text-xs text-muted-foreground">Forma en que la cooperadora administra su información</div>
+    <div class="rounded-lg border border-border px-4 py-3 flex flex-col gap-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-sm font-medium">Modalidad de gestión</div>
+          <div class="text-xs text-muted-foreground">Forma en que la cooperadora administra su información</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-sm">{store.modalidadGestion}</span>
+          <Switch
+            checked={store.moduloGestionIntegral}
+            onCheckedChange={(v) => store.onModalidadChange(v ? 'gestion_integral' : 'carga_consolidada')}
+            disabled={store.savingConfig}
+          />
+          <span class="text-sm text-muted-foreground">{store.moduloGestionIntegral ? 'Integral' : 'Consolidada'}</span>
+        </div>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm">{store.modalidadGestion}</span>
-        <Switch
-          checked={store.moduloGestionIntegral}
-          onCheckedChange={(v) => store.onModalidadChange(v ? 'gestion_integral' : 'carga_consolidada')}
-          disabled={store.savingConfig}
-        />
-        <span class="text-sm text-muted-foreground">{store.moduloGestionIntegral ? 'Integral' : 'Consolidada'}</span>
-      </div>
+
+      {#if !store.moduloGestionIntegral}
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <CalendarIcon class="size-4 text-muted-foreground" />
+            <div>
+              <div class="text-sm font-medium">Periodicidad de carga</div>
+              <div class="text-xs text-muted-foreground">Período para consolidar movimientos</div>
+            </div>
+          </div>
+          <Select.Root
+            type="single"
+            value={store.periodicidad || 'mensual'}
+            onValueChange={(v) => store.onPeriodicidadChange(v)}
+          >
+            <Select.Trigger class="w-40" disabled={store.savingConfig}>
+              {PERIODICIDADES.find((p) => p.value === (store.periodicidad || 'mensual'))?.label || 'Mensual'}
+            </Select.Trigger>
+            <Select.Content>
+              {#each PERIODICIDADES as p}
+                <Select.Item value={p.value}>{p.label}</Select.Item>
+              {/each}
+            </Select.Content>
+          </Select.Root>
+        </div>
+      {/if}
+
+      {#if !store.moduloGestionIntegral && store.hasMovimientosSinCarga}
+        <div class="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2">
+          <ArrowLeftRightIcon class="size-4 text-warning shrink-0" />
+          <span class="text-sm text-muted-foreground">Hay movimientos sin carga vinculada.</span>
+          <Button
+            variant="outline"
+            size="sm"
+            class="ml-auto"
+            onclick={store.migrarMovimientosLegacy}
+            disabled={store.migrandoCargas}
+          >
+            {store.migrandoCargas ? 'Migrando…' : 'Migrar a cargas'}
+          </Button>
+        </div>
+      {/if}
+
+      {#if store.migracionResult}
+        <div class="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+          <span class="font-semibold">Migración completada:</span>
+          {store.migracionResult.cargasCreadas} cargas creadas,
+          {store.migracionResult.movimientosVinculados} movimientos vinculados.
+        </div>
+      {/if}
     </div>
 
     <Separator />

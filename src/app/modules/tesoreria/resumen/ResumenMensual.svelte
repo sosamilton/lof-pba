@@ -117,10 +117,15 @@
         </Tabs.List>
 
         <Tabs.Content value="flujo">
-          <!-- Sub-tabs Mensual/Semanal dentro de Flujo de caja -->
+          <!-- Sub-tabs: vista periódica (según config) + semanal -->
           <Tabs.Root value={store.vista} onValueChange={(v) => store.setVista(v)} class="mb-4">
             <Tabs.List class="h-8">
-              <Tabs.Trigger value="mensual" class="px-3 text-xs">Mensual</Tabs.Trigger>
+              <Tabs.Trigger value="mensual" class="px-3 text-xs capitalize">
+                {store.periodicidad === 'trimestral' ? 'Trimestral'
+                  : store.periodicidad === 'semestral' ? 'Semestral'
+                  : store.periodicidad === 'anual' ? 'Anual'
+                  : 'Mensual'}
+              </Tabs.Trigger>
               <Tabs.Trigger value="semanal" class="px-3 text-xs">Semanal</Tabs.Trigger>
             </Tabs.List>
           </Tabs.Root>

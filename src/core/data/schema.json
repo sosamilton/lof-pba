@@ -1475,6 +1475,14 @@
             "label": "Generar periodos automatico",
             "type": "Bool"
           }
+        },
+        {
+          "id": "periodicidad",
+          "fields": {
+            "label": "Periodicidad de carga",
+            "type": "Choice",
+            "widgetOptions": "{\"choices\":[\"mensual\",\"semanal\",\"trimestral\",\"semestral\",\"anual\"]}"
+          }
         }
       ]
     },

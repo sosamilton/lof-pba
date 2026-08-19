@@ -96,33 +96,100 @@ export function calcularSaldoTotal(saldosPorCuenta) {
 }
 
 /**
- * Extrae el período (YYYY-MM) de un movimiento.
- * Prioriza m.periodo (fórmula de Grist), pero si no está disponible
- * (null, undefined, vacío), lo calcula desde m.fecha usando gristDate.
+ * Extrae el período de un movimiento según la periodicidad configurada.
+ *
+ * Para 'mensual' (default): devuelve 'YYYY-MM' (compatible con la fórmula
+ * de Grist en la columna `periodo`).
+ *
+ * Para 'semanal': devuelve 'YYYY-Www' (clave ISO week).
+ *
+ * Para 'trimestral', 'semestral', 'anual': devuelve el 'YYYY-MM' del primer
+ * mes del bloque (ej. para trimestral con ejercicio desde Mayo, un
+ * movimiento de Jun 2026 → '2026-05').
+ *
  * @param {any} m
+ * @param {string} [periodicidad='mensual'] - 'mensual' | 'semanal' | 'trimestral' | 'semestral' | 'anual'
+ * @param {Record<string, any>|null} [ejercicio=null] - Necesario para periodicidades no mensuales
  * @returns {string}
  */
-export function periodoDeMovimiento(m) {
-  const p = String(m.periodo || '')
-  if (p && /^\d{4}-\d{2}$/.test(p)) return p
-  // Fallback: calcular desde fecha (formato Grist: número, array, o string)
-  const d = gristDate(m.fecha)
-  if (isNaN(d.getTime())) return ''
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+export function periodoDeMovimiento(m, periodicidad = 'mensual', ejercicio = null) {
+  // Mensual: comportamiento original (lee m.periodo o calcula desde fecha)
+  if (!periodicidad || periodicidad === 'mensual') {
+    const p = String(m.periodo || '')
+    if (p && /^\d{4}-\d{2}$/.test(p)) return p
+    const d = gristDate(m.fecha)
+    if (isNaN(d.getTime())) return ''
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  }
+
+  // Semanal: usar ISO week key
+  if (periodicidad === 'semanal') {
+    return isoWeekKey(m.fecha)
+  }
+
+  // Trimestral / semestral / anual: agrupar por bloque desde el inicio del ejercicio
+  const monthKey = (() => {
+    const p = String(m.periodo || '')
+    if (p && /^\d{4}-\d{2}$/.test(p)) return p
+    const d = gristDate(m.fecha)
+    if (isNaN(d.getTime())) return ''
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })()
+  if (!monthKey) return ''
+  return agruparPeriodo(monthKey, periodicidad, ejercicio)
 }
 
 /**
- * Suma los importes de movimientos de un período (YYYY-MM) por tipo.
+ * Convierte un 'YYYY-MM' al 'YYYY-MM' del primer mes del bloque según la
+ * periodicidad (trimestral=3, semestral=6, anual=12), relativo al inicio
+ * del ejercicio.
+ * @param {string} monthKey - 'YYYY-MM'
+ * @param {string} periodicidad - 'trimestral' | 'semestral' | 'anual'
+ * @param {Record<string, any>|null} ejercicio
+ * @returns {string}
+ */
+export function agruparPeriodo(monthKey, periodicidad, ejercicio) {
+  if (!periodicidad || periodicidad === 'mensual' || !ejercicio) return monthKey
+  const [year, month] = monthKey.split('-').map(Number)
+  const anioInicio = Number(ejercicio.anio_inicio)
+  const mesInicioNum = MES_NUMERO[String(ejercicio.mes_inicio || 'Enero')] || 1
+  let monthsSinceStart = (year - anioInicio) * 12 + (month - mesInicioNum)
+  if (monthsSinceStart < 0) return monthKey
+  const blockSize = periodicidad === 'trimestral' ? 3 : periodicidad === 'semestral' ? 6 : 12
+  const blockIndex = Math.floor(monthsSinceStart / blockSize)
+  const startMonthsSinceStart = blockIndex * blockSize
+  const startYear = anioInicio + Math.floor((mesInicioNum - 1 + startMonthsSinceStart) / 12)
+  const startMonth = ((mesInicioNum - 1 + startMonthsSinceStart) % 12) + 1
+  return `${startYear}-${String(startMonth).padStart(2, '0')}`
+}
+
+/**
+ * Devuelve la clave del período actual (hoy) según la periodicidad.
+ * @param {string} [periodicidad='mensual']
+ * @param {Record<string, any>|null} [ejercicio=null]
+ * @returns {string}
+ */
+export function periodoActualKey(periodicidad = 'mensual', ejercicio = null) {
+  const now = new Date()
+  if (periodicidad === 'semanal') return isoWeekKey(now)
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  return agruparPeriodo(monthKey, periodicidad, ejercicio)
+}
+
+/**
+ * Suma los importes de movimientos de un período por tipo.
  * Traspaso no se cuenta como ingreso/egreso (movimiento interno).
  * @param {any[]} movimientos
- * @param {string} periodoKey - 'YYYY-MM'
+ * @param {string} periodoKey - Clave del período (formato depende de periodicidad)
+ * @param {string} [periodicidad='mensual']
+ * @param {Record<string, any>|null} [ejercicio=null]
  * @returns {{ingresos: number, egresos: number}}
  */
-export function totalesDesdeDetalle(movimientos, periodoKey) {
+export function totalesDesdeDetalle(movimientos, periodoKey, periodicidad = 'mensual', ejercicio = null) {
   let ingresos = 0
   let egresos = 0
   for (const m of movimientos) {
-    if (periodoDeMovimiento(m) !== periodoKey) continue
+    if (periodoDeMovimiento(m, periodicidad, ejercicio) !== periodoKey) continue
     const importe = Number(m.importe) || 0
     const tipo = String(m.tipo_movimiento || '')
     if (tipo === 'Entrada') ingresos += importe
@@ -228,13 +295,28 @@ export function saldoInicialConArrastre(ejercicio, allMovimientos, allEjercicios
  * @param {number|null} ejercicioId
  * @returns {Map<string, any>}
  */
-export function cierresPorPeriodo(cierres, ejercicioId) {
+export function cierresPorPeriodo(cierres, ejercicioId, periodicidad = 'mensual', ejercicio = null) {
   const map = new Map()
   for (const c of cierres) {
     if (Number(c.ejercicio_id) !== Number(ejercicioId)) continue
     if (c.es_carga_manual !== true) continue
     const p = String(c.periodo || '')
-    if (p) map.set(p, c)
+    if (!p) continue
+    // En periodicidades agrupadas, mapear el mes del cierre al período del bloque
+    if (periodicidad && periodicidad !== 'mensual' && periodicidad !== 'semanal' && ejercicio) {
+      const grouped = agruparPeriodo(p, periodicidad, ejercicio)
+      // Merge: sumar ingresos/egresos si ya hay un cierre para ese bloque
+      if (map.has(grouped)) {
+        const prev = map.get(grouped)
+        prev.total_ingresos_calc = (Number(prev.total_ingresos_calc) || 0) + (Number(c.total_ingresos_calc) || 0)
+        prev.total_egresos_calc = (Number(prev.total_egresos_calc) || 0) + (Number(c.total_egresos_calc) || 0)
+        prev.firmado = prev.firmado || c.firmado === true
+      } else {
+        map.set(grouped, { ...c, periodo: grouped })
+      }
+    } else {
+      map.set(p, c)
+    }
   }
   return map
 }
@@ -242,38 +324,35 @@ export function cierresPorPeriodo(cierres, ejercicioId) {
 /**
  * Set de períodos que tienen al menos un movimiento detallado.
  * @param {any[]} movimientos
+ * @param {string} [periodicidad='mensual']
+ * @param {Record<string, any>|null} [ejercicio=null]
  * @returns {Set<string>}
  */
-export function periodosConDetalle(movimientos) {
+export function periodosConDetalle(movimientos, periodicidad = 'mensual', ejercicio = null) {
   const set = new Set()
   for (const m of movimientos) {
-    const p = periodoDeMovimiento(m)
+    const p = periodoDeMovimiento(m, periodicidad, ejercicio)
     if (p) set.add(p)
   }
   return set
 }
 
 /**
- * Calcula el resumen mensual con arrastre de saldo y regla "detalle gana".
+ * Calcula el resumen por período con arrastre de saldo y regla "detalle gana".
  *
- * Para cada período (mes) que tenga EITHER movimientos OR un cierre manual:
- * - Si tiene movimientos: origen='detalle', totales desde movimientos.
- * - Si no: origen='manual', totales desde cierres_mensuales (total_*_calc).
- * - saldoInicial = acumulado del período anterior (o saldo_inicial_* del ejercicio para el primero).
- * - saldoPeriodo = saldoInicial + ingresos - egresos.
+ * Generalización de calcularResumenMensual que soporta cualquier periodicidad.
  *
  * @param {any[]} movimientos
  * @param {any[]} cierres
  * @param {Record<string, any>|null} ejercicio
  * @param {number} [saldoInicialOverride] - Saldo inicial calculado externamente (arrastre dinámico)
- * @returns {Array<{periodo: string, ingresos: number, egresos: number, saldoInicial: number, saldoPeriodo: number, origen: 'detalle'|'manual'}>}
+ * @param {string} [periodicidad='mensual'] - 'mensual' | 'semanal' | 'trimestral' | 'semestral' | 'anual'
+ * @returns {Array<{periodo: string, ingresos: number, egresos: number, saldoInicial: number, saldoPeriodo: number, origen: 'detalle'|'manual'|'vacio'}>}
  */
-export function calcularResumenMensual(movimientos, cierres, ejercicio, saldoInicialOverride) {
-  const conDetalle = periodosConDetalle(movimientos)
-  const cierresMap = cierresPorPeriodo(cierres, ejercicio ? ejercicio.id : null)
-  // Solo períodos del ejercicio (incluso vacíos). Los movimientos o cierres
-  // con períodos fuera del rango del ejercicio se ignoran en el resumen.
-  const ordenados = generarPeriodosEjercicio(ejercicio)
+export function calcularResumenPeriodico(movimientos, cierres, ejercicio, saldoInicialOverride, periodicidad = 'mensual') {
+  const conDetalle = periodosConDetalle(movimientos, periodicidad, ejercicio)
+  const cierresMap = cierresPorPeriodo(cierres, ejercicio ? ejercicio.id : null, periodicidad, ejercicio)
+  const ordenados = generarPeriodosEjercicio(ejercicio, periodicidad)
   let acumulado = saldoInicialOverride != null ? saldoInicialOverride : saldoInicialEjercicio(ejercicio)
   return ordenados.map((p) => {
     const tieneDetalle = conDetalle.has(p)
@@ -281,7 +360,7 @@ export function calcularResumenMensual(movimientos, cierres, ejercicio, saldoIni
     let egresos = 0
     let origen = 'detalle'
     if (tieneDetalle) {
-      const t = totalesDesdeDetalle(movimientos, p)
+      const t = totalesDesdeDetalle(movimientos, p, periodicidad, ejercicio)
       ingresos = t.ingresos
       egresos = t.egresos
     } else if (cierresMap.has(p)) {
@@ -290,7 +369,6 @@ export function calcularResumenMensual(movimientos, cierres, ejercicio, saldoIni
       ingresos = Number(cierre?.total_ingresos_calc) || 0
       egresos = Number(cierre?.total_egresos_calc) || 0
     } else {
-      // Período vacío: sin datos ni cierre manual.
       origen = 'vacio'
     }
     const saldoInicial = acumulado
@@ -298,6 +376,19 @@ export function calcularResumenMensual(movimientos, cierres, ejercicio, saldoIni
     acumulado = saldoPeriodo
     return { periodo: p, ingresos, egresos, saldoInicial, saldoPeriodo, origen }
   })
+}
+
+/**
+ * Calcula el resumen mensual con arrastre de saldo y regla "detalle gana".
+ * @deprecated Usar calcularResumenPeriodico con periodicidad='mensual'
+ * @param {any[]} movimientos
+ * @param {any[]} cierres
+ * @param {Record<string, any>|null} ejercicio
+ * @param {number} [saldoInicialOverride]
+ * @returns {Array<{periodo: string, ingresos: number, egresos: number, saldoInicial: number, saldoPeriodo: number, origen: 'detalle'|'manual'|'vacio'}>}
+ */
+export function calcularResumenMensual(movimientos, cierres, ejercicio, saldoInicialOverride) {
+  return calcularResumenPeriodico(movimientos, cierres, ejercicio, saldoInicialOverride, 'mensual')
 }
 
 /**
@@ -398,32 +489,59 @@ const MES_NUMERO = {
 }
 
 /**
- * Genera todos los períodos (YYYY-MM) de un ejercicio, desde el mes de inicio
- * del año de inicio hasta el mes anterior al mes de inicio del año de fin.
+ * Genera todos los períodos de un ejercicio según la periodicidad configurada.
+ *
+ * Para 'mensual' (default): genera 'YYYY-MM' para cada mes, desde el mes de
+ * inicio del año de inicio hasta el mes anterior al mes de inicio del año de fin.
  * Por ejemplo, Enero 2026 → Diciembre 2026 si anio_inicio=2026, anio_fin=2027.
  *
+ * Para 'semanal': genera claves ISO 'YYYY-Www' para cada semana dentro del rango.
+ *
+ * Para 'trimestral'/'semestral'/'anual': genera el 'YYYY-MM' del primer mes
+ * de cada bloque (ej. trimestral desde Mayo: '2026-05', '2026-08', '2026-11', '2027-02').
+ *
  * @param {Record<string, any>|null} ejercicio - { anio_inicio, anio_fin, mes_inicio }
- * @returns {string[]} Array de períodos 'YYYY-MM' ordenados ascendentemente
+ * @param {string} [periodicidad='mensual'] - 'mensual' | 'semanal' | 'trimestral' | 'semestral' | 'anual'
+ * @returns {string[]} Array de claves de período ordenadas ascendentemente
  */
-export function generarPeriodosEjercicio(ejercicio) {
+export function generarPeriodosEjercicio(ejercicio, periodicidad = 'mensual') {
   if (!ejercicio) return []
   const anioInicio = Number(ejercicio.anio_inicio)
   const anioFin = Number(ejercicio.anio_fin)
   const mesInicioNum = MES_NUMERO[String(ejercicio.mes_inicio || 'Enero')] || 1
   if (!anioInicio || !anioFin) return []
 
+  // El ejercicio termina el mes anterior al mes_inicio del anio_fin.
+  const finMes = mesInicioNum - 1
+  const finReal = finMes < 1 ? { anio: anioFin - 1, mes: 12 } : { anio: anioFin, mes: finMes }
+
+  // Semanal: generar claves ISO de todas las semanas del rango
+  if (periodicidad === 'semanal') {
+    const weeks = []
+    const startDate = new Date(anioInicio, mesInicioNum - 1, 1)
+    const endDate = new Date(finReal.anio, finReal.mes, 0) // Último día del último mes
+    const cursor = new Date(startDate)
+    while (cursor <= endDate) {
+      const wk = isoWeekKey(cursor)
+      if (wk && !weeks.includes(wk)) weeks.push(wk)
+      cursor.setDate(cursor.getDate() + 7)
+    }
+    return weeks
+  }
+
+  const blockSize = periodicidad === 'trimestral' ? 3
+    : periodicidad === 'semestral' ? 6
+    : periodicidad === 'anual' ? 12
+    : 1
+
   const periodos = []
   let anio = anioInicio
   let mes = mesInicioNum
-  // El ejercicio termina el mes anterior al mes_inicio del anio_fin.
-  const finAnio = anioFin
-  const finMes = mesInicioNum - 1
-  const finReal = finMes < 1 ? { anio: finAnio - 1, mes: 12 } : { anio: finAnio, mes: finMes }
 
   while (anio < finReal.anio || (anio === finReal.anio && mes <= finReal.mes)) {
     periodos.push(`${anio}-${String(mes).padStart(2, '0')}`)
-    mes++
-    if (mes > 12) { mes = 1; anio++ }
+    mes += blockSize
+    while (mes > 12) { mes -= 12; anio++ }
   }
   return periodos
 }
@@ -435,10 +553,11 @@ export function generarPeriodosEjercicio(ejercicio) {
  *
  * @param {Record<string, any>|null} ejercicio
  * @param {Set<string>} periodosConDatos - Períodos que ya tienen movimientos o cierres
- * @returns {string} Período 'YYYY-MM'
+ * @param {string} [periodicidad='mensual']
+ * @returns {string} Clave del período
  */
-export function proximoPeriodoACargar(ejercicio, periodosConDatos) {
-  const todos = generarPeriodosEjercicio(ejercicio)
+export function proximoPeriodoACargar(ejercicio, periodosConDatos, periodicidad = 'mensual') {
+  const todos = generarPeriodosEjercicio(ejercicio, periodicidad)
   if (todos.length === 0) return new Date().toISOString().slice(0, 7)
   const pendiente = todos.find((p) => !periodosConDatos.has(p))
   return pendiente || todos[todos.length - 1]
@@ -581,19 +700,20 @@ export function rubrosSinMovimiento(movimientos, rubros, opts) {
 }
 
 /**
- * Serie mensual de ingresos/egresos/saldo para un ejercicio.
- * Reusa calcularResumenMensual y devuelve datos listos para graficar.
+ * Serie periódica de ingresos/egresos/saldo para un ejercicio.
+ * Reusa calcularResumenPeriodico y devuelve datos listos para graficar.
  * @param {any[]} movimientos
  * @param {any[]} cierres
  * @param {Record<string, any>|null} ejercicio
  * @param {number} [saldoInicialOverride]
+ * @param {string} [periodicidad='mensual']
  * @returns {Array<{periodo: string, label: string, ingresos: number, egresos: number, saldo: number}>}
  */
-export function serieMensual(movimientos, cierres, ejercicio, saldoInicialOverride) {
-  const rows = calcularResumenMensual(movimientos, cierres, ejercicio, saldoInicialOverride)
+export function serieMensual(movimientos, cierres, ejercicio, saldoInicialOverride, periodicidad = 'mensual') {
+  const rows = calcularResumenPeriodico(movimientos, cierres, ejercicio, saldoInicialOverride, periodicidad)
   return rows.map((r) => ({
     periodo: r.periodo,
-    label: labelPeriodo(r.periodo),
+    label: labelPeriodo(r.periodo, periodicidad, ejercicio),
     ingresos: r.ingresos,
     egresos: r.egresos,
     saldo: r.saldoPeriodo,
@@ -601,14 +721,39 @@ export function serieMensual(movimientos, cierres, ejercicio, saldoInicialOverri
 }
 
 /**
- * Convierte 'YYYY-MM' a label legible corto "Mes YYYY" (ej. "May 2026").
+ * Convierte una clave de período a label legible según la periodicidad.
+ * - mensual: 'Mes YYYY' (ej. 'May 2026')
+ * - semanal: 'Sem N · dd/mm-dd/mm'
+ * - trimestral/semestral: 'Mes-Mes YYYY' (rango del bloque)
+ * - anual: 'YYYY'
  * @param {string} periodo
+ * @param {string} [periodicidad='mensual']
+ * @param {Record<string, any>|null} [ejercicio=null]
  * @returns {string}
  */
-export function labelPeriodo(periodo) {
+export function labelPeriodo(periodo, periodicidad = 'mensual', ejercicio = null) {
+  if (periodicidad === 'semanal') {
+    const r = weekKeyToRange(periodo)
+    return r.inicio ? `${periodo} (${r.inicio.slice(8)}/${r.inicio.slice(5, 7)} al ${r.fin.slice(8)}/${r.fin.slice(5, 7)})` : periodo
+  }
   const m = String(periodo || '').match(/^(\d{4})-(\d{2})$/)
   if (!m) return periodo
-  return `${MESES_CORTOS[Number(m[2]) - 1] || m[2]} ${m[1]}`
+  const year = Number(m[1])
+  const month = Number(m[2])
+
+  if (periodicidad === 'anual') {
+    return String(year)
+  }
+
+  if (periodicidad === 'trimestral' || periodicidad === 'semestral') {
+    const blockSize = periodicidad === 'trimestral' ? 3 : 6
+    const endMonthNum = month + blockSize - 1
+    const endYear = year + Math.floor((endMonthNum - 1) / 12)
+    const endMonth = ((endMonthNum - 1) % 12) + 1
+    return `${MESES_CORTOS[month - 1]} ${year} - ${MESES_CORTOS[endMonth - 1]} ${endYear}`
+  }
+
+  return `${MESES_CORTOS[month - 1] || month} ${year}`
 }
 
 /**
@@ -707,6 +852,10 @@ export function mesesTranscurridosEjercicio(ejercicio) {
  * Deudores = socios activos sin ningún movimiento de cuota social
  *   (requiere socio_id en movimientos; si no hay, lista vacía).
  *
+ * Detecta si hay movimientos con y sin socio_id (cambio de modo de gestión
+ * a mitad del ejercicio). En ese caso, los deudores se calculan solo sobre
+ * el tramo con datos vinculados, y se expone info del corte para la UI.
+ *
  * @param {Record<string, any>|null} ejercicio
  * @param {any[]} movimientos - Movimientos del ejercicio
  * @param {any[]} rubros
@@ -717,6 +866,10 @@ export function mesesTranscurridosEjercicio(ejercicio) {
  *   importeCuota: number, modalidad: string, sociosActivos: number,
  *   mesesTranscurridos: number, deudores: any[],
  *   rubroCuotaId: number|null, tieneDatos: boolean,
+ *   vinculacion: { tieneVinculados: boolean, tieneNoVinculados: boolean,
+ *     fechaCorte: string|null, mesesVinculados: number,
+ *     cobradoVinculado: number, cobradoNoVinculado: number,
+ *     esperadoVinculado: number, morosidadVinculada: number },
  * }}
  */
 export function calcularMorosidad(ejercicio, movimientos, rubros, socios, asambleas) {
@@ -741,27 +894,87 @@ export function calcularMorosidad(ejercicio, movimientos, rubros, socios, asambl
       && String(m.tipo_movimiento || '') === 'Entrada'
   )
   let cobrado = 0
+  let cobradoVinculado = 0
+  let cobradoNoVinculado = 0
   const sociosPagadores = new Set()
+  let primerFechaVinculada = null
+
   for (const m of movsCuota) {
-    cobrado += Number(m.importe) || 0
-    if (m.socio_id != null) sociosPagadores.add(Number(m.socio_id))
+    const importe = Number(m.importe) || 0
+    cobrado += importe
+    if (m.socio_id != null) {
+      sociosPagadores.add(Number(m.socio_id))
+      cobradoVinculado += importe
+      const d = gristDate(m.fecha)
+      if (!isNaN(d.getTime())) {
+        const fechaStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+        if (!primerFechaVinculada || fechaStr < primerFechaVinculada) {
+          primerFechaVinculada = fechaStr
+        }
+      }
+    } else {
+      cobradoNoVinculado += importe
+    }
   }
+
+  const tieneVinculados = sociosPagadores.size > 0
+  const tieneNoVinculados = cobradoNoVinculado > 0
+
+  // Calcular meses desde el corte (primer movimiento vinculado) hasta hoy
+  let mesesVinculados = 0
+  if (primerFechaVinculada && ejercicio) {
+    const periodos = generarPeriodosEjercicio(ejercicio)
+    const idxCorte = periodos.indexOf(primerFechaVinculada)
+    if (idxCorte >= 0) {
+      const now = new Date()
+      const actualKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+      const idxHoy = periodos.indexOf(actualKey)
+      if (idxHoy >= 0) {
+        mesesVinculados = idxHoy - idxCorte + 1
+      } else if (actualKey > periodos[periodos.length - 1]) {
+        mesesVinculados = periodos.length - idxCorte
+      }
+    }
+  }
+
+  // Esperado del tramo vinculado
+  const esperadoVinculado = importeCuota > 0 && sociosActivos > 0 && mesesVinculados > 0
+    ? importeCuota * sociosActivos * (modalidad === 'Anual' ? 1 : mesesVinculados)
+    : 0
+
   const morosidad = esperado > 0 ? Math.max(0, 1 - cobrado / esperado) : 0
-  const deudores = sociosActivosArr
-    .filter((s) => !sociosPagadores.has(Number(s.id)))
-    .map((s) => ({
-      id: Number(s.id),
-      persona_id: s.persona_id,
-      apellido: s.apellido || '',
-      nombre: s.nombre || '',
-    }))
-    .sort((a, b) => normStr(a.apellido).localeCompare(normStr(b.apellido)))
+  const morosidadVinculada = esperadoVinculado > 0 ? Math.max(0, 1 - cobradoVinculado / esperadoVinculado) : 0
+
+  // Deudores: solo sobre el tramo vinculado (si hay datos vinculados)
+  // Si no hay vinculados, la lista de deudores no es confiable
+  const deudores = tieneVinculados
+    ? sociosActivosArr
+        .filter((s) => !sociosPagadores.has(Number(s.id)))
+        .map((s) => ({
+          id: Number(s.id),
+          persona_id: s.persona_id,
+          apellido: s.apellido || '',
+          nombre: s.nombre || '',
+        }))
+        .sort((a, b) => normStr(a.apellido).localeCompare(normStr(b.apellido)))
+    : []
+
   const tieneDatos = Boolean(rubroCuota) && importeCuota > 0 && sociosActivos > 0
   return {
     esperado, cobrado, morosidad,
     importeCuota, modalidad, sociosActivos,
     mesesTranscurridos: meses, deudores,
     rubroCuotaId, tieneDatos,
+    vinculacion: {
+      tieneVinculados,
+      tieneNoVinculados,
+      fechaCorte: primerFechaVinculada,
+      mesesVinculados,
+      cobradoVinculado,
+      cobradoNoVinculado,
+      esperadoVinculado,
+      morosidadVinculada,
+    },
   }
 }
 
@@ -781,22 +994,32 @@ export function calcularMorosidad(ejercicio, movimientos, rubros, socios, asambl
  *   cierresDuplicados: Array<{periodo: string, cantidad: number}>,
  * }}
  */
-export function saludOperativa(ejercicio, movimientos, cierres, rubros) {
-  const periodos = generarPeriodosEjercicio(ejercicio)
-  const conDetalle = periodosConDetalle(movimientos)
-  const cierresMap = cierresPorPeriodo(cierres, ejercicio ? ejercicio.id : null)
+export function saludOperativa(ejercicio, movimientos, cierres, rubros, periodicidad = 'mensual') {
+  const periodos = generarPeriodosEjercicio(ejercicio, periodicidad)
+  const conDetalle = periodosConDetalle(movimientos, periodicidad, ejercicio)
+  const cierresMap = cierresPorPeriodo(cierres, ejercicio ? ejercicio.id : null, periodicidad, ejercicio)
+  // Mapa de TODOS los cierres (no solo manuales) para chequear firmado/abierto.
+  // En periodicidades agrupadas, mapear al período del bloque.
+  const allCierresMap = new Map()
+  for (const c of cierres || []) {
+    if (Number(c.ejercicio_id) !== Number(ejercicio?.id)) continue
+    const p = String(c.periodo || '')
+    if (!p) continue
+    const key = (periodicidad && periodicidad !== 'mensual' && periodicidad !== 'semanal' && ejercicio)
+      ? agruparPeriodo(p, periodicidad, ejercicio)
+      : p
+    if (!allCierresMap.has(key)) allCierresMap.set(key, c)
+  }
   const periodosPendientes = []
   const periodosFirmados = []
   const periodosAbiertos = []
   for (const p of periodos) {
     const tieneDetalle = conDetalle.has(p)
-    const cierre = cierres.find(
-      (c) => Number(c.ejercicio_id) === Number(ejercicio?.id) && String(c.periodo || '') === p
-    )
+    const cierre = allCierresMap.get(p)
     const firmado = cierre?.firmado === true
     if (firmado) {
       periodosFirmados.push(p)
-    } else if (tieneDetalle || cierresMap.has(p)) {
+    } else if (tieneDetalle || cierresMap.has(p) || allCierresMap.has(p)) {
       periodosAbiertos.push(p)
     } else {
       periodosPendientes.push(p)

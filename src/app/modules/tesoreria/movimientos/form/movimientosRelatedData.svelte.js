@@ -29,6 +29,7 @@ export function createRelatedData({ base }) {
   let cuentaDefaultId = $state('')
   // Modo de gestión activo (para cambiar el flujo de "Nuevo").
   let modoGestion = $state('gestion_integral') // 'gestion_integral' | 'carga_consolidada'
+  let periodicidad = $state('mensual') // 'mensual' | 'semanal' | 'trimestral' | 'semestral' | 'anual'
   // Cierres mensuales manuales (para advertencia al cargar detalle en
   // un período que ya tiene un total declarado manualmente — regla "detalle gana").
   let cierres = $state([])
@@ -81,6 +82,7 @@ export function createRelatedData({ base }) {
         // Detectar modo de gestión para cambiar el flujo de "Nuevo".
         if (config?.modulo_carga_consolidada || config?.modulo_gestion_etapas || config?.modulo_solo_pia) modoGestion = 'carga_consolidada'
         else modoGestion = 'gestion_integral'
+        periodicidad = String(config?.periodicidad || 'mensual')
       } catch { /* config opcional */ }
     } catch (e) {
       base.setError(e?.message || String(e))
@@ -98,6 +100,7 @@ export function createRelatedData({ base }) {
     get userName() { return userName },
     get cuentaDefaultId() { return cuentaDefaultId },
     get modoGestion() { return modoGestion },
+    get periodicidad() { return periodicidad },
     get cierres() { return cierres },
     setCierres,
     setEjercicio,

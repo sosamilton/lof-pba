@@ -94,7 +94,7 @@
   </Card.Root>
 {/if}
 
-<!-- Tabla mensual/semanal existente -->
+<!-- Tabla periódica (según periodicidad configurada) -->
 {#if store.resumen.length === 0}
   <Card.Root>
     <Card.Content class="pt-6 text-center text-sm text-muted-foreground">
