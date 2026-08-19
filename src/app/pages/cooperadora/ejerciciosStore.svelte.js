@@ -51,6 +51,22 @@ export function createEjerciciosStore({ bs, getTEjercicios, getTMovimientos }) {
   const createEjercicio = async () => {
     await bs.wrapAsync(async () => {
       if (!getTEjercicios()) { bs.setError('No se encontró la tabla ejercicios.'); return }
+      // Regla: no se puede crear un nuevo ejercicio si existe al menos uno
+      // previo que NO esté cerrado. Excepción: si no hay ejercicios previos
+      // (es el primer ejercicio), se permite crear libremente.
+      // El cierre de ejercicio se hace desde Cierre / Presentación.
+      const previosNoCerrados = ejercicios.filter((e) => e.cerrado !== true)
+      if (previosNoCerrados.length > 0) {
+        const nombres = previosNoCerrados
+          .map((e) => `${e.anio_inicio}-${e.anio_fin}`)
+          .join(', ')
+        bs.setError(
+          `No se puede crear un nuevo ejercicio hasta que los anteriores estén cerrados. ` +
+          `Pendientes de cierre: ${nombres}. Cerrá primero esos ejercicios desde Cierre / Presentación.`
+        )
+        notify.error(bs.error)
+        return
+      }
       ejercicios = await crearEjercicioApi(nuevoEj, ejercicios)
       ejercicioEnCurso = ejercicios.find((e) => e.en_curso === true) || null
       bs.setNotice('Ejercicio creado.'); notify.success(bs.notice)

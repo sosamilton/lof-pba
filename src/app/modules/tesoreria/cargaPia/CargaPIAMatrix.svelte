@@ -505,7 +505,7 @@
   </Table.Footer>
 {/snippet}
 
-<PageScaff title="Carga por rubro" loading={cargandoPeriodo && filas.length === 0} error={store.error} notice={store.notice}>
+{#snippet innerContent()}
   {#if !embedded}
     <div class="flex items-center gap-3 mb-4">
       <Button variant="outline" size="icon" onclick={volver} title="Volver al resumen">
@@ -771,7 +771,15 @@
       {/if}
     </div>
   </div>
-</PageScaff>
+{/snippet}
+
+{#if embedded}
+  {@render innerContent()}
+{:else}
+  <PageScaff title="Carga por rubro" loading={cargandoPeriodo && filas.length === 0} error={store.error} notice={store.notice}>
+    {@render innerContent()}
+  </PageScaff>
+{/if}
 
 {#if showNuevaCarga}
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true">

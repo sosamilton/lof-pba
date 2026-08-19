@@ -12,6 +12,7 @@
   import ListSkeleton from '$lib/components/ListSkeleton.svelte'
   import Combobox from '$lib/components/Combobox.svelte'
   import { keyboard } from '$core/ui/keyboard.svelte'
+  import { navigate } from '$core/ui/router.svelte'
   import { personaLabel } from '$app/modules/comunidad/personas/personasApi.js'
   import PlusIcon from '@lucide/svelte/icons/plus'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
@@ -147,6 +148,20 @@
       <AlertTriangleIcon data-icon="inline-start" />
       <Alert.Title>Atención</Alert.Title>
       <Alert.Description>{store.advertenciaCierreManual}</Alert.Description>
+    </Alert.Root>
+  {/if}
+  {#if store.ejercicio && store.ejercicio.cerrado !== true}
+    <Alert.Root class="mb-4">
+      <AlertTriangleIcon data-icon="inline-start" />
+      <Alert.Title>Ejercicio sin cerrar</Alert.Title>
+      <Alert.Description>
+        Este ejercicio aún no está cerrado. Para cerrarlo y generar las planillas
+        (PIA y Nómina) para presentación, andá a
+        <button class="underline font-semibold text-primary" onclick={() => navigate('cierre')}>
+          Cierre / Presentación
+        </button>
+        o usá el botón "Cerrar ejercicio" en Resumen.
+      </Alert.Description>
     </Alert.Root>
   {/if}
   {#snippet skeleton()}

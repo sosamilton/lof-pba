@@ -2,17 +2,20 @@
   import { onMount } from 'svelte'
   import { resumenStore as store } from './resumenStore.svelte.js'
   import { formatARS } from '$core/utils/utils'
+  import { navigate } from '$core/ui/router.svelte'
   import * as Card from '$lib/components/ui/card'
   import * as Table from '$lib/components/ui/table'
   import * as Tabs from '$lib/components/ui/tabs'
   import * as Alert from '$lib/components/ui/alert'
   import { Badge } from '$lib/components/ui/badge'
+  import { Button } from '$lib/components/ui/button'
   import { Label } from '$lib/components/ui/label'
   import { Skeleton } from '$lib/components/ui/skeleton'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
   import BarChartIcon from '@lucide/svelte/icons/bar-chart'
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
   import LockIcon from '@lucide/svelte/icons/lock'
+  import FileTextIcon from '@lucide/svelte/icons/file-text'
 
   onMount(() => {
     store.load()
@@ -55,6 +58,17 @@
           <Tabs.Trigger value="semanal" class="px-3">Semanal</Tabs.Trigger>
         </Tabs.List>
       </Tabs.Root>
+      {#if store.ejercicio && store.ejercicio.cerrado !== true}
+        <Button variant="outline" size="sm" onclick={() => navigate('cierre')} class="ml-auto">
+          <FileTextIcon data-icon="inline-start" />
+          Cerrar ejercicio
+        </Button>
+      {:else if store.ejercicio?.cerrado === true}
+        <Badge variant="secondary" class="ml-auto">
+          <LockIcon data-icon="inline-start" />
+          Ejercicio cerrado
+        </Badge>
+      {/if}
     </div>
 
     {#if store.saldosInicialesEnCero}
