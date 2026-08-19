@@ -39,6 +39,32 @@ Trabajo planificado para LOF, agrupado por área. Cada ítem incluye el contexto
 - Layout de dos columnas en la gestión por etapas (lista de períodos + matriz editable), igual que Comunidad.
 - Regla "detalle gana": si hay movimientos detallados, el total del período se deriva de ellos; si no, de los cierres manuales.
 
+### Periodicidad configurable
+
+**Contexto.** El marco de PBA pide balances mensuales, pero algunas cooperadoras trabajan con otra frecuencia (semanal, trimestral, semestral o anual).
+
+**Resuelto.** ✅
+- La periodicidad se configura en Inicio → Configuración y se aplica a todo el sistema.
+- Las cargas mensuales existentes se agrupan automáticamente en bloques (trimestral/semestral/anual) sin migrar datos.
+- Al firmar o reabrir un período, se opera sobre todo el bloque agrupado.
+- Si se cambia de mensual a semanal, las cargas existentes se muestran individualmente con un aviso (los meses no se pueden descomponer en semanas).
+- Etiquetas de períodos con rangos de fechas claros (ej: "2027-W17 (07/06 al 14/06)" para semanas, "Ene - Mar 2026" para trimestres).
+
+### Morosidad inteligente
+
+**Contexto.** El cálculo de morosidad necesita funcionar tanto en gestión integral (movimientos vinculados a socios) como en carga consolidada (sin vínculo), y detectar transiciones entre modos.
+
+**Resuelto.** ✅
+- Detecta automáticamente si los movimientos tienen `socio_id` (vinculados) o no (consolidados).
+- Si hay una mezcla (cambio de modo a mitad del ejercicio), identifica el punto de corte y calcula los deudores solo sobre el tramo con datos identificables.
+- Muestra un aviso claro indicando desde cuándo hay datos vinculados y cuánto se cobró en cada tramo.
+
+### Validación de no-futuro
+
+**Contexto.** No tiene sentido cargar movimientos o crear cargas para períodos que aún no empezaron.
+
+**Resuelto.** ✅ El sistema bloquea la creación de cargas para períodos futuros.
+
 ### Decisiones abiertas de tesorería
 
 - **Versionado de cargas:** tras firmar un período, si se reabre y se edita, ¿conviene guardar una versión histórica de la carga anterior? Por ahora no se versiona, pero el modelo de `cargas` con `version` y `fecha_firma` lo permite a futuro.

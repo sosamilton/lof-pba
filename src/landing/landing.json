@@ -99,10 +99,11 @@
       "items": [
         "Ingresos, egresos y traspasos con rubro según la PIA",
         "Tablero de caja: cuánto hay en banco, efectivo y caja chica",
-        "Resumen mensual y semanal con arrastre de saldo y firma de períodos",
+        "Resumen con periodicidad configurable: mensual, semanal, trimestral, semestral o anual",
         "Resumen analítico con gráficos: flujo de caja, gastos/ingresos, comparativa interanual, morosidad y salud operativa",
-        "Carga consolidada por rubro con múltiples cargas por período",
+        "Carga consolidada por rubro con múltiples cargas por período y agrupación automática al cambiar periodicidad",
         "Gestión por etapas: cargas parciales que se consolidan al firmar el período",
+        "Morosidad inteligente: detecta datos mixtos y calcula deudores solo sobre el tramo identificable",
         "Cuota societaria rápida con un clic o Ctrl+1",
         "Filtros por rubro, ejercicio, período y persona"
       ]
@@ -153,7 +154,7 @@
     "items": [
       {
         "titulo": "Inicio",
-        "descripcion": "Panel principal con accesos rápidos a cada módulo.",
+        "descripcion": "Dashboard con saldos por cuenta, indicadores del ejercicio en curso y alertas accionables.",
         "imagen": "img/screenshot/inicio.png"
       },
       {
@@ -332,6 +333,21 @@
       "estado": "hecho",
       "titulo": "Cierre automático con próximo ejercicio",
       "descripcion": "Al cerrar el ejercicio activo, el sistema calcula saldos finales por cuenta, crea el próximo ejercicio automáticamente con esos saldos como saldos iniciales y lo marca como en curso. Botón reactivo entre Cerrar y Reabrir."
+    },
+    {
+      "estado": "hecho",
+      "titulo": "Periodicidad configurable",
+      "descripcion": "Elegí con qué frecuencia gestionás la tesorería: mensual, semanal, trimestral, semestral o anual. Las cargas existentes se agrupan automáticamente al cambiar la periodicidad, sin necesidad de migrar datos."
+    },
+    {
+      "estado": "hecho",
+      "titulo": "Morosidad inteligente con detección de datos mixtos",
+      "descripcion": "El sistema detecta automáticamente si los movimientos están vinculados a socios o son cargas consolidadas. Si hay una mezcla por cambio de modo a mitad del ejercicio, calcula los deudores solo sobre el tramo con datos identificables."
+    },
+    {
+      "estado": "hecho",
+      "titulo": "Validación de no-futuro",
+      "descripcion": "No se pueden crear cargas para períodos futuros. El sistema bloquea cualquier intento de cargar datos adelantados."
     },
     {
       "estado": "proximo",
