@@ -1,7 +1,7 @@
 import { resolveTableIds } from '$core/grist/stores/gristStore.svelte.js'
 import { fetchRecords, applyUserActions } from '$core/grist/grist.js'
 import { normalizeFields } from '$core/utils/utils.js'
-import { generarPeriodosEjercicio } from '../shared/tesoreriaCalc.js'
+import { generarPeriodosEjercicio, periodoActualKey, agruparPeriodo } from '../shared/tesoreriaCalc.js'
 
 /**
  * Servicio CRUD para la entidad `cargas` (cargas consolidadas).
@@ -51,6 +51,17 @@ export function createCargasService({ relatedData, base }) {
     base.clearMessages()
     if (!relatedData.ejercicio) { base.setError('No hay ejercicio en curso.'); return null }
     if (!periodo) { base.setError('Faltó el período.'); return null }
+
+    // No se pueden crear cargas para períodos futuros.
+    const per = relatedData.periodicidad || 'mensual'
+    const periodosEj = generarPeriodosEjercicio(relatedData.ejercicio, per)
+    const idxSolicitado = periodosEj.indexOf(String(periodo))
+    const periodoHoy = periodoActualKey(per, relatedData.ejercicio)
+    const idxHoy = periodosEj.indexOf(periodoHoy)
+    if (idxSolicitado >= 0 && idxHoy >= 0 && idxSolicitado > idxHoy) {
+      base.setError('No se pueden crear cargas para períodos futuros.')
+      return null
+    }
 
     try {
       const tIds = await resolveTableIds(['cargas'])
@@ -282,11 +293,27 @@ export function createCargasService({ relatedData, base }) {
     }
   }
 
+  // Helper: filtra cargas del ejercicio cuyo período mapea al periodoKey agrupado.
+  const cargasDelBloque = (periodoKey) => {
+    const ejId = Number(relatedData.ejercicio.id)
+    const periodicidad = relatedData.periodicidad || 'mensual'
+    const ej = relatedData.ejercicio
+    return cargas.filter((c) => {
+      if (Number(c.ejercicio_id) !== ejId) return false
+      const rawP = String(c.periodo || '')
+      if (!rawP) return false
+      const p = (periodicidad !== 'mensual' && periodicidad !== 'semanal' && ej)
+        ? agruparPeriodo(rawP, periodicidad, ej)
+        : rawP
+      return p === String(periodoKey)
+    })
+  }
+
   /**
    * Cierra un período: firma todas las cargas en borrador de ese período y
    * crea/actualiza el cierre_mensuales con firmado=true. Después de esto,
    * no se pueden crear cargas nuevas ni editar movimientos para ese período.
-   * @param {string} periodoKey - 'YYYY-MM'
+   * @param {string} periodoKey - 'YYYY-MM' (o agrupado según periodicidad)
    * @returns {Promise<boolean>}
    */
   const cerrarPeriodo = async (periodoKey) => {
@@ -302,10 +329,8 @@ export function createCargasService({ relatedData, base }) {
       const ejId = Number(relatedData.ejercicio.id)
       const now = new Date().toISOString()
 
-      // 1. Firmar todas las cargas en borrador del período
-      const cargasPeriodo = cargas.filter(
-        (c) => Number(c.ejercicio_id) === ejId && String(c.periodo || '') === String(periodoKey)
-      )
+      // 1. Firmar todas las cargas en borrador del período (agrupado)
+      const cargasPeriodo = cargasDelBloque(periodoKey)
       const actions = []
       for (const c of cargasPeriodo) {
         if (c.estado !== 'firmado') {
@@ -338,16 +363,17 @@ export function createCargasService({ relatedData, base }) {
 
       if (actions.length > 0) await applyUserActions(actions)
 
-      // Actualizar estado local
+      // Actualizar estado local (todas las cargas del bloque)
+      const idsBloque = new Set(cargasPeriodo.map((c) => Number(c.id)))
       cargas = cargas.map((c) =>
-        Number(c.ejercicio_id) === ejId && String(c.periodo || '') === String(periodoKey)
+        idsBloque.has(Number(c.id))
           ? { ...c, estado: 'firmado', fecha_firma: now, firmado_por: relatedData.userName }
           : c
       )
 
       // Crear automáticamente una carga en borrador para el próximo período
       // del ejercicio, si existe y no tiene ya una carga creada.
-      const periodosEj = generarPeriodosEjercicio(relatedData.ejercicio)
+      const periodosEj = generarPeriodosEjercicio(relatedData.ejercicio, relatedData.periodicidad || 'mensual')
       const idxActual = periodosEj.indexOf(String(periodoKey))
       if (idxActual >= 0 && idxActual < periodosEj.length - 1) {
         const proximoPeriodo = periodosEj[idxActual + 1]
@@ -386,7 +412,7 @@ export function createCargasService({ relatedData, base }) {
   /**
    * Reabre un período firmado: pasa todas sus cargas a borrador y marca
    * el cierre_mensuales como no firmado.
-   * @param {string} periodoKey - 'YYYY-MM'
+   * @param {string} periodoKey - 'YYYY-MM' (o agrupado según periodicidad)
    * @param {string} motivo - Motivo de la reapertura
    * @returns {Promise<boolean>}
    */
@@ -403,10 +429,8 @@ export function createCargasService({ relatedData, base }) {
       const ejId = Number(relatedData.ejercicio.id)
       const now = new Date().toISOString()
 
-      // 1. Pasar todas las cargas firmadas del período a borrador
-      const cargasPeriodo = cargas.filter(
-        (c) => Number(c.ejercicio_id) === ejId && String(c.periodo || '') === String(periodoKey)
-      )
+      // 1. Pasar todas las cargas firmadas del período (agrupado) a borrador
+      const cargasPeriodo = cargasDelBloque(periodoKey)
       const actions = []
       for (const c of cargasPeriodo) {
         if (c.estado === 'firmado') {
@@ -436,9 +460,10 @@ export function createCargasService({ relatedData, base }) {
 
       if (actions.length > 0) await applyUserActions(actions)
 
-      // Actualizar estado local
+      // Actualizar estado local (todas las cargas del bloque)
+      const idsBloque = new Set(cargasPeriodo.map((c) => Number(c.id)))
       cargas = cargas.map((c) =>
-        Number(c.ejercicio_id) === ejId && String(c.periodo || '') === String(periodoKey)
+        idsBloque.has(Number(c.id))
           ? { ...c, estado: 'borrador', observaciones: motivo || 'Reabierto' }
           : c
       )
@@ -459,10 +484,7 @@ export function createCargasService({ relatedData, base }) {
    */
   const periodoFirmado = (periodoKey) => {
     if (!relatedData.ejercicio) return false
-    const ejId = Number(relatedData.ejercicio.id)
-    const cargasPeriodo = cargas.filter(
-      (c) => Number(c.ejercicio_id) === ejId && String(c.periodo || '') === String(periodoKey)
-    )
+    const cargasPeriodo = cargasDelBloque(periodoKey)
     if (cargasPeriodo.length === 0) return false
     return cargasPeriodo.every((c) => c.estado === 'firmado')
   }

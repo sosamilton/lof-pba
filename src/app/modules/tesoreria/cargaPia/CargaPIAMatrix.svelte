@@ -3,7 +3,7 @@
   import { movimientosStore as store } from '../movimientos/movimientosStore.svelte'
   import { formatARS, normalize } from '$core/utils/utils'
   import { navigate } from '$core/ui/router.svelte'
-  import { generarPeriodosEjercicio, proximoPeriodoACargar } from '../shared/tesoreriaCalc.js'
+  import { generarPeriodosEjercicio, proximoPeriodoACargar, agruparPeriodo, labelPeriodo } from '../shared/tesoreriaCalc.js'
   import { Button } from '$lib/components/ui/button'
   import * as Table from '$lib/components/ui/table'
   import * as Alert from '$lib/components/ui/alert'
@@ -25,6 +25,7 @@
   import FileIcon from '@lucide/svelte/icons/file'
   import FileCheckIcon from '@lucide/svelte/icons/file-check'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
+  import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
 
   // Props para modo embebido (dentro de Movimientos)
   let { embedded = false } = $props()
@@ -70,7 +71,7 @@
       }))
 
   // Períodos del ejercicio para el selector de nueva carga.
-  let periodosEjercicio = $derived(generarPeriodosEjercicio(store.ejercicio))
+  let periodosEjercicio = $derived(generarPeriodosEjercicio(store.ejercicio, store.periodicidad || 'mensual'))
 
   // Ejercicios ordenados por año descendente (para el selector del header).
   let ejerciciosOptions = $derived(
@@ -113,19 +114,24 @@
   // Cargas del ejercicio.
   let cargas = $derived(store.cargas.slice())
 
-  // Agrupar cargas por período, ordenadas descendente.
-  // Cada grupo: { periodo, cargas[], firmado, abierta }
+  // Agrupar cargas por período (agrupado según periodicidad), ordenadas descendente.
+  // Cada grupo: { periodo, periodoLabel, cargas[], firmado, abierta }
   let periodosAgrupados = $derived.by(() => {
     const byPeriodo = new Map()
     for (const c of cargas) {
-      const p = String(c.periodo || '')
-      if (!p) continue
+      const rawP = String(c.periodo || '')
+      if (!rawP) continue
+      // Mapear al período del bloque según periodicidad
+      const p = (store.periodicidad && store.periodicidad !== 'mensual' && store.periodicidad !== 'semanal' && store.ejercicio)
+        ? agruparPeriodo(rawP, store.periodicidad, store.ejercicio)
+        : rawP
       if (!byPeriodo.has(p)) byPeriodo.set(p, [])
       byPeriodo.get(p).push(c)
     }
     return [...byPeriodo.entries()]
       .map(([periodo, cargasP]) => ({
         periodo,
+        periodoLabel: labelPeriodo(periodo, store.periodicidad || 'mensual', store.ejercicio),
         cargas: cargasP.sort((a, b) => Number(b.id) - Number(a.id)),
         firmado: cargasP.every((c) => c.estado === 'firmado'),
         abierta: cargasP.some((c) => c.estado !== 'firmado'),
@@ -133,8 +139,19 @@
       .sort((a, b) => String(b.periodo).localeCompare(String(a.periodo)))
   })
 
-  // Períodos que ya tienen al menos una carga.
-  let periodosConCarga = $derived(new Set(cargas.map((c) => String(c.periodo || ''))))
+  // Períodos que ya tienen al menos una carga (agrupados).
+  let periodosConCarga = $derived.by(() => {
+    const set = new Set()
+    for (const c of cargas) {
+      const rawP = String(c.periodo || '')
+      if (!rawP) continue
+      const p = (store.periodicidad && store.periodicidad !== 'mensual' && store.periodicidad !== 'semanal' && store.ejercicio)
+        ? agruparPeriodo(rawP, store.periodicidad, store.ejercicio)
+        : rawP
+      set.add(p)
+    }
+    return set
+  })
 
   // Períodos firmados (no se pueden agregar cargas).
   let periodosFirmadosSet = $derived(
@@ -148,7 +165,9 @@
       .filter((p) => !periodosFirmadosSet.has(p))
       .map((p) => ({
         value: p,
-        label: periodosConCarga.has(p) ? `${p} (ya tiene cargas)` : p,
+        label: periodosConCarga.has(p)
+          ? `${labelPeriodo(p, store.periodicidad || 'mensual', store.ejercicio)} (ya tiene cargas)`
+          : labelPeriodo(p, store.periodicidad || 'mensual', store.ejercicio),
       }))
   )
 
@@ -157,12 +176,21 @@
     cargaSeleccionadaId ? store.getCarga(Number(cargaSeleccionadaId)) : null
   )
 
-  // El período de la carga seleccionada.
-  const periodoKey = $derived(cargaActual?.periodo || '')
+  // El período de la carga seleccionada (agrupado según periodicidad).
+  const periodoKey = $derived.by(() => {
+    const rawP = cargaActual?.periodo || ''
+    if (!rawP) return ''
+    return (store.periodicidad && store.periodicidad !== 'mensual' && store.periodicidad !== 'semanal' && store.ejercicio)
+      ? agruparPeriodo(rawP, store.periodicidad, store.ejercicio)
+      : rawP
+  })
 
-  // El período está firmado si todas sus cargas lo están.
+  // Label legible del período seleccionado.
+  const periodoLabel = $derived(labelPeriodo(periodoKey, store.periodicidad || 'mensual', store.ejercicio))
+
+  // El período está firmado si todas las cargas del bloque lo están.
   let periodoFirmado = $derived(
-    periodoKey ? store.periodoFirmado(periodoKey) : false
+    periodoKey ? (periodosAgrupados.find((g) => g.periodo === periodoKey)?.firmado ?? false) : false
   )
 
   // Filas con importe > 0 para el resumen de confirmación.
@@ -321,7 +349,7 @@
    */
   const abrirNuevaCarga = () => {
     const periodosConDatos = new Set(cargas.map((c) => String(c.periodo || '')))
-    const proximo = proximoPeriodoACargar(store.ejercicio, periodosConDatos)
+    const proximo = proximoPeriodoACargar(store.ejercicio, periodosConDatos, store.periodicidad || 'mensual')
     nuevaCargaPeriodo = proximo
     showNuevaCarga = true
   }
@@ -443,10 +471,25 @@
     }
   }
 
-  // Cargas del período seleccionado (para mostrar sub-lista si hay múltiples).
-  let cargasDelPeriodo = $derived(
-    periodoKey ? cargas.filter((c) => String(c.periodo) === periodoKey) : []
-  )
+  // Cargas del período seleccionado (agrupadas por bloque, no por mes exacto).
+  let cargasDelPeriodo = $derived.by(() => {
+    if (!periodoKey) return []
+    return cargas.filter((c) => {
+      const rawP = String(c.periodo || '')
+      if (!rawP) return false
+      const p = (store.periodicidad && store.periodicidad !== 'mensual' && store.periodicidad !== 'semanal' && store.ejercicio)
+        ? agruparPeriodo(rawP, store.periodicidad, store.ejercicio)
+        : rawP
+      return p === periodoKey
+    })
+  })
+
+  // Detectar cargas con período mensual (YYYY-MM) cuando la periodicidad es semanal.
+  // No se pueden agrupar meses en semanas — mostrar aviso.
+  let hayCargasMensualesEnSemanal = $derived.by(() => {
+    if (store.periodicidad !== 'semanal') return false
+    return cargas.some((c) => /^\d{4}-\d{2}$/.test(String(c.periodo || '')))
+  })
 
   onMount(async () => {
     if (!embedded) {
@@ -539,6 +582,19 @@
     <span class="text-sm text-muted-foreground">{periodosAgrupados.length} períodos</span>
   </div>
 
+  {#if hayCargasMensualesEnSemanal}
+    <Alert.Root class="mb-4" variant="destructive">
+      <AlertTriangleIcon data-icon="inline-start" />
+      <Alert.Title>Cargas mensuales existentes</Alert.Title>
+      <Alert.Description>
+        Hay cargas con período mensual (YYYY-MM) que no se pueden agrupar en semanas.
+        Estas cargas se muestran individualmente. Las nuevas cargas se crearán con
+        período semanal (YYYY-Www). Considerá migrar los períodos si necesitás
+        consistencia total.
+      </Alert.Description>
+    </Alert.Root>
+  {/if}
+
   <!-- Grid lista + panel derecho (igual que Comunidad) -->
   <div class="grid gap-4 items-start" style="grid-template-columns: {periodosAgrupados.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
     {#if periodosAgrupados.length > 0}
@@ -552,7 +608,7 @@
               aria-pressed={periodoKey === pg.periodo}
             >
               <div class="flex items-center justify-between gap-2">
-                <span class="font-semibold text-sm font-mono">{pg.periodo}</span>
+                <span class="font-semibold text-sm">{pg.periodoLabel}</span>
                 {#if pg.firmado}
                   <Badge variant="destructive" class="text-[10px] py-0 px-1.5 gap-0.5">
                     <LockIcon class="size-2.5" />
@@ -585,7 +641,7 @@
         <!-- Header del período seleccionado -->
         <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div class="flex items-center gap-2">
-            <h2 class="text-base font-bold">{periodoKey}</h2>
+            <h2 class="text-base font-bold">{periodoLabel}</h2>
             {#if periodoFirmado}
               <Badge variant="destructive" class="gap-0.5">
                 <LockIcon class="size-3" />
@@ -815,7 +871,7 @@
 {#if showReabrir}
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true">
     <div class="bg-background rounded-lg border border-border shadow-lg p-6 max-w-sm w-full mx-4">
-      <h3 class="text-base font-bold mb-4">Reabrir período {reabrirPeriodoKey}</h3>
+      <h3 class="text-base font-bold mb-4">Reabrir período {periodoLabel}</h3>
       <div class="flex flex-col gap-3">
         <div class="flex flex-col gap-1.5">
           <Label for="reabrir-motivo" class="text-sm">Motivo de reapertura</Label>
