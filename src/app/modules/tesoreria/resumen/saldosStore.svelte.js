@@ -7,6 +7,8 @@ import {
   totalesEjercicio,
   saldosInicialesEnCero as _saldosInicialesEnCero,
   serieMensual as _serieMensual,
+  periodoDeMovimiento as _periodoDeMovimiento,
+  periodoActualKey as _periodoActualKey,
 } from '../shared/tesoreriaCalc.js'
 import { MESES } from '$core/utils/utils'
 
@@ -18,6 +20,7 @@ let movimientos = $state([])
 let ejercicio = $state(null)
 /** @type {any[]} */
 let cuentas = $state([])
+let periodicidad = $state('mensual')
 
 /**
  * Carga movimientos + ejercicios + cuentas desde Grist y filtra los
@@ -56,9 +59,10 @@ const load = async () => {
  * duplicados. No llama a resolveTableIds/fetchRelated.
  * @param {{movimientos?: any[], ejercicio?: any, cuentas?: any[]}} data
  */
-const loadFromData = ({ movimientos: m, ejercicio: e, cuentas: c }) => {
+const loadFromData = ({ movimientos: m, ejercicio: e, cuentas: c, periodicidad: p }) => {
   cuentas = c || []
   ejercicio = e || null
+  if (p) periodicidad = p
   // Fix F8: si no hay ejercicio, los movimientos son vacíos (no hay nada
   // que filtrar). Es explícito en lugar de depender del filter con null.
   if (!ejercicio) {
@@ -75,15 +79,10 @@ const saldosPorCuenta = $derived.by(() => calcularSaldosPorCuenta(cuentas, ejerc
 
 const saldoTotal = $derived.by(() => calcularSaldoTotal(saldosPorCuenta))
 
-// Período del mes en curso (YYYY-MM) para filtrar ingresos/egresos del mes.
-const mesEnCursoKey = $derived.by(() => {
-  const d = new Date()
-  const y = d.getFullYear()
-  const mo = String(d.getMonth() + 1).padStart(2, '0')
-  return `${y}-${mo}`
-})
+// Período en curso según periodicidad configurada
+const periodoEnCursoKey = $derived.by(() => _periodoActualKey(periodicidad, ejercicio))
 
-const _mesTotales = $derived.by(() => totalesDesdeDetalle(movimientos, mesEnCursoKey))
+const _mesTotales = $derived.by(() => totalesDesdeDetalle(movimientos, periodoEnCursoKey, periodicidad, ejercicio))
 const ingresosMes = $derived.by(() => _mesTotales.ingresos)
 const egresosMes = $derived.by(() => _mesTotales.egresos)
 const resultadoMes = $derived.by(() => ingresosMes - egresosMes)
@@ -103,10 +102,8 @@ const resultadoEjercicio = $derived.by(() => ingresosEjercicio - egresosEjercici
 // True si los 3 saldos iniciales están en 0 (o null) pero hay movimientos.
 const saldosInicialesEnCero = $derived.by(() => _saldosInicialesEnCero(ejercicio, movimientos))
 
-// Serie mensual de saldo para el minigráfico de Inicio.
-// Usa el saldo inicial del ejercicio como punto de partida (sin arrastre
-// inter-anual para mantenerlo simple en el dashboard).
-const serieSaldo = $derived.by(() => _serieMensual(movimientos, [], ejercicio, undefined))
+// Serie periódica de saldo para el minigráfico de Inicio.
+const serieSaldo = $derived.by(() => _serieMensual(movimientos, [], ejercicio, undefined, periodicidad))
 
 export const saldosStore = {
   get loading() { return bs.loading },
@@ -128,4 +125,5 @@ export const saldosStore = {
   get serieSaldo() { return serieSaldo },
   load,
   loadFromData,
+  setPeriodicidad: (p) => { periodicidad = p || 'mensual' },
 }

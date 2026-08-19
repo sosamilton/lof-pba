@@ -7,7 +7,7 @@ import {
   saldoInicialConArrastre as _saldoInicialConArrastre,
   cierresPorPeriodo as _cierresPorPeriodo,
   periodosConDetalle as _periodosConDetalle,
-  calcularResumenMensual,
+  calcularResumenPeriodico as _calcularResumenPeriodico,
   calcularResumenSemanal,
   saldosInicialesEnCero as _saldosInicialesEnCero,
   calcularSaldosPorCuenta as _calcularSaldosPorCuenta,
@@ -56,6 +56,8 @@ let selectedEjercicioId = $state(null)
 let vista = $state('mensual') // 'mensual' | 'semanal'
 // Modo de gestión: 'gestion_integral' | 'carga_consolidada'
 let modoGestion = $state('gestion_integral')
+// Periodicidad configurable: 'mensual' | 'semanal' | 'trimestral' | 'semestral' | 'anual'
+let periodicidad = $state('mensual')
 // Selector de ejercicio a comparar (tab Comparativa). Default: inmediato anterior.
 let selectedCompararId = $state(null)
 
@@ -111,6 +113,7 @@ const load = async () => {
       } else {
         modoGestion = 'gestion_integral'
       }
+      periodicidad = String(config?.periodicidad || 'mensual')
     } catch { /* config opcional */ }
     // Default del ejercicio a comparar: inmediato anterior
     if (!selectedCompararId) {
@@ -160,12 +163,12 @@ const saldoInicialArrastrado = $derived.by(() =>
 
 const saldoInicialEjercicio = $derived.by(() => _saldoInicialEjercicio(ejercicio))
 
-const cierresPorPeriodo = $derived.by(() => _cierresPorPeriodo(cierres, ejercicio ? ejercicio.id : null))
+const cierresPorPeriodo = $derived.by(() => _cierresPorPeriodo(cierres, ejercicio ? ejercicio.id : null, periodicidad, ejercicio))
 
-const periodosConDetalle = $derived.by(() => _periodosConDetalle(movimientos))
+const periodosConDetalle = $derived.by(() => _periodosConDetalle(movimientos, periodicidad, ejercicio))
 
 const resumenMensual = $derived.by(() =>
-  calcularResumenMensual(movimientos, cierres, ejercicio, saldoInicialArrastrado)
+  _calcularResumenPeriodico(movimientos, cierres, ejercicio, saldoInicialArrastrado, periodicidad)
 )
 
 const resumenSemanal = $derived.by(() =>
@@ -194,14 +197,14 @@ const saldosPorCuenta = $derived.by(() => _calcularSaldosPorCuenta(cuentas, ejer
 const saldoTotal = $derived.by(() => _calcularSaldoTotal(saldosPorCuenta))
 const resultadoNeto = $derived.by(() => totales.ingresos - totales.egresos)
 
-// Serie mensual para gráfico de saldo (tab Flujo de caja)
-const serieSaldo = $derived.by(() => _serieMensual(movimientos, cierres, ejercicio, saldoInicialArrastrado))
+// Serie periódica para gráfico de saldo (tab Flujo de caja)
+const serieSaldo = $derived.by(() => _serieMensual(movimientos, cierres, ejercicio, saldoInicialArrastrado, periodicidad))
 
 // Próximo período a cargar
 const proximoPeriodo = $derived.by(() => {
   const conDatos = new Set([...periodosConDetalle])
   for (const c of cierresPorPeriodo.values()) conDatos.add(String(c.periodo))
-  return _proximoPeriodoACargar(ejercicio, conDatos)
+  return _proximoPeriodoACargar(ejercicio, conDatos, periodicidad)
 })
 
 // Distribución por rubro (tab Gastos e ingresos)
@@ -219,7 +222,7 @@ const comparativa = $derived.by(() => _comparativaInterAnual(ejercicio, ejCompar
 const morosidad = $derived.by(() => _calcularMorosidad(ejercicio, movimientos, rubros, socios, asambleas))
 
 // Salud operativa (tab Salud operativa)
-const salud = $derived.by(() => _saludOperativa(ejercicio, movimientos, cierres, rubros))
+const salud = $derived.by(() => _saludOperativa(ejercicio, movimientos, cierres, rubros, periodicidad))
 
 // Mayor egreso (KPI compacto, también usado en Inicio)
 const mayorGasto = $derived.by(() => _mayorEgreso(movimientos, rubros))
@@ -333,6 +336,7 @@ export const resumenStore = {
   get selectedCompararId() { return selectedCompararId },
   get vista() { return vista },
   get modoGestion() { return modoGestion },
+  get periodicidad() { return periodicidad },
   get resumen() { return resumen },
   get resumenMensual() { return resumenMensual },
   get resumenSemanal() { return resumenSemanal },
