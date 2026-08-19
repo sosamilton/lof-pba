@@ -77,6 +77,11 @@ export function createFormLogic({ formState, relatedData, base, cierresService }
   const validate = () => {
     if (!relatedData.ejercicio) return 'No hay ejercicio en curso. Activá uno en "Institucional".'
     if (!formState.form?.fecha) return 'Completá la fecha.'
+    // No se pueden cargar movimientos con fecha futura.
+    const fechaMov = new Date(formState.form.fecha + 'T00:00:00')
+    const hoy = new Date()
+    hoy.setHours(23, 59, 59, 999)
+    if (fechaMov > hoy) return 'No se pueden cargar movimientos con fecha futura.'
     if (!formState.form?.tipo_movimiento) return 'Elegí el tipo de movimiento.'
     if (!formState.form?.importe || Number(formState.form.importe) <= 0) return 'Completá el importe (mayor a 0).'
     if (!formState.form?.cuenta_id) return 'Elegí la caja/cuenta.'
