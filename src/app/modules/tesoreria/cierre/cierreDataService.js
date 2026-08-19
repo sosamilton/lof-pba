@@ -101,12 +101,14 @@ export const loadCierreData = async (ejercicioId) => {
   const cargos = tCargos ? await fetchRecords(tCargos) : []
   const cargosMap = buildMapById(cargos)
 
-  // --- Autoridades activas del ejercicio ---
+  // --- Autoridades del ejercicio (todas, no solo activas) ---
+  // Para el PIA/Nómina de un ejercicio histórico necesitamos mostrar todas
+  // las autoridades designadas en ese ejercicio, incluso si ya cesaron.
+  // El filtro por `activo` solo tiene sentido para la vigencia actual.
   const autoridadesRaw = tAutoridades
     ? await fetchRecords(tAutoridades, {
         filter: (a) =>
-          Number(a.ejercicio_id) === Number(ejercicioId) &&
-          a.activo !== false,
+          Number(a.ejercicio_id) === Number(ejercicioId),
       })
     : []
 
