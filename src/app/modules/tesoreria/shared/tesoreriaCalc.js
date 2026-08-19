@@ -14,7 +14,7 @@
  * @param {any} v
  * @returns {Date}
  */
-function gristDate(v) {
+export function gristDate(v) {
   if (!v && v !== 0) return new Date(NaN)
   if (typeof v === 'number') return new Date(v * 1000)
   if (Array.isArray(v) && v.length >= 2 && typeof v[1] === 'number') return new Date(v[1] * 1000)
@@ -23,6 +23,18 @@ function gristDate(v) {
   const n = Number(s)
   if (Number.isFinite(n) && n > 0) return new Date(n * 1000)
   return new Date(s)
+}
+
+/**
+ * Formatea una fecha de Grist a DD/MM/YYYY (formato legible).
+ * Acepta cualquier formato que gristDate() soporta.
+ * @param {any} v
+ * @returns {string}
+ */
+export function formatFechaGrist(v) {
+  const d = gristDate(v)
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 // Mapa nombre_cuenta → campo saldo_inicial_* en ejercicios.
@@ -164,6 +176,51 @@ export function saldoInicialEjercicio(ejercicio) {
 }
 
 /**
+ * Saldo inicial con arrastre dinámico desde todos los ejercicios anteriores.
+ *
+ * Para el primer ejercicio (o si no hay ejercicios anteriores), usa
+ * `saldoInicialEjercicio()` (los campos saldo_inicial_* del registro).
+ *
+ * Para ejercicios posteriores, calcula:
+ *   saldo_inicial del primer ejercicio
+ *   + sumatoria de (ingresos - egresos) de TODOS los movimientos
+ *     de TODOS los ejercicios anteriores al actual.
+ *
+ * Esto hace que correcciones a períodos cerrados de ejercicios anteriores
+ * se propaguen automáticamente al saldo inicial del ejercicio en curso.
+ *
+ * @param {Record<string, any>|null} ejercicio - Ejercicio actual
+ * @param {any[]} allMovimientos - Movimientos de TODOS los ejercicios
+ * @param {any[]} allEjercicios - Lista completa de ejercicios
+ * @returns {number}
+ */
+export function saldoInicialConArrastre(ejercicio, allMovimientos, allEjercicios) {
+  if (!ejercicio) return 0
+  const ejId = Number(ejercicio.id)
+  // Ordenar ejercicios por anio_inicio ascendente
+  const ordenados = allEjercicios
+    .slice()
+    .sort((a, b) => Number(a.anio_inicio || 0) - Number(b.anio_inicio || 0))
+  // Encontrar el primer ejercicio (el más antiguo)
+  const primerEj = ordenados[0]
+  if (!primerEj) return saldoInicialEjercicio(ejercicio)
+  // Punto de partida: saldo inicial del primer ejercicio
+  let acumulado = saldoInicialEjercicio(primerEj)
+  // Sumar movimientos de todos los ejercicios anteriores al actual
+  for (const ej of ordenados) {
+    if (Number(ej.id) === ejId) break
+    const ejMovs = allMovimientos.filter((m) => Number(m.ejercicio_id) === Number(ej.id))
+    for (const m of ejMovs) {
+      const importe = Number(m.importe) || 0
+      const tipo = String(m.tipo_movimiento || '')
+      if (tipo === 'Entrada') acumulado += importe
+      else if (tipo === 'Salida') acumulado -= importe
+    }
+  }
+  return acumulado
+}
+
+/**
  * Construye un mapa periodo → cierre manual (es_carga_manual=true) para
  * el ejercicio dado. Solo se usa cuando no hay movimientos en el período
  * (regla "detalle gana").
@@ -208,15 +265,16 @@ export function periodosConDetalle(movimientos) {
  * @param {any[]} movimientos
  * @param {any[]} cierres
  * @param {Record<string, any>|null} ejercicio
+ * @param {number} [saldoInicialOverride] - Saldo inicial calculado externamente (arrastre dinámico)
  * @returns {Array<{periodo: string, ingresos: number, egresos: number, saldoInicial: number, saldoPeriodo: number, origen: 'detalle'|'manual'}>}
  */
-export function calcularResumenMensual(movimientos, cierres, ejercicio) {
+export function calcularResumenMensual(movimientos, cierres, ejercicio, saldoInicialOverride) {
   const conDetalle = periodosConDetalle(movimientos)
   const cierresMap = cierresPorPeriodo(cierres, ejercicio ? ejercicio.id : null)
   // Solo períodos del ejercicio (incluso vacíos). Los movimientos o cierres
   // con períodos fuera del rango del ejercicio se ignoran en el resumen.
   const ordenados = generarPeriodosEjercicio(ejercicio)
-  let acumulado = saldoInicialEjercicio(ejercicio)
+  let acumulado = saldoInicialOverride != null ? saldoInicialOverride : saldoInicialEjercicio(ejercicio)
   return ordenados.map((p) => {
     const tieneDetalle = conDetalle.has(p)
     let ingresos = 0
@@ -292,9 +350,10 @@ export function weekKeyToRange(weekKey) {
  * Incluye `label` con rango de fechas legible.
  * @param {any[]} movimientos
  * @param {Record<string, any>|null} ejercicio
+ * @param {number} [saldoInicialOverride] - Saldo inicial calculado externamente (arrastre dinámico)
  * @returns {Array<{periodo: string, label: string, ingresos: number, egresos: number, saldoInicial: number, saldoPeriodo: number, origen: 'detalle'}>}
  */
-export function calcularResumenSemanal(movimientos, ejercicio) {
+export function calcularResumenSemanal(movimientos, ejercicio, saldoInicialOverride) {
   const porSemana = new Map()
   for (const m of movimientos) {
     const sem = isoWeekKey(m.fecha)
@@ -311,7 +370,7 @@ export function calcularResumenSemanal(movimientos, ejercicio) {
   const semanasConRango = [...porSemana.keys()].map((k) => ({ key: k, range: weekKeyToRange(k) }))
   semanasConRango.sort((a, b) => a.range.inicio.localeCompare(b.range.inicio))
 
-  let acumulado = saldoInicialEjercicio(ejercicio)
+  let acumulado = saldoInicialOverride != null ? saldoInicialOverride : saldoInicialEjercicio(ejercicio)
   return semanasConRango.map(({ key, range }, idx) => {
     const r = porSemana.get(key)
     // Numeración secuencial relativa al ejercicio (Sem 1, Sem 2, ...)

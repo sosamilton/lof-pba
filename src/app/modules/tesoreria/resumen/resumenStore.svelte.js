@@ -3,6 +3,7 @@ import { applyUserActions, isInGrist } from '$core/grist/grist.js'
 import { normalizeFields } from '$core/utils/utils.js'
 import {
   saldoInicialEjercicio as _saldoInicialEjercicio,
+  saldoInicialConArrastre as _saldoInicialConArrastre,
   cierresPorPeriodo as _cierresPorPeriodo,
   periodosConDetalle as _periodosConDetalle,
   calcularResumenMensual,
@@ -93,15 +94,27 @@ const setVista = (v) => { vista = v }
 
 // --- Helpers (delegan a funciones puras de tesoreriaCalc) ---
 
+// Saldo inicial con arrastre dinámico desde ejercicios anteriores.
+// Para el primer ejercicio usa los campos saldo_inicial_* del registro.
+// Para ejercicios posteriores, suma los movimientos de todos los
+// ejercicios anteriores al saldo inicial del primer ejercicio.
+const saldoInicialArrastrado = $derived.by(() =>
+  _saldoInicialConArrastre(ejercicio, _allMovimientos, ejercicios)
+)
+
 const saldoInicialEjercicio = $derived.by(() => _saldoInicialEjercicio(ejercicio))
 
 const cierresPorPeriodo = $derived.by(() => _cierresPorPeriodo(cierres, ejercicio ? ejercicio.id : null))
 
 const periodosConDetalle = $derived.by(() => _periodosConDetalle(movimientos))
 
-const resumenMensual = $derived.by(() => calcularResumenMensual(movimientos, cierres, ejercicio))
+const resumenMensual = $derived.by(() =>
+  calcularResumenMensual(movimientos, cierres, ejercicio, saldoInicialArrastrado)
+)
 
-const resumenSemanal = $derived.by(() => calcularResumenSemanal(movimientos, ejercicio))
+const resumenSemanal = $derived.by(() =>
+  calcularResumenSemanal(movimientos, ejercicio, saldoInicialArrastrado)
+)
 
 const resumen = $derived.by(() => vista === 'semanal' ? resumenSemanal : resumenMensual)
 
@@ -226,6 +239,7 @@ export const resumenStore = {
   get resumenSemanal() { return resumenSemanal },
   get totales() { return totales },
   get saldoInicialEjercicio() { return saldoInicialEjercicio },
+  get saldoInicialArrastrado() { return saldoInicialArrastrado },
   // Fix F2: usa la función pura que verifica movimientos.length > 0.
   get saldosInicialesEnCero() { return _saldosInicialesEnCero(ejercicio, movimientos) },
   setSelectedEjercicio,
