@@ -149,14 +149,18 @@ export class SetupStore {
   datosPruebaConfig = $state({
     cantPersonas: 500,
     cantSocios: 400,
-    cantMovimientos: 2000,
+    cantMovimientos: 500,
     batchSize: 100,
     cantAsambleas: 1,
     cantEjercicios: 1,
   })
 
+  // Solo dev: si false, solo el input de ejercicios es editable y el resto
+  // se auto-sugiere según la cantidad de ejercicios + modo de gestión.
+  customizarDatosPrueba = $state(false)
+
   // Estimación de movimientos según el modo seleccionado.
-  // - Integral: usa cantMovimientos directo (repartido entre ejercicios).
+  // - Integral: cuota social mensual por socio activo + movimientos extra, por ejercicio.
   // - Consolidada: rubros (~20) × cuentas (3) × períodos (12) × 0.7 (30% vacíos) × ejercicios
   get movimientosEstimados() {
     const cantEj = Number(this.datosPruebaConfig.cantEjercicios) || 1
@@ -167,21 +171,28 @@ export class SetupStore {
       const estimadoPorEj = Math.round(rubros * cuentas * periodos * 0.7)
       return estimadoPorEj * cantEj
     }
-    return Number(this.datosPruebaConfig.cantMovimientos) || 2000
+    // Gestión integral: cuota social mensual por socio activo (~85%) + extra
+    const cantSocios = Number(this.datosPruebaConfig.cantSocios) || 400
+    const sociosActivos = Math.floor(cantSocios * 0.85)
+    const periodos = 12
+    const cuotaSocial = sociosActivos * periodos * cantEj
+    const extra = Number(this.datosPruebaConfig.cantMovimientos) || 0
+    return cuotaSocial + extra
   }
 
   // Descripción de los datos de prueba según el modo.
   get datosPruebaDescripcion() {
     const cantEj = Number(this.datosPruebaConfig.cantEjercicios) || 1
+    const totalAsambleas = (Number(this.datosPruebaConfig.cantAsambleas) || 1) * cantEj
     if (this.selectedModules.carga_consolidada) {
       const periodos = 12
       const firmados = Math.floor(periodos * 0.7)
       const abiertos = periodos - firmados
       const ejTxt = cantEj > 1 ? ` en ${cantEj} ejercicios` : ''
-      return `${this.movimientosEstimados} movimientos${ejTxt} (${firmados} períodos firmados, ${abiertos} abiertos por ejercicio) · ${this.datosPruebaConfig.cantPersonas} personas, ${this.datosPruebaConfig.cantSocios} socios`
+      return `${this.movimientosEstimados} movimientos PIA${ejTxt} (${firmados} períodos firmados, ${abiertos} abiertos por ejercicio) · ${this.datosPruebaConfig.cantPersonas} personas, ${this.datosPruebaConfig.cantSocios} socios · ${totalAsambleas} asamblea(s), autoridades CD/CRC con continuidad parcial`
     }
     const ejTxt = cantEj > 1 ? ` en ${cantEj} ejercicios` : ''
-    return `${this.movimientosEstimados} movimientos${ejTxt} · ${this.datosPruebaConfig.cantPersonas} personas, ${this.datosPruebaConfig.cantSocios} socios`
+    return `${this.movimientosEstimados} movimientos${ejTxt} (cuota social mensual por socio + extra) · ${this.datosPruebaConfig.cantPersonas} personas, ${this.datosPruebaConfig.cantSocios} socios · ${totalAsambleas} asamblea(s), autoridades CD/CRC con continuidad parcial`
   }
 
   localidades = localidades
@@ -206,6 +217,56 @@ export class SetupStore {
         if (!MODULES[k]?.optional) this.selectedModules[k] = false
       }
       this.selectedModules[key] = true
+      // Auto-ajustar defaults de datos de prueba según el modo seleccionado
+      this.ajustarDatosPruebaSegunModo()
+    }
+  }
+
+  /**
+   * Ajusta los defaults de datosPruebaConfig según el modo de gestión.
+   * - gestion_integral: más socios (cuota social mensual), movimientos extra moderados
+   * - carga_consolidada: menos socios, movimientos calculados por fórmula PIA
+   */
+  ajustarDatosPruebaSegunModo() {
+    if (this.selectedModules.carga_consolidada) {
+      // Carga consolidada: los movimientos se calculan automáticamente
+      // (rubros × cuentas × períodos). No se necesita cantMovimientos.
+      // Menos socios porque no hay cuota social individual.
+      this.datosPruebaConfig.cantPersonas = 200
+      this.datosPruebaConfig.cantSocios = 150
+      this.datosPruebaConfig.cantMovimientos = 0 // se ignora en consolidada
+    } else if (this.selectedModules.gestion_integral) {
+      // Gestión integral: socios con cuota social mensual + movimientos extra
+      this.datosPruebaConfig.cantPersonas = 500
+      this.datosPruebaConfig.cantSocios = 400
+      this.datosPruebaConfig.cantMovimientos = 500 // extra además de cuota social
+    }
+    // Si no hay customización, re-sugerir según ejercicios
+    if (!this.customizarDatosPrueba) this.sugerirSegunEjercicios()
+  }
+
+  /**
+   * Sugiere valores razonables para todos los campos según la cantidad
+   * de ejercicios y el modo de gestión. Solo se llama cuando
+   * customizarDatosPrueba === false.
+   */
+  sugerirSegunEjercicios() {
+    const cantEj = Number(this.datosPruebaConfig.cantEjercicios) || 1
+    if (this.selectedModules.carga_consolidada) {
+      // Carga consolidada: volúmenes más modestos
+      // Más ejercicios → más personas para tener variedad en autoridades
+      this.datosPruebaConfig.cantPersonas = 150 + cantEj * 50
+      this.datosPruebaConfig.cantSocios = 100 + cantEj * 30
+      this.datosPruebaConfig.cantAsambleas = 1 // 1 AGO por ejercicio es lo típico
+      this.datosPruebaConfig.batchSize = cantEj >= 3 ? 150 : 100
+    } else if (this.selectedModules.gestion_integral) {
+      // Gestión integral: más socios para que la cuota social genere volumen
+      this.datosPruebaConfig.cantPersonas = 300 + cantEj * 100
+      this.datosPruebaConfig.cantSocios = 250 + cantEj * 75
+      // Movimientos extra: más ejercicios → más variedad de gastos
+      this.datosPruebaConfig.cantMovimientos = 300 + cantEj * 200
+      this.datosPruebaConfig.cantAsambleas = 1
+      this.datosPruebaConfig.batchSize = cantEj >= 3 ? 150 : 100
     }
   }
 

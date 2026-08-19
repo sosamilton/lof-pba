@@ -10,6 +10,7 @@
   import * as Select from '$lib/components/ui/select'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
   import CierreAlertas from './components/CierreAlertas.svelte'
+  import { formatFechaGrist } from '../shared/tesoreriaCalc.js'
   import FileTextIcon from '@lucide/svelte/icons/file-text'
   import LockIcon from '@lucide/svelte/icons/lock'
   import UnlockIcon from '@lucide/svelte/icons/lock-open'
@@ -111,7 +112,7 @@
           {#if store.ejercicioSeleccionado?.cerrado}
             <Badge variant="secondary" class="gap-1">
               <LockIcon class="size-3.5" />
-              Cerrado el {store.ejercicioSeleccionado?.fecha_cierre || ''}
+              Cerrado el {formatFechaGrist(store.ejercicioSeleccionado?.fecha_cierre)}
             </Badge>
           {:else if store.ejercicioSeleccionado?.en_curso}
             <Badge variant="outline">En curso</Badge>
@@ -279,7 +280,7 @@
               <CheckCircleIcon data-icon="inline-start" />
               <Alert.Title>Ejercicio cerrado</Alert.Title>
               <Alert.Description>
-                Este ejercicio fue cerrado el {store.ejercicioSeleccionado?.fecha_cierre || ''}.
+                Este ejercicio fue cerrado el {formatFechaGrist(store.ejercicioSeleccionado?.fecha_cierre)}.
                 Podés reabrirlo si necesitás hacer correcciones.
               </Alert.Description>
             </Alert.Root>

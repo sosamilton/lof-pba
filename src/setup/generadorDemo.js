@@ -338,11 +338,33 @@ export const generarDatosPrueba = async ({
 
   // Mapear cuentas por nombre
   let cuentaIds = []
+  /** @type {Record<string, any>[]} */
+  let cuentasRecsLocal = []
   if (tCuentas) {
     try {
-      const cuentasRecs = await fetchRecords(tCuentas, { columns: ['id', 'nombre_cuenta'] })
-      cuentaIds = cuentasRecs.map((r) => r.id)
+      cuentasRecsLocal = await fetchRecords(tCuentas, { columns: ['id', 'nombre_cuenta'] })
+      cuentaIds = cuentasRecsLocal.map((r) => r.id)
     } catch { /* sin cuentas */ }
+  }
+
+  // Encontrar el rubro de Cuota Social (entrada) para generar movimientos realistas
+  let rubroCuotaSocialId = null
+  for (const r of rubrosRecs) {
+    const nombre = String(r.nombre_oficial || '').toLowerCase()
+    if (r.tipo_rubro === 'Entrada' && nombre.includes('cuota social')) {
+      rubroCuotaSocialId = r.id
+      break
+    }
+  }
+
+  // Encontrar la cuenta de Efectivo (preferida para cuota social)
+  let cuentaEfectivoId = cuentaIds[0] || null
+  for (const c of cuentasRecsLocal) {
+    const nombre = String(c.nombre_cuenta || '').toLowerCase()
+    if (nombre.includes('efectivo')) {
+      cuentaEfectivoId = c.id
+      break
+    }
   }
 
   // Mapear ejercicio
@@ -473,7 +495,7 @@ export const generarDatosPrueba = async ({
    * Genera movimientos aleatorios para un ejercicio en modo integral.
    * @param {number} ejId - ID del ejercicio en Grist
    * @param {number} anioEj - Año de inicio del ejercicio
-   * @param {number} cantidad - Cantidad de movimientos a generar
+   * @param {number} cantidad - Cantidad de movimientos extra a generar
    */
   const generarMovimientosIntegral = (ejId, anioEj, cantidad) => {
     for (let i = 0; i < cantidad; i++) {
@@ -524,6 +546,57 @@ export const generarDatosPrueba = async ({
     }
   }
 
+  /**
+   * Genera movimientos de cuota social mensual para cada socio activo
+   * a lo largo de todos los períodos del ejercicio.
+   * @param {number} ejId - ID del ejercicio en Grist
+   * @param {any} ejRec - Registro del ejercicio (anio_inicio, anio_fin, mes_inicio)
+   * @param {number} cuotaImporte - Importe mensual de la cuota social
+   */
+  const generarCuotaSocialMensual = (ejId, ejRec, cuotaImporte) => {
+    if (!rubroCuotaSocialId || cuentaIds.length === 0) return
+    const periodos = generarPeriodosEjercicioLocal(ejRec)
+
+    // Solo socios activos (sin fecha_baja) pagan cuota social
+    const sociosActivosData = sociosData.filter((s) => !s.fecha_baja)
+    // Mapear socio → persona_id para vincular el movimiento
+    const socioToPersona = new Map()
+    for (const s of sociosActivosData) {
+      const socioRec = sociosRecs.find((sr) => {
+        const pid = dniToPersonaId.get(String(sr.dni))
+        return pid === s.persona_id
+      })
+      if (socioRec) socioToPersona.set(socioRec.id, s.persona_id)
+    }
+
+    for (const periodo of periodos) {
+      const [year, month] = periodo.split('-').map(Number)
+      for (const [socioId, personaId] of socioToPersona) {
+        // 90% de los socios pagan cada mes (10% morosidad natural)
+        if (Math.random() < 0.10) continue
+        const dia = rand(1, 28)
+        movimientosData.push({
+          fecha: genFecha(year, month, dia),
+          ejercicio_id: ejId,
+          tipo_movimiento: 'Entrada',
+          rubro_id: rubroCuotaSocialId,
+          subrubro_id: null,
+          detalle: `Cuota social ${periodo}`,
+          importe: cuotaImporte,
+          cuenta_id: cuentaEfectivoId,
+          destino_bancario: null,
+          cuenta_destino_id: null,
+          socio_id: socioId,
+          persona_id: personaId,
+          fuera_de_termino: false,
+          periodo_cerrado: false,
+          creado_por: 'demo',
+          creado_el: new Date().toISOString(),
+        })
+      }
+    }
+  }
+
   // --- 3. Generar movimientos para el ejercicio principal ---
   if (cargaConsolidada) {
     // --- Modo carga consolidada: cargas + movimientos por rubro/cuenta/período ---
@@ -531,8 +604,14 @@ export const generarDatosPrueba = async ({
     results.cargas = res.cargas
     results.cargasFirmadas = res.cargasFirmadas
   } else {
-    // --- Modo gestion_integral: movimientos aleatorios ---
-    log(`Generando ${cantMovimientos} movimientos...`)
+    // --- Modo gestion_integral: cuota social mensual por socio + movimientos extra ---
+    const cuotaImporte = rand(1500, 5000) // cuota social realista
+    const sociosActivosCount = sociosData.filter((s) => !s.fecha_baja).length
+    const periodosCount = generarPeriodosEjercicioLocal(ejercicioRec).length
+    const cuotaSocialEstimada = Math.floor(sociosActivosCount * periodosCount * 0.9)
+    log(`Generando cuota social mensual (${sociosActivosCount} socios activos × ${periodosCount} períodos, ~${cuotaSocialEstimada} movimientos)...`)
+    generarCuotaSocialMensual(ejercicioId, ejercicioRec, cuotaImporte)
+    log(`Generando ${cantMovimientos} movimientos extra...`)
     generarMovimientosIntegral(ejercicioId, anioInicio, cantMovimientos)
   }
 
@@ -590,7 +669,9 @@ export const generarDatosPrueba = async ({
               saldo_inicial_efectivo: 0,
               saldo_inicial_caja_chica: 0,
               en_curso: false,
-              observaciones: `Ejercicio demo ${anioInicioEj}-${anioInicioEj + 1}`,
+              cerrado: true,
+              fecha_cierre: genFecha(anioInicioEj + 1, Number(MES_NUMERO[mesInicio] || 5) - 1, 30),
+              observaciones: `Ejercicio demo ${anioInicioEj}-${anioInicioEj + 1} (cerrado)`,
             }]])
             const ejId = extractRowId(ejRes)
             if (ejId != null) {
@@ -612,6 +693,9 @@ export const generarDatosPrueba = async ({
       const todasAutoridades = []
       const todosAsesores = []
       const todasPlanillas = []
+      // Mapa cargo_id → persona_id del ejercicio anterior, para continuidad
+      /** @type {Map<number, number>} */
+      let autoridadesEjAnterior = new Map()
 
       // Generar asambleas + autoridades (y movimientos para ejercicios
       // anteriores) para cada ejercicio.
@@ -634,8 +718,11 @@ export const generarDatosPrueba = async ({
             results.cargas += res.cargas
             results.cargasFirmadas += res.cargasFirmadas
           } else {
+            // Cuota social mensual para ejercicios anteriores también
+            const cuotaImporteAnt = rand(1000, 3000) // cuota social histórica (menor)
+            log(`Generando cuota social + movimientos extra para ejercicio ${ejAnioInicio}-${ej.anio_fin}...`)
+            generarCuotaSocialMensual(ej.id, ej, cuotaImporteAnt)
             const cantEj = Math.floor(cantMovimientos / cantEjercicios)
-            log(`Generando ${cantEj} movimientos para ejercicio ${ejAnioInicio}-${ej.anio_fin}...`)
             generarMovimientosIntegral(ej.id, ejAnioInicio, cantEj)
           }
           // Insertar los movimientos de este ejercicio en Grist
@@ -662,9 +749,9 @@ export const generarDatosPrueba = async ({
             acta_fojas: String(aIdx + 1),
             ejercicio_id: ej.id,
             socios_presentes_cantidad: Math.min(sociosData.length, rand(50, 150)),
-            cuota_social_importe: Number((Math.random() * 5000 + 1000).toFixed(2)),
+            cuota_social_importe: rand(1500, 5000),
             cuota_social_modalidad: 'Mensual',
-            caja_chica_importe: Number((Math.random() * 10000 + 2000).toFixed(2)),
+            caja_chica_importe: rand(5000, 15000),
           }
           const asambleaRes = await applyUserActions([['AddRecord', tAsambleas, null, asambleaFields]])
           const asambleaId = extractRowId(asambleaRes)
@@ -677,6 +764,10 @@ export const generarDatosPrueba = async ({
             ? personasPoolSocios
             : personasRecs.filter((p) => p.id != null)
 
+          // Mapa cargo_id → persona_id para este ejercicio (se actualiza al designar)
+          /** @type {Map<number, number>} */
+          const autoridadesEjActual = new Map()
+
           for (const org of organismosTarget) {
             const cargosOrg = cargosRecs
               .filter((c) => String(c.organismo) === org)
@@ -686,7 +777,21 @@ export const generarDatosPrueba = async ({
               const cargo = cargosOrg[ci]
               let persona = null
 
-              if (cargaConsolidada && org === 'CD' && ci < 3 && personasPoolDirectivos.length > 0) {
+              // Continuidad: si no es el primer ejercicio y es la primera asamblea
+              // del ejercicio, ~60% de probabilidad de que la misma persona continúe.
+              const esPrimeraAsambleaEj = aIdx === 0
+              const puedeContinuar = esPrimeraAsambleaEj && autoridadesEjAnterior.has(cargo.id)
+              if (puedeContinuar && Math.random() < 0.6) {
+                const personaIdAnt = autoridadesEjAnterior.get(cargo.id)
+                persona = personasRecs.find((p) => Number(p.id) === Number(personaIdAnt)) || null
+                if (persona && personasUsadasAuth.has(persona.id)) {
+                  // Si la persona ya fue usada en este ejercicio para otro cargo,
+                  // no puede continuar en dos cargos a la vez → buscar otra
+                  persona = null
+                }
+              }
+
+              if (!persona && cargaConsolidada && org === 'CD' && ci < 3 && personasPoolDirectivos.length > 0) {
                 persona = personasPoolDirectivos.find((p) => !personasUsadasAuth.has(p.id))
                 if (!persona) persona = pick(personasPoolDirectivos)
               }
@@ -696,6 +801,7 @@ export const generarDatosPrueba = async ({
               }
               if (!persona) continue
               personasUsadasAuth.add(persona.id)
+              autoridadesEjActual.set(cargo.id, persona.id)
 
               const duracionMeses = Number(cargo.duracion_meses) || 12
               const fechaAsuncion = fechaAsamblea
@@ -720,6 +826,12 @@ export const generarDatosPrueba = async ({
                 ...(esVigente ? {} : { fecha_cese: fechaAsamblea }),
               })
             }
+          }
+
+          // Al final de la última asamblea del ejercicio, guardar las autoridades
+          // para que el siguiente ejercicio pueda tener continuidad
+          if (aIdx === totalAsambleas - 1) {
+            autoridadesEjAnterior = autoridadesEjActual
           }
         }
 

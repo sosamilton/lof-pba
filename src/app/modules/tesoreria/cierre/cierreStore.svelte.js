@@ -1,11 +1,12 @@
 import { applyUserActions, fetchRecords, resolveTableId } from '$core/grist/grist.js'
 import { createBaseState } from '$core/grist/stores/gristStore.svelte.js'
-import { TABLE_PREFERRED_IDS } from '$core/utils/utils.js'
+import { TABLE_PREFERRED_IDS, fechasEjercicio } from '$core/utils/utils.js'
 import { notify } from '$core/ui/notify.svelte'
 import { loadCierreData } from './cierreDataService.js'
 import { buildPiaFieldMap } from './piaFieldMap.js'
 import { buildNominaFieldMap } from './nominaFieldMap.js'
 import { generatePdfBlob, clearTemplateCache } from './pdfGenerator.js'
+import { calcularSaldosPorCuenta } from '../shared/tesoreriaCalc.js'
 
 /**
  * Store del módulo Cierre de Ciclo.
@@ -167,19 +168,81 @@ const descargarNomina = async () => {
 
 /**
  * Cierra un ejercicio: marca cerrado=true y fecha_cierre=hoy.
+ * Si el ejercicio cerrado era el en_curso, crea automáticamente un nuevo
+ * ejercicio con los saldos finales del cerrado como saldos iniciales.
  * @param {number} id
  */
 const cerrarEjercicio = async (id) => {
   await bs.wrapAsync(async () => {
     const tEj = await resolveTableId(TABLE_PREFERRED_IDS.ejercicios)
     if (!tEj) { bs.setError('No se encontró la tabla ejercicios.'); return }
+    const ej = ejercicios.find((e) => Number(e.id) === Number(id))
+    if (!ej) { bs.setError('No se encontró el ejercicio.'); return }
+    const eraEnCurso = ej.en_curso === true
     const hoy = new Date().toISOString().slice(0, 10)
-    await applyUserActions([['UpdateRecord', tEj, id, { cerrado: true, fecha_cierre: hoy }]])
+
+    // 1. Marcar cerrado
+    const actions = [['UpdateRecord', tEj, id, { cerrado: true, fecha_cierre: hoy }]]
+
+    // 2. Si era el en_curso, crear el nuevo ejercicio automáticamente
+    if (eraEnCurso) {
+      // Calcular saldos finales del ejercicio cerrado
+      let saldoBanco = 0, saldoEfectivo = 0, saldoCajaChica = 0
+      try {
+        const tCuentas = await resolveTableId(TABLE_PREFERRED_IDS.cuentas)
+        const tMovs = await resolveTableId(TABLE_PREFERRED_IDS.movimientos)
+        if (tCuentas && tMovs) {
+          const [cuentas, allMovs] = await Promise.all([
+            fetchRecords(tCuentas),
+            fetchRecords(tMovs),
+          ])
+          const movsEj = allMovs.filter((m) => Number(m.ejercicio_id) === Number(id))
+          const saldosMap = calcularSaldosPorCuenta(cuentas, ej, movsEj)
+          for (const [cid, saldo] of saldosMap) {
+            const c = cuentas.find((x) => Number(x.id) === Number(cid))
+            const nombre = String(c?.nombre_cuenta || '').toLowerCase()
+            if (nombre.includes('banco')) saldoBanco = saldo
+            else if (nombre.includes('efectivo')) saldoEfectivo = saldo
+            else if (nombre.includes('caja')) saldoCajaChica = saldo
+          }
+        }
+      } catch { /* si falla, los saldos iniciales quedan en 0 */ }
+
+      // Calcular años del nuevo ejercicio
+      const anioFinCerrado = Number(ej.anio_fin || 0)
+      const nuevoInicio = anioFinCerrado > 0 ? anioFinCerrado : new Date().getFullYear()
+      const nuevoFin = nuevoInicio + 1
+      const nuevoEj = {
+        anio_inicio: nuevoInicio,
+        anio_fin: nuevoFin,
+        mes_inicio: ej.mes_inicio || 'Mayo',
+        saldo_inicial_banco: saldoBanco,
+        saldo_inicial_efectivo: saldoEfectivo,
+        saldo_inicial_caja_chica: saldoCajaChica,
+      }
+      const { fechaInicio, fechaFin } = fechasEjercicio(nuevoEj)
+      // Desactivar el ejercicio cerrado y crear el nuevo en la misma transacción
+      actions.push(['UpdateRecord', tEj, id, { en_curso: false }])
+      actions.push(['AddRecord', tEj, null, {
+        anio_inicio: nuevoInicio,
+        anio_fin: nuevoFin,
+        mes_inicio: nuevoEj.mes_inicio,
+        fecha_inicio: fechaInicio || null,
+        fecha_fin: fechaFin || null,
+        saldo_inicial_banco: saldoBanco,
+        saldo_inicial_efectivo: saldoEfectivo,
+        saldo_inicial_caja_chica: saldoCajaChica,
+        en_curso: true,
+        observaciones: `Creado automáticamente al cerrar ejercicio ${ej.anio_inicio}-${ej.anio_fin}`,
+      }])
+    }
+
+    await applyUserActions(actions)
     await load()
+
     // Registrar planilla generada (metadata, sin adjuntar PDF por ahora)
     const tPlan = await resolveTableId(TABLE_PREFERRED_IDS.planillas_generadas)
     if (tPlan) {
-      const ej = ejercicios.find((e) => Number(e.id) === Number(id))
       const now = new Date().toISOString()
       await applyUserActions([['AddRecord', tPlan, null, {
         tipo_planilla: 'PIA',
@@ -194,8 +257,16 @@ const cerrarEjercicio = async (id) => {
         version_formulario: '2025',
       }]])
     }
-    bs.setNotice(`Ejercicio cerrado el ${hoy}.`)
+
+    if (eraEnCurso) {
+      const nuevoInicio = Number(ej.anio_fin || new Date().getFullYear())
+      bs.setNotice(`Ejercicio cerrado el ${hoy}. Nuevo ejercicio ${nuevoInicio}-${nuevoInicio + 1} creado automáticamente con saldos iniciales.`)
+    } else {
+      bs.setNotice(`Ejercicio cerrado el ${hoy}.`)
+    }
     notify.success(bs.notice)
+    // Re-seleccionar el ejercicio para refrescar cierreData y badges
+    if (ejercicioSeleccionadoId) await seleccionarEjercicio(ejercicioSeleccionadoId)
   })
 }
 
@@ -211,6 +282,8 @@ const reabrirEjercicio = async (id) => {
     await load()
     bs.setNotice('Ejercicio reabierto para edición.')
     notify.success(bs.notice)
+    // Re-seleccionar el ejercicio para refrescar cierreData y badges
+    if (ejercicioSeleccionadoId) await seleccionarEjercicio(ejercicioSeleccionadoId)
   })
 }
 

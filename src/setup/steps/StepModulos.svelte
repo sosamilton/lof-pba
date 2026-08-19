@@ -14,157 +14,6 @@
   const optionalKeys = Object.entries(MODULES).filter(([, m]) => m.optional)
 </script>
 
-{#if store.isDev}
-  <Card.Root class="mb-4 border-amber-500/30">
-    <Card.Content class="pt-6">
-      <h2 class="text-[17px] font-bold mb-1.5">Datos de prueba (desarrollo)</h2>
-      <p class="text-[13px] text-muted-foreground mb-4">
-        Cargá automáticamente datos de ejemplo para probar la app sin completar
-        cada paso a mano. Solo disponible en desarrollo.
-      </p>
-
-      <div class="flex flex-col gap-3">
-        <!-- Check 1: precargar datos demo en todos los pasos -->
-        <div class="flex items-start gap-3 p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/5">
-          <Switch
-            checked={store.precargarDemoPorDefecto}
-            onCheckedChange={(v) => {
-              store.precargarDemoPorDefecto = v
-              if (v) store.fillAllDemoData()
-            }}
-            class="mt-0.5"
-          />
-          <div>
-            <div class="font-bold text-[13px] text-amber-700 dark:text-amber-400">
-              Precargar datos demo en todos los pasos
-            </div>
-            <p class="text-[12px] text-muted-foreground mt-0.5 m-0 leading-relaxed">
-              Rellena automáticamente los campos de cada paso con datos de
-              ejemplo (módulos, escuela, banco, ejercicio y cargos) y pasa
-              directo a instalar. Reemplaza al botón "Precargar datos demo"
-              que aparecía en cada paso.
-            </p>
-          </div>
-        </div>
-
-        <!-- Check 2: cargar datos de prueba (generador) -->
-        <div class="flex items-start gap-3 p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/5">
-          <Switch
-            checked={store.cargarDatosPrueba}
-            onCheckedChange={(v) => { store.cargarDatosPrueba = v }}
-            class="mt-0.5"
-          />
-          <div>
-            <div class="font-bold text-[13px] text-amber-700 dark:text-amber-400">
-              Cargar datos de prueba tras instalar
-            </div>
-            <p class="text-[12px] text-muted-foreground mt-0.5 m-0 leading-relaxed">
-              Genera personas, socios, movimientos
-              {#if store.selectedModules.gestion_integral || store.selectedModules.carga_consolidada}
-                , asamblea(s) y autoridades de CD/CRC
-              {/if}
-              y planillas PIA/Nómina con Refs resueltas para probar performance
-              de listados y filtros.
-            </p>
-          </div>
-        </div>
-
-        {#if store.precargarDemoPorDefecto}
-          <div class="p-3 rounded-lg border border-primary/30 bg-primary/5 text-[12px] text-muted-foreground">
-            Datos demo cargados en todos los pasos. Vas directo a instalar
-            {#if store.cargarDatosPrueba}con generación de datos de prueba incluida{/if}.
-          </div>
-        {/if}
-
-        <!-- Formulario de cantidades: visible cuando se va a generar datos -->
-        {#if store.cargarDatosPrueba}
-          <div class="mt-1 p-3.5 rounded-xl border border-border bg-muted/5">
-            <div class="font-extrabold text-[13px] mb-3">Cantidades a generar</div>
-            <Field.FieldSet>
-              <Field.FieldLegend class="text-[12px] text-muted-foreground">
-                Ajustá los volúmenes. Valores por defecto = generación actual.
-              </Field.FieldLegend>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                <Field.Field>
-                  <Field.FieldLabel for="dp-personas" class="text-[12px]">Personas</Field.FieldLabel>
-                  <Input
-                    id="dp-personas"
-                    type="number"
-                    min="1"
-                    bind:value={store.datosPruebaConfig.cantPersonas}
-                    class="h-9"
-                  />
-                </Field.Field>
-                <Field.Field>
-                  <Field.FieldLabel for="dp-socios" class="text-[12px]">Socios</Field.FieldLabel>
-                  <Input
-                    id="dp-socios"
-                    type="number"
-                    min="1"
-                    bind:value={store.datosPruebaConfig.cantSocios}
-                    class="h-9"
-                  />
-                </Field.Field>
-                <Field.Field>
-                  <Field.FieldLabel for="dp-movimientos" class="text-[12px]">Movimientos</Field.FieldLabel>
-                  <Input
-                    id="dp-movimientos"
-                    type="number"
-                    min="1"
-                    bind:value={store.datosPruebaConfig.cantMovimientos}
-                    class="h-9"
-                  />
-                </Field.Field>
-                <Field.Field>
-                  <Field.FieldLabel for="dp-batch" class="text-[12px]">Tamaño de lote (batch)</Field.FieldLabel>
-                  <Input
-                    id="dp-batch"
-                    type="number"
-                    min="1"
-                    bind:value={store.datosPruebaConfig.batchSize}
-                    class="h-9"
-                  />
-                  <Field.FieldDescription class="text-[11px]">
-                    Para volúmenes altos (~10000) conviene aumentarlo.
-                  </Field.FieldDescription>
-                </Field.Field>
-                <Field.Field>
-                  <Field.FieldLabel for="dp-ejercicios" class="text-[12px]">Ejercicios</Field.FieldLabel>
-                  <Input
-                    id="dp-ejercicios"
-                    type="number"
-                    min="1"
-                    max="5"
-                    bind:value={store.datosPruebaConfig.cantEjercicios}
-                    class="h-9"
-                  />
-                  <Field.FieldDescription class="text-[11px]">
-                    Crea ejercicios anteriores además del actual. Cada uno con su asamblea y autoridades, para probar el histórico multi-ejercicio.
-                  </Field.FieldDescription>
-                </Field.Field>
-                <Field.Field>
-                  <Field.FieldLabel for="dp-asambleas" class="text-[12px]">Asambleas por ejercicio</Field.FieldLabel>
-                  <Input
-                    id="dp-asambleas"
-                    type="number"
-                    min="1"
-                    max="12"
-                    bind:value={store.datosPruebaConfig.cantAsambleas}
-                    class="h-9"
-                  />
-                  <Field.FieldDescription class="text-[11px]">
-                    Más de 1 genera asambleas en distintos meses del ejercicio para probar cierre y cambio de período.
-                  </Field.FieldDescription>
-                </Field.Field>
-              </div>
-            </Field.FieldSet>
-          </div>
-        {/if}
-      </div>
-    </Card.Content>
-  </Card.Root>
-{/if}
-
 <Card.Root class="mb-4">
   <Card.Content class="pt-6">
     <h2 class="text-[17px] font-bold mb-1.5">¿Cómo vas a usar {identidad.nombre}?</h2>
@@ -214,3 +63,226 @@
     {/if}
   </Card.Content>
 </Card.Root>
+
+{#if store.isDev}
+  <Card.Root class="mb-4 border-amber-500/30">
+    <Card.Content class="pt-6">
+      <h2 class="text-[17px] font-bold mb-1.5">Datos de prueba (desarrollo)</h2>
+      <p class="text-[13px] text-muted-foreground mb-4">
+        Cargá automáticamente datos de ejemplo para probar la app sin completar
+        cada paso a mano. Solo disponible en desarrollo.
+      </p>
+
+      <div class="flex flex-col gap-3">
+        <!-- Check 1: precargar datos demo en todos los pasos -->
+        <div class="flex items-start gap-3 p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/5">
+          <Switch
+            checked={store.precargarDemoPorDefecto}
+            onCheckedChange={(v) => {
+              store.precargarDemoPorDefecto = v
+              if (v) store.fillAllDemoData()
+            }}
+            class="mt-0.5"
+          />
+          <div>
+            <div class="font-bold text-[13px] text-amber-700 dark:text-amber-400">
+              Precargar datos demo en todos los pasos
+            </div>
+            <p class="text-[12px] text-muted-foreground mt-0.5 m-0 leading-relaxed">
+              Rellena automáticamente los campos de cada paso con datos de
+              ejemplo (módulos, escuela, banco, ejercicio y cargos) y pasa
+              directo a instalar. Reemplaza al botón "Precargar datos demo"
+              que aparecía en cada paso.
+            </p>
+          </div>
+        </div>
+
+        <!-- Check 2: cargar datos de prueba (generador) -->
+        <div class="flex items-start gap-3 p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/5">
+          <Switch
+            checked={store.cargarDatosPrueba}
+            onCheckedChange={(v) => { store.cargarDatosPrueba = v }}
+            class="mt-0.5"
+          />
+          <div>
+            <div class="font-bold text-[13px] text-amber-700 dark:text-amber-400">
+              Cargar datos de prueba tras instalar
+            </div>
+            <p class="text-[12px] text-muted-foreground mt-0.5 m-0 leading-relaxed">
+              {store.datosPruebaDescripcion}
+            </p>
+          </div>
+        </div>
+
+        {#if store.precargarDemoPorDefecto}
+          <div class="p-3 rounded-lg border border-primary/30 bg-primary/5 text-[12px] text-muted-foreground">
+            Datos demo cargados en todos los pasos. Vas directo a instalar
+            {#if store.cargarDatosPrueba}con generación de datos de prueba incluida{/if}.
+          </div>
+        {/if}
+
+        <!-- Formulario de cantidades: visible cuando se va a generar datos -->
+        {#if store.cargarDatosPrueba}
+          <div class="mt-1 p-3.5 rounded-xl border border-border bg-muted/5">
+            <div class="font-extrabold text-[13px] mb-1">Cantidades a generar</div>
+            <p class="text-[11px] text-muted-foreground mb-3">
+              {#if store.selectedModules.gestion_integral}
+                <strong>Gestión integral:</strong> incluye cuota social mensual por socio activo.
+              {:else if store.selectedModules.carga_consolidada}
+                <strong>Carga consolidada:</strong> movimientos PIA por rubro/cuenta/período.
+              {/if}
+            </p>
+
+            <!-- Input principal: cantidad de ejercicios (siempre editable) -->
+            <div class="p-3 rounded-lg border border-primary/30 bg-primary/5 mb-3">
+              <Field.Field>
+                <Field.FieldLabel for="dp-ejercicios" class="text-[13px] font-bold">
+                  Cantidad de ejercicios
+                </Field.FieldLabel>
+                <Input
+                  id="dp-ejercicios"
+                  type="number"
+                  min="1"
+                  max="5"
+                  value={store.datosPruebaConfig.cantEjercicios}
+                  oninput={(e) => {
+                    const v = Number(e.currentTarget.value) || 1
+                    store.datosPruebaConfig.cantEjercicios = v
+                    if (!store.customizarDatosPrueba) store.sugerirSegunEjercicios()
+                  }}
+                  class="h-9 max-w-32"
+                />
+                <Field.FieldDescription class="text-[11px]">
+                  Mínimo 1 asamblea por ejercicio. Cada ejercicio tiene sus autoridades de CD/CRC con continuidad parcial entre ejercicios.
+                </Field.FieldDescription>
+              </Field.Field>
+            </div>
+
+            <!-- Switch: customizar valores o usar sugeridos -->
+            <div class="flex items-center gap-3 mb-3">
+              <Switch
+                checked={store.customizarDatosPrueba}
+                onCheckedChange={(v) => {
+                  store.customizarDatosPrueba = v
+                  if (!v) store.sugerirSegunEjercicios()
+                }}
+                class="mt-0"
+              />
+              <div>
+                <div class="font-bold text-[12px]">Customizar cantidades</div>
+                <p class="text-[11px] text-muted-foreground mt-0.5">
+                  {#if store.customizarDatosPrueba}
+                    Editá cada campo manualmente.
+                  {:else}
+                    Valores sugeridos automáticamente según la cantidad de ejercicios.
+                  {/if}
+                </p>
+              </div>
+            </div>
+
+            <Field.FieldSet>
+              <Field.FieldLegend class="text-[12px] text-muted-foreground">
+                {#if store.customizarDatosPrueba}
+                  Volúmenes de datos (editable)
+                {:else}
+                  Valores sugeridos (read-only)
+                {/if}
+              </Field.FieldLegend>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                <Field.Field>
+                  <Field.FieldLabel for="dp-personas" class="text-[12px]">Personas</Field.FieldLabel>
+                  <Input
+                    id="dp-personas"
+                    type="number"
+                    min="1"
+                    bind:value={store.datosPruebaConfig.cantPersonas}
+                    readonly={!store.customizarDatosPrueba}
+                    class="h-9"
+                  />
+                </Field.Field>
+                <Field.Field>
+                  <Field.FieldLabel for="dp-socios" class="text-[12px]">Socios</Field.FieldLabel>
+                  <Input
+                    id="dp-socios"
+                    type="number"
+                    min="1"
+                    bind:value={store.datosPruebaConfig.cantSocios}
+                    readonly={!store.customizarDatosPrueba}
+                    class="h-9"
+                  />
+                  <Field.FieldDescription class="text-[11px]">
+                    {#if store.selectedModules.gestion_integral}
+                      Cada socio activo genera cuota social mensual.
+                    {:else}
+                      Personas vinculadas como socios para estadísticas.
+                    {/if}
+                  </Field.FieldDescription>
+                </Field.Field>
+                {#if !store.selectedModules.carga_consolidada}
+                  <Field.Field>
+                    <Field.FieldLabel for="dp-movimientos" class="text-[12px]">Movimientos extra</Field.FieldLabel>
+                    <Input
+                      id="dp-movimientos"
+                      type="number"
+                      min="0"
+                      bind:value={store.datosPruebaConfig.cantMovimientos}
+                      readonly={!store.customizarDatosPrueba}
+                      class="h-9"
+                    />
+                    <Field.FieldDescription class="text-[11px]">
+                      Además de la cuota social mensual por socio.
+                    </Field.FieldDescription>
+                  </Field.Field>
+                {/if}
+                <Field.Field>
+                  <Field.FieldLabel for="dp-batch" class="text-[12px]">Tamaño de lote (batch)</Field.FieldLabel>
+                  <Input
+                    id="dp-batch"
+                    type="number"
+                    min="1"
+                    bind:value={store.datosPruebaConfig.batchSize}
+                    readonly={!store.customizarDatosPrueba}
+                    class="h-9"
+                  />
+                  <Field.FieldDescription class="text-[11px]">
+                    Para volúmenes altos (~10000) conviene aumentarlo.
+                  </Field.FieldDescription>
+                </Field.Field>
+                <Field.Field>
+                  <Field.FieldLabel for="dp-asambleas" class="text-[12px]">Asambleas por ejercicio</Field.FieldLabel>
+                  <Input
+                    id="dp-asambleas"
+                    type="number"
+                    min="1"
+                    max="12"
+                    bind:value={store.datosPruebaConfig.cantAsambleas}
+                    readonly={!store.customizarDatosPrueba}
+                    class="h-9"
+                  />
+                  <Field.FieldDescription class="text-[11px]">
+                    La primera es siempre AGO. Más de 1 genera AGE adicionales para probar cambio de autoridades dentro del ejercicio.
+                  </Field.FieldDescription>
+                </Field.Field>
+              </div>
+            </Field.FieldSet>
+
+            {#if store.selectedModules.gestion_integral}
+              <div class="mt-3 p-2.5 rounded-lg border border-primary/20 bg-primary/5 text-[11px] text-muted-foreground">
+                <strong>Estimación:</strong> ~{store.movimientosEstimados} movimientos totales
+                (cuota social + extra) · {store.datosPruebaConfig.cantSocios} socios
+                · {Number(store.datosPruebaConfig.cantEjercicios) || 1} ejercicio(s)
+                · {Number(store.datosPruebaConfig.cantAsambleas) * Number(store.datosPruebaConfig.cantEjercicios)} asamblea(s) total
+              </div>
+            {:else if store.selectedModules.carga_consolidada}
+              <div class="mt-3 p-2.5 rounded-lg border border-primary/20 bg-primary/5 text-[11px] text-muted-foreground">
+                <strong>Estimación:</strong> ~{store.movimientosEstimados} movimientos
+                (rubros × cuentas × períodos × {Number(store.datosPruebaConfig.cantEjercicios) || 1} ejercicio(s))
+                · {Number(store.datosPruebaConfig.cantAsambleas) * Number(store.datosPruebaConfig.cantEjercicios)} asamblea(s) total
+              </div>
+            {/if}
+          </div>
+        {/if}
+      </div>
+    </Card.Content>
+  </Card.Root>
+{/if}

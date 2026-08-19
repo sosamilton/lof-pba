@@ -236,7 +236,7 @@ export function createBaseState() {
   let loading = $state(false)
   let error = $state('')
   let notice = $state('')
-  let _busy = false
+  let _busy = $state(false)
 
   /**
    * Ejecuta fn con manejo estándar de busy/error/notice.

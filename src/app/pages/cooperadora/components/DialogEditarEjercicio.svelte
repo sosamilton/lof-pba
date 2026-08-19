@@ -6,7 +6,8 @@
   import * as Select from '$lib/components/ui/select'
   import * as Alert from '$lib/components/ui/alert'
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
-  import { MESES } from '$core/utils/utils'
+  import PencilIcon from '@lucide/svelte/icons/pencil'
+  import { MESES, fechasEjercicio } from '$core/utils/utils'
 
   let {
     open = false,
@@ -16,6 +17,40 @@
     onClose = () => {},
     onSave = () => {},
   } = $props()
+
+  // Las fechas se calculan automáticamente desde mes_inicio + anio_inicio + anio_fin.
+  // Por defecto no se pueden editar manualmente; el usuario puede habilitar
+  // la edición con el botón "Ajustar fechas".
+  let fechasEditables = $state(false)
+
+  // Fechas calculadas automáticamente (derivadas de anio_inicio, anio_fin, mes_inicio)
+  let fechasCalculadas = $derived.by(() => {
+    if (!ejercicioEditando) return { fechaInicio: '', fechaFin: '' }
+    return fechasEjercicio(ejercicioEditando)
+  })
+
+  // Cuando se abre el diálogo, resetear fechasEditables y precargar fechas calculadas
+  $effect(() => {
+    if (open && ejercicioEditando) {
+      fechasEditables = false
+      // Si las fechas están vacías, precargar con las calculadas
+      if (!ejercicioEditando.fecha_inicio) {
+        ejercicioEditando.fecha_inicio = fechasCalculadas.fechaInicio
+      }
+      if (!ejercicioEditando.fecha_fin) {
+        ejercicioEditando.fecha_fin = fechasCalculadas.fechaFin
+      }
+    }
+  })
+
+  // Cuando cambian anio_inicio/anio_fin/mes_inicio y las fechas no son editables,
+  // recalcular automáticamente
+  $effect(() => {
+    if (!ejercicioEditando || fechasEditables) return
+    const { fechaInicio, fechaFin } = fechasCalculadas
+    if (fechaInicio) ejercicioEditando.fecha_inicio = fechaInicio
+    if (fechaFin) ejercicioEditando.fecha_fin = fechaFin
+  })
 </script>
 
 <Dialog.Root bind:open>
@@ -52,12 +87,30 @@
 
         <div class="grid gap-3 sm:grid-cols-2">
           <div class="flex flex-col gap-1">
-            <Label class="text-xs font-bold text-muted-foreground" for="edit_ej_fecha_inicio">Fecha desde</Label>
-            <Input id="edit_ej_fecha_inicio" type="date" bind:value={ejercicioEditando.fecha_inicio} />
+            <div class="flex items-center justify-between">
+              <Label class="text-xs font-bold text-muted-foreground" for="edit_ej_fecha_inicio">Fecha desde</Label>
+              {#if !fechasEditables}
+                <button type="button" class="text-xs text-primary hover:underline flex items-center gap-1" onclick={() => { fechasEditables = true }}>
+                  <PencilIcon class="size-3" />
+                  Ajustar
+                </button>
+              {:else}
+                <button type="button" class="text-xs text-muted-foreground hover:underline" onclick={() => { fechasEditables = false }}>
+                  Automático
+                </button>
+              {/if}
+            </div>
+            <Input id="edit_ej_fecha_inicio" type="date" bind:value={ejercicioEditando.fecha_inicio} disabled={!fechasEditables} />
+            {#if !fechasEditables}
+              <span class="text-xs text-muted-foreground">Calculada desde mes y año de inicio</span>
+            {/if}
           </div>
           <div class="flex flex-col gap-1">
             <Label class="text-xs font-bold text-muted-foreground" for="edit_ej_fecha_fin">Fecha hasta</Label>
-            <Input id="edit_ej_fecha_fin" type="date" bind:value={ejercicioEditando.fecha_fin} />
+            <Input id="edit_ej_fecha_fin" type="date" bind:value={ejercicioEditando.fecha_fin} disabled={!fechasEditables} />
+            {#if !fechasEditables}
+              <span class="text-xs text-muted-foreground">Calculada automáticamente</span>
+            {/if}
           </div>
         </div>
 

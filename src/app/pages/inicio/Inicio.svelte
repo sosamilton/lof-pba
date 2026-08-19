@@ -16,8 +16,8 @@
   import WalletIcon from '@lucide/svelte/icons/wallet'
   import ResumenEjecutivo from './components/ResumenEjecutivo.svelte'
   import TableroCaja from './components/TableroCaja.svelte'
+  import SituacionActual from './components/SituacionActual.svelte'
   import ConfigPanel from './components/ConfigPanel.svelte'
-  import InfoField from './components/InfoField.svelte'
   import SchemaErrorView from './components/SchemaErrorView.svelte'
   import { navigate } from '$core/ui/router.svelte'
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right'
@@ -71,35 +71,36 @@
     {:else if store.status}
       {#if store.status.missing.length === 0 && store.status.schemaDiff?.missingTables?.length === 0 && store.status.schemaDiff?.missingColumns?.length === 0}
         <div class="flex flex-col gap-4 mt-2">
-          <Card.Root>
-            <Card.Header>
-              <Card.Title class="text-base flex items-center gap-2">
-                <BuildingIcon class="size-4" />
-                Ficha institucional
-              </Card.Title>
-              <Card.Description>
-                Datos formales de la cooperadora. Editá el detalle en el módulo Institucional.
-              </Card.Description>
-            </Card.Header>
-            <Card.Content class="flex flex-col gap-3">
-              <div class="grid gap-3 sm:grid-cols-2">
-                <InfoField label="Escuela" value={cooperadoraStore.escuela?.escuela_nombre} />
-                <InfoField label="N°" value={cooperadoraStore.escuela?.escuela_numero} />
-                <InfoField label="CUE" value={cooperadoraStore.escuela?.cue} />
-                <InfoField label="Cooperadora" value={cooperadoraStore.escuela?.cooperadora_nombre} />
-                <InfoField
-                  label="Ejercicio en curso"
-                  value={store.ejercicioEnCurso ? `${store.ejercicioEnCurso.anio_inicio}-${store.ejercicioEnCurso.anio_fin}` : null}
-                />
-              </div>
-              <div class="flex justify-end">
-                <Button variant="outline" size="sm" onclick={() => navigate('cooperadora')}>
-                  Ver / editar en Institucional
-                  <ArrowRightIcon data-icon="inline-end" />
-                </Button>
-              </div>
-            </Card.Content>
-          </Card.Root>
+          <!-- Ficha institucional compacta (una línea) -->
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground rounded-lg border border-border bg-card px-3 py-2">
+            <BuildingIcon class="size-4 text-primary shrink-0" />
+            <span class="font-semibold text-foreground">
+              {cooperadoraStore.escuela?.escuela_nombre || identidad.nombre}
+            </span>
+            {#if cooperadoraStore.escuela?.escuela_numero}
+              <span>N° {cooperadoraStore.escuela.escuela_numero}</span>
+            {/if}
+            {#if cooperadoraStore.escuela?.cue}
+              <span>CUE: {cooperadoraStore.escuela.cue}</span>
+            {/if}
+            {#if store.ejercicioEnCurso}
+              <span>Ejercicio: <strong class="text-foreground">{store.ejercicioEnCurso.anio_inicio}-{store.ejercicioEnCurso.anio_fin}</strong></span>
+            {/if}
+            <Button variant="ghost" size="sm" class="ml-auto h-7 px-2 text-xs" onclick={() => navigate('cooperadora')}>
+              Editar
+              <ArrowRightIcon data-icon="inline-end" />
+            </Button>
+          </div>
+
+          <!-- Situación actual: foto de la cooperadora -->
+          <SituacionActual
+            dashLoading={store.dashLoading}
+            saldos={saldos}
+            ultimaCarga={store.ultimaCarga}
+            periodoActual={store.periodoActual}
+            movimientosMes={store.movimientosMes}
+            ejercicioEnCurso={store.ejercicioEnCurso}
+          />
 
           <Accordion.Root type="multiple" bind:value={resumenAccordion}>
             <Accordion.Item value="resumen-ejecutivo">
@@ -121,6 +122,9 @@
                   bajasUltimoAnio={store.bajasUltimoAnio}
                   vencimientosProximos={store.vencimientosProximos}
                   alertaAsamblea={store.alertaAsamblea}
+                  morosidadPct={store.morosidadPct}
+                  mayorGasto={store.mayorGasto}
+                  moduloGestionIntegral={store.moduloGestionIntegral}
                 />
               </Accordion.Content>
             </Accordion.Item>

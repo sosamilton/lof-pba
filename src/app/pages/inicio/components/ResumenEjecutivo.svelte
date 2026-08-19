@@ -5,6 +5,8 @@
   import UsersIcon from '@lucide/svelte/icons/users'
   import TrendingUpIcon from '@lucide/svelte/icons/trending-up'
   import AlertCircleIcon from '@lucide/svelte/icons/alert-circle'
+  import PercentIcon from '@lucide/svelte/icons/percent'
+  import ReceiptIcon from '@lucide/svelte/icons/receipt'
   import MetricCard from './MetricCard.svelte'
 
   let {
@@ -18,6 +20,9 @@
     bajasUltimoAnio = 0,
     vencimientosProximos = [],
     alertaAsamblea = false,
+    morosidadPct = null,
+    mayorGasto = null,
+    moduloGestionIntegral = false,
   } = $props()
 </script>
 
@@ -93,6 +98,28 @@
       iconClass="text-primary"
     >
       {#snippet icon()}<AlertCircleIcon class="size-4" />{/snippet}
+    </MetricCard>
+  {/if}
+
+  {#if moduloGestionIntegral && morosidadPct != null}
+    <MetricCard
+      label="Morosidad cuota social"
+      value={`${morosidadPct.toFixed(1)}%`}
+      sub={morosidadPct > 30 ? 'Revisar cobranza' : 'Dentro de lo esperado'}
+      cardClass={morosidadPct > 30 ? 'border-destructive/40' : ''}
+      iconClass={morosidadPct > 30 ? 'text-destructive' : 'text-primary'}
+    >
+      {#snippet icon()}<PercentIcon class="size-4" />{/snippet}
+    </MetricCard>
+  {/if}
+
+  {#if moduloGestionIntegral && mayorGasto}
+    <MetricCard
+      label="Mayor gasto del ejercicio"
+      value={mayorGasto.nombre}
+      sub={`$${mayorGasto.importe.toLocaleString('es-AR')}`}
+    >
+      {#snippet icon()}<ReceiptIcon class="size-4" />{/snippet}
     </MetricCard>
   {/if}
 </div>

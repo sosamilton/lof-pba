@@ -9,6 +9,7 @@
   import TrashIcon from '@lucide/svelte/icons/trash-2'
   import CheckIcon from '@lucide/svelte/icons/check'
   import PlusIcon from '@lucide/svelte/icons/plus'
+  import LockIcon from '@lucide/svelte/icons/lock'
   import { MESES } from '$core/utils/utils'
 
   let {
@@ -25,6 +26,11 @@
   let showForm = $state(false)
 
   const toggleForm = () => { showForm = !showForm }
+
+  // ¿Hay algún ejercicio previo sin cerrar? Si hay, no se puede crear uno nuevo.
+  let puedeCrear = $derived(
+    ejercicios.length === 0 || ejercicios.every((e) => e.cerrado === true)
+  )
 </script>
 
 <div class="flex flex-col gap-3">
@@ -57,11 +63,17 @@
             Activar
           </Button>
         {/if}
+        {#if e.cerrado === true}
+          <Badge variant="secondary">
+            <LockIcon data-icon="inline-start" />
+            Cerrado
+          </Badge>
+        {/if}
         <Button variant="outline" size="sm" onclick={() => onEditar(e)} disabled={busy}>
           <PencilIcon data-icon="inline-start" />
           Editar
         </Button>
-        {#if !e.en_curso}
+        {#if !e.en_curso && e.cerrado !== true}
           <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" onclick={() => onEliminar(e)} disabled={busy}>
             <TrashIcon data-icon="inline-start" />
           </Button>
@@ -103,9 +115,18 @@
       </Card.Content>
     </Card.Root>
   {:else}
-    <Button variant="outline" size="sm" class="w-fit" onclick={toggleForm} disabled={busy || creating}>
-      <PlusIcon data-icon="inline-start" />
-      Nuevo ejercicio
-    </Button>
+    <div class="flex flex-col gap-2">
+      {#if !puedeCrear}
+        <div class="text-xs text-muted-foreground rounded-lg border border-border bg-muted/40 px-3 py-2">
+          <LockIcon data-icon="inline-start" />
+          No se puede crear un nuevo ejercicio hasta que los anteriores estén cerrados.
+          Cerrá primero los ejercicios pendientes desde <strong>Cierre / Presentación</strong>.
+        </div>
+      {/if}
+      <Button variant="outline" size="sm" class="w-fit" onclick={toggleForm} disabled={busy || creating || !puedeCrear}>
+        <PlusIcon data-icon="inline-start" />
+        Nuevo ejercicio
+      </Button>
+    </div>
   {/if}
 </div>

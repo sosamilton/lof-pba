@@ -209,6 +209,11 @@ export const inicioStore = {
   get versionActual() { return versionActual },
   get shaActual() { return shaActual },
   get versionActualizada() { return Boolean(dash.versionInstalada) && dash.versionInstalada === versionActual },
+  get morosidadPct() { return dash.morosidadPct },
+  get mayorGasto() { return dash.mayorGasto },
+  get ultimaCarga() { return dash.ultimaCarga },
+  get periodoActual() { return dash.periodoActual },
+  get movimientosMes() { return dash.movimientosMes },
   get saldos() { return saldosStore },
   // Estado local
   get showNuevoEjercicio() { return showNuevoEjercicio },

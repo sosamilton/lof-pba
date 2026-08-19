@@ -6,6 +6,7 @@ import {
   totalesDesdeDetalle,
   totalesEjercicio,
   saldosInicialesEnCero as _saldosInicialesEnCero,
+  serieMensual as _serieMensual,
 } from '../shared/tesoreriaCalc.js'
 import { MESES } from '$core/utils/utils'
 
@@ -102,6 +103,11 @@ const resultadoEjercicio = $derived.by(() => ingresosEjercicio - egresosEjercici
 // True si los 3 saldos iniciales están en 0 (o null) pero hay movimientos.
 const saldosInicialesEnCero = $derived.by(() => _saldosInicialesEnCero(ejercicio, movimientos))
 
+// Serie mensual de saldo para el minigráfico de Inicio.
+// Usa el saldo inicial del ejercicio como punto de partida (sin arrastre
+// inter-anual para mantenerlo simple en el dashboard).
+const serieSaldo = $derived.by(() => _serieMensual(movimientos, [], ejercicio, undefined))
+
 export const saldosStore = {
   get loading() { return bs.loading },
   get error() { return bs.error },
@@ -119,6 +125,7 @@ export const saldosStore = {
   get egresosEjercicio() { return egresosEjercicio },
   get resultadoEjercicio() { return resultadoEjercicio },
   get saldosInicialesEnCero() { return saldosInicialesEnCero },
+  get serieSaldo() { return serieSaldo },
   load,
   loadFromData,
 }
