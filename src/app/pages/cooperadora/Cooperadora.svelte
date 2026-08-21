@@ -24,10 +24,35 @@
   import DialogCese from '$app/modules/gobierno/autoridades/components/DialogCese.svelte'
   import DialogReemplazo from '$app/modules/gobierno/autoridades/components/DialogReemplazo.svelte'
   import DialogHistorico from './components/DialogHistorico.svelte'
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
 
   let dialogEjercicioAbierto = $state(false)
   let ejercicioEditandoId = $state(null)
   let dialogHistoricoAbierto = $state(false)
+
+  // Diálogo de confirmación reutilizable.
+  let confirmOpen = $state(false)
+  let confirmTitle = $state('')
+  let confirmDescription = $state('')
+  let confirmLabel = $state('Confirmar')
+  let confirmVariant = $state('destructive')
+  let pendingAction = $state(() => {})
+
+  const openConfirm = (opts) => {
+    confirmTitle = opts.title
+    confirmDescription = opts.description || ''
+    confirmLabel = opts.confirmLabel || 'Confirmar'
+    confirmVariant = opts.variant || 'destructive'
+    pendingAction = opts.onConfirm
+    confirmOpen = true
+  }
+
+  const handleConfirm = async () => {
+    confirmOpen = false
+    const fn = pendingAction
+    pendingAction = () => {}
+    await fn()
+  }
 
   const abrirEditarEjercicio = (e) => {
     store.setEditandoEjercicio(e)
@@ -45,23 +70,40 @@
     if (!store.ejercicioEditando) return
     const tiene = await store.tieneMovimientos(ejercicioEditandoId)
     if (tiene) {
-      const ok = window.confirm(
-        'Modificar los saldos iniciales recalculará los saldos de todos los períodos. ¿Continuar?'
-      )
-      if (!ok) return
+      openConfirm({
+        title: 'Modificar saldos iniciales',
+        description: 'Modificar los saldos iniciales recalculará los saldos de todos los períodos. ¿Continuar?',
+        confirmLabel: 'Guardar y recalcular',
+        variant: 'default',
+        onConfirm: async () => {
+          await store.saveEjercicio()
+          if (!store.error) dialogEjercicioAbierto = false
+        },
+      })
+      return
     }
     await store.saveEjercicio()
     if (!store.error) dialogEjercicioAbierto = false
   }
 
-  const confirmarEliminarEjercicio = async (e) => {
-    if (!confirm(`¿Eliminar el ejercicio ${e.anio_inicio}-${e.anio_fin}? Esta acción no se puede deshacer.`)) return
-    await store.deleteEjercicio(e.id)
+  const confirmarEliminarEjercicio = (e) => {
+    openConfirm({
+      title: `¿Eliminar el ejercicio ${e.anio_inicio}-${e.anio_fin}?`,
+      description: 'Se borrarán todos los movimientos y saldos del ejercicio. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      variant: 'destructive',
+      onConfirm: () => store.deleteEjercicio(e.id),
+    })
   }
 
-  const confirmarActivarEjercicio = async (id) => {
-    if (!confirm('¿Activar este ejercicio como en curso? El ejercicio actual pasará a inactivo.')) return
-    await store.setEjercicioEnCurso(id)
+  const confirmarActivarEjercicio = (id) => {
+    openConfirm({
+      title: '¿Activar este ejercicio como en curso?',
+      description: 'El ejercicio actual pasará a inactivo y el seleccionado será el nuevo ejercicio en curso.',
+      confirmLabel: 'Activar',
+      variant: 'default',
+      onConfirm: () => store.setEjercicioEnCurso(id),
+    })
   }
 
   let emailEscuelaAlias = $state('')
@@ -269,3 +311,13 @@
 <DialogCese {store} />
 <DialogReemplazo {store} />
 <DialogHistorico bind:open={dialogHistoricoAbierto} {store} />
+
+<ConfirmDialog
+  bind:open={confirmOpen}
+  title={confirmTitle}
+  description={confirmDescription}
+  confirmLabel={confirmLabel}
+  variant={confirmVariant}
+  busy={store.busy}
+  onConfirm={handleConfirm}
+/>
