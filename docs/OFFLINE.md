@@ -42,8 +42,13 @@ El único requisito para offline es que **Grist cargue el widget desde un origen
 Levanta Grist + Redis + MinIO (snapshots) + SPA en localhost. **Es el escenario más simple y robusto.**
 
 ```bash
-cp docker/grist/grist.env.example .env   # solo la primera vez
-docker compose up -d --build
+# Opción simple: un solo archivo, sin clonar el repo
+curl -O https://raw.githubusercontent.com/sosamilton/spa-cooperadora/refs/heads/main/docker/docker-compose.standalone.yml
+docker compose -f docker-compose.standalone.yml up -d
+
+# Opción desde el repo (con build local):
+# cp docker/grist/grist.env.example .env   # solo la primera vez
+# docker compose up -d --build
 ```
 
 - **Grist**: `http://localhost:8089`
@@ -56,7 +61,7 @@ Pasos post-levantado:
 1. Abrir `http://localhost:8089` en el navegador.
 2. Crear un documento nuevo (o usar uno existente).
 3. En el documento: `Add New` → `Add Widget to Page` → `Custom`.
-4. Pegar la URL: `http://localhost:8088`.
+4. Elegí **LOF - Cooperadora Escolar** de la lista de widgets (aparece automáticamente vía `GRIST_WIDGET_LIST_URL`). Si no aparece, pegá la URL manualmente: `http://localhost:8088`.
 5. Configurar `Access level` como **Full document access**.
 6. La app se inicia y muestra el wizard de instalación.
 
@@ -80,7 +85,7 @@ Grist Desktop es una aplicación de escritorio (Electron) que guarda el document
 2. Levantar la SPA localmente:
    ```bash
    # Opción A: Docker
-   docker run -d -p 8088:80 --name lof ghcr.io/sosamilton/spa-cooperadora:latest
+   docker run -d -p 8088:80 --name lof ghcr.io/sosamilton/lof-pba:latest
 
    # Opción B: build local + servidor estático
    npm run build && npx serve dist -p 8088
@@ -105,7 +110,8 @@ Para una cooperadora que tiene un servidor en la institución (Raspberry Pi, min
 
 ```bash
 # En el servidor de la institución
-docker compose up -d --build
+curl -O https://raw.githubusercontent.com/sosamilton/spa-cooperadora/refs/heads/main/docker/docker-compose.standalone.yml
+docker compose -f docker-compose.standalone.yml up -d
 ```
 
 - Los usuarios acceden a Grist desde `http://<IP-del-servidor>:8089`.
@@ -174,7 +180,7 @@ El `docker/grist/docker-compose.grist.yml` configura `GRIST_TELEMETRY_LEVEL=off`
 Si ya tenés un documento en getgrist.com y querés pasarlo a local:
 
 1. En getgrist.com: `Document Settings` → `Download` → descarga el `.grist` (SQLite).
-2. Levantar Grist local: `docker compose up -d --build`.
+2. Levantar Grist local: `docker compose -f docker-compose.standalone.yml up -d`.
 3. En Grist local: `Import Document` → subí el archivo `.grist`.
 4. Reconfigurar el widget con `http://localhost:8088`.
 5. Todos los datos, tablas y configuración se preservan.
