@@ -154,6 +154,7 @@ export class SetupStore {
     batchSize: 100,
     cantAsambleas: 1,
     cantEjercicios: 1,
+    cantHechos: 10,
   })
 
   // Solo dev: si false, solo el input de ejercicios es editable y el resto
@@ -185,15 +186,17 @@ export class SetupStore {
   get datosPruebaDescripcion() {
     const cantEj = Number(this.datosPruebaConfig.cantEjercicios) || 1
     const totalAsambleas = (Number(this.datosPruebaConfig.cantAsambleas) || 1) * cantEj
+    const totalHechos = (Number(this.datosPruebaConfig.cantHechos) || 10) * cantEj
+    const hechosTxt = ` · ${totalHechos} hechos relevantes, ${cantEj} memoria(s)`
     if (this.selectedModules.carga_consolidada) {
       const periodos = 12
       const firmados = Math.floor(periodos * 0.7)
       const abiertos = periodos - firmados
       const ejTxt = cantEj > 1 ? ` en ${cantEj} ejercicios` : ''
-      return `${this.movimientosEstimados} movimientos PIA${ejTxt} (${firmados} períodos firmados, ${abiertos} abiertos por ejercicio) · ${this.datosPruebaConfig.cantPersonas} personas, ${this.datosPruebaConfig.cantSocios} socios · ${totalAsambleas} asamblea(s), autoridades CD/CRC con continuidad parcial`
+      return `${this.movimientosEstimados} movimientos PIA${ejTxt} (${firmados} períodos firmados, ${abiertos} abiertos por ejercicio) · ${this.datosPruebaConfig.cantPersonas} personas, ${this.datosPruebaConfig.cantSocios} socios · ${totalAsambleas} asamblea(s), autoridades CD/CRC con continuidad parcial${hechosTxt}`
     }
     const ejTxt = cantEj > 1 ? ` en ${cantEj} ejercicios` : ''
-    return `${this.movimientosEstimados} movimientos${ejTxt} (cuota social mensual por socio + extra) · ${this.datosPruebaConfig.cantPersonas} personas, ${this.datosPruebaConfig.cantSocios} socios · ${totalAsambleas} asamblea(s), autoridades CD/CRC con continuidad parcial`
+    return `${this.movimientosEstimados} movimientos${ejTxt} (cuota social mensual por socio + extra) · ${this.datosPruebaConfig.cantPersonas} personas, ${this.datosPruebaConfig.cantSocios} socios · ${totalAsambleas} asamblea(s), autoridades CD/CRC con continuidad parcial${hechosTxt}`
   }
 
   get localidades() { return localidadesItems.current }
@@ -260,6 +263,7 @@ export class SetupStore {
       this.datosPruebaConfig.cantSocios = 100 + cantEj * 30
       this.datosPruebaConfig.cantAsambleas = 1 // 1 AGO por ejercicio es lo típico
       this.datosPruebaConfig.batchSize = cantEj >= 3 ? 150 : 100
+      this.datosPruebaConfig.cantHechos = 10
     } else if (this.selectedModules.gestion_integral) {
       // Gestión integral: más socios para que la cuota social genere volumen
       this.datosPruebaConfig.cantPersonas = 300 + cantEj * 100
@@ -268,6 +272,7 @@ export class SetupStore {
       this.datosPruebaConfig.cantMovimientos = 300 + cantEj * 200
       this.datosPruebaConfig.cantAsambleas = 1
       this.datosPruebaConfig.batchSize = cantEj >= 3 ? 150 : 100
+      this.datosPruebaConfig.cantHechos = 10
     }
   }
 

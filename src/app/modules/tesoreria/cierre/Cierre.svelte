@@ -10,8 +10,10 @@
   import * as Select from '$lib/components/ui/select'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
   import CierreAlertas from './components/CierreAlertas.svelte'
+  import TabMemoria from './components/TabMemoria.svelte'
   import { formatFechaGrist } from '../shared/tesoreriaCalc.js'
   import FileTextIcon from '@lucide/svelte/icons/file-text'
+  import BookIcon from '@lucide/svelte/icons/book-open'
   import LockIcon from '@lucide/svelte/icons/lock'
   import UnlockIcon from '@lucide/svelte/icons/lock-open'
   import DownloadIcon from '@lucide/svelte/icons/download'
@@ -159,6 +161,10 @@
         <Tabs.List>
           <Tabs.Trigger value="pia">PIA</Tabs.Trigger>
           <Tabs.Trigger value="nomina">Nómina</Tabs.Trigger>
+          <Tabs.Trigger value="memoria">
+            <BookIcon data-icon="inline-start" />
+            Memoria
+          </Tabs.Trigger>
           <Tabs.Trigger value="historial">Historial</Tabs.Trigger>
         </Tabs.List>
 
@@ -228,6 +234,22 @@
                   ></iframe>
                 </div>
               {/if}
+            </Card.Content>
+          </Card.Root>
+        </Tabs.Content>
+
+        <!-- Tab Memoria -->
+        <Tabs.Content value="memoria">
+          <Card.Root>
+            <Card.Header>
+              <Card.Title class="text-base">Memoria anual del ejercicio</Card.Title>
+              <Card.Description>
+                Generá, editá y exportá la Memoria anual. Se compila automáticamente desde los hechos relevantes
+                registrados en el módulo de Asambleas y Autoridades.
+              </Card.Description>
+            </Card.Header>
+            <Card.Content>
+              <TabMemoria {store} />
             </Card.Content>
           </Card.Root>
         </Tabs.Content>

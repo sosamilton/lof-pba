@@ -263,6 +263,21 @@
                     La primera es siempre AGO. Más de 1 genera AGE adicionales para probar cambio de autoridades dentro del ejercicio.
                   </Field.FieldDescription>
                 </Field.Field>
+                <Field.Field>
+                  <Field.FieldLabel for="dp-hechos" class="text-[12px]">Hechos relevantes por ejercicio</Field.FieldLabel>
+                  <Input
+                    id="dp-hechos"
+                    type="number"
+                    min="0"
+                    max="50"
+                    bind:value={store.datosPruebaConfig.cantHechos}
+                    readonly={!store.customizarDatosPrueba}
+                    class="h-9"
+                  />
+                  <Field.FieldDescription class="text-[11px]">
+                    Hechos para alimentar la Memoria anual (eventos, infraestructura, equipamiento, etc.). 1 Memoria por ejercicio.
+                  </Field.FieldDescription>
+                </Field.Field>
               </div>
             </Field.FieldSet>
 
@@ -272,12 +287,16 @@
                 (cuota social + extra) · {store.datosPruebaConfig.cantSocios} socios
                 · {Number(store.datosPruebaConfig.cantEjercicios) || 1} ejercicio(s)
                 · {Number(store.datosPruebaConfig.cantAsambleas) * Number(store.datosPruebaConfig.cantEjercicios)} asamblea(s) total
+                · {Number(store.datosPruebaConfig.cantHechos) * Number(store.datosPruebaConfig.cantEjercicios)} hechos relevantes
+                · {Number(store.datosPruebaConfig.cantEjercicios) || 1} memoria(s)
               </div>
             {:else if store.selectedModules.carga_consolidada}
               <div class="mt-3 p-2.5 rounded-lg border border-primary/20 bg-primary/5 text-[11px] text-muted-foreground">
                 <strong>Estimación:</strong> ~{store.movimientosEstimados} movimientos
                 (rubros × cuentas × períodos × {Number(store.datosPruebaConfig.cantEjercicios) || 1} ejercicio(s))
                 · {Number(store.datosPruebaConfig.cantAsambleas) * Number(store.datosPruebaConfig.cantEjercicios)} asamblea(s) total
+                · {Number(store.datosPruebaConfig.cantHechos) * Number(store.datosPruebaConfig.cantEjercicios)} hechos relevantes
+                · {Number(store.datosPruebaConfig.cantEjercicios) || 1} memoria(s)
               </div>
             {/if}
           </div>
