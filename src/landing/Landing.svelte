@@ -147,7 +147,7 @@
         <div class="flex flex-wrap gap-3">
           <Button variant="secondary" size="lg" onclick={() => navigate('instalacion')}>
             <DownloadIcon data-icon="inline-start" />
-            Guía de instalación
+            Empezar a usar LOF
           </Button>
           <Button variant="outline" size="lg" href={enlaces.repo} target="_blank" rel="noopener noreferrer">
             <CodeXmlIcon data-icon="inline-start" />
@@ -157,6 +157,14 @@
         <p class="text-sm text-muted-foreground">
           Software libre bajo {identidad.licencia}. Funciona con Grist, una plataforma de datos libre y autoinstalable.
         </p>
+        <div class="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 max-w-2xl">
+          <ShieldIcon class="size-5 shrink-0 text-primary mt-0.5" />
+          <p class="text-sm text-muted-foreground">
+            <strong class="text-foreground">Tus datos están en tu documento de Grist.</strong>
+            LOF es la herramienta que los organiza y presenta. No necesitás crear una cuenta en LOF
+            ni subir los datos de tu cooperadora a otro sistema.
+          </p>
+        </div>
       </div>
     </div>
   </section>

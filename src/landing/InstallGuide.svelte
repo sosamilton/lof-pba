@@ -19,6 +19,10 @@
   import DatabaseIcon from '@lucide/svelte/icons/database'
   import ShieldCheckIcon from '@lucide/svelte/icons/shield-check'
   import ArrowRightLeftIcon from '@lucide/svelte/icons/arrow-right-left'
+  import CloudIcon from '@lucide/svelte/icons/cloud'
+  import PlugIcon from '@lucide/svelte/icons/plug'
+  import ServerIcon from '@lucide/svelte/icons/server'
+  import CircleQuestionMarkIcon from '@lucide/svelte/icons/circle-question-mark'
   import { identidad } from '$core/data/identidad'
   import data from './landing.json'
 
@@ -43,6 +47,53 @@
       // fallback
     }
   }
+
+  // Selector de modalidad: guía la decisión sin exponer jerga técnica de entrada.
+  const CAMINOS = [
+    {
+      id: 'ya-tengo',
+      icon: PlugIcon,
+      titulo: 'Ya tengo Grist',
+      descripcion: 'Uso Grist Desktop, la nube o un servidor de mi organización.',
+      cta: 'Agregar LOF a mi documento',
+    },
+    {
+      id: 'nube',
+      icon: CloudIcon,
+      titulo: 'No tengo Grist',
+      descripcion: 'Quiero empezar desde cero, sin instalar nada en mi computadora.',
+      cta: 'Quiero empezar',
+      recomendado: true,
+    },
+    {
+      id: 'servidor',
+      icon: ServerIcon,
+      titulo: 'Soy administrador técnico',
+      descripcion: 'Quiero instalar Grist y LOF en un servidor propio (Docker), ideal sin internet.',
+      cta: 'Instalar en un servidor',
+    },
+    {
+      id: 'no-se',
+      icon: CircleQuestionMarkIcon,
+      titulo: 'No sé qué necesito',
+      descripcion: 'Ayudame a elegir con un par de preguntas simples.',
+      cta: 'Ayudarme a elegir',
+    },
+  ]
+
+  let camino = $state(null)
+
+  const elegirCamino = (id) => {
+    camino = id
+  }
+
+  const volverAlSelector = () => {
+    camino = null
+  }
+
+  // Pasos de "agregar LOF" reutilizados según el punto de partida del usuario.
+  const pasosAgregarWidget = $derived(guia_instalacion.pasos.filter((p) => p.titulo !== 'Crear un documento nuevo'))
+  const metodoServidor = $derived(guia_instalacion.metodos_instalacion.find((m) => m.comandos?.length > 0))
 </script>
 
 <main class="min-h-screen bg-background text-foreground">
@@ -74,6 +125,201 @@
       </div>
     </div>
   </section>
+
+  <!-- ¿QUÉ NECESITO? -->
+  <section class="mx-auto max-w-5xl px-4 pt-10 sm:pt-14">
+    <div class="rounded-xl border border-border bg-card/50 p-5 sm:p-6">
+      <h2 class="text-lg font-bold tracking-tight mb-3">Para usar LOF necesitás</h2>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Obligatorio</span>
+          <ul class="mt-2 flex flex-col gap-1.5">
+            <li class="flex items-center gap-2 text-sm"><CheckIcon class="size-4 text-primary shrink-0" /> Grist</li>
+            <li class="flex items-center gap-2 text-sm"><CheckIcon class="size-4 text-primary shrink-0" /> Un documento en Grist</li>
+            <li class="flex items-center gap-2 text-sm"><CheckIcon class="size-4 text-primary shrink-0" /> El widget LOF</li>
+          </ul>
+        </div>
+        <div>
+          <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Opcional</span>
+          <ul class="mt-2 flex flex-col gap-1.5">
+            <li class="flex items-center gap-2 text-sm text-muted-foreground"><span class="size-4 shrink-0"></span> Servidor propio (para uso offline)</li>
+            <li class="flex items-center gap-2 text-sm text-muted-foreground"><span class="size-4 shrink-0"></span> Dominio propio</li>
+          </ul>
+        </div>
+      </div>
+      <p class="mt-4 text-sm text-muted-foreground border-t border-border pt-3">
+        <strong class="text-foreground">No necesitás instalar LOF en tu computadora.</strong> LOF funciona dentro de Grist.
+      </p>
+    </div>
+  </section>
+
+  <!-- SELECTOR DE MODALIDAD -->
+  <section class="mx-auto max-w-5xl px-4 py-10 sm:py-14">
+    <div class="flex flex-col gap-2 mb-6">
+      <h2 class="text-2xl font-bold tracking-tight">¿Cómo querés empezar?</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        Elegí la opción que describe tu situación. Te mostramos solo lo que necesitás para ese caso.
+      </p>
+    </div>
+
+    {#if !camino}
+      <div class="grid gap-4 sm:grid-cols-2">
+        {#each CAMINOS as c}
+          <button
+            type="button"
+            onclick={() => elegirCamino(c.id)}
+            class="text-left rounded-lg border p-4 transition-colors hover:border-primary/50 hover:bg-primary/5 {c.recomendado ? 'border-2 border-primary/40 bg-primary/5' : 'border-border'}"
+          >
+            <div class="flex items-center gap-2 mb-2">
+              <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <c.icon class="size-5" />
+              </div>
+              <span class="text-sm font-bold">{c.titulo}</span>
+              {#if c.recomendado}
+                <Badge variant="default" class="gap-1">
+                  <StarIcon class="size-3" />
+                  Recomendado
+                </Badge>
+              {/if}
+            </div>
+            <p class="text-xs text-muted-foreground mb-3">{c.descripcion}</p>
+            <span class="text-sm font-medium text-primary inline-flex items-center gap-1">
+              {c.cta}
+              <ExternalLinkIcon class="size-3.5" />
+            </span>
+          </button>
+        {/each}
+      </div>
+    {:else}
+      <Button variant="ghost" size="sm" onclick={volverAlSelector} class="mb-4">
+        <ArrowLeftIcon data-icon="inline-start" />
+        Elegir otra opción
+      </Button>
+
+      {#if camino === 'ya-tengo'}
+        <div class="flex flex-col gap-4">
+          <div class="rounded-lg border-2 border-primary/30 bg-primary/5 p-4">
+            <p class="text-sm">
+              <strong>Perfecto.</strong> Solo necesitás agregar LOF como aplicación personalizada dentro de tu documento y darle acceso. No hace falta instalar nada más.
+            </p>
+          </div>
+          <ol class="flex flex-col gap-3">
+            {#each pasosAgregarWidget as paso, i}
+              <li class="flex gap-3 rounded-lg border border-border p-3">
+                <div class="flex size-7 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-xs font-bold text-primary">{i + 1}</div>
+                <div>
+                  <div class="text-sm font-semibold">{paso.titulo}</div>
+                  <p class="text-xs text-muted-foreground mt-0.5">{paso.descripcion}</p>
+                </div>
+              </li>
+            {/each}
+          </ol>
+        </div>
+      {:else if camino === 'nube'}
+        <div class="flex flex-col gap-4">
+          <div class="rounded-lg border-2 border-primary/30 bg-primary/5 p-4">
+            <p class="text-sm mb-3">
+              Usá Grist desde el navegador, sin instalar nada. Es gratis y alcanza para la mayoría de las cooperadoras escolares (hasta 5000 filas por tabla).
+            </p>
+            <Button href="https://www.getgrist.com/" target="_blank" rel="noreferrer">
+              <GristIcon class="size-4" data-icon="inline-start" />
+              Crear cuenta gratis en getgrist.com
+              <ExternalLinkIcon data-icon="inline-end" />
+            </Button>
+          </div>
+          <p class="text-sm text-muted-foreground">Después de crear tu cuenta, seguí estos pasos:</p>
+          <ol class="flex flex-col gap-3">
+            {#each guia_instalacion.pasos as paso, i}
+              <li class="flex gap-3 rounded-lg border border-border p-3">
+                <div class="flex size-7 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-xs font-bold text-primary">{i + 1}</div>
+                <div>
+                  <div class="text-sm font-semibold">{paso.titulo}</div>
+                  <p class="text-xs text-muted-foreground mt-0.5">{paso.descripcion}</p>
+                </div>
+              </li>
+            {/each}
+          </ol>
+        </div>
+      {:else if camino === 'servidor'}
+        <div class="flex flex-col gap-4">
+          <div class="rounded-lg border border-border bg-muted/5 p-4">
+            <p class="text-sm text-muted-foreground">
+              Esta modalidad requiere conocimientos técnicos. Instala Grist y LOF juntos en un servidor propio con Docker, ideal para escuelas sin internet estable.
+            </p>
+          </div>
+          {#if metodoServidor}
+            <div class="flex flex-col gap-3">
+              {#each metodoServidor.comandos as cmd, j}
+                <div class="relative rounded-lg border border-border bg-card overflow-hidden">
+                  <div class="flex items-center justify-between px-4 py-2 border-b border-border bg-muted">
+                    <span class="text-xs font-mono text-muted-foreground">Paso {j + 1}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      class="h-6 px-2"
+                      onclick={() => copyToClipboard(cmd, 'srv-cmd-' + j)}
+                    >
+                      {#if copied === 'srv-cmd-' + j}
+                        <CheckIcon data-icon="inline-start" class="text-primary" />
+                        Copiado
+                      {:else}
+                        <CopyIcon data-icon="inline-start" />
+                        Copiar
+                      {/if}
+                    </Button>
+                  </div>
+                  <pre class="px-4 py-3 text-sm font-mono overflow-x-auto"><code>{cmd}</code></pre>
+                </div>
+              {/each}
+            </div>
+            <div class="flex flex-wrap gap-2">
+              {#each metodoServidor.requisitos as req}
+                <Button variant="outline" size="sm" href={req.enlace} target="_blank" rel="noreferrer">
+                  <DownloadIcon data-icon="inline-start" />
+                  {req.texto}
+                  <ExternalLinkIcon data-icon="inline-end" />
+                </Button>
+              {/each}
+            </div>
+          {/if}
+          <a href={offlineDocUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm text-primary hover:underline w-fit">
+            <FileTextIcon class="size-4" />
+            Ver guía detallada de uso offline
+          </a>
+          <p class="text-sm text-muted-foreground mt-2">Una vez levantado el servidor, agregá LOF a tu documento:</p>
+          <ol class="flex flex-col gap-3">
+            {#each guia_instalacion.pasos as paso, i}
+              <li class="flex gap-3 rounded-lg border border-border p-3">
+                <div class="flex size-7 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-xs font-bold text-primary">{i + 1}</div>
+                <div>
+                  <div class="text-sm font-semibold">{paso.titulo}</div>
+                  <p class="text-xs text-muted-foreground mt-0.5">{paso.descripcion}</p>
+                </div>
+              </li>
+            {/each}
+          </ol>
+        </div>
+      {:else if camino === 'no-se'}
+        <div class="flex flex-col gap-3">
+          <p class="text-sm text-muted-foreground mb-2">No hay problema, te ayudamos a elegir:</p>
+          <button type="button" onclick={() => elegirCamino('nube')} class="text-left rounded-lg border border-border p-4 hover:border-primary/50 hover:bg-primary/5">
+            <span class="text-sm font-semibold">¿Tenés internet estable en la escuela y no querés instalar nada?</span>
+            <p class="text-xs text-muted-foreground mt-1">Usá Grist en la nube. Es gratis y no requiere instalar programas.</p>
+          </button>
+          <button type="button" onclick={() => elegirCamino('servidor')} class="text-left rounded-lg border border-border p-4 hover:border-primary/50 hover:bg-primary/5">
+            <span class="text-sm font-semibold">¿No hay internet estable, o alguien técnico va a administrar el sistema?</span>
+            <p class="text-xs text-muted-foreground mt-1">Instalá Grist y LOF en un servidor propio con Docker. Funciona 100% offline.</p>
+          </button>
+          <button type="button" onclick={() => elegirCamino('ya-tengo')} class="text-left rounded-lg border border-border p-4 hover:border-primary/50 hover:bg-primary/5">
+            <span class="text-sm font-semibold">¿Ya tenés Grist funcionando?</span>
+            <p class="text-xs text-muted-foreground mt-1">Solo agregá LOF a tu documento existente.</p>
+          </button>
+        </div>
+      {/if}
+    {/if}
+  </section>
+
+  <Separator />
 
   <!-- ¿QUÉ ES GRIST? -->
   <section class="mx-auto max-w-5xl px-4 py-10 sm:py-14">
@@ -130,54 +376,12 @@
 
   <Separator />
 
-  <!-- ¿CUÁL ELIJO? -->
+  <!-- MÉTODOS DE INSTALACIÓN (detalle técnico completo, opcional) -->
   <section class="mx-auto max-w-5xl px-4 py-10 sm:py-14">
     <div class="flex flex-col gap-2 mb-6">
-      <h2 class="text-2xl font-bold tracking-tight">¿Cuál elijo?</h2>
+      <h2 class="text-2xl font-bold tracking-tight">Ver todas las opciones en detalle</h2>
       <p class="text-sm text-muted-foreground max-w-prose">
-        Depende de tu situación. Acá te ayudamos a decidir:
-      </p>
-    </div>
-
-    <div class="grid gap-4 sm:grid-cols-3">
-      <div class="rounded-lg border-2 border-primary/30 bg-primary/5 p-4">
-        <div class="flex items-center gap-2 mb-2">
-          <StarIcon class="size-4 text-primary" />
-          <span class="text-sm font-bold">Si recién empezás</span>
-        </div>
-        <p class="text-xs text-muted-foreground">
-          Descargá <strong>Grist Desktop</strong>. Es como instalar cualquier programa. No necesitás internet ni saber de computación.
-        </p>
-      </div>
-      <div class="rounded-lg border border-border p-4">
-        <div class="flex items-center gap-2 mb-2">
-          <WifiIcon class="size-4 text-blue-600" />
-          <span class="text-sm font-bold">Si tenés buen internet</span>
-        </div>
-        <p class="text-xs text-muted-foreground">
-          Usá la <strong>nube de Grist</strong> (getgrist.com). Sin instalar nada, entrás desde el navegador. Es gratis.
-        </p>
-      </div>
-      <div class="rounded-lg border border-border p-4">
-        <div class="flex items-center gap-2 mb-2">
-          <WifiOffIcon class="size-4 text-emerald-600" />
-          <span class="text-sm font-bold">Si no hay internet en la escuela</span>
-        </div>
-        <p class="text-xs text-muted-foreground">
-          Alguien con conocimientos técnicos puede instalar <strong>Docker</strong>. Todo funciona offline, sin depender de internet.
-        </p>
-      </div>
-    </div>
-  </section>
-
-  <Separator />
-
-  <!-- MÉTODOS DE INSTALACIÓN -->
-  <section class="mx-auto max-w-5xl px-4 py-10 sm:py-14">
-    <div class="flex flex-col gap-2 mb-6">
-      <h2 class="text-2xl font-bold tracking-tight">Formas de instalar</h2>
-      <p class="text-sm text-muted-foreground max-w-prose">
-        Elegí la opción que mejor se adapte a tu situación. Desplegá cada una para ver los detalles.
+        Si preferís revisar vos mismo todas las modalidades técnicas disponibles, desplegá cada una acá.
       </p>
       <a href={offlineDocUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm text-primary hover:underline w-fit">
         <FileTextIcon class="size-4" />
