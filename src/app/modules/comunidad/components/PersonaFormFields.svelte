@@ -54,7 +54,7 @@
   <Field.FieldLabel for="localidad">Localidad</Field.FieldLabel>
   <Combobox
     bind:value={form.localidad}
-    items={localidadesItems}
+    items={localidadesItems.current}
     placeholder="Elegir localidad…"
     searchPlaceholder="Buscar localidad de PBA…"
   />

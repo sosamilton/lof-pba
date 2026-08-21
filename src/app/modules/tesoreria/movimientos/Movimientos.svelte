@@ -3,6 +3,7 @@
   import { movimientosStore as store } from './movimientosStore.svelte'
   import { normalize, buildMapById } from '$core/utils/utils'
   import { filterBySearch } from '$lib/hooks/useListFilter.svelte.js'
+  import { useDebounce } from '$lib/hooks/useDebounce.svelte.js'
   import { Button } from '$lib/components/ui/button'
   import { Input } from '$lib/components/ui/input'
   import * as Select from '$lib/components/ui/select'
@@ -24,6 +25,7 @@
   import CargaPIAMatrix from '../cargaPia/CargaPIAMatrix.svelte'
 
   let q = $state('')
+  const qd = useDebounce(() => q)
   let tipo = $state('')
   let rubroFiltro = $state('')         // filtro por rubro_id (categoría PIA)
   let ejercicioFiltro = $state('')     // filtro por ejercicio_id
@@ -86,7 +88,7 @@
           if (!personaFiltro) return true
           return String(m.persona_id) === personaFiltro || String(m.socio_id) === personaFiltro
         }),
-      q,
+      qd.value,
       (/** @type {any} */ m) => [m.detalle],
     ).sort((/** @type {any} */ a, /** @type {any} */ b) => String(b.fecha || '').localeCompare(String(a.fecha || ''))),
   )

@@ -5,6 +5,7 @@
   import EmptyState from '$lib/components/EmptyState.svelte'
   import { TIPOS_ASAMBLEA, TIPOS_ASAMBLEA_CORTO } from '$app/modules/gobierno/constants.js'
   import { filterBySearch } from '$lib/hooks/useListFilter.svelte.js'
+  import { useDebounce } from '$lib/hooks/useDebounce.svelte.js'
   import { notifyAfter } from '$core/ui/notify.svelte'
   import PlusIcon from '@lucide/svelte/icons/plus'
   import TrashIcon from '@lucide/svelte/icons/trash-2'
@@ -18,6 +19,7 @@
   let { store } = $props()
 
   let q = $state('')
+  const qd = useDebounce(() => q)
   let wizardOpen = $state(false)
   let deleteConfirm = $state(null)
 
@@ -65,7 +67,7 @@
   let filtered = $derived(
     filterBySearch(
       store.asambleas,
-      q,
+      qd.value,
       (a) => [a.fecha, a.tipo_asamblea, a.acta_numero, TIPOS_ASAMBLEA_CORTO[a.tipo_asamblea]],
     ),
   )

@@ -4,7 +4,8 @@ import { ORGANISMOS, ORGANISMO_LABELS } from '$app/modules/gobierno/constants.js
 import { loadConfig, getTablesForModules } from '$app/pages/cooperadora/cooperadoraApi.js'
 import { emailInstitucionalAlias } from '$core/format/emailInstitucional'
 import { loadEscuelasIndex } from '$core/format/escuelas'
-import { CUENTAS_OPCIONES, currentYear, localidades, steps } from './setupConstants'
+import { localidadesItems } from '$lib/hooks/localidades.svelte.js'
+import { CUENTAS_OPCIONES, currentYear, steps } from './setupConstants'
 import {
   onCueInput, onCuitInput, onTelefonoEscuelaInput, onTelefonoInput,
   toggleTelefonoMismoQueEscuela, onEmailInput, onEmailEscuelaInput, onCbuInput,
@@ -195,7 +196,7 @@ export class SetupStore {
     return `${this.movimientosEstimados} movimientos${ejTxt} (cuota social mensual por socio + extra) · ${this.datosPruebaConfig.cantPersonas} personas, ${this.datosPruebaConfig.cantSocios} socios · ${totalAsambleas} asamblea(s), autoridades CD/CRC con continuidad parcial`
   }
 
-  localidades = localidades
+  get localidades() { return localidadesItems.current }
   steps = steps
 
   get selectedModuleKeys() {
