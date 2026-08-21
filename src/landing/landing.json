@@ -206,8 +206,8 @@
     ]
   },
   "guia_instalacion": {
-    "titulo": "Guía de instalación",
-    "subtitulo": "Paso a paso, sin necesidad de conocimientos técnicos. Si sabés usar Excel, podés instalar LOF.",
+    "titulo": "Empezar a usar LOF",
+    "subtitulo": "LOF funciona dentro de Grist. No necesitás instalar nada en tu computadora ni saber programar.",
     "pasos": [
       {
         "titulo": "Crear un documento nuevo",
