@@ -1542,6 +1542,13 @@
             "label": "Cargos validados",
             "type": "Bool"
           }
+        },
+        {
+          "id": "federacion_adherida",
+          "fields": {
+            "label": "Federacion adherida",
+            "type": "Bool"
+          }
         }
       ]
     },

@@ -113,6 +113,7 @@ export async function doInstall(s) {
       cooperadora_nombre: s.schoolData.cooperadora_nombre || '',
       color_primario: s.schoolData.color_primario || '#16b378',
       cuenta_default_id: null,
+      federacion_adherida: Boolean(s.federacionAdherida),
       instalado: true,
       fecha_instalacion: new Date().toISOString(),
       // Versión del bundle que se instaló: permite comparar contra la versión

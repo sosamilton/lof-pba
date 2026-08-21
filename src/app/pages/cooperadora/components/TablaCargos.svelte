@@ -35,6 +35,8 @@
     tieneAutoridadesVigentes = true,
   } = $props()
 
+  const esFederacion = $derived(store.organismo === 'Federacion')
+
   let mostrarCargosEstatuto = $state(false)
 
   // Diálogo de confirmación reutilizable (reemplaza confirm() nativo).
@@ -81,7 +83,7 @@
   const confirmarVerificarCargos = () => {
     openConfirm({
       title: '¿Verificar los cargos del estatuto?',
-      description: 'Quedarán bloqueados y solo podrán modificarse tras registrar una Asamblea Extraordinaria con reforma del estatuto.',
+      description: 'Quedarán bloqueados y solo podrán modificarse tras registrar una Asamblea Extraordinaria con reforma del estatuto. Si necesitás corregir un error de carga, podés editarlos directamente en las tablas de Grist.',
       confirmLabel: 'Verificar y bloquear',
       variant: 'default',
       onConfirm: () => store.validarCargos(),
@@ -97,6 +99,19 @@
       onConfirm: () => store.deleteCargo(cargo.id),
     })
   }
+
+  const confirmarToggleFederacion = () => {
+    const activando = !store.federacion_adherida
+    openConfirm({
+      title: activando ? '¿Activar la participación en la Federación?' : '¿Desactivar la participación en la Federación?',
+      description: activando
+        ? 'Se habilitarán los cargos de representación ante la Federación. Podrás designar autoridades para esos cargos.'
+        : 'Se desactivarán todos los cargos de la Federación. Las autoridades designadas pasarán al historial.',
+      confirmLabel: activando ? 'Activar' : 'Desactivar',
+      variant: activando ? 'default' : 'destructive',
+      onConfirm: () => store.toggleFederacion(),
+    })
+  }
 </script>
 
 <div class="flex flex-col gap-4">
@@ -107,7 +122,27 @@
     </Tabs.List>
   </Tabs.Root>
 
-  {#if store.comisionDirectiva.length > 0}
+  {#if esFederacion}
+    <!-- Toggle de adhesión a la Federación -->
+    <div class="flex items-center gap-2.5 p-3 rounded-xl border transition-colors {store.federacion_adherida ? 'border-primary/40 bg-primary/5' : 'border-border'}">
+      <Switch checked={store.federacion_adherida} onCheckedChange={() => confirmarToggleFederacion()} disabled={store.busy} aria-label="Adherida a la Federación de Cooperadoras" />
+      <div>
+        <div class="text-sm font-bold">Adherida a la Federación de Cooperadoras</div>
+        <div class="text-[13px] text-muted-foreground mt-0.5">Activá esta opción si tu cooperadora está adherida; al hacerlo se habilitan los cargos correspondientes.</div>
+      </div>
+    </div>
+  {/if}
+
+  {#if esFederacion && !store.federacion_adherida}
+    <!-- Mensaje: cooperadora no federada -->
+    <div class="flex items-start gap-3 rounded-lg border border-border bg-muted/5 px-4 py-3">
+      <InfoIcon class="size-5 shrink-0 text-muted-foreground" />
+      <div class="flex flex-col gap-1">
+        <span class="text-sm font-semibold">Esta cooperadora no está adherida a la Federación</span>
+        <span class="text-sm text-muted-foreground">Si tu cooperadora está federada, activá el switch de arriba para habilitar los cargos de representación.</span>
+      </div>
+    </div>
+  {:else if store.comisionDirectiva.length > 0}
     <!-- Panel explicativo de renovación por organismo -->
     {#if ORGANISMO_RENOVACION[store.organismo]}
       <div class="flex items-start gap-2 rounded-lg border border-border bg-muted/5 p-2.5 text-[11px] text-muted-foreground leading-relaxed">

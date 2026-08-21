@@ -1,6 +1,7 @@
 import {
   applyUserActions,
   ensureOneRow,
+  fetchRecords,
   gristReady,
   isInGrist,
   resolveTableId,
@@ -56,6 +57,7 @@ let color_primario = $state('#16b378')
 // true, la edición de cargos en Institucional se bloquea; solo se desbloquea
 // al guardar una AGE con motivo "Reforma estatuto".
 let cargos_validados = $state(false)
+let federacion_adherida = $state(false)
 
 // --- Sub-stores (composición) ---
 const ejerciciosMgr = createEjerciciosStore({
@@ -112,6 +114,7 @@ const load = async () => {
     const config = await loadConfig()
     if (config?.color_primario) color_primario = config.color_primario
     cargos_validados = Boolean(config?.cargos_validados)
+    federacion_adherida = Boolean(config?.federacion_adherida)
     await cargosMgr.loadCargos()
     await cargosMgr.loadAutoridades()
     await cargosMgr.loadAsambleas()
@@ -184,6 +187,28 @@ const desbloquearCargos = async () => {
   cargos_validados = false
 }
 
+// Activa/desactiva la participación en la Federación: togglear el flag
+// `activo` de todos los cargos del organismo 'Federacion' y persistirlo
+// en configuracion.
+const toggleFederacion = async () => {
+  await bs.wrapAsync(async () => {
+    if (!tCargos) { bs.setError('No se encontró la tabla cargos.'); return }
+    const newVal = !federacion_adherida
+    const allCargos = await fetchRecords(tCargos)
+    const fedCargos = allCargos.filter((c) => String(c.organismo) === 'Federacion')
+    const actions = fedCargos.map((c) =>
+      ['UpdateRecord', tCargos, c.id, { activo: newVal }]
+    )
+    if (actions.length > 0) await applyUserActions(actions)
+    const config = await loadConfig()
+    await saveConfig({ ...config, federacion_adherida: newVal })
+    federacion_adherida = newVal
+    await cargosMgr.loadCargos()
+    await cargosMgr.loadAutoridades()
+    bs.setNotice(newVal ? 'Federación activada.' : 'Federación desactivada.'); notify.success(bs.notice)
+  })
+}
+
 // Re-formateo en vivo mientras el usuario tipea. Los datos se guardan crudos.
 const onCueInput = () => { escuela.cue = formatCue(escuela.cue) }
 const onCuitInput = () => { escuela.cuit = formatCuil(escuela.cuit) }
@@ -220,6 +245,8 @@ export const cooperadoraStore = {
   validarCargos,
   desbloquearCargos,
   get cargos_validados() { return cargos_validados },
+  get federacion_adherida() { return federacion_adherida },
+  toggleFederacion,
   // Ejercicios (delegado a sub-store)
   get ejercicios() { return ejerciciosMgr.ejercicios },
   get nuevoEj() { return ejerciciosMgr.nuevoEj },
