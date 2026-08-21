@@ -21,7 +21,7 @@
   })
 </script>
 
-<PageScaff title="Asambleas y Autoridades" loading={store.loading} error={store.error} notice={store.notice}>
+<PageScaff title="Asambleas y Memorias" loading={store.loading} error={store.error} notice={store.notice}>
   {#snippet skeleton()}
     <div class="flex flex-col gap-4">
       <Skeleton class="h-8 w-64" />
@@ -31,7 +31,7 @@
   {/snippet}
 
   <div class="mb-4">
-    <h1 class="text-lg font-bold">Asambleas y Autoridades</h1>
+    <h1 class="text-lg font-bold">Asambleas y Memorias</h1>
     <p class="text-sm text-muted-foreground">
       {#if store.ejercicio}
         Ejercicio en curso: <span class="font-mono">{store.ejercicio.anio_inicio}-{store.ejercicio.anio_fin}</span>

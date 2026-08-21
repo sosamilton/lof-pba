@@ -245,7 +245,7 @@
               <Card.Title class="text-base">Memoria anual del ejercicio</Card.Title>
               <Card.Description>
                 Generá, editá y exportá la Memoria anual. Se compila automáticamente desde los hechos relevantes
-                registrados en el módulo de Asambleas y Autoridades.
+                registrados en el módulo de Asambleas y Memorias.
               </Card.Description>
             </Card.Header>
             <Card.Content>

@@ -1,5 +1,5 @@
 /**
- * Constantes de dominio del módulo Gobierno (asambleas y autoridades).
+ * Constantes de dominio del módulo Gobierno (asambleas, histórico y memorias).
  */
 
 export const ORGANISMOS = ['CD', 'CRC', 'Federacion']

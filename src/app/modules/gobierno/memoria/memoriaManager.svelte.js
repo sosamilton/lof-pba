@@ -111,7 +111,7 @@ export function generarBorradorMemoria({ getEjercicio, getHechos, getAsambleas, 
     }
   }
 
-  // 2. Decisiones institucionales (asambleas y autoridades)
+  // 2. Decisiones institucionales (asambleas y memorias)
   const asambleasEjercicio = asambleas.filter((a) => Number(a.ejercicio_id) === Number(ej.id))
   if (asambleasEjercicio.length > 0) {
     lineas.push('## Decisiones institucionales')

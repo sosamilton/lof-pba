@@ -10,7 +10,7 @@ LOF es una **SPA sin backend propio**. Toda la persistencia vive en un **documen
 ┌─────────────────────────── Grist Document (host) ───────────────────────────┐
 │  Tablas: configuracion, escuela, ejercicios, personas, socios, movimientos, │
 │          cargas, cierres_mensuales, autoridades, asambleas, resoluciones,    │
-│          cuentas, rubros_pia, ...                                            │
+│          hechos_relevantes, cuentas, rubros_pia, ...                        │
 │                                                                             │
 │   ┌──────────────────────── iframe: Custom Widget ─────────────────────┐    │
 │   │  LOF SPA (Svelte 5 + Vite)                                          │    │
@@ -40,8 +40,8 @@ Vista pública que se muestra cuando la app corre fuera de Grist. El contenido (
 
 - **`AppShell.svelte`** — layout principal con sidebar (desktop) / drawer (mobile), menú dinámico según los módulos activos en la configuración, y branding desde la config de la cooperadora.
 - **`pages/`** — páginas de nivel superior, cada una en su propia carpeta con stores y componentes:
-  - `inicio/` — `Inicio.svelte` + `inicioStore` + `dashboardStore` (métricas) + `components/` (ResumenEjecutivo, TableroCaja, ConfigPanel, etc.).
-  - `cooperadora/` — **Institucional** (ruta interna `cooperadora`, visible como "Institucional" en el sidebar). `Cooperadora.svelte` + `cooperadoraStore` (facade) + `cargosStore` (cargos + autoridades vigentes + cese + reemplazo + histórico) + `ejerciciosStore` + `cooperadoraApi` + `components/` (FormEscuela, FormBanco, TablaCargos, DialogHistorico, ListaAsesores, ListaEjercicios, etc.).
+  - `inicio/` — `Inicio.svelte` + `inicioStore` + `dashboardStore` (métricas) + `components/` (ResumenEjecutivo, TableroCaja, ConfigPanel, etc.). Configuración de periodicidad de cargas (mensual, bimestral, trimestral, etc.).
+  - `cooperadora/` — **Institucional** (ruta interna `cooperadora`, visible como "Institucional" en el sidebar). `Cooperadora.svelte` + `cooperadoraStore` (facade) + `cargosStore` (cargos editables del estatuto + autoridades vigentes + cese + reemplazo + histórico + verificación/lock) + `ejerciciosStore` + `cooperadoraApi` + `components/` (FormEscuela, FormBanco, TablaCargos, DialogHistorico, ListaAsesores, ListaEjercicios, etc.).
 - **`modules/`** — módulos funcionales por dominio, cada uno subdividido por sub-dominio con `components/` para UI:
   - `comunidad/` — `Comunidad.svelte` + `comunidadStore` (padrón unificado de personas y socios). Reutiliza `personas/personasApi` + `personas/personaFormManager` + `personas/personaLinker` + `socios/socioValidator` + `constants.js`.
   - `comunidad/components/` — UI compartida del módulo (CuilInput, FilterBar, RecordList, PersonaFormFields, EmptyStates).
@@ -49,8 +49,9 @@ Vista pública que se muestra cuando la app corre fuera de Grist. El contenido (
   - `tesoreria/resumen/` — `ResumenMensual.svelte` + `resumenStore` + `saldosStore` + `cierresService`. Vista mensual y semanal con arrastre de saldo y firma/reapertura a nivel período.
   - `tesoreria/cargaPia/` — `CargaPIAMatrix.svelte` (matriz editable por rubro con layout Comunidad-style) + `cargaPIAService` (guardar/cargar movimientos con `carga_id`) + `cargasService` (CRUD de cargas, firma/cierre y reapertura a nivel período) + `components/` (ConfirmarFirmaDialog).
   - `tesoreria/shared/` — `tesoreriaCalc.js` (cálculos compartidos: `gristDate()`, `periodoDeMovimiento()`, `isoWeekKey()`, `calcularResumenSemanal()` con numeración secuencial por ejercicio).
-  - `gobierno/asambleas/` — `asambleasManager` + `components/` (TabAsambleas, AsambleaWizard).
-  - `gobierno/autoridades/` — `autoridadRows`, `cargarAutoridades`, `ceseAutoridad`, `reemplazoAutoridad` + `components/` (DialogCargar, DialogCese, DialogReemplazo, TabHistorico). **Nota:** cese y reemplazo se invocan desde Institucional (cargosStore), pero las factories viven aquí por afinidad de dominio. Gobierno solo usa `cargarAutoridades` (carga desde asamblea) y `TabHistorico`.
+  - `gobierno/asambleas/` — `asambleasManager` + `components/` (TabAsambleas, AsambleaWizard). Wizard con verificación de datos y carga compacta de autoridades.
+  - `gobierno/autoridades/` — `autoridadRows`, `cargarAutoridades`, `ceseAutoridad`, `reemplazoAutoridad`, `renovacionCD` + `components/` (DialogCargar, DialogCese, DialogReemplazo, TabHistorico). **Nota:** cese y reemplazo se invocan desde Institucional (cargosStore), pero las factories viven aquí por afinidad de dominio. Gobierno solo usa `cargarAutoridades` (carga desde asamblea), `renovacionCD` (sorteo por mitades art. 15) y `TabHistorico`.
+  - `gobierno/memoria/` — `memoriaManager` (compilación de Memoria anual desde hechos relevantes + decisiones institucionales), `hechosRelevantesManager`, `markdownRenderer`, `memoriaExport` (PDF/DOC) + `components/` (TabHechosRelevantes).
   - `gobierno/components/` — UI compartida (PersonaPicker).
 
 Cada módulo es una pareja `.svelte` (vista) + `*Store.svelte.js` (estado y lógica de dominio que extiende el store base de Grist). Las constantes de dominio viven en `constants.js` dentro de cada módulo (`comunidad/constants.js`, `gobierno/constants.js`).
@@ -85,7 +86,7 @@ Núcleo de la aplicación, agnóstico de la UI. Subdividido por responsabilidad:
 
 - **`components/ui/`** — componentes **shadcn-svelte** (basados en **bits-ui**): button, card, dialog, sheet, table, tabs, select, combobox, command, popover, tooltip, sonner, etc. Estilados con Tailwind 4 y variables CSS.
 - **`components/`** — componentes propios de dominio (`Combobox`, `CommandPalette`, `EmptyState`, `MessageBanner`, `PageScaffold`, `SearchInput`, etc.).
-- **`hooks/`** — hooks reactivos reutilizables: `usePersonaSearch`, `useListFilter`, `useFieldWarnings`, `is-mobile`.
+- **`hooks/`** — hooks reactivos reutilizables: `usePersonaSearch`, `useListFilter`, `useFieldWarnings`, `useDebounce`, `is-mobile`, `localidades`.
 
 ## Flujo de datos
 

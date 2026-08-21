@@ -235,7 +235,7 @@
         <span class="text-sm font-semibold text-amber-900 dark:text-amber-200">Sin autoridades designadas</span>
         <span class="text-sm text-amber-700 dark:text-amber-300">No hay autoridades vigentes para el ejercicio en curso. Convocá una asamblea para elegir a las autoridades.</span>
         <Button variant="outline" size="sm" class="mt-1 w-fit" onclick={() => navigate('gobierno')}>
-          Ir a Asambleas y Autoridades
+          Ir a Asambleas y Memorias
           <ArrowRightIcon data-icon="inline-end" />
         </Button>
       </div>
@@ -276,7 +276,7 @@
         <Alert.Root variant="default">
           <LockIcon class="size-4" />
           <Alert.Description class="text-xs">
-            Los cargos del estatuto están <strong>verificados y bloqueados</strong>. Para modificar la estructura (agregar, renombrar, eliminar o reordenar cargos) registrá una <strong>Asamblea Extraordinaria</strong> con motivo <strong>Reforma estatuto</strong> en Asambleas y Autoridades; al guardarla, la edición se habilitará automáticamente.
+            Los cargos del estatuto están <strong>verificados y bloqueados</strong>. Para modificar la estructura (agregar, renombrar, eliminar o reordenar cargos) registrá una <strong>Asamblea Extraordinaria</strong> con motivo <strong>Reforma estatuto</strong> en Asambleas y Memorias; al guardarla, la edición se habilitará automáticamente.
           </Alert.Description>
         </Alert.Root>
       {:else}
