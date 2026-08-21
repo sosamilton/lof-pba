@@ -1,5 +1,6 @@
 import { dateToInput, addMonths, buildMapById } from '$core/utils/utils.js'
 import { buildVigenteByCargo } from '$app/modules/gobierno/constants.js'
+import { grupoAVencer } from './renovacionCD.js'
 
 /**
  * Filas vigentes e históricas de autoridades por organismo.
@@ -30,6 +31,7 @@ export function createAutoridadRows({ getCargos, getAutoridades, getOrganismo, g
       cargoOrden: c.orden ?? 0,
       cargoObligatorio: Boolean(c.cargo_obligatorio),
       cargoDuracionMeses: duracionMeses,
+      cargoGrupoRenovacion: c.grupo_renovacion || '',
       organismo: a?.organismo || c.organismo || getOrganismo(),
       persona_id: a?.persona_id || null,
       apellido_nombre: a?.apellido_nombre || '',
@@ -121,12 +123,25 @@ export function createAutoridadRows({ getCargos, getAutoridades, getOrganismo, g
     return titulares.length
   })
 
+  // Grupo de la CD que le toca renovar en la próxima asamblea (solo para CD).
+  // Se calcula a partir de los vencimientos de las autoridades vigentes.
+  const grupoAVencerCD = $derived.by(() => {
+    const organismo = getOrganismo()
+    if (organismo !== 'CD') return null
+    const autoridades = getAutoridades()
+    const vigentesCD = autoridades.filter(
+      (a) => a.activo !== false && !a.fecha_cese && String(a.organismo) === 'CD',
+    )
+    return grupoAVencer(vigentesCD, getCargos())
+  })
+
   return {
     get rows() { return rows },
     get rowsHistorico() { return rowsHistorico },
     get tieneAutoridadesVigentes() { return tieneAutoridadesVigentes },
     get tieneAlgunaAutoridad() { return tieneAlgunaAutoridad },
     get quorumTitulares() { return quorumTitulares },
+    get grupoAVencerCD() { return grupoAVencerCD },
     personaEnOtroCargo,
   }
 }
