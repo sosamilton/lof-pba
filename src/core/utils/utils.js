@@ -150,7 +150,8 @@ export const TABLE_PREFERRED_IDS = {
   subrubros: ['Subrubros', 'subrubros'],
   configuracion: ['Configuracion', 'configuracion'],
   cierres_mensuales: ['Cierres_mensuales', 'cierres_mensuales'],
-  planillas_generadas: ['Planillas_generadas', 'planillas_generadas']
+  planillas_generadas: ['Planillas_generadas', 'planillas_generadas'],
+  hechos_relevantes: ['Hechos_relevantes', 'hechos_relevantes']
 }
 
 export const MODULES = {
