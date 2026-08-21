@@ -267,12 +267,12 @@
         "titulo": "Docker (para uso offline en la escuela)",
         "descripcion": "Si hay alguien con algo de conocimientos técnicos en tu escuela, puede instalar Grist + LOF juntos en una compu usando Docker. Todo funciona sin internet, ideal para escuelas sin conexión estable.",
         "modo": "offline",
-        "nota": "Necesitás instalar Docker primero (es un programa gratuito). Después descargás un archivo de configuración y ejecutás dos comandos. Grist queda en el puerto 8089 y la app en el 8088.",
+        "nota": "Necesitás instalar Docker primero (es un programa gratuito). Después descargás un solo archivo y ejecutás un comando. No hace falta clonar el repositorio ni construir nada: todo viene en imágenes listas para usar. Grist queda en el puerto 8089 y la app en el 8088.",
         "comandos": [
-          "curl -O https://raw.githubusercontent.com/sosamilton/spa-cooperadora/refs/heads/main/docker-compose.yml",
-          "docker compose up -d --build"
+          "curl -O https://raw.githubusercontent.com/sosamilton/spa-cooperadora/refs/heads/main/docker/docker-compose.standalone.yml",
+          "docker compose -f docker-compose.standalone.yml up -d"
         ],
-        "enlace": "https://raw.githubusercontent.com/sosamilton/spa-cooperadora/refs/heads/main/docker-compose.yml",
+        "enlace": "https://raw.githubusercontent.com/sosamilton/spa-cooperadora/refs/heads/main/docker/docker-compose.standalone.yml",
         "enlace_texto": "Ver archivo de configuración",
         "requisitos": [
           {

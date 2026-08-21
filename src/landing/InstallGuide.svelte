@@ -282,6 +282,15 @@
               {/each}
             </div>
           {/if}
+          <div class="flex items-start gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+            <ShieldCheckIcon class="size-5 shrink-0 text-emerald-600 mt-0.5" />
+            <p class="text-sm text-muted-foreground">
+              <strong class="text-foreground">Backups y versionado automáticos.</strong>
+              La instalación incluye MinIO (almacenamiento S3-compatible) que guarda snapshots
+              versionados de cada cambio en los documentos. Si alguien borra datos por error,
+              podés restaurar una versión anterior sin complicaciones.
+            </p>
+          </div>
           <a href={offlineDocUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm text-primary hover:underline w-fit">
             <FileTextIcon class="size-4" />
             Ver guía detallada de uso offline
