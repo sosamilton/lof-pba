@@ -8,6 +8,7 @@ Guía completa de la dockerización de LOF. La app compila a **estáticos** y se
 | --- | --- |
 | `Dockerfile` | Imagen multi-stage: build con Node → runtime con nginx. |
 | `docker/nginx.conf` | Configuración de nginx (gzip, cache, SPA fallback). |
+| `docker/nginx-templates/manifest.json.template` | Template del manifest de la galería de widgets (`GRIST_WIDGET_LIST_URL`), sustituido con `envsubst` en runtime. |
 | `.dockerignore` | Excluye `node_modules`, `dist`, `.git`, docs, etc. del contexto de build. |
 | `docker/grist/docker-compose.grist.yml` | Stack de **Grist** autocontenido (Grist + Redis + MinIO + init bucket). Incluido por prod y dev. |
 | `docker/grist/grist.env.example` | Template de configuración (copiar a `.env`). |
@@ -57,6 +58,7 @@ docker compose up -d --build lof
 | `MINIO_ROOT_PASSWORD` | `grist-secret` | Password MinIO (**cambiar en prod**). |
 | `IMAGE_REPO` | `sosamilton/spa-cooperadora` | Repo de GHCR (para `image:`). |
 | `IMAGE_TAG` | `latest` | Tag de la imagen de la SPA. |
+| `LOF_PUBLIC_URL` | `http://localhost:${APP_PORT}/` | URL pública del widget para la galería (`GRIST_WIDGET_LIST_URL`). Cambiala si servís detrás de un dominio propio. |
 
 Ver `docker/grist/grist.env.example` para la lista completa incluyendo OIDC.
 
@@ -109,10 +111,25 @@ Una vez levantados ambos servicios:
 1. Abrir `http://localhost:8089` (Grist).
 2. Crear un documento nuevo.
 3. `Add New` → `Add Widget to Page` → `Custom`.
-4. URL: `http://localhost:8088`.
+4. Elegí **LOF - Cooperadora Escolar** de la lista de widgets (ver [Galería de widgets](#galería-de-widgets-grist_widget_list_url) abajo). Si no aparece, pegá la URL manualmente: `http://localhost:8088`.
 5. `Access level`: **Full document access**.
 
 > Para uso offline, ver [`docs/OFFLINE.md`](OFFLINE.md).
+
+### Galería de widgets (`GRIST_WIDGET_LIST_URL`)
+
+`docker-compose.yml` configura automáticamente `GRIST_WIDGET_LIST_URL` en el servicio `grist`, apuntando a `http://lof/manifest.json` (resuelto por la red interna de Docker). Esto hace que **LOF aparezca directamente en la lista** al elegir "Custom Widget" en Grist, sin que el usuario tenga que copiar/pegar ninguna URL.
+
+Cómo funciona:
+
+- El servicio `lof` (nginx) genera `/manifest.json` en cada arranque del container, sustituyendo `${LOF_PUBLIC_URL}` en `docker/nginx-templates/manifest.json.template` (via el entrypoint oficial de nginx + `envsubst`).
+- `LOF_PUBLIC_URL` es la URL que el **navegador** va a usar para cargar el widget (por defecto `http://localhost:${APP_PORT:-8088}/`). Si cambiás `APP_PORT` no hace falta tocar nada más: se recalcula solo.
+- Si servís LOF detrás de un dominio propio o un reverse proxy, seteá `LOF_PUBLIC_URL` en tu `.env`:
+  ```bash
+  LOF_PUBLIC_URL=https://lof.example.com/
+  ```
+
+Es completamente opcional: si `GRIST_WIDGET_LIST_URL` no está seteada, o el manifest no es alcanzable, el usuario simplemente pega la URL a mano como antes.
 
 ### Usar la imagen publicada en GHCR
 
@@ -144,6 +161,9 @@ RUN npm run build
 # Stage 2: runtime
 FROM nginx:1.27-alpine AS runtime
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker/nginx-templates /etc/nginx/templates
+ENV NGINX_ENVSUBST_OUTPUT_DIR=/usr/share/nginx/html
+ENV LOF_PUBLIC_URL=http://localhost:8088/
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
 HEALTHCHECK ... CMD wget -q --spider http://127.0.0.1/
@@ -156,7 +176,7 @@ El runtime **no incluye Node ni el código fuente**: solo nginx + los estáticos
 - **gzip** habilitado para text/css/js/json/svg.
 - `/assets/` (hash de Vite) → `Cache-Control: public, immutable` por 1 año.
 - Estáticos sin hash (svg, ico, png, fonts) → cache 7 días.
-- `grist-plugin-api.js` y `/seeds/` → `no-cache` (dependencias del widget, no deben cachearse).
+- `grist-plugin-api.js`, `/seeds/` y `/manifest.json` → `no-cache` (dependencias del widget, no deben cachearse).
 - Cualquier otra ruta → `try_files $uri $uri/ /index.html` (SPA fallback).
 - Bloquea acceso a archivos ocultos (`.git`, `.env`).
 
@@ -189,7 +209,7 @@ Una vez levantados ambos servicios:
 1. Abrir `http://localhost:8489` (Grist).
 2. Crear un documento nuevo.
 3. `Add New` → `Add Widget to Page` → `Custom`.
-4. URL: `http://localhost:5173`.
+4. Elegí **LOF - Cooperadora Escolar (dev)** de la lista (la galería también está configurada en dev, servida dinámicamente por `vite.config.js`). Si no aparece, pegá la URL manualmente: `http://localhost:5173`.
 5. `Access level`: **Full document access**.
 
 | Variable | Default | Descripción |
