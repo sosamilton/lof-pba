@@ -6,6 +6,7 @@ import { notify } from '$core/ui/notify.svelte'
 import { createCeseAutoridad } from '$app/modules/gobierno/autoridades/ceseAutoridad.svelte.js'
 import { createReemplazoAutoridad } from '$app/modules/gobierno/autoridades/reemplazoAutoridad.svelte.js'
 import { createPersonaSearchDispatcher } from '$app/modules/gobierno/personaSearchDispatcher.svelte.js'
+import { grupoAVencer } from '$app/modules/gobierno/autoridades/renovacionCD.js'
 
 /**
  * Factory: sub-store para gestión de cargos, autoridades y comisión directiva.
@@ -123,6 +124,16 @@ export function createCargosStore({ bs, getTCargos, getTAutoridades, getTAsamble
     return titulares.length
   })
 
+  // Grupo de la CD que le toca renovar en la próxima asamblea.
+  // Solo aplica cuando el organismo seleccionado es CD.
+  const grupoAVencerCD = $derived.by(() => {
+    if (String(organismo) !== 'CD') return null
+    const vigentesCD = autoridades.filter(
+      (a) => a.activo !== false && !a.fecha_cese && String(a.organismo) === 'CD',
+    )
+    return grupoAVencer(vigentesCD, cargos)
+  })
+
   const personaEnOtroCargo = (personaId, exceptoAutoridadId = null) => {
     if (!personaId) return null
     return autoridades.find(
@@ -201,9 +212,78 @@ export function createCargosStore({ bs, getTCargos, getTAutoridades, getTAsamble
     })
   }
 
-  const setOrganismo = (v) => {
+  // ¿Es el cargo de Presidente/a? (CD, nombre contiene "presidente").
+  // El presidente siempre debe quedar en la 1ª posición del organismo CD.
+  const esPresidente = (c) =>
+    String(c?.organismo) === 'CD' && /presidente/i.test(String(c?.nombre_cargo || ''))
+
+  const toggleCargoActivo = async (cargoId) => {
+    await bs.wrapAsync(async () => {
+      const tCargos = getTCargos()
+      if (!tCargos) { bs.setError('No se encontró la tabla cargos.'); return }
+      const c = cargos.find((x) => Number(x.id) === Number(cargoId))
+      if (!c) return
+      if (c.cargo_obligatorio) { bs.setError('Los cargos obligatorios no se pueden suspender.'); return }
+      await applyUserActions([['UpdateRecord', tCargos, c.id, { activo: !c.activo }]])
+      await loadCargos()
+      bs.setNotice(c.activo ? 'Cargo suspendido.' : 'Cargo reactivado.'); notify.success(bs.notice)
+    })
+  }
+
+  // Reordenar un cargo dentro de su organismo (dir = -1 sube, +1 baja).
+  // El Presidente/a (CD, 1ª posición) nunca se mueve de su lugar.
+  const reordenarCargo = async (cargoId, dir) => {
+    await bs.wrapAsync(async () => {
+      const tCargos = getTCargos()
+      if (!tCargos) { bs.setError('No se encontró la tabla cargos.'); return }
+      const grupo = [...cargos].sort((a, b) => Number(a.orden || 0) - Number(b.orden || 0))
+      const idx = grupo.findIndex((x) => Number(x.id) === Number(cargoId))
+      if (idx < 0) return
+      const newIdx = idx + dir
+      if (newIdx < 0 || newIdx >= grupo.length) return
+      // Proteger al Presidente/a: no puede bajar del puesto 1, y nadie
+      // puede saltarlo hacia arriba.
+      if (idx === 0 && esPresidente(grupo[0])) return
+      if (newIdx === 0 && esPresidente(grupo[0])) return
+      const a = grupo[idx]
+      const b = grupo[newIdx]
+      const ordA = Number(a.orden || 0)
+      const ordB = Number(b.orden || 0)
+      await applyUserActions([
+        ['UpdateRecord', tCargos, a.id, { orden: ordB }],
+        ['UpdateRecord', tCargos, b.id, { orden: ordA }],
+      ])
+      await loadCargos()
+    })
+  }
+
+  // Eliminar un cargo opcional (no obligatorio). Reempaqueta el orden de
+  // los cargos posteriores del organismo para que queden consecutivos.
+  const deleteCargo = async (cargoId) => {
+    await bs.wrapAsync(async () => {
+      const tCargos = getTCargos()
+      if (!tCargos) { bs.setError('No se encontró la tabla cargos.'); return }
+      const c = cargos.find((x) => Number(x.id) === Number(cargoId))
+      if (!c) return
+      if (c.cargo_obligatorio) { bs.setError('Los cargos obligatorios no se pueden eliminar.'); return }
+      const grupo = [...cargos].sort((a, b) => Number(a.orden || 0) - Number(b.orden || 0))
+      const idx = grupo.findIndex((x) => Number(x.id) === Number(cargoId))
+      // Reempaquetar orden de los que estaban después.
+      const updates = grupo
+        .slice(idx + 1)
+        .map((x, i) => ['UpdateRecord', tCargos, x.id, { orden: Number(x.orden || 0) - 1 }])
+      await applyUserActions([
+        ['RemoveRecord', tCargos, c.id],
+        ...updates,
+      ])
+      await loadCargos()
+      bs.setNotice('Cargo eliminado.'); notify.success(bs.notice)
+    })
+  }
+
+  const setOrganismo = async (v) => {
     organismo = v
-    loadCargos()
+    await loadCargos()
   }
 
   return {
@@ -221,6 +301,7 @@ export function createCargosStore({ bs, getTCargos, getTAutoridades, getTAsamble
     get comisionDirectiva() { return comisionDirectiva },
     get tieneAutoridadesVigentes() { return tieneAutoridadesVigentes },
     get quorumTitulares() { return quorumTitulares },
+    get grupoAVencerCD() { return grupoAVencerCD },
     personaEnOtroCargo,
     // Carga
     loadCargos,
@@ -230,6 +311,10 @@ export function createCargosStore({ bs, getTCargos, getTAutoridades, getTAsamble
     // CRUD de cargos
     saveCargo,
     addCargo,
+    deleteCargo,
+    reordenarCargo,
+    toggleCargoActivo,
+    esPresidente,
     setOrganismo,
     // Cese
     get ceseTarget() { return ceseAuth.ceseTarget },

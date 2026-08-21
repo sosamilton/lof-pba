@@ -7,6 +7,7 @@ import { createPersonaSearchDispatcher } from './personaSearchDispatcher.svelte.
 import { createCeseAutoridad } from './autoridades/ceseAutoridad.svelte.js'
 import { createCargarAutoridades } from './autoridades/cargarAutoridades.svelte.js'
 import { createReemplazoAutoridad } from './autoridades/reemplazoAutoridad.svelte.js'
+import { cooperadoraStore } from '$app/pages/cooperadora/cooperadoraStore.svelte'
 
 const bs = createBaseState()
 const widgetOpts = createWidgetOptions()
@@ -107,6 +108,9 @@ const asambleasMgr = createAsambleasManager({
   loadAsambleas,
   loadAutoridades,
   bs,
+  // Al guardar una AGE con motivo "Reforma estatuto", desbloquear la edición
+  // de los cargos del estatuto en Institucional.
+  onReformaEstatuto: () => cooperadoraStore.desbloquearCargos(),
 })
 
 const personaSearch = createPersonaSearchDispatcher()
@@ -191,6 +195,7 @@ export const asambleasAutoridadesStore = {
   get quorumTitulares() { return autoridadRows.quorumTitulares },
   get tieneAutoridadesVigentes() { return autoridadRows.tieneAutoridadesVigentes },
   get tieneAlgunaAutoridad() { return autoridadRows.tieneAlgunaAutoridad },
+  get grupoAVencerCD() { return autoridadRows.grupoAVencerCD },
   personaEnOtroCargo: autoridadRows.personaEnOtroCargo,
   // asambleasManager
   get selectedAsambleaId() { return asambleasMgr.selectedAsambleaId },
@@ -227,6 +232,7 @@ export const asambleasAutoridadesStore = {
   toggleOrganismoCargos: cargarAuth.toggleOrganismoCargos,
   organismoSelectState: cargarAuth.organismoSelectState,
   globalSelectState: cargarAuth.globalSelectState,
+  setGrupoCortoSorteo: cargarAuth.setGrupoCortoSorteo,
   // ceseAutoridad
   get ceseTarget() { return ceseAuth.ceseTarget },
   openCese: ceseAuth.openCese,

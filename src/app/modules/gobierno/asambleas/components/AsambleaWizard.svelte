@@ -19,6 +19,7 @@
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
   import CheckIcon from '@lucide/svelte/icons/check'
   import MinusIcon from '@lucide/svelte/icons/minus'
+  import InfoIcon from '@lucide/svelte/icons/info'
 
   let { store, wizardOpen = $bindable(false), askDelete = () => {} } = $props()
 
@@ -234,6 +235,12 @@
                   {/each}
                 </Select.Content>
               </Select.Root>
+              {#if store.asambleaForm?.motivo_convocatoria === 'Reforma estatuto'}
+                <Field.FieldDescription>
+                  <AlertTriangleIcon class="inline size-3 align-text-bottom" />
+                  Al guardar esta asamblea se <strong>desbloqueará</strong> la edición de los cargos del estatuto en Institucional para que puedas aplicar los cambios aprobados. Volvé a verificarlos allí cuando termines.
+                </Field.FieldDescription>
+              {/if}
             </Field.Field>
             <Field.Field>
               <Field.FieldLabel for="wiz-origen">Origen de convocatoria</Field.FieldLabel>
@@ -468,6 +475,47 @@
           </div>
         {/if}
 
+        <!-- Panel de renovación de CD por mitades (art. 15) -->
+        {#if store.cargarDraft.esConstitucion}
+          <div class="rounded-lg border border-primary/40 bg-primary/5 p-3">
+            <div class="flex items-start gap-2">
+              <InfoIcon class="size-4 shrink-0 text-primary mt-0.5" />
+              <div class="flex flex-col gap-2 text-xs">
+                <span class="font-bold text-foreground">Asamblea constitutiva — sorteo de mandatos</span>
+                <span class="text-muted-foreground leading-relaxed">
+                  Al ser la primera elección de la CD, hay que sortear qué mitad dura 1 año y cuál 2 (art. 15, Decreto 4767/72). Después, cada grupo durará siempre 2 años y alternará renovación.
+                </span>
+                <div class="flex flex-col gap-1.5 mt-1">
+                  <span class="font-semibold text-foreground">¿Qué grupo queda con mandato corto (1 año)?</span>
+                  <div class="flex gap-2">
+                    <label class="flex items-center gap-1.5 cursor-pointer rounded-md border border-border px-2.5 py-1.5 text-xs {store.cargarDraft.grupoCortoSorteo === 'A' ? 'border-primary bg-primary/10 font-bold' : ''}">
+                      <input type="radio" name="grupoCorto" value="A" checked={store.cargarDraft.grupoCortoSorteo === 'A'} onchange={() => store.setGrupoCortoSorteo('A')} />
+                      Grupo A (1 año)
+                    </label>
+                    <label class="flex items-center gap-1.5 cursor-pointer rounded-md border border-border px-2.5 py-1.5 text-xs {store.cargarDraft.grupoCortoSorteo === 'B' ? 'border-primary bg-primary/10 font-bold' : ''}">
+                      <input type="radio" name="grupoCorto" value="B" checked={store.cargarDraft.grupoCortoSorteo === 'B'} onchange={() => store.setGrupoCortoSorteo('B')} />
+                      Grupo B (1 año)
+                    </label>
+                  </div>
+                  <span class="text-[10px] text-muted-foreground">El otro grupo durará 2 años. Los vencimientos se calculan automáticamente al guardar.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        {:else if store.cargarDraft.grupoAVencer}
+          <div class="rounded-lg border border-border bg-muted/5 p-3">
+            <div class="flex items-start gap-2">
+              <InfoIcon class="size-4 shrink-0 text-muted-foreground mt-0.5" />
+              <div class="flex flex-col gap-1 text-xs">
+                <span class="font-bold text-foreground">Renovación de CD — le toca al Grupo {store.cargarDraft.grupoAVencer}</span>
+                <span class="text-muted-foreground leading-relaxed">
+                  Según los vencimientos de las autoridades vigentes, en esta asamblea corresponde renovar los cargos del <strong>Grupo {store.cargarDraft.grupoAVencer}</strong>. Ya están pre-seleccionados. Los cargos del otro grupo continúan en funciones.
+                </span>
+              </div>
+            </div>
+          </div>
+        {/if}
+
         <!-- Sub-step B: Carga de personas por cargo -->
         <Separator />
         {#if store.cargarDraft.cargaMode === 'total' && store.cargarDraft.totalVigentes > 0}
@@ -486,6 +534,11 @@
                   <div class="rounded-lg border border-border p-3" bind:this={cargoInputRefs[f.cargoId]}>
                     <div class="mb-2 flex items-center gap-2">
                       <span class="text-sm font-bold">{f.cargoNombre}</span>
+                      {#if f.grupoRenovacion && org === 'CD'}
+                        <Badge variant="outline" class="text-[10px] {f.grupoRenovacion === store.cargarDraft.grupoAVencer ? 'border-primary text-primary' : ''}">
+                          Grupo {f.grupoRenovacion}
+                        </Badge>
+                      {/if}
                       {#if f.obligatorio}<Badge variant="secondary">Obligatorio</Badge>{/if}
                       {#if f.yaExiste}
                         <Badge variant="outline">Vigente</Badge>
