@@ -31,6 +31,13 @@ FROM nginx:1.27-alpine AS runtime
 # Configuración de nginx para SPA (hash routing + fallback a index.html)
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 
+# Template de manifest.json para la galería de widgets de Grist (GRIST_WIDGET_LIST_URL).
+# El entrypoint oficial de nginx corre envsubst sobre *.template y escribe el resultado
+# sin el sufijo en NGINX_ENVSUBST_OUTPUT_DIR, reemplazando ${LOF_PUBLIC_URL} en runtime.
+COPY docker/nginx-templates /etc/nginx/templates
+ENV NGINX_ENVSUBST_OUTPUT_DIR=/usr/share/nginx/html
+ENV LOF_PUBLIC_URL=http://localhost:8088/
+
 # Copiar el output del build (dist/) al root que sirve nginx
 COPY --from=build /app/dist /usr/share/nginx/html
 

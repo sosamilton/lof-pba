@@ -14,10 +14,44 @@ const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'))
 const APP_VERSION = process.env.APP_VERSION || pkg.version || 'dev'
 const APP_SHA = process.env.APP_SHA || 'dev'
 
+// Sirve /manifest.json dinámicamente en dev, con la URL real del dev server
+// (host:puerto), para que la galería de widgets de Grist (GRIST_WIDGET_LIST_URL)
+// apunte al lugar correcto sin hardcodear el puerto. En producción, este mismo
+// endpoint lo genera nginx via envsubst desde docker/nginx-templates (ver Dockerfile).
+function lofWidgetManifestDevPlugin() {
+  return {
+    name: 'lof-widget-manifest-dev',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url !== '/manifest.json') return next()
+        const port = server.config.server.port || 5173
+        const host = process.env.LOF_DEV_PUBLIC_HOST || 'localhost'
+        const manifest = [
+          {
+            widgetId: 'lof-cooperadora',
+            name: 'LOF - Cooperadora Escolar (dev)',
+            url: `http://${host}:${port}/`,
+            description: 'Gestión integral de cooperadoras escolares (entorno de desarrollo).',
+            authors: [{ name: 'Milton Sosa' }],
+            isGristLabsMaintained: false,
+            lastUpdatedAt: new Date().toISOString(),
+          },
+        ]
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify(manifest, null, 2))
+      })
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [tailwindcss(), svelte()],
+  plugins: [tailwindcss(), svelte(), lofWidgetManifestDevPlugin()],
   base: './',
+  server: {
+    allowedHosts: ['lof-dev'],
+  },
   define: {
     __APP_VERSION__: JSON.stringify(APP_VERSION),
     __APP_SHA__: JSON.stringify(APP_SHA),

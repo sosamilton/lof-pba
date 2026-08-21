@@ -1,0 +1,11 @@
+[
+  {
+    "widgetId": "lof-cooperadora",
+    "name": "LOF - Cooperadora Escolar",
+    "url": "${LOF_PUBLIC_URL}",
+    "description": "Gestión integral de cooperadoras escolares: socios, tesorería, asambleas y documentación oficial (PIA, Nómina).",
+    "authors": [{ "name": "Milton Sosa" }],
+    "isGristLabsMaintained": false,
+    "lastUpdatedAt": "2026-08-21T00:00:00.000Z"
+  }
+]
