@@ -106,6 +106,26 @@
     })
   }
 
+  const confirmarValidarDatos = () => {
+    openConfirm({
+      title: '¿Validar y bloquear los datos de la escuela?',
+      description: 'Una vez validados, los datos no podrán editarse desde el sistema. Si necesitás corregir algo, podés modificarlos directamente en las tablas de Grist.',
+      confirmLabel: 'Validar y bloquear',
+      variant: 'default',
+      onConfirm: () => store.validarDatos(),
+    })
+  }
+
+  const confirmarValidarBanco = () => {
+    openConfirm({
+      title: '¿Validar y bloquear los datos bancarios?',
+      description: 'Una vez validados, los datos no podrán editarse desde el sistema. Si necesitás corregir algo, podés modificarlos directamente en las tablas de Grist.',
+      confirmLabel: 'Validar y bloquear',
+      variant: 'default',
+      onConfirm: () => store.validarBanco(),
+    })
+  }
+
   let emailEscuelaAlias = $state('')
   let emailEscuelaDirty = $state(false)
   let escuelaDirty = $state(false)
@@ -217,7 +237,7 @@
               onColorChange={(v) => { store.setColor_primario(v); escuelaDirty = true }}
               onDirty={() => { escuelaDirty = true }}
               onToggleTelefono={toggleTelefonoMismoQueEscuela}
-              onValidar={store.validarDatos}
+              onValidar={confirmarValidarDatos}
               onSave={handleSave}
             />
           </Card.Content>
@@ -237,7 +257,7 @@
               banco={store.banco}
               {bancoValidado}
               busy={store.busy}
-              onValidar={store.validarBanco}
+              onValidar={confirmarValidarBanco}
             />
           </Card.Content>
         </Card.Root>
