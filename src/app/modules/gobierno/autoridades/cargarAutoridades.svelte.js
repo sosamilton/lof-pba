@@ -45,6 +45,7 @@ export function createCargarAutoridades({
     const a = asambleaId ? asambleas.find((x) => Number(x.id) === Number(asambleaId)) || null : null
     const fecha = dateToInput(a?.fecha) || new Date().toISOString().slice(0, 10)
     const tipo = a?.tipo_asamblea || 'AGE'
+    const verificada = Boolean(a?.verificada)
 
     // Detectar autoridades vigentes por organismo
     const vigentesPorOrgano = {}
@@ -120,6 +121,7 @@ export function createCargarAutoridades({
       asambleaId,
       asambleaFecha: fecha,
       tipo,
+      verificada,
       filas,
       needsAgeCreation: opts.needsAgeCreation || false,
       inlineMode: opts.inlineMode || false,
@@ -255,7 +257,11 @@ export function createCargarAutoridades({
     bs.clearMessages()
     bs.setBusy(true)
     try {
-      if (!cargarDraft) return
+      if (!cargarDraft) return false
+      if (cargarDraft.verificada) {
+        bs.setError('Esta asamblea está verificada y no se pueden modificar las autoridades.')
+        return false
+      }
       const { asambleaFecha, tipo, filas, needsAgeCreation, cargaMode, cargosSeleccionados } = cargarDraft
       let asambleaId = cargarDraft.asambleaId
       const ejercicio = getEjercicio()
@@ -271,7 +277,7 @@ export function createCargarAutoridades({
       const filasConPersona = filasAGuardar.filter((f) => f.persona_id)
       if (filasConPersona.length === 0) {
         bs.setError('No hay personas vinculadas. Usá "Crear nueva persona" en cada cargo.')
-        return
+        return false
       }
 
       // Si es una AGE nueva, crearla recién ahora (solo si hay autoridades para guardar)
@@ -358,8 +364,10 @@ export function createCargarAutoridades({
       await loadAsambleas()
       await loadAutoridades()
       closeCargarAutoridades()
+      return true
     } catch (e) {
       bs.setError(e?.message || String(e))
+      return false
     } finally {
       bs.setBusy(false)
     }

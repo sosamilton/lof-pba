@@ -7,6 +7,8 @@ import { createPersonaSearchDispatcher } from './personaSearchDispatcher.svelte.
 import { createCeseAutoridad } from './autoridades/ceseAutoridad.svelte.js'
 import { createCargarAutoridades } from './autoridades/cargarAutoridades.svelte.js'
 import { createReemplazoAutoridad } from './autoridades/reemplazoAutoridad.svelte.js'
+import { createHechosRelevantesManager } from './memoria/hechosRelevantesManager.svelte.js'
+import { generarBorradorMemoria, guardarMemoria } from './memoria/memoriaManager.svelte.js'
 import { cooperadoraStore } from '$app/pages/cooperadora/cooperadoraStore.svelte'
 
 const bs = createBaseState()
@@ -18,6 +20,7 @@ let tCargos = $state(null)
 let tAutoridades = $state(null)
 let tAsambleas = $state(null)
 let tResoluciones = $state(null)
+let tHechos = $state(null)
 
 // Datos principales
 let ejercicios = $state([])
@@ -27,6 +30,7 @@ let ejercicioHistorico = $state(null)
 let cargos = $state([])
 let autoridades = $state([])
 let asambleas = $state([])
+let hechosRelevantes = $state([])
 let pendingWizardTipo = $state(null)
 
 // --- Funciones de carga (permanecen en el store principal) ---
@@ -40,6 +44,15 @@ const load = async () => {
     tAutoridades = tIds.autoridades
     tAsambleas = tIds.asambleas
     tResoluciones = tIds.resoluciones
+
+    // hechos_relevantes es opcional: la tabla puede no existir todavía
+    // (si el usuario no corrió "Actualizar schema"). No romper el load.
+    try {
+      const tIdsHechos = await resolveTableIds(['hechos_relevantes'])
+      tHechos = tIdsHechos.hechos_relevantes || null
+    } catch {
+      tHechos = null
+    }
 
     // Cargar ejercicios primero para saber cuál está en curso
     ejercicios = await fetchRecords(tEjercicios)
@@ -63,6 +76,14 @@ const load = async () => {
     cargos = data.cargos || []
     autoridades = data.autoridades || []
     asambleas = data.asambleas || []
+
+    // Cargar hechos relevantes del ejercicio en curso
+    if (tHechos) {
+      hechosRelevantes = await fetchRecords(tHechos, {
+        filter: (h) => Number(h.ejercicio_id) === Number(ejercicio.id),
+        sort: (a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')),
+      })
+    }
   } catch (e) {
     bs.setError(e?.message || String(e))
   } finally {
@@ -85,6 +106,14 @@ const loadAutoridades = async () => {
 const loadAsambleas = async () => {
   asambleas = await fetchRecords(tAsambleas, {
     filter: (a) => Number(a.ejercicio_id) === Number(ejercicio.id),
+    sort: (a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')),
+  })
+}
+
+const loadHechos = async () => {
+  if (!tHechos || !ejercicio) return
+  hechosRelevantes = await fetchRecords(tHechos, {
+    filter: (h) => Number(h.ejercicio_id) === Number(ejercicio.id),
     sort: (a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')),
   })
 }
@@ -141,6 +170,13 @@ const reemplazoAuth = createReemplazoAutoridad({
   getOrganismo: () => widgetOpts.organismo,
   loadAutoridades,
   personaSearch,
+  bs,
+})
+
+const hechosMgr = createHechosRelevantesManager({
+  getTHechos: () => tHechos,
+  getEjercicio: () => ejercicio,
+  loadHechos,
   bs,
 })
 
@@ -206,6 +242,7 @@ export const asambleasAutoridadesStore = {
   addResolucion: asambleasMgr.addResolucion,
   removeResolucion: asambleasMgr.removeResolucion,
   saveAsamblea: asambleasMgr.saveAsamblea,
+  verificarAsamblea: asambleasMgr.verificarAsamblea,
   deleteAsamblea: asambleasMgr.deleteAsamblea,
   getLinkedAutoridadesCount: asambleasMgr.getLinkedAutoridadesCount,
   // cargarAutoridades
@@ -256,6 +293,34 @@ export const asambleasAutoridadesStore = {
   loadCargos,
   loadAutoridades,
   loadAsambleas,
+  loadHechos,
+  // hechos relevantes
+  get hechosRelevantes() { return hechosRelevantes },
+  get hechoForm() { return hechosMgr.hechoForm },
+  get hechoEditingId() { return hechosMgr.editingId },
+  get hechoCategorias() { return hechosMgr.CATEGORIAS },
+  newHecho: hechosMgr.newHecho,
+  editHecho: hechosMgr.editHecho,
+  closeHechoForm: hechosMgr.closeForm,
+  saveHecho: hechosMgr.saveHecho,
+  deleteHecho: hechosMgr.deleteHecho,
+  // memoria
+  get memoriaTexto() { return ejercicio?.memoria_texto || '' },
+  get memoriaEstado() { return ejercicio?.memoria_estado || '' },
+  generarMemoria: () => generarBorradorMemoria({
+    getEjercicio: () => ejercicio,
+    getHechos: () => hechosRelevantes,
+    getAsambleas: () => asambleas,
+    getAutoridades: () => autoridades,
+    getCargos: () => cargos,
+  }),
+  guardarMemoria: (texto, estado) => guardarMemoria({
+    getTEjercicios: () => tEjercicios,
+    getEjercicio: () => ejercicio,
+    texto,
+    estado,
+    bs,
+  }),
   // subscribe
   subscribe,
 }

@@ -7,8 +7,10 @@
   import PageScaff from '$lib/components/PageScaffold.svelte'
   import GavelIcon from '@lucide/svelte/icons/gavel'
   import HistoryIcon from '@lucide/svelte/icons/history'
+  import BookIcon from '@lucide/svelte/icons/book-open'
   import TabAsambleas from './asambleas/components/TabAsambleas.svelte'
   import TabHistorico from './autoridades/components/TabHistorico.svelte'
+  import TabHechosRelevantes from './memoria/components/TabHechosRelevantes.svelte'
 
   onMount(async () => {
     if (!isInGrist()) return
@@ -50,6 +52,10 @@
           <HistoryIcon data-icon="inline-start" />
           Histórico
         </Tabs.Trigger>
+        <Tabs.Trigger value="memoria" class="px-3">
+          <BookIcon data-icon="inline-start" />
+          Hechos relevantes
+        </Tabs.Trigger>
       </Tabs.List>
 
       <Tabs.Content value="asambleas">
@@ -57,6 +63,9 @@
       </Tabs.Content>
       <Tabs.Content value="historico">
         <TabHistorico {store} />
+      </Tabs.Content>
+      <Tabs.Content value="memoria">
+        <TabHechosRelevantes {store} />
       </Tabs.Content>
     </Tabs.Root>
   {/if}

@@ -46,6 +46,7 @@ export function createAsambleasManager({ getTAsambleas, getTResoluciones, getTAu
       motivo_convocatoria: a?.motivo_convocatoria || '',
       orden_del_dia: a?.orden_del_dia || '',
       convocatoria_origen: a?.convocatoria_origen || '',
+      verificada: Boolean(a?.verificada),
     }
     const tResoluciones = getTResoluciones()
     if (a?.id && tResoluciones) {
@@ -74,6 +75,7 @@ export function createAsambleasManager({ getTAsambleas, getTResoluciones, getTAu
       motivo_convocatoria: '',
       orden_del_dia: '',
       convocatoria_origen: '',
+      verificada: false,
     }
     resoluciones = []
   }
@@ -105,6 +107,12 @@ export function createAsambleasManager({ getTAsambleas, getTResoluciones, getTAu
       }
       const f = asambleaForm || {}
 
+      // Validar: no permitir modificar una asamblea verificada (irreversible)
+      if (f.id && f.verificada && !opts.verificar) {
+        bs.setError('Esta asamblea está verificada y no se puede modificar. Para corregirla, eliminála y creála de nuevo.')
+        return null
+      }
+
       // Validar: solo 1 AGO por año calendario
       if (f.tipo_asamblea === 'AGO' && f.fecha) {
         const year = String(f.fecha).slice(0, 4)
@@ -134,6 +142,7 @@ export function createAsambleasManager({ getTAsambleas, getTResoluciones, getTAu
         motivo_convocatoria: f.motivo_convocatoria || '',
         orden_del_dia: f.orden_del_dia || '',
         convocatoria_origen: f.convocatoria_origen || '',
+        verificada: Boolean(f.verificada),
       })
 
       let asambleaId = f.id
@@ -189,6 +198,44 @@ export function createAsambleasManager({ getTAsambleas, getTResoluciones, getTAu
     }
   }
 
+  // Verificar asamblea: valida que tenga acta_numero Y autoridades cargadas,
+  // luego marca verificada=true (irreversible — bloquea edición futura).
+  const verificarAsamblea = async () => {
+    bs.clearMessages()
+    bs.setBusy(true)
+    try {
+      const f = asambleaForm || {}
+      if (!f.id) {
+        bs.setError('Guardá la asamblea antes de verificarla.')
+        return null
+      }
+      // Validar acta_numero
+      if (!String(f.acta_numero || '').trim()) {
+        bs.setError('Para verificar la asamblea debe tener número de acta cargado.')
+        return null
+      }
+      // Validar autoridades vinculadas
+      const linkedCount = getLinkedAutoridadesCount(f.id)
+      if (linkedCount === 0) {
+        bs.setError('Para verificar la asamblea debe tener autoridades cargadas.')
+        return null
+      }
+      const tAsambleas = getTAsambleas()
+      await applyUserActions([['UpdateRecord', tAsambleas, f.id, normalizeFields({
+        verificada: true,
+      })]])
+      asambleaForm = { ...asambleaForm, verificada: true }
+      bs.setNotice('Asamblea verificada. La edición quedó bloqueada.')
+      await loadAsambleas()
+      return f.id
+    } catch (e) {
+      bs.setError(e?.message || String(e))
+      return null
+    } finally {
+      bs.setBusy(false)
+    }
+  }
+
   const getLinkedAutoridadesCount = (asambleaId) => {
     const autoridades = getAutoridades()
     return autoridades.filter(
@@ -200,6 +247,13 @@ export function createAsambleasManager({ getTAsambleas, getTResoluciones, getTAu
     bs.clearMessages()
     bs.setBusy(true)
     try {
+      // No permitir eliminar una asamblea verificada
+      const asambleas = getAsambleas()
+      const target = asambleas.find((a) => Number(a.id) === Number(asambleaId))
+      if (target?.verificada) {
+        bs.setError('Esta asamblea está verificada y no se puede eliminar.')
+        return
+      }
       const tAsambleas = getTAsambleas()
       const tResoluciones = getTResoluciones()
       const tAutoridades = getTAutoridades()
@@ -255,6 +309,7 @@ export function createAsambleasManager({ getTAsambleas, getTResoluciones, getTAu
     addResolucion,
     removeResolucion,
     saveAsamblea,
+    verificarAsamblea,
     deleteAsamblea,
     getLinkedAutoridadesCount,
   }
