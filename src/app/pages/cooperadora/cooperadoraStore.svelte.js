@@ -52,6 +52,10 @@ let banco = $state({})
 /** @type {Record<string, any>} */
 let kiosco = $state({})
 let color_primario = $state('#16b378')
+// Flag de validación de la estructura de cargos (estatuto). Cuando está en
+// true, la edición de cargos en Institucional se bloquea; solo se desbloquea
+// al guardar una AGE con motivo "Reforma estatuto".
+let cargos_validados = $state(false)
 
 // --- Sub-stores (composición) ---
 const ejerciciosMgr = createEjerciciosStore({
@@ -107,6 +111,7 @@ const load = async () => {
     await ejerciciosMgr.reload(tEjercicios)
     const config = await loadConfig()
     if (config?.color_primario) color_primario = config.color_primario
+    cargos_validados = Boolean(config?.cargos_validados)
     await cargosMgr.loadCargos()
     await cargosMgr.loadAutoridades()
     await cargosMgr.loadAsambleas()
@@ -159,6 +164,26 @@ const validarBanco = async () => {
   })
 }
 
+// Verifica (bloquea) la estructura de cargos del estatuto. Una vez
+// validada, la edición en Institucional se deshabilita; solo se desbloquea
+// al registrar una AGE con motivo "Reforma estatuto".
+const validarCargos = async () => {
+  await bs.wrapAsync(async () => {
+    const config = await loadConfig()
+    await saveConfig({ ...config, cargos_validados: true })
+    cargos_validados = true
+    bs.setNotice('Cargos del estatuto verificados y bloqueados.'); notify.success(bs.notice)
+  })
+}
+
+// Desbloquea la estructura de cargos (la vuelve editable). Se invoca desde
+// el módulo de Asambleas al guardar una AGE con motivo "Reforma estatuto".
+const desbloquearCargos = async () => {
+  const config = await loadConfig()
+  await saveConfig({ ...config, cargos_validados: false })
+  cargos_validados = false
+}
+
 // Re-formateo en vivo mientras el usuario tipea. Los datos se guardan crudos.
 const onCueInput = () => { escuela.cue = formatCue(escuela.cue) }
 const onCuitInput = () => { escuela.cuit = formatCuil(escuela.cuit) }
@@ -192,6 +217,9 @@ export const cooperadoraStore = {
   saveCooperadora,
   validarDatos,
   validarBanco,
+  validarCargos,
+  desbloquearCargos,
+  get cargos_validados() { return cargos_validados },
   // Ejercicios (delegado a sub-store)
   get ejercicios() { return ejerciciosMgr.ejercicios },
   get nuevoEj() { return ejerciciosMgr.nuevoEj },
@@ -213,6 +241,7 @@ export const cooperadoraStore = {
   get comisionDirectiva() { return cargosMgr.comisionDirectiva },
   get tieneAutoridadesVigentes() { return cargosMgr.tieneAutoridadesVigentes },
   get quorumTitulares() { return cargosMgr.quorumTitulares },
+  get grupoAVencerCD() { return cargosMgr.grupoAVencerCD },
   get asambleas() { return cargosMgr.asambleas },
   personaEnOtroCargo: (...args) => cargosMgr.personaEnOtroCargo(...args),
   setOrganismo: cargosMgr.setOrganismo,
@@ -222,6 +251,10 @@ export const cooperadoraStore = {
   loadAsambleas: cargosMgr.loadAsambleas,
   saveCargo: cargosMgr.saveCargo,
   addCargo: cargosMgr.addCargo,
+  deleteCargo: cargosMgr.deleteCargo,
+  reordenarCargo: cargosMgr.reordenarCargo,
+  toggleCargoActivo: cargosMgr.toggleCargoActivo,
+  esPresidente: cargosMgr.esPresidente,
   // Cese de autoridad
   get ceseTarget() { return cargosMgr.ceseTarget },
   openCese: cargosMgr.openCese,

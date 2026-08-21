@@ -150,7 +150,8 @@ export const TABLE_PREFERRED_IDS = {
   subrubros: ['Subrubros', 'subrubros'],
   configuracion: ['Configuracion', 'configuracion'],
   cierres_mensuales: ['Cierres_mensuales', 'cierres_mensuales'],
-  planillas_generadas: ['Planillas_generadas', 'planillas_generadas']
+  planillas_generadas: ['Planillas_generadas', 'planillas_generadas'],
+  hechos_relevantes: ['Hechos_relevantes', 'hechos_relevantes']
 }
 
 export const MODULES = {
@@ -162,21 +163,21 @@ export const MODULES = {
       { route: 'inicio', label: 'Inicio' },
       { route: 'comunidad', label: 'Comunidad' },
       { route: 'movimientos', label: 'Movimientos' },
-      { route: 'gobierno', label: 'Asambleas y Autoridades' },
+      { route: 'gobierno', label: 'Asambleas y Memorias' },
       { route: 'resumen', label: 'Resumen' }
     ],
     implemented: true
   },
   gestion_integral: {
     label: 'Gestión integral',
-    description: 'Registrá gastos, movimientos, socios, asambleas y autoridades. Generá reportes PIA y nómina automáticamente.',
+    description: 'Registrá gastos, movimientos, socios, asambleas y memorias. Generá reportes PIA y nómina automáticamente.',
     tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asesores', 'asambleas', 'resoluciones', 'cuentas', 'rubros_pia', 'subrubros', 'movimientos', 'cargas', 'configuracion', 'planillas_generadas', 'cierres_mensuales'],
     menuItems: [
       { route: 'inicio', label: 'Inicio' },
       { route: 'cooperadora', label: 'Institucional' },
       { route: 'comunidad', label: 'Comunidad' },
       { route: 'movimientos', label: 'Movimientos' },
-      { route: 'gobierno', label: 'Asambleas y Autoridades' },
+      { route: 'gobierno', label: 'Asambleas y Memorias' },
       { route: 'resumen', label: 'Resumen' }
     ],
     implemented: true
@@ -207,14 +208,14 @@ export const getActiveMenuItems = (config) => {
 
   if (config.modulo_gestion_integral) {
     items.push({ route: 'movimientos', label: 'Movimientos' })
-    items.push({ route: 'gobierno', label: 'Asambleas y Autoridades' })
+    items.push({ route: 'gobierno', label: 'Asambleas y Memorias' })
     items.push({ route: 'comunidad', label: 'Comunidad' })
     items.push({ route: 'resumen', label: 'Resumen' })
     items.push({ route: 'cierre', label: 'Cierre / Presentación' })
   } else if (isCargaConsolidada(config)) {
     items.push({ route: 'comunidad', label: 'Comunidad' })
     items.push({ route: 'movimientos', label: 'Movimientos' })
-    items.push({ route: 'gobierno', label: 'Asambleas y Autoridades' })
+    items.push({ route: 'gobierno', label: 'Asambleas y Memorias' })
     items.push({ route: 'resumen', label: 'Resumen' })
     items.push({ route: 'cierre', label: 'Cierre / Presentación' })
   }

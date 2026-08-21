@@ -290,8 +290,7 @@ const migrarMovimientosLegacy = async () => {
   }
 }
 
-const doDedup = async () => {
-  if (!confirm('Se buscarán y fusionarán personas con DNI duplicado. ¿Continuar?')) return
+const ejecutarDedup = async () => {
   migrating = true
   bs.clearMessages()
   dedupResult = null
@@ -388,6 +387,6 @@ export const inicioStore = {
   init,
   check,
   crearEjercicio,
-  doDedup,
+  doDedup: ejecutarDedup,
   repairSchema,
 }

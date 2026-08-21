@@ -7,6 +7,7 @@ import { buildPiaFieldMap } from './piaFieldMap.js'
 import { buildNominaFieldMap } from './nominaFieldMap.js'
 import { generatePdfBlob, clearTemplateCache } from './pdfGenerator.js'
 import { calcularSaldosPorCuenta } from '../shared/tesoreriaCalc.js'
+import { generarBorradorMemoria, guardarMemoria } from '../../gobierno/memoria/memoriaManager.svelte.js'
 
 /**
  * Store del módulo Cierre de Ciclo.
@@ -45,6 +46,14 @@ let previewNominaUrl = $state(null)
 let generandoPia = $state(false)
 /** @type {boolean} */
 let generandoNomina = $state(false)
+/** @type {any[]} */
+let hechosRelevantes = $state([])
+/** @type {any[]} */
+let asambleasEjercicio = $state([])
+/** @type {any[]} */
+let autoridadesEjercicio = $state([])
+/** @type {any[]} */
+let cargosAll = $state([])
 
 /** @type {(() => void) | null} */
 let _unsub = null
@@ -74,6 +83,9 @@ const seleccionarEjercicio = async (id) => {
   if (previewPiaUrl) { URL.revokeObjectURL(previewPiaUrl); previewPiaUrl = null }
   if (previewNominaUrl) { URL.revokeObjectURL(previewNominaUrl); previewNominaUrl = null }
   cierreData = null
+  hechosRelevantes = []
+  asambleasEjercicio = []
+  autoridadesEjercicio = []
   if (id == null) return
 
   await bs.wrapAsync(async () => {
@@ -81,6 +93,43 @@ const seleccionarEjercicio = async (id) => {
     if (!cierreData) {
       bs.setError('No se encontraron datos para el ejercicio seleccionado.')
     }
+
+    // Cargar datos para la Memoria (hechos, asambleas, autoridades, cargos)
+    try {
+      const tHechos = await resolveTableId(TABLE_PREFERRED_IDS.hechos_relevantes)
+      if (tHechos) {
+        hechosRelevantes = await fetchRecords(tHechos, {
+          filter: (h) => Number(h.ejercicio_id) === Number(id),
+          sort: (a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')),
+        })
+      }
+    } catch { /* sin tabla hechos */ }
+
+    try {
+      const tAsambleas = await resolveTableId(TABLE_PREFERRED_IDS.asambleas)
+      if (tAsambleas) {
+        asambleasEjercicio = await fetchRecords(tAsambleas, {
+          filter: (a) => Number(a.ejercicio_id) === Number(id),
+          sort: (a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')),
+        })
+      }
+    } catch { /* sin tabla asambleas */ }
+
+    try {
+      const tAutoridades = await resolveTableId(TABLE_PREFERRED_IDS.autoridades)
+      if (tAutoridades) {
+        autoridadesEjercicio = await fetchRecords(tAutoridades, {
+          filter: (a) => Number(a.ejercicio_id) === Number(id),
+        })
+      }
+    } catch { /* sin tabla autoridades */ }
+
+    try {
+      const tCargos = await resolveTableId(TABLE_PREFERRED_IDS.cargos)
+      if (tCargos) {
+        cargosAll = await fetchRecords(tCargos)
+      }
+    } catch { /* sin tabla cargos */ }
   })
 }
 
@@ -325,4 +374,31 @@ export const cierreStore = {
   reabrirEjercicio,
   subscribe,
   clearTemplateCache,
+  // Memoria
+  get hechosRelevantes() { return hechosRelevantes },
+  get memoriaTexto() {
+    const ej = ejercicios.find((e) => Number(e.id) === Number(ejercicioSeleccionadoId))
+    return ej?.memoria_texto || ''
+  },
+  get memoriaEstado() {
+    const ej = ejercicios.find((e) => Number(e.id) === Number(ejercicioSeleccionadoId))
+    return ej?.memoria_estado || ''
+  },
+  generarMemoria: () => generarBorradorMemoria({
+    getEjercicio: () => ejercicios.find((e) => Number(e.id) === Number(ejercicioSeleccionadoId)) || null,
+    getHechos: () => hechosRelevantes,
+    getAsambleas: () => asambleasEjercicio,
+    getAutoridades: () => autoridadesEjercicio,
+    getCargos: () => cargosAll,
+  }),
+  guardarMemoria: async (texto, estado) => {
+    const tEj = await resolveTableId(TABLE_PREFERRED_IDS.ejercicios)
+    return guardarMemoria({
+      getTEjercicios: () => tEj,
+      getEjercicio: () => ejercicios.find((e) => Number(e.id) === Number(ejercicioSeleccionadoId)) || null,
+      texto,
+      estado,
+      bs,
+    })
+  },
 }

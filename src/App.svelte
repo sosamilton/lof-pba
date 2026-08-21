@@ -16,9 +16,7 @@
   import Cooperadora from '$app/pages/cooperadora/Cooperadora.svelte'
   import Comunidad from '$app/modules/comunidad/Comunidad.svelte'
   import Movimientos from '$app/modules/tesoreria/movimientos/Movimientos.svelte'
-  import ResumenMensual from '$app/modules/tesoreria/resumen/ResumenMensual.svelte'
   import CargaPIAMatrix from '$app/modules/tesoreria/cargaPia/CargaPIAMatrix.svelte'
-  import Cierre from '$app/modules/tesoreria/cierre/Cierre.svelte'
   import Gobierno from '$app/modules/gobierno/AsambleasAutoridades.svelte'
 
   let ready = $state(false)
@@ -86,11 +84,27 @@
       {:else if router.current === 'movimientos'}
         <Movimientos />
       {:else if router.current === 'resumen'}
-        <ResumenMensual />
+        {#await import('$app/modules/tesoreria/resumen/ResumenMensual.svelte')}
+          <div class="flex items-center justify-center py-12" role="status">
+            <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+          </div>
+        {:then mod}
+          <mod.default />
+        {:catch}
+          <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
+        {/await}
       {:else if router.current.startsWith('carga-pia')}
         <CargaPIAMatrix />
       {:else if router.current === 'cierre'}
-        <Cierre />
+        {#await import('$app/modules/tesoreria/cierre/Cierre.svelte')}
+          <div class="flex items-center justify-center py-12" role="status">
+            <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+          </div>
+        {:then mod}
+          <mod.default />
+        {:catch}
+          <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
+        {/await}
       {:else if router.current === 'gobierno'}
         <Gobierno />
       {:else}

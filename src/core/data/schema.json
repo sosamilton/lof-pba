@@ -216,6 +216,28 @@
             "label": "Fecha de cierre",
             "type": "Date"
           }
+        },
+        {
+          "id": "memoria_texto",
+          "fields": {
+            "label": "Memoria anual",
+            "type": "Text"
+          }
+        },
+        {
+          "id": "memoria_estado",
+          "fields": {
+            "label": "Estado Memoria",
+            "type": "Choice",
+            "widgetOptions": "{\"choices\":[\"borrador\",\"aprobada\",\"rechazada\"]}"
+          }
+        },
+        {
+          "id": "memoria_fecha_generacion",
+          "fields": {
+            "label": "Fecha generacion Memoria",
+            "type": "DateTime"
+          }
         }
       ]
     },
@@ -682,6 +704,36 @@
           "fields": {
             "label": "Importe caja chica",
             "type": "Numeric"
+          }
+        },
+        {
+          "id": "motivo_convocatoria",
+          "fields": {
+            "label": "Motivo de convocatoria",
+            "type": "Choice",
+            "widgetOptions": "{\"choices\": [\"Reforma estatuto\", \"Relevo autoridades\", \"Integracion CD\", \"Decision excepcional\", \"Modificacion temporal atribuciones\", \"Constitucion cooperadora\", \"Otro\"]}"
+          }
+        },
+        {
+          "id": "convocatoria_origen",
+          "fields": {
+            "label": "Origen de convocatoria",
+            "type": "Choice",
+            "widgetOptions": "{\"choices\": [\"Mas10pctSocios\", \"DosMiembrosCD\", \"DireccionCoopEscolar\", \"ComisionDirectiva\"]}"
+          }
+        },
+        {
+          "id": "orden_del_dia",
+          "fields": {
+            "label": "Orden del dia",
+            "type": "Text"
+          }
+        },
+        {
+          "id": "verificada",
+          "fields": {
+            "label": "Verificada",
+            "type": "Bool"
           }
         },
         {
@@ -1483,6 +1535,13 @@
             "type": "Choice",
             "widgetOptions": "{\"choices\":[\"mensual\",\"semanal\",\"trimestral\",\"semestral\",\"anual\"]}"
           }
+        },
+        {
+          "id": "cargos_validados",
+          "fields": {
+            "label": "Cargos validados",
+            "type": "Bool"
+          }
         }
       ]
     },
@@ -1667,6 +1726,62 @@
           "fields": {
             "label": "Observaciones",
             "type": "Text"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hechos_relevantes",
+      "title": "Hechos Relevantes",
+      "columns": [
+        {
+          "id": "fecha",
+          "fields": {
+            "label": "Fecha",
+            "type": "Date"
+          }
+        },
+        {
+          "id": "categoria",
+          "fields": {
+            "label": "Categoria",
+            "type": "Choice",
+            "widgetOptions": "{\"choices\":[\"Evento\",\"Infraestructura\",\"Equipamiento\",\"Beneficios\",\"Actividades\",\"Proyecto educativo\",\"Otro\"]}"
+          }
+        },
+        {
+          "id": "descripcion",
+          "fields": {
+            "label": "Descripcion",
+            "type": "Text"
+          }
+        },
+        {
+          "id": "monto",
+          "fields": {
+            "label": "Monto",
+            "type": "Numeric"
+          }
+        },
+        {
+          "id": "documento_ref",
+          "fields": {
+            "label": "Referencia documento",
+            "type": "Text"
+          }
+        },
+        {
+          "id": "ejercicio_id",
+          "fields": {
+            "label": "Ejercicio",
+            "type": "Ref:ejercicios"
+          }
+        },
+        {
+          "id": "asamblea_id",
+          "fields": {
+            "label": "Asamblea",
+            "type": "Ref:asambleas"
           }
         }
       ]

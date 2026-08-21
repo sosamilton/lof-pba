@@ -5,6 +5,7 @@
   import { daysSince } from '$core/utils/utils'
   import { TIPOS_SOCIO, MOTIVOS_BAJA, CATEGORIAS_VINCULO } from '$app/modules/comunidad/constants.js'
   import { filterBySearch, sortByFields } from '$lib/hooks/useListFilter.svelte.js'
+  import { useDebounce } from '$lib/hooks/useDebounce.svelte.js'
   import { buildPrefill, personaLabel, localidadesItems } from './personas/personasApi.js'
   import { notifyAfter } from '$core/ui/notify.svelte'
   import { Button } from '$lib/components/ui/button'
@@ -28,6 +29,7 @@
   import { loadConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
 
   let q = $state('')
+  const qd = useDebounce(() => q)
   let vinculoFilter = $state('') // '', 'socios', 'no-socios'
   let estadoFilter = $state('activos') // 'activos', 'bajas', 'todos'
   let tipoSocioFilter = $state('')
@@ -55,7 +57,7 @@
           .filter((p) => (tipoSocioFilter ? String(p.tipo_socio || '') === tipoSocioFilter : true))
           .filter((p) => (tipoPersonaFilter ? (p.tipo_persona || 'Fisica') === tipoPersonaFilter : true))
           .filter((p) => (categoriaFilter ? (p.categoria || '') === categoriaFilter : true)),
-        q,
+        qd.value,
         (p) => [p.dni, p.cuil, p.apellido, p.nombre, p.razon_social, p.email, p.telefono, p.localidad],
       ),
       (p) => [normalize(personaLabel(p))],
@@ -265,7 +267,7 @@
                   <Field.FieldLabel for="localidad">Localidad</Field.FieldLabel>
                   <Combobox
                     bind:value={store.form.localidad}
-                    items={localidadesItems}
+                    items={localidadesItems.current}
                     placeholder="Elegir localidad…"
                     searchPlaceholder="Buscar localidad de PBA…"
                   />

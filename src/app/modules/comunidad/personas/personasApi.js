@@ -1,6 +1,5 @@
 import { applyUserActions, fetchRecords, resolveTableId, withMultiplayerProtection } from '$core/grist/grist'
 import { TABLE_PREFERRED_IDS } from '$core/utils/utils'
-import localidadesBA from '$core/data/localidades-buenos-aires.json'
 import { parseDni, parseCuil, isCuilPendiente } from '$core/format/format.js'
 
 const normalizeText = (s) => String(s || '').toLowerCase().trim()
@@ -181,4 +180,4 @@ export const buildPrefill = (str) => {
   return { nombre: trimmed }
 }
 
-export const localidadesItems = localidadesBA.map((nombre) => ({ value: nombre, label: nombre }))
+export { localidadesItems } from '$lib/hooks/localidades.svelte.js'

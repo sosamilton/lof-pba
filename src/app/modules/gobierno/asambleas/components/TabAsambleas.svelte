@@ -5,12 +5,14 @@
   import EmptyState from '$lib/components/EmptyState.svelte'
   import { TIPOS_ASAMBLEA, TIPOS_ASAMBLEA_CORTO } from '$app/modules/gobierno/constants.js'
   import { filterBySearch } from '$lib/hooks/useListFilter.svelte.js'
+  import { useDebounce } from '$lib/hooks/useDebounce.svelte.js'
   import { notifyAfter } from '$core/ui/notify.svelte'
   import PlusIcon from '@lucide/svelte/icons/plus'
   import TrashIcon from '@lucide/svelte/icons/trash-2'
   import SearchIcon from '@lucide/svelte/icons/search'
   import GavelIcon from '@lucide/svelte/icons/gavel'
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
+  import CheckIcon from '@lucide/svelte/icons/check'
   import AsambleaWizard from './AsambleaWizard.svelte'
   import * as Dialog from '$lib/components/ui/dialog'
   import ControlledDialog from '$lib/components/ControlledDialog.svelte'
@@ -18,6 +20,7 @@
   let { store } = $props()
 
   let q = $state('')
+  const qd = useDebounce(() => q)
   let wizardOpen = $state(false)
   let deleteConfirm = $state(null)
 
@@ -35,6 +38,7 @@
 
   const askDelete = () => {
     if (!store.asambleaForm?.id) return
+    if (store.asambleaForm?.verificada) return
     const linkedCount = store.getLinkedAutoridadesCount(store.asambleaForm.id)
     deleteConfirm = {
       asambleaId: store.asambleaForm.id,
@@ -65,7 +69,7 @@
   let filtered = $derived(
     filterBySearch(
       store.asambleas,
-      q,
+      qd.value,
       (a) => [a.fecha, a.tipo_asamblea, a.acta_numero, TIPOS_ASAMBLEA_CORTO[a.tipo_asamblea]],
     ),
   )
@@ -113,6 +117,12 @@
           <div class="flex items-center gap-2">
             <Badge variant={tipoVariant(a.tipo_asamblea)} class="text-[10px]">{a.tipo_asamblea}</Badge>
             <span class="text-sm font-semibold">{a.fecha || '(sin fecha)'}</span>
+            {#if a.verificada}
+              <Badge variant="secondary" class="text-[10px]">
+                <CheckIcon class="size-2.5" data-icon="inline-start" />
+                Verificada
+              </Badge>
+            {/if}
           </div>
           <div class="mt-1 text-xs text-muted-foreground">
             {TIPOS_ASAMBLEA_CORTO[a.tipo_asamblea] || a.tipo_asamblea}

@@ -254,7 +254,7 @@
             <Field.FieldLabel for="pp-loc-j" class="text-[11px]">Localidad</Field.FieldLabel>
             <Combobox
               bind:value={newPerson.localidad}
-              items={localidadesItems}
+              items={localidadesItems.current}
               placeholder="Elegir…"
               searchPlaceholder="Buscar…"
             />
@@ -317,7 +317,7 @@
               <Field.FieldLabel for="pp-loc" class="text-[11px]">Localidad</Field.FieldLabel>
               <Combobox
                 bind:value={newPerson.localidad}
-                items={localidadesItems}
+                items={localidadesItems.current}
                 placeholder="Elegir…"
                 searchPlaceholder="Buscar…"
               />

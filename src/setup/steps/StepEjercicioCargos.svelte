@@ -25,6 +25,21 @@
     Federacion: 'Órgano al que adherís si tu cooperadora está federada.',
   }
 
+  // Explicación detallada del régimen de renovación por organismo.
+  const ORGANISMO_RENOVACION = {
+    CD: [
+      'La Comisión Directiva dura 2 años y se renueva por mitades cada año (art. 15, Decreto 4767/72).',
+      'Los cargos se reparten en dos grupos (A y B) que alternan renovación: cada Asamblea Ordinaria elige solo la mitad que le toca, garantizando continuidad.',
+      'En la asamblea constitutiva (primera elección) se sortean los mandatos: un grupo dura 1 año y el otro 2. A partir de ahí, cada grupo dura siempre 2 años.',
+    ],
+    CRC: [
+      'La Comisión Revisora de Cuentas dura 1 año: todos sus cargos se renuevan juntos en cada Asamblea Ordinaria. No hay grupos de renovación.',
+    ],
+    Federacion: [
+      'Los representantes ante la Federación duran 1 año y se renuevan juntos en cada Asamblea Ordinaria (si la cooperadora está federada).',
+    ],
+  }
+
   // El ejercicio económico de las cooperadoras escolares bonaerenses es fijo
   // (01/05 → 30/04, Decreto 4767/72). Lo mostramos como referencia y avisamos
   // si el usuario se aparta del régimen.
@@ -51,6 +66,15 @@
     return `${anioFin}-${pad2(mesFin)}-${pad2(ultimoDiaMes(anioFin, mesFin))}`
   })
   const esEjercicioNormativo = $derived(store.ejercicio.mes_inicio === 'Mayo')
+
+  // Nombre del mes de cierre = mes anterior al de inicio (o Diciembre si
+  // el ejercicio arranca en Enero). El ejercicio siempre empieza el 1° de
+  // mes_inicio y termina el último día del mes anterior del anio_fin.
+  const mesFinNombre = $derived.by(() => {
+    const mesNum = MES_NUMERO[store.ejercicio.mes_inicio] || 1
+    const mesFinNum = mesNum - 1 < 1 ? 12 : mesNum - 1
+    return MESES[mesFinNum - 1]
+  })
 </script>
 
 <!-- Ejercicio -->
@@ -84,7 +108,7 @@
       </div>
     </div>
     <div class="mt-3 p-3 rounded-lg border border-border bg-muted/5 text-[13px] text-muted-foreground">
-      Ejercicio: <span class="font-bold text-foreground">{store.ejercicio.mes_inicio} {store.ejercicio.anio_inicio}</span> → <span class="font-bold text-foreground">{store.ejercicio.mes_inicio} {store.ejercicio.anio_fin}</span>
+      Ejercicio: <span class="font-bold text-foreground">{store.ejercicio.mes_inicio} {store.ejercicio.anio_inicio}</span> → <span class="font-bold text-foreground">{mesFinNombre} {store.ejercicio.anio_fin}</span>
       {#if fechaInicio && fechaFin}
         <span class="ml-2 text-muted-foreground/80">({fechaInicio} → {fechaFin})</span>
       {/if}
@@ -227,6 +251,13 @@
         </div>
         {#if ORGANISMO_DESCRIPCIONES[org]}
           <p class="text-[12px] text-muted-foreground mb-2 leading-relaxed">{ORGANISMO_DESCRIPCIONES[org]}</p>
+        {/if}
+        {#if ORGANISMO_RENOVACION[org]}
+          <div class="mb-3 p-2.5 rounded-lg border border-border bg-muted/5 text-[11px] text-muted-foreground leading-relaxed">
+            {#each ORGANISMO_RENOVACION[org] as linea}
+              <p class="mb-1 last:mb-0">{linea}</p>
+            {/each}
+          </div>
         {/if}
 
         {#if grupo.length === 0}

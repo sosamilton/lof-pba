@@ -109,15 +109,16 @@
       ]
     },
     {
-      "titulo": "Gobierno y actas",
-      "descripcion": "Asambleas, reuniones de CD y resoluciones vinculadas al ejercicio.",
+      "titulo": "Asambleas y Memorias",
+      "descripcion": "Asambleas, reuniones de CD, resoluciones, histórico de mandatos y Memoria anual.",
       "icono": "gavel",
       "items": [
         "Asambleas AGO, AGE y RCD con resoluciones y padrón electoral",
         "Carga de autoridades desde el wizard de asambleas, por organismo",
+        "Renovación de CD por mitades (art. 15) con sorteo automático",
         "Histórico de mandatos: quién ocupó cada cargo y desde qué acta",
-        "Vencimientos de mandato calculados automáticamente",
-        "Comisión Directiva, CRC y Federación, todo vinculado"
+        "Hechos relevantes del ejercicio que se compilan automáticamente en la Memoria anual",
+        "Memoria anual exportable a PDF y DOC desde el Cierre de Ciclo"
       ]
     },
     {
@@ -173,107 +174,107 @@
         "imagen": "img/screenshot/movimiento.png"
       },
       {
-        "titulo": "Asambleas",
-        "descripcion": "Asambleas y reuniones de CD con resoluciones y carga de autoridades desde el wizard.",
+        "titulo": "Asambleas y Memorias",
+        "descripcion": "Asambleas, reuniones de CD, histórico de mandatos y hechos relevantes para la Memoria anual.",
         "imagen": "img/screenshot/asamblea.png"
       }
     ]
   },
   "instalacion": {
     "titulo": "Cómo se instala",
-    "subtitulo": "En menos de 2 minutos, la app se integra a tu documento Grist como un widget personalizado.",
+    "subtitulo": "En menos de 5 minutos, siguiendo estos pasos simples. No necesitás saber programar.",
     "pasos": [
       {
-        "titulo": "Crear o copiar tu documento",
-        "descripcion": "Creá un documento nuevo en Grist, vacío."
+        "titulo": "Descargar Grist",
+        "descripcion": "Grist es el programa gratuito y de código abierto donde van a vivir los datos de tu cooperadora. Es como un Excel pero más potente y organizado. LOF funciona dentro de Grist como una aplicación que le da pantallas amigables a tus datos. Descargalo e instalalo en tu compu. Podés conocer más sobre Grist en su página oficial: getgrist.com"
       },
       {
-        "titulo": "Agregar el widget",
-        "descripcion": "Add New → Add Widget to Page → Custom"
+        "titulo": "Crear un documento nuevo",
+        "descripcion": "Abrí Grist y creá un documento nuevo, vacío. Es como crear un archivo nuevo en Word."
       },
       {
-        "titulo": "Pegar la URL",
-        "descripcion": "Usá la URL de GitHub Pages de esta SPA o una URL local para uso offline."
+        "titulo": "Agregar la app",
+        "descripcion": "Dentro del documento, vas a agregar LOF como una 'aplicación personalizada'. Te pedirá una dirección web (URL): pegá el enlace que te damos."
       },
       {
         "titulo": "Dar permisos",
-        "descripcion": "Access level: Full document access"
+        "descripcion": "Grist te va a preguntar si confiás en la app. Decí que sí y dale acceso completo para que pueda crear las tablas y guardar todo."
       },
       {
-        "titulo": "Inicializar la plantilla",
-        "descripcion": "El wizard guía la configuración inicial: escuela, cooperadora, cargos, datos bancarios y personal."
+        "titulo": "Configurar tu cooperadora",
+        "descripcion": "Se abre automáticamente una guía que te pregunta los datos de tu escuela, los cargos de la comisión, los datos del banco, etc. Lo completás paso a paso."
       }
     ]
   },
   "guia_instalacion": {
     "titulo": "Guía de instalación",
-    "subtitulo": "Paso a paso para integrar la app como Custom Widget en Grist.",
+    "subtitulo": "Paso a paso, sin necesidad de conocimientos técnicos. Si sabés usar Excel, podés instalar LOF.",
     "pasos": [
       {
         "titulo": "Crear un documento nuevo",
-        "descripcion": "Necesitás tener un documento nuevo vacío en Grist. Al crearlo, se genera automáticamente una tabla llamada Table 1.",
+        "descripcion": "Abrí Grist y hacé clic en 'New Document' (documento nuevo). Se va a crear un archivo vacío con una tabla que se llama Table1. No te preocupes por esa tabla, la app la va a usar después.",
         "imagen": "img/install/1-crear-documento.png"
       },
       {
         "titulo": "Crear una nueva página",
-        "descripcion": "Dentro del documento, creá una nueva página donde se va a insertar la app.",
+        "descripcion": "Dentro del documento, hacé clic en el botón '+' para agregar una página nueva. Es como agregar una hoja nueva en Excel.",
         "imagen": "img/install/2-creo-pagina.png"
       },
       {
-        "titulo": "Seleccionar Personalizado y tabla por defecto",
-        "descripcion": "En la creación de la página, seleccioná la opción 'Personalizado' (Custom). Luego marcá una tabla: elegí la que se crea por defecto, Table1.",
+        "titulo": "Elegir 'Personalizado'",
+        "descripcion": "Cuando te pregunte qué tipo de página querés, elegí la opción 'Personalizado' (o 'Custom' si está en inglés). Después marcá la tabla que se creó sola (Table1) y continuá.",
         "imagen": "img/install/3-selecciono-personalizado-y-tabla-default.png"
       },
       {
-        "titulo": "Pegar la URL de la app",
-        "descripcion": "En el paso siguiente te aparece para poner una URL. Si usás Grist Desktop, esta será la única opción disponible. En la versión Docker local o en la nube de getgrist.com (con límite de 5000 filas por tabla) también aparecerán widgets predefinidos. Pegá la URL de la app: https://sosamilton.github.io/spa-cooperadora/ o, si la levantás offline con Docker, http://localhost:8088",
+        "titulo": "Pegar la dirección de la app",
+        "descripcion": "Te va a aparecer un casillero para poner una dirección web (URL). Copiá y pegá este enlace: https://sosamilton.github.io/spa-cooperadora/ — Si instalaste todo con Docker (modo offline), usá esta otra: http://localhost:8088",
         "imagen": "img/install/4-pego-url-app.png"
       },
       {
-        "titulo": "Confiar y confirmar",
-        "descripcion": "Grist te pide que confirmes que confías en la implementación. Aceptá para continuar.",
+        "titulo": "Confiar en la app",
+        "descripcion": "Grist te va a preguntar si confiás en esta aplicación. Como es un programa libre y de código abierto, podés aceptar sin problemas. Hacé clic en 'Trust' (Confiar) para continuar.",
         "imagen": "img/install/5-confio-y-confirmo.png"
       },
       {
-        "titulo": "Dar acceso completo al documento",
-        "descripcion": "Necesitás dar Full Access al documento para que la app pueda crear las tablas y gestionar toda la información.",
+        "titulo": "Dar acceso completo",
+        "descripcion": "Te va a pedir que elijas el nivel de acceso. Seleccioná 'Full Access' (acceso completo). Esto es necesario para que LOF pueda crear todas las tablas donde se van a guardar los datos de tu cooperadora.",
         "imagen": "img/install/6-doy-permisos.png"
       },
       {
-        "titulo": "Comienza el setup inicial",
-        "descripcion": "Se inicia el wizard de configuración donde se carga la información de la escuela, cooperadora, cargos que tiene, datos bancarios, etc.",
+        "titulo": "¡Listo! Se abre la configuración inicial",
+        "descripcion": "Automáticamente se abre una guía paso a paso que te pregunta los datos básicos: tu escuela, los cargos de la comisión, los datos del banco, etc. Lo vas completando de a uno. Cuando terminás, la app queda lista para usar.",
         "imagen": "img/install/7-comienza-el-setup.png"
       }
     ],
     "metodos_instalacion": [
       {
-        "titulo": "Grist Desktop",
-        "descripcion": "Aplicación de escritorio, sin gestión de usuarios. La forma más simple de empezar.",
+        "titulo": "Grist Desktop (recomendado para empezar)",
+        "descripcion": "Es un programa que instalás en tu compu, como cualquier otro. No necesitás internet ni conocimientos técnicos. Es la forma más fácil de empezar.",
         "modo": "offline",
-        "nota": "Descargá la versión correspondiente a tu sistema operativo desde la página de releases. Para uso offline, la app debe servirse localmente (ver guía offline).",
+        "recomendado": true,
+        "nota": "Descargá la versión para tu sistema (Windows, Mac o Linux) e instalala como cualquier programa. Una vez instalada, abrí Grist y seguí los pasos de abajo.",
         "enlace": "https://github.com/gristlabs/grist-desktop/releases",
         "enlace_texto": "Descargar Grist Desktop"
       },
       {
-        "titulo": "Docker local (solo Grist)",
-        "descripcion": "Levantá Grist con un solo comando. Ideal para uso local o self-hosted.",
-        "modo": "offline",
-        "nota": "Necesitás instalar Docker primero. El comando levanta Grist en el puerto 8089 y guarda los datos en ~/grist. Para uso offline, la app debe servirse localmente.",
-        "comando": "docker run -p 8089:8484 -v ~/grist:/persist -it gristlabs/grist",
-        "enlace": "https://www.getgrist.com/product/self-hosted/",
-        "enlace_texto": "Ver documentación de self-hosted"
+        "titulo": "Nube (getgrist.com)",
+        "descripcion": "Si no querés instalar nada en tu compu, podés usar Grist desde el navegador. Es como usar Google Docs: entrás a una página web y trabajás ahí. Ideal si tenés internet estable.",
+        "modo": "online",
+        "nota": "El plan gratuito tiene un límite de 5000 filas por tabla. Para la mayoría de las cooperadoras escolares alcanza y sobra.",
+        "enlace": "https://www.getgrist.com/",
+        "enlace_texto": "Ir a getgrist.com (gratis)"
       },
       {
-        "titulo": "Docker Compose (Grist + LOF)",
-        "descripcion": "Levantá Grist y la app juntos con Docker Compose. La app queda disponible en el puerto 8088 y Grist en el 8089. Recomendado para uso 100% offline.",
+        "titulo": "Docker (para uso offline en la escuela)",
+        "descripcion": "Si hay alguien con algo de conocimientos técnicos en tu escuela, puede instalar Grist + LOF juntos en una compu usando Docker. Todo funciona sin internet, ideal para escuelas sin conexión estable.",
         "modo": "offline",
-        "nota": "Necesitás instalar Docker Desktop (Windows/Linux) o Docker Engine (Linux). Primero descargá el archivo docker-compose.yml con curl, luego levantá todo desde la misma carpeta.",
+        "nota": "Necesitás instalar Docker primero (es un programa gratuito). Después descargás un archivo de configuración y ejecutás dos comandos. Grist queda en el puerto 8089 y la app en el 8088.",
         "comandos": [
           "curl -O https://raw.githubusercontent.com/sosamilton/spa-cooperadora/refs/heads/main/docker-compose.yml",
           "docker compose up -d --build"
         ],
         "enlace": "https://raw.githubusercontent.com/sosamilton/spa-cooperadora/refs/heads/main/docker-compose.yml",
-        "enlace_texto": "Ver docker-compose.yml",
+        "enlace_texto": "Ver archivo de configuración",
         "requisitos": [
           {
             "texto": "Docker Desktop para Windows",
@@ -290,11 +291,13 @@
         ]
       },
       {
-        "titulo": "Nube (getgrist.com)",
-        "descripcion": "Usá la instancia alojada en la nube de Grist. Sin instalación, pero con un límite de 5000 filas por tabla en el plan gratuito.",
-        "modo": "online",
-        "enlace": "https://www.getgrist.com/",
-        "enlace_texto": "Ir a getgrist.com"
+        "titulo": "Docker local (solo Grist, para usuarios avanzados)",
+        "descripcion": "Si ya tenés Grist funcionando por tu cuenta o querés instalar solo Grist sin la app incluida. Para quienes saben lo que hacen con Docker.",
+        "modo": "offline",
+        "nota": "Levanta Grist en el puerto 8089. Después vas a tener que instalar la app por separado pegando la URL.",
+        "comando": "docker run -p 8089:8484 -v ~/grist:/persist -it gristlabs/grist",
+        "enlace": "https://www.getgrist.com/product/self-hosted/",
+        "enlace_texto": "Ver documentación de self-hosted"
       }
     ]
   },
@@ -312,7 +315,22 @@
     {
       "estado": "hecho",
       "titulo": "Módulo Institucional con gestión de cargos y autoridades",
-      "descripcion": "Separación de la información institucional como módulo de primera clase en el sidebar. Cargos del estatuto y autoridades vigentes con cese, reemplazo y alerta de quórum en un solo lugar. Gobierno se enfoca en asambleas e histórico de mandatos."
+      "descripcion": "Separación de la información institucional como módulo de primera clase en el sidebar. Cargos del estatuto editables y autoridades vigentes con cese, reemplazo y alerta de quórum en un solo lugar. Asambleas y Memorias se enfoca en actos asamblearios, histórico de mandatos y Memoria anual."
+    },
+    {
+      "estado": "hecho",
+      "titulo": "Memoria anual con hechos relevantes",
+      "descripcion": "Registro de hechos relevantes del ejercicio (eventos, obras, equipamiento, beneficios) que se compilan automáticamente en la Memoria anual. Editor con preview split-pane y exportación a PDF/DOC desde el Cierre de Ciclo."
+    },
+    {
+      "estado": "hecho",
+      "titulo": "Renovación de CD por mitades y verificación de asambleas",
+      "descripcion": "Renovación de Comisión Directiva por mitades (art. 15 del estatuto modelo) con sorteo automático y cálculo de vencimientos. Wizard de asambleas con verificación de datos y carga compacta de autoridades."
+    },
+    {
+      "estado": "hecho",
+      "titulo": "Periodicidad configurable y performance",
+      "descripcion": "Periodicidad de cargas configurable (mensual, bimestral, trimestral, cuatrimestral, semestral, anual). Debounce en búsquedas, lazy-load de módulos pesados y datos demo configurables para testing."
     },
     {
       "estado": "hecho",

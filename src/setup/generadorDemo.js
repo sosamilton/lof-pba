@@ -148,6 +148,11 @@ const MES_NUMERO = {
   Julio: 7, Agosto: 8, Septiembre: 9, Octubre: 10, Noviembre: 11, Diciembre: 12,
 }
 
+const MES_NOMBRE = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+]
+
 /**
  * Genera todos los períodos (YYYY-MM) de un ejercicio, desde el mes de inicio
  * del año de inicio hasta el mes anterior al mes de inicio del año de fin.
@@ -190,8 +195,9 @@ const generarPeriodosEjercicioLocal = (ejercicio) => {
  * @param {boolean} [opts.cargaConsolidada=false] - Si true, movimientos PIA-style (1 por rubro/cuenta/período) y autoridades = socios + directivos/docentes.
  * @param {number} [opts.cantAsambleas=1] - Cantidad de asambleas por ejercicio (para probar cierre de período dentro de un ejercicio).
  * @param {number} [opts.cantEjercicios=1] - Cantidad total de ejercicios a generar (incluye el actual). Crea ejercicios anteriores con sus propias asambleas y autoridades.
+ * @param {number} [opts.cantHechos=10] - Cantidad de hechos relevantes por ejercicio (para alimentar la Memoria anual).
  * @param {(msg: string) => void} [opts.onProgress]
- * @returns {Promise<{personas: number, socios: number, movimientos: number, asamblea: boolean, autoridades: number, planillas: number}>}
+ * @returns {Promise<{personas: number, socios: number, movimientos: number, asamblea: boolean, autoridades: number, planillas: number, hechos: number, memorias: number}>}
  */
 export const generarDatosPrueba = async ({
   cantPersonas = 500,
@@ -202,10 +208,11 @@ export const generarDatosPrueba = async ({
   cargaConsolidada = false,
   cantAsambleas = 1,
   cantEjercicios = 1,
+  cantHechos = 10,
   onProgress = () => {},
 } = {}) => {
   const log = onProgress || (() => {})
-  const results = { personas: 0, socios: 0, movimientos: 0, cargas: 0, cargasFirmadas: 0, asamblea: false, autoridades: 0, asesores: 0, planillas: 0 }
+  const results = { personas: 0, socios: 0, movimientos: 0, cargas: 0, cargasFirmadas: 0, asamblea: false, autoridades: 0, asesores: 0, planillas: 0, hechos: 0, memorias: 0 }
 
   // --- Resolver tablas ---
   const tPersonas = await resolveTableId(TABLE_PREFERRED_IDS.personas)
@@ -220,6 +227,10 @@ export const generarDatosPrueba = async ({
   const tAsambleas = await resolveTableId(TABLE_PREFERRED_IDS.asambleas)
   const tCargas = await resolveTableId(TABLE_PREFERRED_IDS.cargas)
   const tCierres = await resolveTableId(TABLE_PREFERRED_IDS.cierres_mensuales)
+
+  // Tablas opcionales (pueden no existir si el usuario no corrió "Actualizar schema")
+  let tHechos = null
+  try { tHechos = await resolveTableId(TABLE_PREFERRED_IDS.hechos_relevantes) } catch { /* sin tabla */ }
 
   if (!tPersonas || !tSocios || !tMovimientos) {
     throw new Error('Faltan tablas base (personas, socios o movimientos). Ejecutá el setup primero.')
@@ -847,6 +858,123 @@ export const generarDatosPrueba = async ({
           })
         }
 
+        // --- Hechos relevantes del ejercicio ---
+        // Genera cantHechos hechos distribuidos en el ejercicio para alimentar
+        // el borrador de la Memoria anual.
+        if (tHechos && cantHechos > 0) {
+          const hechosEj = []
+          const hechosPlantilla = [
+            { cat: 'Evento', desc: 'Festival solidario a beneficio de la cooperadora, con presentación de grupos folclóricos y venta de tortas.' },
+            { cat: 'Evento', desc: 'Organización del acto del Día del Maestro, con refrigerio para docentes y alumnos.' },
+            { cat: 'Evento', desc: 'Cena anual de la cooperadora, con rifa a beneficio y participación de familias.' },
+            { cat: 'Infraestructura', desc: 'Pintura general del edificio escolar: aulas, pasillos y salón de actos.' },
+            { cat: 'Infraestructura', desc: 'Reparación de baños del ala norte: cambio de sanitarios y cañerías.' },
+            { cat: 'Infraestructura', desc: 'Desmalezamiento y parquización del patio, con plantación de árboles donados.' },
+            { cat: 'Infraestructura', desc: 'Reparación de instalaciones eléctricas en sala de informática.' },
+            { cat: 'Equipamiento', desc: 'Compra de 5 netbooks para el laboratorio de informática.' },
+            { cat: 'Equipamiento', desc: 'Adquisición de equipo de audio y proyector para el salón de actos.' },
+            { cat: 'Equipamiento', desc: 'Compra de armarios metálicos para archivo de la cooperadora.' },
+            { cat: 'Beneficios', desc: 'Otorgamiento de 12 becas a alumnos con dificultades económicas para compra de útiles.' },
+            { cat: 'Beneficios', desc: 'Donación de uniformes escolares a 8 familias de la comunidad.' },
+            { cat: 'Actividades', desc: 'Financiamiento del viaje de estudios de 7° grado a Tandil.' },
+            { cat: 'Actividades', desc: 'Apoyo económico para la feria de ciencias del establecimiento.' },
+            { cat: 'Actividades', desc: 'Organización de la fiesta de fin de año lectivo, con entrega de diplomas.' },
+            { cat: 'Proyecto educativo', desc: 'Financiamiento del proyecto "Lectores del Bicentenario": compra de libros para biblioteca de aula.' },
+            { cat: 'Proyecto educativo', desc: 'Aporte para el proyecto de huerta escolar: herramientas, semillas y materiales.' },
+            { cat: 'Otro', desc: 'Pago de seguro de responsabilidad civil de la cooperadora.' },
+            { cat: 'Otro', desc: 'Compra de insumos de limpieza para todo el año lectivo.' },
+          ]
+          const cantHechosEj = Math.max(0, Math.min(cantHechos, hechosPlantilla.length))
+          const hechosSeleccionados = pickN(hechosPlantilla, cantHechosEj)
+          for (let hIdx = 0; hIdx < hechosSeleccionados.length; hIdx++) {
+            const h = hechosSeleccionados[hIdx]
+            // Distribuir hechos a lo largo del ejercicio
+            const periodoHecho = periodos.length > 0
+              ? periodos[Math.floor((hIdx / cantHechos) * periodos.length)]
+              : `${ejAnioInicio}-0${rand(1, 9)}`
+            const [hYear, hMonth] = periodoHecho.split('-').map(Number)
+            hechosEj.push({
+              fecha: genFecha(hYear, hMonth, rand(1, 28)),
+              categoria: h.cat,
+              descripcion: h.desc,
+              monto: Math.random() < 0.6 ? rand(5000, 250000) : '',
+              documento_ref: '',
+              ejercicio_id: ej.id,
+              asamblea_id: null,
+            })
+          }
+          if (hechosEj.length > 0) {
+            try {
+              await chunkAndInsert(tHechos, hechosEj, batchSize)
+              results.hechos += hechosEj.length
+            } catch { /* sin tabla hechos */ }
+          }
+
+          // --- Memoria anual del ejercicio ---
+          // Genera un texto de Memoria en markdown para el ejercicio.
+          // Los ejercicios anteriores quedan "aprobados"; el ejercicio
+          // en curso queda "borrador" (para que el usuario pueda probar el editor).
+          const mesInicioNum = MES_NUMERO[String(ej.mes_inicio || 'Mayo')] || 5
+          const mesFinNum = mesInicioNum === 1 ? 12 : mesInicioNum - 1
+          const mesFinNombre = MES_NOMBRE[mesFinNum] || 'abril'
+          const lineasMemoria = []
+          lineasMemoria.push(`# Memoria Anual — Ejercicio ${ej.anio_inicio}-${ej.anio_fin}`)
+          lineasMemoria.push('')
+          lineasMemoria.push(`**Período:** 1° de ${MES_NOMBRE[mesInicioNum - 1] || 'mayo'} de ${ej.anio_inicio} al 30 de ${mesFinNombre} de ${ej.anio_fin}`)
+          lineasMemoria.push('')
+          lineasMemoria.push('En cumplimiento con las disposiciones legales y estatutarias vigentes, la Comisión Directiva pone a consideración de la Asamblea General Ordinaria lo actuado durante el ejercicio.')
+          lineasMemoria.push('')
+          lineasMemoria.push('## Actividades y hechos relevantes')
+          lineasMemoria.push('')
+          // Agrupar por categoría
+          const porCat = {}
+          for (const h of hechosEj) {
+            const cat = h.categoria || 'Otro'
+            if (!porCat[cat]) porCat[cat] = []
+            porCat[cat].push(h)
+          }
+          const catLabels = {
+            'Evento': 'Eventos',
+            'Infraestructura': 'Obras de mantenimiento e infraestructura',
+            'Equipamiento': 'Equipamiento',
+            'Beneficios': 'Beneficios obtenidos',
+            'Actividades': 'Actividades',
+            'Proyecto educativo': 'Financiamiento de proyectos educativos',
+            'Otro': 'Otros',
+          }
+          for (const cat of ['Evento', 'Infraestructura', 'Equipamiento', 'Beneficios', 'Actividades', 'Proyecto educativo', 'Otro']) {
+            if (!porCat[cat]) continue
+            lineasMemoria.push(`### ${catLabels[cat] || cat}`)
+            for (const h of porCat[cat]) {
+              const monto = h.monto !== '' && h.monto != null ? ` ($${Number(h.monto).toLocaleString('es-AR')})` : ''
+              lineasMemoria.push(`- ${h.descripcion}${monto}`)
+            }
+            lineasMemoria.push('')
+          }
+          lineasMemoria.push('## Síntesis económica')
+          lineasMemoria.push('')
+          lineasMemoria.push(`**Saldo inicial del ejercicio:** $${Number(ej.saldo_inicial_total || 0).toLocaleString('es-AR')}`)
+          lineasMemoria.push('')
+          lineasMemoria.push('El detalle de ingresos, egresos y saldo final se encuentra en el Balance (estado de recursos y gastos) que se presenta junto con esta Memoria.')
+          lineasMemoria.push('')
+          lineasMemoria.push('---')
+          lineasMemoria.push('')
+          lineasMemoria.push('Se invita a los socios a revisar la documentación completa (Balance, Inventario, Informe de la Comisión Revisora de Cuentas) que se acompaña a la presente Memoria.')
+          lineasMemoria.push('')
+          lineasMemoria.push('**Comisión Directiva**')
+
+          const memoriaTexto = lineasMemoria.join('\n')
+          const memoriaEstado = esUltimoEjercicio ? 'borrador' : 'aprobada'
+          try {
+            await applyUserActions([['UpdateRecord', tEjercicios, ej.id, {
+              memoria_texto: memoriaTexto,
+              memoria_estado: memoriaEstado,
+              memoria_fecha_generacion: new Date().toISOString(),
+            }]])
+            results.memorias += 1
+          } catch { /* sin campos memoria en schema */ }
+        }
+
         // --- Asesor del ejercicio ---
         // El asesor es una función institucional derivada de la Dirección del
         // establecimiento (Decreto 4767/72 art. 18-20).
@@ -937,6 +1065,8 @@ export const generarDatosPrueba = async ({
     (results.asamblea ? `, ${results.asambleasCreadas || 1} asamblea(s), ${results.autoridades} autoridades` : '') +
     (results.asesores ? `, ${results.asesores} asesor(es)` : '') +
     (results.planillas ? `, ${results.planillas} planillas` : '') +
+    (results.hechos ? `, ${results.hechos} hechos relevantes` : '') +
+    (results.memorias ? `, ${results.memorias} memoria(s)` : '') +
     '.'
   )
 

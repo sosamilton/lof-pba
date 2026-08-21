@@ -72,7 +72,7 @@ get reemplazoTarget() { return cargos.reemplazoTarget }
 
 - **`cooperadoraStore`** facade → compone `ejerciciosStore` + `cargosStore` (cargos, autoridades vigentes, cese, reemplazo, histórico, personaSearch); mantiene solo configuración (escuela, banco, kiosco).
 - **`inicioStore`** facade → delega métricas a `dashboardStore`; mantiene solo estado local (status, creating, nuevoEj, version).
-- **`asambleasAutoridadesStore`** — mismo modelo de factory con inyección de dependencias. Maneja asambleas, carga de autoridades desde wizard, e histórico. **Nota:** cese y reemplazo se invocan desde `cargosStore` (Institucional), no desde este store. Las factories `createCeseAutoridad` y `createReemplazoAutoridad` viven en `gobierno/autoridades/` pero se instancian desde `cargosStore`.
+- **`asambleasAutoridadesStore`** — mismo modelo de factory con inyección de dependencias. Maneja asambleas, carga de autoridades desde wizard, histórico de mandatos, hechos relevantes y compilación de Memoria anual. **Nota:** cese y reemplazo se invocan desde `cargosStore` (Institucional), no desde este store. Las factories `createCeseAutoridad` y `createReemplazoAutoridad` viven en `gobierno/autoridades/` pero se instancian desde `cargosStore`. La renovación de CD por mitades (`renovacionCD`) también vive en `gobierno/autoridades/` y se invoca desde el wizard de asambleas.
 
 Los sub-stores exponen getters sobre `$state` que el facade re-exporta, manteniendo reactividad transitiva.
 

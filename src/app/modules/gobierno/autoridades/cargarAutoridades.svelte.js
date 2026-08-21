@@ -1,6 +1,7 @@
 import { applyUserActions } from '$core/grist/grist.js'
-import { normalizeFields, dateToInput, addMonths } from '$core/utils/utils.js'
+import { normalizeFields, dateToInput } from '$core/utils/utils.js'
 import { extractRowId, personaLabel } from '$app/modules/comunidad/personas/personasApi.js'
+import { esConstitucionCD, calcularVencimiento, grupoAVencer } from './renovacionCD.js'
 
 /**
  * Cargar autoridades desde una asamblea (AGO/AGE).
@@ -44,6 +45,7 @@ export function createCargarAutoridades({
     const a = asambleaId ? asambleas.find((x) => Number(x.id) === Number(asambleaId)) || null : null
     const fecha = dateToInput(a?.fecha) || new Date().toISOString().slice(0, 10)
     const tipo = a?.tipo_asamblea || 'AGE'
+    const verificada = Boolean(a?.verificada)
 
     // Detectar autoridades vigentes por organismo
     const vigentesPorOrgano = {}
@@ -93,13 +95,33 @@ export function createCargarAutoridades({
 
     // En carga parcial, arrancar con NINGUNO seleccionado (el usuario suma
     // solo los cargos que quiere cambiar). En carga total, todos.
-    const seleccionInicial = totalVigentes === 0
-      ? new Set(filas.map((f) => f.cargoId))
-      : new Set()
+    // Excepción: si es renovación de CD (no constitución) y se detecta el
+    // grupo que toca renovar, pre-seleccionar automáticamente los cargos
+    // de ese grupo para facilitar la carga parcial.
+    const constitucion = esConstitucionCD(vigentesPorOrgano)
+    const grupoCortoSorteo = 'B' // default del sorteo: Grupo B dura 1 año, A dura 2
+    let seleccionInicial
+    if (totalVigentes === 0) {
+      seleccionInicial = new Set(filas.map((f) => f.cargoId))
+    } else {
+      seleccionInicial = new Set()
+      // Pre-seleccionar el grupo de CD que toca renovar (carga parcial).
+      if (!constitucion) {
+        const grupoToca = grupoAVencer(vigentesPorOrgano.CD || [], cargos)
+        if (grupoToca) {
+          for (const f of filas) {
+            if (f.organismo === 'CD' && f.grupoRenovacion === grupoToca) {
+              seleccionInicial.add(f.cargoId)
+            }
+          }
+        }
+      }
+    }
     cargarDraft = {
       asambleaId,
       asambleaFecha: fecha,
       tipo,
+      verificada,
       filas,
       needsAgeCreation: opts.needsAgeCreation || false,
       inlineMode: opts.inlineMode || false,
@@ -107,7 +129,17 @@ export function createCargarAutoridades({
       cargosSeleccionados: seleccionInicial,
       totalVigentes,
       vigentesPorOrgano,
+      // Renovación de CD por mitades (art. 15)
+      esConstitucion: constitucion,
+      grupoCortoSorteo,
+      grupoAVencer: constitucion ? null : grupoAVencer(vigentesPorOrgano.CD || [], cargos),
     }
+  }
+
+  // Cambiar qué grupo quedó con mandato corto en el sorteo de constitución.
+  const setGrupoCortoSorteo = (grupo) => {
+    if (!cargarDraft) return
+    cargarDraft.grupoCortoSorteo = grupo
   }
 
   const closeCargarAutoridades = () => {
@@ -225,7 +257,11 @@ export function createCargarAutoridades({
     bs.clearMessages()
     bs.setBusy(true)
     try {
-      if (!cargarDraft) return
+      if (!cargarDraft) return false
+      if (cargarDraft.verificada) {
+        bs.setError('Esta asamblea está verificada y no se pueden modificar las autoridades.')
+        return false
+      }
       const { asambleaFecha, tipo, filas, needsAgeCreation, cargaMode, cargosSeleccionados } = cargarDraft
       let asambleaId = cargarDraft.asambleaId
       const ejercicio = getEjercicio()
@@ -241,7 +277,7 @@ export function createCargarAutoridades({
       const filasConPersona = filasAGuardar.filter((f) => f.persona_id)
       if (filasConPersona.length === 0) {
         bs.setError('No hay personas vinculadas. Usá "Crear nueva persona" en cada cargo.')
-        return
+        return false
       }
 
       // Si es una AGE nueva, crearla recién ahora (solo si hay autoridades para guardar)
@@ -294,12 +330,19 @@ export function createCargarAutoridades({
       }
 
       const tipoOrigen = tipo === 'RCD' ? 'ReunionCD' : 'Asamblea'
+      const { esConstitucion, grupoCortoSorteo } = cargarDraft
       const actions = []
       for (const f of filasConPersona) {
         const personaId = f.persona_id
         if (!personaId) continue // sin persona linkeada, no se guarda
         const fechaAsuncion = f.fecha_asuncion || asambleaFecha
-        const fechaVenc = fechaAsuncion ? addMonths(fechaAsuncion, f.duracionMeses) : ''
+        // Calcular vencimiento según grupo de renovación (constitución vs
+        // renovación) para CD; para CRC/Federación usar duración del cargo.
+        const fechaVenc = calcularVencimiento(
+          { ...f, fecha_asuncion: fechaAsuncion },
+          esConstitucion,
+          grupoCortoSorteo,
+        )
         const fields = normalizeFields({
           organismo: f.organismo || 'CD',
           cargo_id: f.cargoId,
@@ -321,8 +364,10 @@ export function createCargarAutoridades({
       await loadAsambleas()
       await loadAutoridades()
       closeCargarAutoridades()
+      return true
     } catch (e) {
       bs.setError(e?.message || String(e))
+      return false
     } finally {
       bs.setBusy(false)
     }
@@ -342,6 +387,7 @@ export function createCargarAutoridades({
     toggleOrganismoCargos,
     organismoSelectState,
     globalSelectState,
+    setGrupoCortoSorteo,
     saveAutoridadesFromAsamblea,
   }
 }

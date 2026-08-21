@@ -15,6 +15,10 @@
   import WifiIcon from '@lucide/svelte/icons/wifi'
   import FileTextIcon from '@lucide/svelte/icons/file-text'
   import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
+  import StarIcon from '@lucide/svelte/icons/star'
+  import DatabaseIcon from '@lucide/svelte/icons/database'
+  import ShieldCheckIcon from '@lucide/svelte/icons/shield-check'
+  import ArrowRightLeftIcon from '@lucide/svelte/icons/arrow-right-left'
   import { identidad } from '$core/data/identidad'
   import data from './landing.json'
 
@@ -71,12 +75,109 @@
     </div>
   </section>
 
+  <!-- ¿QUÉ ES GRIST? -->
+  <section class="mx-auto max-w-5xl px-4 py-10 sm:py-14">
+    <div class="flex flex-col gap-2 mb-6">
+      <h2 class="text-2xl font-bold tracking-tight">¿Qué es Grist y por qué lo necesito?</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        LOF no funciona solo: necesita Grist para guardar los datos. Es como una app de celular que necesita el sistema operativo. Acá te explicamos en simple:
+      </p>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-3">
+      <div class="rounded-lg border border-border p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <DatabaseIcon class="size-5 text-primary" />
+          <span class="text-sm font-bold">Grist es donde viven los datos</span>
+        </div>
+        <p class="text-xs text-muted-foreground">
+          Grist es un programa gratuito y de código abierto, como una planilla de cálculo pero más organizada. Tu cooperadora guarda ahí todos sus datos: socios, movimientos, asambleas, autoridades, todo.
+        </p>
+      </div>
+      <div class="rounded-lg border border-border p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <GristIcon class="size-5 text-primary" />
+          <span class="text-sm font-bold">LOF es la interfaz</span>
+        </div>
+        <p class="text-xs text-muted-foreground">
+          LOF funciona dentro de Grist como un componente personalizado. Es como un "aplicación" que se instala dentro del documento y te da pantallas amigables para cargar y consultar los datos, sin que tengas que mirar las tablas a mano.
+        </p>
+      </div>
+      <div class="rounded-lg border border-border p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <ArrowRightLeftIcon class="size-5 text-primary" />
+          <span class="text-sm font-bold">Tus datos son tuyos y son portables</span>
+        </div>
+        <p class="text-xs text-muted-foreground">
+          Todo lo que cargues queda guardado en el documento de Grist. Si mañana dejás de usar LOF, los datos siguen ahí, accesibles. Podés exportarlos, hacer copias de seguridad o pasarlos a otra compu. No hay lock-in: la información siempre es tuya.
+        </p>
+      </div>
+    </div>
+
+    <div class="mt-6 flex flex-wrap items-center gap-3">
+      <Button variant="outline" href="https://www.getgrist.com/product/" target="_blank" rel="noreferrer">
+        <GristIcon class="size-4" data-icon="inline-start" />
+        Conocer Grist (página oficial)
+        <ExternalLinkIcon data-icon="inline-end" />
+      </Button>
+      <Button variant="ghost" href="https://support.getgrist.com/" target="_blank" rel="noreferrer">
+        <FileTextIcon class="size-4" data-icon="inline-start" />
+        Documentación y tutoriales de Grist
+        <ExternalLinkIcon data-icon="inline-end" />
+      </Button>
+    </div>
+  </section>
+
+  <Separator />
+
+  <!-- ¿CUÁL ELIJO? -->
+  <section class="mx-auto max-w-5xl px-4 py-10 sm:py-14">
+    <div class="flex flex-col gap-2 mb-6">
+      <h2 class="text-2xl font-bold tracking-tight">¿Cuál elijo?</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        Depende de tu situación. Acá te ayudamos a decidir:
+      </p>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-3">
+      <div class="rounded-lg border-2 border-primary/30 bg-primary/5 p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <StarIcon class="size-4 text-primary" />
+          <span class="text-sm font-bold">Si recién empezás</span>
+        </div>
+        <p class="text-xs text-muted-foreground">
+          Descargá <strong>Grist Desktop</strong>. Es como instalar cualquier programa. No necesitás internet ni saber de computación.
+        </p>
+      </div>
+      <div class="rounded-lg border border-border p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <WifiIcon class="size-4 text-blue-600" />
+          <span class="text-sm font-bold">Si tenés buen internet</span>
+        </div>
+        <p class="text-xs text-muted-foreground">
+          Usá la <strong>nube de Grist</strong> (getgrist.com). Sin instalar nada, entrás desde el navegador. Es gratis.
+        </p>
+      </div>
+      <div class="rounded-lg border border-border p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <WifiOffIcon class="size-4 text-emerald-600" />
+          <span class="text-sm font-bold">Si no hay internet en la escuela</span>
+        </div>
+        <p class="text-xs text-muted-foreground">
+          Alguien con conocimientos técnicos puede instalar <strong>Docker</strong>. Todo funciona offline, sin depender de internet.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <Separator />
+
   <!-- MÉTODOS DE INSTALACIÓN -->
   <section class="mx-auto max-w-5xl px-4 py-10 sm:py-14">
     <div class="flex flex-col gap-2 mb-6">
       <h2 class="text-2xl font-bold tracking-tight">Formas de instalar</h2>
       <p class="text-sm text-muted-foreground max-w-prose">
-        Elegí la opción que mejor se adapte a tu contexto. Para uso 100% offline, recomendamos Docker.
+        Elegí la opción que mejor se adapte a tu situación. Desplegá cada una para ver los detalles.
       </p>
       <a href={offlineDocUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm text-primary hover:underline w-fit">
         <FileTextIcon class="size-4" />
@@ -86,15 +187,23 @@
 
     <Accordion.Root type="single" collapsible class="w-full">
       {#each guia_instalacion.metodos_instalacion as metodo, i}
-        <Accordion.Item value="item-{i}">
+        <Accordion.Item value="item-{i}" class={metodo.recomendado ? 'border-2 border-primary/30 rounded-lg' : ''}>
           <Accordion.Trigger class="text-base font-semibold">
             <div class="flex items-center gap-2">
               {#if metodo.titulo.includes('Docker')}
                 <img src="./img/docker.svg" alt="Docker" class="size-5 shrink-0" />
               {:else if metodo.titulo.includes('Grist')}
                 <GristIcon class="size-5 shrink-0" />
+              {:else if metodo.titulo.includes('Nube')}
+                <WifiIcon class="size-5 shrink-0" />
               {/if}
               {metodo.titulo}
+              {#if metodo.recomendado}
+                <Badge variant="default" class="gap-1">
+                  <StarIcon class="size-3" />
+                  Recomendado
+                </Badge>
+              {/if}
               {#if metodo.modo && modoConfig[metodo.modo]}
                 {@const modo = modoConfig[metodo.modo]}
                 <Badge variant="outline" class={modo.class}>
@@ -195,7 +304,7 @@
     <div class="flex flex-col gap-2 mb-6">
       <h2 class="text-2xl font-bold tracking-tight">Paso a paso con imágenes</h2>
       <p class="text-sm text-muted-foreground max-w-prose">
-        Navegá por cada paso del proceso de instalación dentro de Grist.
+        Así se ve el proceso dentro de Grist. Navegá con las flechas para ver cada paso.
       </p>
     </div>
 

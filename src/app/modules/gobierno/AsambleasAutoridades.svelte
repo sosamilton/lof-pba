@@ -7,8 +7,10 @@
   import PageScaff from '$lib/components/PageScaffold.svelte'
   import GavelIcon from '@lucide/svelte/icons/gavel'
   import HistoryIcon from '@lucide/svelte/icons/history'
+  import BookIcon from '@lucide/svelte/icons/book-open'
   import TabAsambleas from './asambleas/components/TabAsambleas.svelte'
   import TabHistorico from './autoridades/components/TabHistorico.svelte'
+  import TabHechosRelevantes from './memoria/components/TabHechosRelevantes.svelte'
 
   onMount(async () => {
     if (!isInGrist()) return
@@ -19,7 +21,7 @@
   })
 </script>
 
-<PageScaff title="Asambleas y Autoridades" loading={store.loading} error={store.error} notice={store.notice}>
+<PageScaff title="Asambleas y Memorias" loading={store.loading} error={store.error} notice={store.notice}>
   {#snippet skeleton()}
     <div class="flex flex-col gap-4">
       <Skeleton class="h-8 w-64" />
@@ -29,7 +31,7 @@
   {/snippet}
 
   <div class="mb-4">
-    <h1 class="text-lg font-bold">Asambleas y Autoridades</h1>
+    <h1 class="text-lg font-bold">Asambleas y Memorias</h1>
     <p class="text-sm text-muted-foreground">
       {#if store.ejercicio}
         Ejercicio en curso: <span class="font-mono">{store.ejercicio.anio_inicio}-{store.ejercicio.anio_fin}</span>
@@ -50,6 +52,10 @@
           <HistoryIcon data-icon="inline-start" />
           Histórico
         </Tabs.Trigger>
+        <Tabs.Trigger value="memoria" class="px-3">
+          <BookIcon data-icon="inline-start" />
+          Hechos relevantes
+        </Tabs.Trigger>
       </Tabs.List>
 
       <Tabs.Content value="asambleas">
@@ -57,6 +63,9 @@
       </Tabs.Content>
       <Tabs.Content value="historico">
         <TabHistorico {store} />
+      </Tabs.Content>
+      <Tabs.Content value="memoria">
+        <TabHechosRelevantes {store} />
       </Tabs.Content>
     </Tabs.Root>
   {/if}

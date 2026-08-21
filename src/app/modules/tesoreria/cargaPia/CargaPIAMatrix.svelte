@@ -26,6 +26,7 @@
   import FileCheckIcon from '@lucide/svelte/icons/file-check'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
 
   // Props para modo embebido (dentro de Movimientos)
   let { embedded = false } = $props()
@@ -92,6 +93,30 @@
   // Cuando cambia el ejercicio seleccionado, actualizar el store, recargar
   // cargas y seleccionar automáticamente el primer período del nuevo ejercicio.
   let cargasCargadas = $state(0) // contador para detectar cuando loadCargas terminó
+
+  // Diálogo de confirmación reutilizable.
+  let confirmOpen = $state(false)
+  let confirmTitle = $state('')
+  let confirmDescription = $state('')
+  let confirmLabel = $state('Confirmar')
+  let confirmVariant = $state('destructive')
+  let pendingAction = $state(() => {})
+
+  const openConfirm = (opts) => {
+    confirmTitle = opts.title
+    confirmDescription = opts.description || ''
+    confirmLabel = opts.confirmLabel || 'Confirmar'
+    confirmVariant = opts.variant || 'destructive'
+    pendingAction = opts.onConfirm
+    confirmOpen = true
+  }
+
+  const handleConfirm = async () => {
+    confirmOpen = false
+    const fn = pendingAction
+    pendingAction = () => {}
+    await fn()
+  }
   $effect(() => {
     if (!ejercicioSel) return
     const ejId = Number(ejercicioSel)
@@ -461,14 +486,19 @@
    * Elimina una carga individual después de confirmación.
    * Solo permitido si el período no está firmado.
    */
-  const eliminarCarga = async (cargaId) => {
-    if (!confirm('¿Eliminar esta carga y todos sus movimientos? Esta acción no se puede deshacer.')) return
-    const ok = await store.eliminarCarga(Number(cargaId))
-    if (ok) {
-      if (Number(cargaSeleccionadaId) === Number(cargaId)) {
-        cargaSeleccionadaId = null
-      }
-    }
+  const eliminarCarga = (cargaId) => {
+    openConfirm({
+      title: '¿Eliminar esta carga?',
+      description: 'Se borrarán la carga y todos sus movimientos. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      variant: 'destructive',
+      onConfirm: async () => {
+        const ok = await store.eliminarCarga(Number(cargaId))
+        if (ok && Number(cargaSeleccionadaId) === Number(cargaId)) {
+          cargaSeleccionadaId = null
+        }
+      },
+    })
   }
 
   // Cargas del período seleccionado (agrupadas por bloque, no por mes exacto).
@@ -904,4 +934,14 @@
   storeBusy={store.busy}
   onConfirm={confirmarYFirmar}
   onCancel={() => { confirmarFirma = false }}
+/>
+
+<ConfirmDialog
+  bind:open={confirmOpen}
+  title={confirmTitle}
+  description={confirmDescription}
+  confirmLabel={confirmLabel}
+  variant={confirmVariant}
+  busy={store.busy}
+  onConfirm={handleConfirm}
 />

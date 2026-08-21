@@ -169,7 +169,6 @@ const save = async () => {
 }
 
 const remove = async (id) => {
-  if (!confirm('¿Eliminar este registro de asesor? Esta acción no se puede deshacer.')) return
   await bs.wrapAsync(async () => {
     await applyUserActions([['RemoveRecord', tAsesores, id]])
     bs.setNotice('Registro eliminado.')

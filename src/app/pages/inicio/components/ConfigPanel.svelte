@@ -14,6 +14,7 @@
   import ArrowUpCircleIcon from '@lucide/svelte/icons/arrow-up-circle'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import CalendarIcon from '@lucide/svelte/icons/calendar'
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
 
   let {
     store,
@@ -27,6 +28,21 @@
     { value: 'semestral', label: 'Semestral' },
     { value: 'anual', label: 'Anual' },
   ]
+
+  let confirmOpen = $state(false)
+  let pendingAction = $state(() => {})
+
+  const confirmarDedup = () => {
+    confirmOpen = true
+    pendingAction = () => store.doDedup()
+  }
+
+  const handleConfirm = async () => {
+    confirmOpen = false
+    const fn = pendingAction
+    pendingAction = () => {}
+    await fn()
+  }
 </script>
 
 <Card.Root class="pt-2 border-0 shadow-none">
@@ -143,7 +159,7 @@
         <WrenchIcon data-icon="inline-start" />
         Reparar Refs
       </Button>
-      <Button variant="outline" size="sm" onclick={store.doDedup} disabled={store.migrating || store.creating}>
+      <Button variant="outline" size="sm" onclick={confirmarDedup} disabled={store.migrating || store.creating}>
         <CopyCheckIcon data-icon="inline-start" />
         {store.migrating ? 'Procesando…' : 'Deduplicar personas'}
       </Button>
@@ -175,3 +191,13 @@
     {/if}
   </Card.Content>
 </Card.Root>
+
+<ConfirmDialog
+  bind:open={confirmOpen}
+  title="Deduplicar personas"
+  description="Se buscarán y fusionarán personas con DNI duplicado. Los registros duplicados se consolidarán en uno solo."
+  confirmLabel="Continuar"
+  variant="default"
+  busy={store.migrating}
+  onConfirm={handleConfirm}
+/>
