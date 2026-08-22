@@ -8,6 +8,7 @@
   import { Button } from '$lib/components/ui/button'
   import { Label } from '$lib/components/ui/label'
   import * as Select from '$lib/components/ui/select'
+  import EjercicioSelector from '$lib/components/EjercicioSelector.svelte'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
   import CierreAlertas from './components/CierreAlertas.svelte'
   import TabMemoria from './components/TabMemoria.svelte'
@@ -87,28 +88,17 @@
         <div class="flex flex-wrap items-end gap-4">
           <div class="flex flex-col gap-2 min-w-48">
             <Label for="ejercicio">Ejercicio</Label>
-            <Select.Root
-              type="single"
-              value={store.ejercicioSeleccionadoId ? String(store.ejercicioSeleccionadoId) : undefined}
+            <EjercicioSelector
+              id="ejercicio"
+              ejercicios={store.ejercicios}
+              value={store.ejercicioSeleccionadoId}
               onValueChange={onEjercicioChange}
-            >
-              <Select.Trigger id="ejercicio" class="w-full">
-                <Select.Value placeholder="Seleccionar…" />
-              </Select.Trigger>
-              <Select.Content>
-                {#each ejerciciosOptions as opt (opt.value)}
-                  <Select.Item value={opt.value} label={opt.label}>
-                    {opt.label}
-                    {#if opt.item.cerrado}
-                      <Badge variant="secondary" class="ml-2">Cerrado</Badge>
-                    {/if}
-                    {#if opt.item.en_curso}
-                      <Badge variant="outline" class="ml-2">En curso</Badge>
-                    {/if}
-                  </Select.Item>
-                {/each}
-              </Select.Content>
-            </Select.Root>
+              placeholder="Seleccionar…"
+              class="w-full h-9 text-sm"
+              showBadges={true}
+              showEnCurso={false}
+              showMesInicio={true}
+            />
           </div>
 
           {#if store.ejercicioSeleccionado?.cerrado}

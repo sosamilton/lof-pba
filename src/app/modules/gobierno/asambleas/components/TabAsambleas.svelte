@@ -105,6 +105,12 @@
   <span class="text-sm text-muted-foreground">{filtered.length} reunión(es)</span>
 </div>
 
+{#if store.ejercicioSeleccionado && store.ejercicioSeleccionado !== store.ejercicio?.id}
+  <p class="mb-3 text-xs text-muted-foreground">
+    Mostrando reuniones de un ejercicio anterior. Las asambleas nuevas se crean en el ejercicio en curso.
+  </p>
+{/if}
+
 <div class="grid gap-4" style="grid-template-columns: {filtered.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
   {#if filtered.length > 0}
     <div class="max-h-[calc(100vh-220px)] overflow-y-auto rounded-lg border border-border bg-card">

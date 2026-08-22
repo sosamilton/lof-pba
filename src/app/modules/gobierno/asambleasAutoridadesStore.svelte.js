@@ -27,6 +27,7 @@ let ejercicios = $state([])
 let ejercicio = $state(null)
 // Ejercicio seleccionado para el tab Histórico (null = ejercicio en curso).
 let ejercicioHistorico = $state(null)
+let ejercicioSeleccionado = $state(null)
 let cargos = $state([])
 let autoridades = $state([])
 let asambleas = $state([])
@@ -60,16 +61,18 @@ const load = async () => {
     if (!ejercicio) return
     // Default del histórico: ejercicio en curso
     if (ejercicioHistorico === null) ejercicioHistorico = ejercicio.id
+    // Default del selector de asambleas/hechos: ejercicio en curso
+    if (ejercicioSeleccionado === null) ejercicioSeleccionado = ejercicio.id
 
     // Cargar tablas relacionadas en paralelo con fetchRelated.
     // Autoridades: cargar TODAS (sin filtro de ejercicio) para que el
     // tab Histórico pueda mostrar ejercicios anteriores.
-    // Asambleas: filtrar por ejercicio en curso (esa tab es del momento).
+    // Asambleas: filtrar por ejercicio seleccionado.
     const data = await fetchRelated(tIds, {
       cargos: { filter: (c) => c.activo === true || c.cargo_obligatorio === true },
       autoridades: {},
       asambleas: {
-        filter: (a) => Number(a.ejercicio_id) === Number(ejercicio.id),
+        filter: (a) => Number(a.ejercicio_id) === Number(ejercicioSeleccionado),
         sort: (a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')),
       },
     })
@@ -77,10 +80,10 @@ const load = async () => {
     autoridades = data.autoridades || []
     asambleas = data.asambleas || []
 
-    // Cargar hechos relevantes del ejercicio en curso
+    // Cargar hechos relevantes del ejercicio seleccionado
     if (tHechos) {
       hechosRelevantes = await fetchRecords(tHechos, {
-        filter: (h) => Number(h.ejercicio_id) === Number(ejercicio.id),
+        filter: (h) => Number(h.ejercicio_id) === Number(ejercicioSeleccionado),
         sort: (a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')),
       })
     }
@@ -104,16 +107,20 @@ const loadAutoridades = async () => {
 }
 
 const loadAsambleas = async () => {
+  const ejId = ejercicioSeleccionado ?? ejercicio?.id
+  if (!ejId) return
   asambleas = await fetchRecords(tAsambleas, {
-    filter: (a) => Number(a.ejercicio_id) === Number(ejercicio.id),
+    filter: (a) => Number(a.ejercicio_id) === Number(ejId),
     sort: (a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')),
   })
 }
 
 const loadHechos = async () => {
-  if (!tHechos || !ejercicio) return
+  if (!tHechos) return
+  const ejId = ejercicioSeleccionado ?? ejercicio?.id
+  if (!ejId) return
   hechosRelevantes = await fetchRecords(tHechos, {
-    filter: (h) => Number(h.ejercicio_id) === Number(ejercicio.id),
+    filter: (h) => Number(h.ejercicio_id) === Number(ejId),
     sort: (a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')),
   })
 }
@@ -222,6 +229,14 @@ export const asambleasAutoridadesStore = {
   get ejercicio() { return ejercicio },
   get ejercicioHistorico() { return ejercicioHistorico },
   set ejercicioHistorico(v) { ejercicioHistorico = v },
+  get ejercicioSeleccionado() { return ejercicioSeleccionado },
+  set ejercicioSeleccionado(v) {
+    if (v === ejercicioSeleccionado) return
+    ejercicioSeleccionado = v
+    // Recargar asambleas y hechos del nuevo ejercicio seleccionado
+    loadAsambleas()
+    loadHechos()
+  },
   get cargos() { return cargos },
   get autoridades() { return autoridades },
   get asambleas() { return asambleas },

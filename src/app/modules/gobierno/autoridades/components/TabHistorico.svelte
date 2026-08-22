@@ -3,20 +3,13 @@
   import { Badge } from '$lib/components/ui/badge'
   import * as Table from '$lib/components/ui/table'
   import * as Tabs from '$lib/components/ui/tabs'
-  import * as Select from '$lib/components/ui/select'
   import EmptyState from '$lib/components/EmptyState.svelte'
+  import EjercicioSelector from '$lib/components/EjercicioSelector.svelte'
   import { ORGANISMOS, ORGANISMO_LABELS } from '$app/modules/gobierno/constants.js'
   import { formatFecha } from '$core/format/format'
   import HistoryIcon from '@lucide/svelte/icons/history'
 
   let { store } = $props()
-
-  // Ejercicios ordenados descendente para el selector (más reciente primero).
-  let ejerciciosOpciones = $derived(
-    [...(store.ejercicios || [])]
-      .sort((a, b) => Number(b.anio_inicio || 0) - Number(a.anio_inicio || 0))
-      .map((e) => ({ value: String(e.id), label: `${e.anio_inicio}-${e.anio_fin}` }))
-  )
 </script>
 
 <Card.Root>
@@ -24,23 +17,16 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
       <Card.Title class="text-base">Histórico de mandatos</Card.Title>
       <div class="flex items-center gap-3">
-        {#if ejerciciosOpciones.length > 1}
+        {#if (store.ejercicios || []).length > 1}
           <div class="flex items-center gap-2">
             <span class="text-xs text-muted-foreground">Ejercicio:</span>
-            <Select.Root
-              type="single"
-              value={String(store.ejercicioHistorico ?? '')}
+            <EjercicioSelector
+              ejercicios={store.ejercicios}
+              value={store.ejercicioHistorico}
               onValueChange={(v) => { store.ejercicioHistorico = v ? Number(v) : null }}
-            >
-              <Select.Trigger class="h-8 w-[130px] text-xs">
-                <Select.Value placeholder="Ejercicio…" />
-              </Select.Trigger>
-              <Select.Content>
-                {#each ejerciciosOpciones as opt (opt.value)}
-                  <Select.Item value={opt.value} class="text-xs">{opt.label}</Select.Item>
-                {/each}
-              </Select.Content>
-            </Select.Root>
+              class="h-8 w-[130px] text-xs"
+              showEnCurso={false}
+            />
           </div>
         {/if}
         <Tabs.Root bind:value={store.organismo}>
