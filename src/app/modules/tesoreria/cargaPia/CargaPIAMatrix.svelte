@@ -12,6 +12,7 @@
   import { Label } from '$lib/components/ui/label'
   import { Badge } from '$lib/components/ui/badge'
   import * as Select from '$lib/components/ui/select'
+  import EjercicioSelector from '$lib/components/EjercicioSelector.svelte'
   import ArsInput from '$lib/components/ArsInput.svelte'
   import PageScaff from '$lib/components/PageScaffold.svelte'
   import SearchInput from '$lib/components/SearchInput.svelte'
@@ -592,18 +593,15 @@
   <div class="mb-4 flex flex-wrap items-end gap-3">
     <div class="flex flex-col gap-1">
       <Label class="text-xs font-bold text-muted-foreground" for="carga_ej">Ejercicio</Label>
-      <Select.Root type="single" bind:value={ejercicioSel} allowDeselect={false}>
-        <Select.Trigger id="carga_ej" class="w-[180px]" aria-label="Filtrar por ejercicio">
-          <Select.Value placeholder="Ejercicio">
-            {ejercicioSelLabel}
-          </Select.Value>
-        </Select.Trigger>
-        <Select.Content>
-          {#each ejerciciosOptions as opt}
-            <Select.Item value={opt.value}>{opt.label}</Select.Item>
-          {/each}
-        </Select.Content>
-      </Select.Root>
+      <EjercicioSelector
+        id="carga_ej"
+        ejercicios={store.ejercicios}
+        value={ejercicioSel}
+        onValueChange={(v) => { if (v) ejercicioSel = v }}
+        class="w-[200px] h-9 text-sm"
+        showEnCurso={false}
+        showMesInicio={true}
+      />
     </div>
     <Button onclick={abrirNuevaCarga} disabled={periodosDisponibles.length === 0}>
       <PlusIcon data-icon="inline-start" />

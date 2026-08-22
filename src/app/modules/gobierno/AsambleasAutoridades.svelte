@@ -5,6 +5,7 @@
   import * as Tabs from '$lib/components/ui/tabs'
   import { Skeleton } from '$lib/components/ui/skeleton'
   import PageScaff from '$lib/components/PageScaffold.svelte'
+  import EjercicioSelector from '$lib/components/EjercicioSelector.svelte'
   import GavelIcon from '@lucide/svelte/icons/gavel'
   import HistoryIcon from '@lucide/svelte/icons/history'
   import BookIcon from '@lucide/svelte/icons/book-open'
@@ -19,6 +20,8 @@
     await store.load()
     return unsub
   })
+  // Ejercicios para el selector
+  let cantidadEjercicios = $derived((store.ejercicios || []).length)
 </script>
 
 <PageScaff title="Asambleas y Memorias" loading={store.loading} error={store.error} notice={store.notice}>
@@ -30,15 +33,29 @@
     </div>
   {/snippet}
 
-  <div class="mb-4">
-    <h1 class="text-lg font-bold">Asambleas y Memorias</h1>
-    <p class="text-sm text-muted-foreground">
-      {#if store.ejercicio}
-        Ejercicio en curso: <span class="font-mono">{store.ejercicio.anio_inicio}-{store.ejercicio.anio_fin}</span>
-      {:else}
-        No hay ejercicio en curso. Activá uno en "Institucional".
-      {/if}
-    </p>
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-lg font-bold">Asambleas y Memorias</h1>
+      <p class="text-sm text-muted-foreground">
+        {#if store.ejercicio}
+          Ejercicio en curso: <span class="font-mono">{store.ejercicio.anio_inicio}-{store.ejercicio.anio_fin}</span>
+        {:else}
+          No hay ejercicio en curso. Activá uno en "Institucional".
+        {/if}
+      </p>
+    </div>
+    {#if store.ejercicio && cantidadEjercicios > 1}
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-muted-foreground">Viendo:</span>
+        <EjercicioSelector
+          ejercicios={store.ejercicios}
+          value={store.ejercicioSeleccionado}
+          onValueChange={(v) => { if (v) store.ejercicioSeleccionado = Number(v) }}
+          class="h-8 w-[180px] text-xs"
+          showMesInicio={true}
+        />
+      </div>
+    {/if}
   </div>
 
   {#if store.ejercicio}

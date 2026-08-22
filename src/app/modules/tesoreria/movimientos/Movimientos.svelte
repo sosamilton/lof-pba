@@ -12,6 +12,7 @@
   import SearchInput from '$lib/components/SearchInput.svelte'
   import ListSkeleton from '$lib/components/ListSkeleton.svelte'
   import Combobox from '$lib/components/Combobox.svelte'
+  import EjercicioSelector from '$lib/components/EjercicioSelector.svelte'
   import { keyboard } from '$core/ui/keyboard.svelte'
   import { navigate } from '$core/ui/router.svelte'
   import { personaLabel } from '$app/modules/comunidad/personas/personasApi.js'
@@ -145,6 +146,19 @@
 </script>
 
 <PageScaff title="Movimientos" loading={store.loading} error={store.error} notice={store.notice}>
+  {#if store.ejercicios.length > 1}
+    <div class="mb-4 flex items-center justify-end gap-2">
+      <span class="text-xs text-muted-foreground">Viendo:</span>
+      <EjercicioSelector
+        ejercicios={store.ejercicios}
+        value={ejercicioFiltro}
+        onValueChange={(v) => { ejercicioFiltro = v || '' }}
+        placeholder="Ejercicio"
+        class="h-8 w-[160px] text-xs"
+        showMesInicio={true}
+      />
+    </div>
+  {/if}
   {#if store.advertenciaCierreManual}
     <Alert.Root variant="default" class="mb-4 border-yellow-500/45 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400">
       <AlertTriangleIcon data-icon="inline-start" />
@@ -192,16 +206,6 @@
         </Select.Trigger>
         <Select.Content>
           {#each rubrosFiltroOptions as opt}
-            <Select.Item value={opt.value}>{opt.label}</Select.Item>
-          {/each}
-        </Select.Content>
-      </Select.Root>
-      <Select.Root type="single" bind:value={ejercicioFiltro} allowDeselect={true}>
-        <Select.Trigger class="w-[130px]" aria-label="Filtrar por ejercicio">
-          <Select.Value placeholder="Ejercicio" />
-        </Select.Trigger>
-        <Select.Content>
-          {#each ejerciciosOptions as opt}
             <Select.Item value={opt.value}>{opt.label}</Select.Item>
           {/each}
         </Select.Content>

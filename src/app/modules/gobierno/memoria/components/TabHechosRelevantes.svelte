@@ -52,7 +52,10 @@
     <div>
       <h2 class="text-base font-bold">Hechos relevantes del ejercicio</h2>
       <p class="text-xs text-muted-foreground">
-        Ejercicio {store.ejercicio?.anio_inicio}-{store.ejercicio?.anio_fin}
+        {#if store.ejercicioSeleccionado}
+          {@const ej = store.ejercicios.find((e) => e.id === store.ejercicioSeleccionado)}
+          Ejercicio {ej?.anio_inicio || '?'}-{ej?.anio_fin || '?'}
+        {/if}
       </p>
     </div>
     <Button variant="outline" size="sm" onclick={() => store.newHecho()}>
