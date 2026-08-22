@@ -92,7 +92,9 @@
   }
 
   // Pasos de "agregar LOF" reutilizados según el punto de partida del usuario.
-  const pasosAgregarWidget = $derived(guia_instalacion.pasos.filter((p) => p.titulo !== 'Crear un documento nuevo'))
+  // Excluye "Crear un documento nuevo" (ya tienen Grist) y los pasos detallados del setup wizard.
+  const setupTitulos = ['Elegir modalidad', 'Datos de la escuela y cooperadora', 'Datos bancarios', 'Ejercicios y cargos', 'Instalación completa']
+  const pasosAgregarWidget = $derived(guia_instalacion.pasos.filter((p) => p.titulo !== 'Crear un documento nuevo' && !setupTitulos.includes(p.titulo)))
   const metodoServidor = $derived(guia_instalacion.metodos_instalacion.find((m) => m.comandos?.length > 0))
 </script>
 
@@ -535,14 +537,32 @@
                   <p class="text-sm text-muted-foreground">{paso.descripcion}</p>
                 </div>
               </div>
-              <div class="rounded-xl border border-border overflow-hidden bg-muted">
-                <img
-                  src={'./' + paso.imagen}
-                  alt={paso.titulo}
-                  class="w-full h-auto object-contain"
-                  loading="lazy"
-                />
-              </div>
+              {#if paso.imagenes}
+                {#each paso.imagenes as img}
+                  <div class="flex flex-col gap-1.5">
+                    <div class="rounded-xl border border-border overflow-hidden bg-muted">
+                      <img
+                        src={'./' + img.src}
+                        alt={img.caption || paso.titulo}
+                        class="w-full h-auto object-contain"
+                        loading="lazy"
+                      />
+                    </div>
+                    {#if img.caption}
+                      <p class="text-xs text-muted-foreground px-1">{img.caption}</p>
+                    {/if}
+                  </div>
+                {/each}
+              {:else}
+                <div class="rounded-xl border border-border overflow-hidden bg-muted">
+                  <img
+                    src={'./' + paso.imagen}
+                    alt={paso.titulo}
+                    class="w-full h-auto object-contain"
+                    loading="lazy"
+                  />
+                </div>
+              {/if}
             </div>
           </Carousel.Item>
         {/each}

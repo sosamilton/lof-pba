@@ -68,7 +68,7 @@
   "funciones": [
     {
       "titulo": "Institucional",
-      "descripcion": "Los datos formales de tu cooperadora, desde la primera configuración hasta el día a día.",
+      "descripcion": "Datos formales, cargos del estatuto, autoridades vigentes con cese y reemplazo, histórico de mandatos, asesor institucional y ejercicios fiscales.",
       "icono": "building",
       "items": [
         "Escuela, banco y kiosco con validación de CUIT, CBU y autocompletado de CUE",
@@ -154,28 +154,38 @@
     "items": [
       {
         "titulo": "Inicio",
-        "descripcion": "Panel principal con accesos rápidos a cada módulo.",
+        "descripcion": "Panel principal con saldos por cuenta, última carga y estado del ejercicio.",
         "imagen": "img/screenshot/inicio.png"
       },
       {
         "titulo": "Institucional",
-        "descripcion": "Datos formales, cargos del estatuto, autoridades vigentes con cese y reemplazo, histórico de mandatos, asesor y ejercicios.",
-        "imagen": "img/screenshot/cooperadora.png"
+        "descripcion": "Datos formales, cargos del estatuto, autoridades vigentes con cese y reemplazo, histórico de mandatos, asesor institucional y ejercicios fiscales.",
+        "imagen": "img/screenshot/institucional.png"
       },
       {
         "titulo": "Comunidad",
         "descripcion": "Padrón unificado de personas y socios con búsqueda, filtros y altas.",
-        "imagen": "img/screenshot/socio.png"
+        "imagen": "img/screenshot/comunidad.png"
       },
       {
         "titulo": "Movimientos",
-        "descripcion": "Registro de entradas, salidas y traspasos con trazabilidad.",
+        "descripcion": "Registro de entradas, salidas y traspasos con trazabilidad por período.",
         "imagen": "img/screenshot/movimiento.png"
       },
       {
+        "titulo": "Resumen analítico",
+        "descripcion": "Flujo de caja, distribución de gastos e ingresos, comparativa interanual y morosidad.",
+        "imagen": "img/screenshot/resumen.png"
+      },
+      {
         "titulo": "Asambleas y Memorias",
-        "descripcion": "Asambleas, reuniones de CD, histórico de mandatos y hechos relevantes para la Memoria anual.",
+        "descripcion": "Asambleas, reuniones de CD, hechos relevantes y Memoria anual.",
         "imagen": "img/screenshot/asamblea.png"
+      },
+      {
+        "titulo": "Cierre de ciclo",
+        "descripcion": "Cierre del ejercicio con cálculo de saldos, generación de PIA y Nómina en PDF, Memoria anual exportable, datos en solo lectura y creación automática del próximo ejercicio.",
+        "imagen": "img/screenshot/cierre.png"
       }
     ]
   },
@@ -222,12 +232,15 @@
       {
         "titulo": "Elegir 'Personalizado'",
         "descripcion": "Cuando te pregunte qué tipo de página querés, elegí la opción 'Personalizado' (o 'Custom' si está en inglés). Después marcá la tabla que se creó sola (Table1) y continuá.",
-        "imagen": "img/install/3-selecciono-personalizado-y-tabla-default.png"
+        "imagen": "img/install/3-selecciono-personalizado.png"
       },
       {
-        "titulo": "Pegar la dirección de la app",
-        "descripcion": "Te va a aparecer un casillero para poner una dirección web (URL). Copiá y pegá este enlace: https://sosamilton.github.io/spa-cooperadora/ — Si instalaste todo con Docker (modo offline), usá esta otra: http://localhost:8088",
-        "imagen": "img/install/4-pego-url-app.png"
+        "titulo": "Elegir LOF de la lista o pegar la URL",
+        "descripcion": "Si usás Docker, LOF aparece directamente en la lista de widgets (gracias a la galería automática). Si usás Grist en la nube o Desktop, pegá la URL: https://sosamilton.github.io/spa-cooperadora/ — En modo offline (Docker) usá: http://localhost:8088",
+        "imagenes": [
+          { "src": "img/install/4-pego-url-docker.png", "caption": "Modo Docker: LOF aparece en la lista automáticamente" },
+          { "src": "img/install/4-pego-url-cloud.png", "caption": "Modo nube / Desktop: pegar la URL manualmente" }
+        ]
       },
       {
         "titulo": "Confiar en la app",
@@ -237,12 +250,40 @@
       {
         "titulo": "Dar acceso completo",
         "descripcion": "Te va a pedir que elijas el nivel de acceso. Seleccioná 'Full Access' (acceso completo). Esto es necesario para que LOF pueda crear todas las tablas donde se van a guardar los datos de tu cooperadora.",
-        "imagen": "img/install/6-doy-permisos.png"
+        "imagenes": [
+          { "src": "img/install/6-acceso-panel.png", "caption": "Abrir el panel de acceso" },
+          { "src": "img/install/6-doy-permisos.png", "caption": "Seleccionar 'Full document access'" }
+        ]
       },
       {
         "titulo": "¡Listo! Se abre la configuración inicial",
         "descripcion": "Automáticamente se abre una guía paso a paso que te pregunta los datos básicos: tu escuela, los cargos de la comisión, los datos del banco, etc. Lo vas completando de a uno. Cuando terminás, la app queda lista para usar.",
-        "imagen": "img/install/7-comienza-el-setup.png"
+        "imagen": "img/setup/1-modo.png"
+      },
+      {
+        "titulo": "Elegir modalidad",
+        "descripcion": "La primera pantalla del wizard te pregunta si vas a usar la app online u offline. Elegí la opción que corresponda a tu situación.",
+        "imagen": "img/setup/1-modo.png"
+      },
+      {
+        "titulo": "Datos de la escuela y cooperadora",
+        "descripcion": "Cargá los datos formales: nombre de la escuela, número, distrito, dirección y los datos de la cooperadora.",
+        "imagen": "img/setup/2-escuela-cooperadora.png"
+      },
+      {
+        "titulo": "Datos bancarios",
+        "descripcion": "Ingresá los datos de la cuenta bancaria de la cooperadora: banco, tipo de cuenta, número y CBU.",
+        "imagen": "img/setup/3-banco.png"
+      },
+      {
+        "titulo": "Ejercicios y cargos",
+        "descripcion": "Configurá el ejercicio actual y los cargos de la comisión directiva según tu estatuto.",
+        "imagen": "img/setup/4-ejercicios-cargos.png"
+      },
+      {
+        "titulo": "Instalación completa",
+        "descripcion": "El wizard confirma que todo está configurado. La app queda lista para usar con todas las tablas creadas y los datos iniciales cargados.",
+        "imagen": "img/setup/5-instalacion.png"
       }
     ],
     "metodos_instalacion": [
@@ -349,12 +390,17 @@
     {
       "estado": "hecho",
       "titulo": "Cierre automático con próximo ejercicio",
-      "descripcion": "Al cerrar el ejercicio activo, el sistema calcula saldos finales por cuenta, crea el próximo ejercicio automáticamente con esos saldos como saldos iniciales y lo marca como en curso. Botón reactivo entre Cerrar y Reabrir."
+      "descripcion": "Al cerrar el ejercicio activo, el sistema calcula saldos finales por cuenta, genera la PIA y la Nómina en PDF, compila la Memoria anual exportable, deja los datos en solo lectura y crea el próximo ejercicio automáticamente con esos saldos como saldos iniciales. Botón reactivo entre Cerrar y Reabrir."
     },
     {
       "estado": "proximo",
       "titulo": "Actas y adjuntos",
       "descripcion": "Carga guiada de actas de Comisión Directiva y asambleas, comprobantes y archivos adjuntos con trazabilidad completa."
+    },
+    {
+      "estado": "proximo",
+      "titulo": "Inventario y espacios",
+      "descripcion": "Gestión de bienes y materiales de la cooperadora con asignación a lugares físicos (aulas, salones, depósitos). Control de stock, altas, bajas y traslados entre espacios."
     },
     {
       "estado": "despues",
