@@ -76,15 +76,16 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 - **Movimientos** — entradas, salidas y traspasos con rubro/subrubro según PIA, destino bancario (Cuenta corriente / Plazo fijo), socio o persona asociada, y combobox con búsqueda para listas grandes. Filtrado de rubros por tipo, subrubros dinámicos por rubro. Filtros por rubro, ejercicio, período y persona (ejercicio en curso seleccionado por defecto). Selector de ejercicio con label "en curso".
 - **Cuota societaria rápida** — atajo Ctrl+1 o botón para pre-cargar movimiento de cuota social en un click.
 - **Gestión por etapas (carga consolidada)** — matriz de carga por rubro con múltiples filas por cuenta (hasta 3), importe en formato pesos argentinos ($ 1.234,56). Layout de dos columnas (lista de períodos + matriz editable) igual que Comunidad. Múltiples cargas por período: cada carga es una carga parcial que se consolida al firmar el período. Selector de carga dentro del período. Firma y cierre a nivel período (bloquea todas las cargas). Reapertura devuelve todas las cargas a borrador. Períodos firmados son read-only.
-- **Resumen mensual** — vista mensual y semanal con arrastre de saldo, saldos iniciales por ejercicio, badge de estado por período (Falta cargar / Abierto / Firmado), botón de firma y reapertura a nivel período. Resumen semanal con numeración secuencial por ejercicio (Sem 1, Sem 2, ... Sem N) en orden cronológico.
+- **Periodicidad configurable** — elegí con qué frecuencia gestionás la tesorería: mensual, semanal, trimestral, semestral o anual. Se configura en Inicio → Configuración y se aplica a resúmenes, gráficos, tablas y cargas. Las cargas mensuales existentes se agrupan automáticamente en bloques (trimestral/semestral/anual) sin migrar datos. Etiquetas de períodos con rangos de fechas claros (ej: "2027-W17 (07/06 al 14/06)" para semanas, "Ene - Mar 2026" para trimestres).
 - **Resumen analítico con tabs** — 5 vistas de análisis con gráficos (LayerChart):
   - **Flujo de caja**: entradas vs salidas por período con saldo acumulado.
   - **Gastos e ingresos**: distribución por rubro, top gastos, comparación entradas/salidas.
   - **Comparativa interanual**: compara el ejercicio actual con cualquier ejercicio anterior (selector flexible para 3+ ejercicios, no limitado a los últimos dos).
-  - **Morosidad**: en gestión integral, identifica socios deudores por nombre; en carga consolidada, estima morosidad global.
+  - **Morosidad**: en gestión integral, identifica socios deudores por nombre; en carga consolidada, estima morosidad global. Detecta automáticamente si los movimientos están vinculados a socios o son cargas consolidadas, y si hay una mezcla (cambio de modo a mitad del ejercicio), calcula los deudores solo sobre el tramo con datos identificables.
   - **Salud operativa**: indicadores de carga por período, períodos firmados vs abiertos, tendencia de gastos.
 - **Regla "detalle gana"**: si hay movimientos en un período, usa totales de movimientos; si no, usa cierres manuales. Permite mix de carga detallada y consolidada.
-- **Cierres mensuales** con firma de período y bloqueo de edición.
+- **Cierres mensuales** con firma de período y bloqueo de edición. Agrupación automática de cierres mensuales en bloques según la periodicidad configurada.
+- **Validación de no-futuro** — no se pueden crear cargas para períodos futuros. El sistema bloquea cualquier intento de cargar datos adelantados.
 
 </details>
 
@@ -222,6 +223,8 @@ El seeder solo está disponible cuando `import.meta.env.DEV` es true y no viaja 
 | Listo | Dashboard de inicio con situación actual — saldos por cuenta, última carga, período actual, alerta de ejercicio sin activar |
 | Listo | Resumen analítico con tabs y gráficos — flujo de caja, gastos/ingresos, comparativa interanual, morosidad y salud operativa |
 | Listo | Cierre automático con próximo ejercicio — al cerrar el activo, crea el siguiente con saldos arrastrados |
+| Listo | Periodicidad configurable — mensual, semanal, trimestral, semestral o anual, con agrupación automática de cargas existentes |
+| Listo | Morosidad inteligente — detecta datos mixtos (vinculados + no vinculados) y calcula deudores solo sobre el tramo identificable |
 | Próximo | Adjuntos y actas — carga guiada de comprobantes con trazabilidad |
 | Después | Balance de tesorería exportable |
 | Después | Accesos y roles — permisos por tesorería, comisión, asesoría |
