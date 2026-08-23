@@ -7,6 +7,7 @@
   import ContactIcon from '@lucide/svelte/icons/contact'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import GavelIcon from '@lucide/svelte/icons/gavel'
+  import SettingsIcon from '@lucide/svelte/icons/settings'
   import PlusIcon from '@lucide/svelte/icons/plus'
   import SearchIcon from '@lucide/svelte/icons/search'
 
@@ -18,6 +19,7 @@
     personas: ContactIcon,
     movimientos: ArrowLeftRightIcon,
     gobierno: GavelIcon,
+    configuracion: SettingsIcon,
   }
 
   const shortcutMap = {

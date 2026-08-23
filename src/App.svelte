@@ -4,6 +4,7 @@
   import AppShell from '$app/AppShell.svelte'
   import { initRouter, router, navigate } from '$core/ui/router.svelte'
   import { detectGrist, getGristStatus, getWidgetOptions, isInGrist, subscribeAccess, listTables } from '$core/grist/grist'
+  import { trackPageview } from '$core/analytics/plausible.js'
   import { isInstalled } from '$app/pages/cooperadora/cooperadoraApi.js'
   import { identidad } from '$core/data/identidad'
 
@@ -18,6 +19,7 @@
   import Movimientos from '$app/modules/tesoreria/movimientos/Movimientos.svelte'
   import CargaPIAMatrix from '$app/modules/tesoreria/cargaPia/CargaPIAMatrix.svelte'
   import Gobierno from '$app/modules/gobierno/AsambleasAutoridades.svelte'
+  import Configuracion from '$app/pages/configuracion/Configuracion.svelte'
 
   let ready = $state(false)
   let gristStatus = $state('none')
@@ -63,6 +65,31 @@
       unsubAccess?.()
     }
   })
+
+  // Trackea pageviews en Plausible distinguiendo landing vs app por URL.
+  // Landing  → "/"  "/instalacion"  "/sobre-lof"  "/needs-access"
+  // App      → "/app/{route}"  o  "/app/setup"
+  $effect(() => {
+    // deps reactivas: ready, gristStatus, needsSetup, router.current
+    if (!ready) return
+
+    let path
+    if (gristStatus === 'ready' && needsSetup) {
+      path = '/app/setup'
+    } else if (gristStatus === 'ready') {
+      path = `/app/${router.current}`
+    } else if (gristStatus === 'no-access') {
+      path = '/needs-access'
+    } else if (router.current === 'instalacion') {
+      path = '/instalacion'
+    } else if (router.current === 'sobre-lof') {
+      path = '/sobre-lof'
+    } else {
+      path = '/'
+    }
+
+    trackPageview(path)
+  })
 </script>
 
 {#if !ready}
@@ -107,6 +134,8 @@
         {/await}
       {:else if router.current === 'gobierno'}
         <Gobierno />
+      {:else if router.current === 'configuracion'}
+        <Configuracion />
       {:else}
         <Inicio />
       {/if}

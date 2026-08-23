@@ -11,13 +11,11 @@
   import * as Card from '$lib/components/ui/card'
   import { Button } from '$lib/components/ui/button'
   import DatabaseIcon from '@lucide/svelte/icons/database'
-  import SettingsIcon from '@lucide/svelte/icons/settings'
   import LayoutDashboardIcon from '@lucide/svelte/icons/layout-dashboard'
   import WalletIcon from '@lucide/svelte/icons/wallet'
   import ResumenEjecutivo from './components/ResumenEjecutivo.svelte'
   import TableroCaja from './components/TableroCaja.svelte'
   import SituacionActual from './components/SituacionActual.svelte'
-  import ConfigPanel from './components/ConfigPanel.svelte'
   import SchemaErrorView from './components/SchemaErrorView.svelte'
   import { navigate } from '$core/ui/router.svelte'
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right'
@@ -146,18 +144,6 @@
                 </Accordion.Content>
               </Accordion.Item>
             {/if}
-
-            <Accordion.Item value="config">
-              <Accordion.Trigger>
-                <span class="font-semibold flex items-center gap-2">
-                  <SettingsIcon class="size-4" />
-                  Configuración y administración
-                </span>
-              </Accordion.Trigger>
-              <Accordion.Content>
-                <ConfigPanel {store} identidadNombre={identidad.nombre} />
-              </Accordion.Content>
-            </Accordion.Item>
           </Accordion.Root>
 
           {#if store.ejercicioProximoVencer}

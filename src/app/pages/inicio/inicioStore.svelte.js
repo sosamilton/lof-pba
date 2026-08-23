@@ -10,13 +10,14 @@ import {
 } from '$core/grist/grist'
 import { REQUIRED_TABLES } from '$core/grist/schema'
 import { getSchemaDiff, ensureSchema } from '$setup/initLof'
-import { deduplicatePersonas } from '$setup/migracion'
+import { deduplicatePersonas, syncRubrosPia, syncSubrubrosPia } from '$setup/migracion'
 import { loadConfig, saveConfig, crearEjercicioApi } from '$app/pages/cooperadora/cooperadoraApi.js'
 import { notify, withNotify } from '$core/ui/notify.svelte'
 import { createBaseState } from '$core/grist/stores/gristStore.svelte'
 import { saldosStore } from '$app/modules/tesoreria/resumen/saldosStore.svelte.js'
 import { createDashboardStore } from './dashboardStore.svelte.js'
 import { TABLE_PREFERRED_IDS, normalizeFields } from '$core/utils/utils'
+import { applyBrandTheme } from '$core/ui/theme'
 
 const bs = createBaseState()
 
@@ -30,6 +31,12 @@ let hasMovimientosSinCarga = $state(false)
 let migrandoCargas = $state(false)
 let migracionResult = $state(null)
 
+// Apariencia y preferencias (editables desde Configuración → General)
+let color_primario = $state('#16b378')
+let appTitle = $state('')
+let cuentaDefaultId = $state('')
+let cuentas = $state([])
+
 let showNuevoEjercicio = $state(false)
 let nuevoEj = $state({ anio_inicio: '', anio_fin: '', mes_inicio: 'Mayo', saldo_inicial_banco: 0, saldo_inicial_efectivo: 0, saldo_inicial_caja_chica: 0 })
 
@@ -40,6 +47,11 @@ const versionActual = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ :
 const shaActual = typeof __APP_SHA__ !== 'undefined' ? __APP_SHA__ : 'dev'
 
 let _unsub = null
+
+// Guard para sincronizar rubros PIA una sola vez por sesión (page load).
+// Evita re-correr el CSV y fetchear rubros en cada `check()` disparado por
+// subscribeRecords. La sincronización es idempotente (solo agrega faltantes).
+let _rubrosSynced = false
 
 // Sub-store: métricas del dashboard (socios, ejercicio, cargos, tablero de caja)
 const dash = createDashboardStore()
@@ -67,10 +79,31 @@ const check = async () => {
     }
     status = { tables, resolved, missing, schemaDiff }
     if (missing.length === 0 && schemaDiff?.missingTables?.length === 0 && schemaDiff?.missingColumns?.length === 0) {
+      // Sincronizar rubros PIA del seed una sola vez por sesión: agrega a
+      // instalaciones existentes los rubros nuevos que aparezcan en
+      // public/seeds/rubros_pia.csv (seedIfEmpty solo carga en tablas vacías).
+      if (!_rubrosSynced) {
+        _rubrosSynced = true
+        try {
+          const res = await syncRubrosPia()
+          // syncSubrubrosPia depende de que los rubros padre ya existan
+          // (ej. GP-OTROS), por eso corre siempre después.
+          const resSub = await syncSubrubrosPia()
+          const totalAgregados = (res?.added || 0) + (resSub?.added || 0)
+          if (totalAgregados > 0) {
+            notify.success(`Se agregaron ${totalAgregados} categoría(s) nueva(s) al plan de cuentas.`)
+          }
+        } catch (e) {
+          // Non-fatal: la sincronización falla silenciosamente, no bloquea Inicio.
+          console.warn('[inicioStore] sync de rubros/subrubros falló:', e?.message || e)
+        }
+      }
       await dash.loadDashboard()
       if (!dash.moduloGestionIntegral) {
         await checkMovimientosSinCarga()
       }
+      // Cargar preferencias de apariencia (color, título, cuenta default)
+      await loadPreferencias()
     }
   } catch (e) {
     bs.setError(e?.message || String(e))
@@ -321,6 +354,87 @@ const repairSchema = async () => {
   }
 }
 
+/**
+ * Carga las preferencias de apariencia desde config + tabla cuentas.
+ * Color, título de la app y cuenta por defecto para movimientos.
+ */
+const loadPreferencias = async () => {
+  try {
+    const config = await loadConfig()
+    if (config?.color_primario) {
+      color_primario = config.color_primario
+      applyBrandTheme(config.color_primario)
+    }
+    if (config?.cooperadora_nombre) appTitle = config.cooperadora_nombre
+    if (config?.cuenta_default_id) cuentaDefaultId = String(config.cuenta_default_id)
+
+    const tCuentas = await resolveTableId(TABLE_PREFERRED_IDS.cuentas)
+    if (tCuentas) {
+      const recs = await fetchRecords(tCuentas, {
+        sort: (a, b) => Number(a.orden || 0) - Number(b.orden || 0),
+      })
+      cuentas = recs
+      // Fallback: si no hay cuenta_default_id en config, inferir por nombre
+      if (!cuentaDefaultId && recs.length > 0) {
+        const fallback = recs.find((c) => String(c.nombre_cuenta) === 'Efectivo') || recs[0]
+        cuentaDefaultId = fallback ? String(fallback.id) : ''
+      }
+    }
+  } catch { /* non-fatal */ }
+}
+
+/**
+ * Guarda el color de marca en config y lo aplica en vivo.
+ * @param {string} hex
+ */
+const onColorChange = async (hex) => {
+  color_primario = hex
+  applyBrandTheme(hex)
+  savingConfig = true
+  try {
+    const config = await loadConfig()
+    await saveConfig({ ...config, color_primario: hex })
+    notify.success('Color de marca actualizado.')
+  } catch (e) {
+    bs.setError(e?.message || String(e))
+    notify.error('No se pudo guardar el color.')
+  } finally { savingConfig = false }
+}
+
+/**
+ * Guarda el título de la app (cooperadora_nombre) en config.
+ * @param {string} nombre
+ */
+const onAppTitleChange = async (nombre) => {
+  appTitle = nombre
+  savingConfig = true
+  try {
+    const config = await loadConfig()
+    await saveConfig({ ...config, cooperadora_nombre: nombre })
+    notify.success('Título actualizado.')
+  } catch (e) {
+    bs.setError(e?.message || String(e))
+    notify.error('No se pudo guardar el título.')
+  } finally { savingConfig = false }
+}
+
+/**
+ * Guarda la cuenta por defecto para nuevos movimientos.
+ * @param {string} cuentaId
+ */
+const onCuentaDefaultChange = async (cuentaId) => {
+  cuentaDefaultId = String(cuentaId || '')
+  savingConfig = true
+  try {
+    const config = await loadConfig()
+    await saveConfig({ ...config, cuenta_default_id: cuentaDefaultId })
+    notify.success('Cuenta por defecto actualizada.')
+  } catch (e) {
+    bs.setError(e?.message || String(e))
+    notify.error('No se pudo guardar la cuenta por defecto.')
+  } finally { savingConfig = false }
+}
+
 const init = async () => {
   const gristStatus = await detectGrist()
   if (gristStatus !== 'ready') return
@@ -377,6 +491,11 @@ export const inicioStore = {
   // Estado local
   get showNuevoEjercicio() { return showNuevoEjercicio },
   get nuevoEj() { return nuevoEj },
+  // Apariencia y preferencias
+  get color_primario() { return color_primario },
+  get appTitle() { return appTitle },
+  get cuentaDefaultId() { return cuentaDefaultId },
+  get cuentas() { return cuentas },
   // Acciones
   onPeriodosAutoChange,
   onModalidadChange,
@@ -384,6 +503,9 @@ export const inicioStore = {
   migrarMovimientosLegacy,
   checkMovimientosSinCarga,
   setShowNuevoEjercicio,
+  onColorChange,
+  onAppTitleChange,
+  onCuentaDefaultChange,
   init,
   check,
   crearEjercicio,

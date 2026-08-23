@@ -14,14 +14,12 @@
     emailEscuelaAlias = '',
     emailEscuelaBloqueado = false,
     telefonoMismoQueEscuela = false,
-    colorPrimario = '#16b378',
     busy = false,
     onCueInput = () => {},
     onCuitInput = () => {},
     onTelefonoInput = () => {},
     onTelefonoEscuelaInput = () => {},
     onEmailEscuelaInput = () => {},
-    onColorChange = () => {},
     onDirty = () => {},
     onToggleTelefono = () => {},
     onValidar = () => {},
@@ -50,10 +48,6 @@
     <div>
       <Label for="cuit">CUIT</Label>
       <Input id="cuit" bind:value={escuela.cuit} disabled={escuelaValidada} oninput={() => { onCuitInput(); onDirty() }} placeholder="20-12345678-9" inputmode="numeric" class="mt-1" />
-    </div>
-    <div>
-      <Label for="coop-nombre">Cooperadora</Label>
-      <Input id="coop-nombre" bind:value={escuela.cooperadora_nombre} oninput={() => onDirty()} class="mt-1" />
     </div>
     <div>
       <Label for="coop-dom">Domicilio</Label>
@@ -95,10 +89,6 @@
     <div>
       <Label for="tel-escuela">Teléfono escuela</Label>
       <Input id="tel-escuela" bind:value={escuela.telefono_escuela} disabled={escuelaValidada} oninput={() => { onTelefonoEscuelaInput(); onDirty() }} placeholder="+54 9 11 1234-5678" inputmode="tel" class="mt-1" />
-    </div>
-    <div>
-      <Label for="color-primario">Color de marca</Label>
-      <Input id="color-primario" type="color" value={colorPrimario} oninput={(/** @type {Event} */ e) => onColorChange(/** @type {HTMLInputElement} */ (e.target)?.value)} class="mt-1 h-10 w-16 p-1" />
     </div>
   </div>
   <div class="flex items-center justify-between">

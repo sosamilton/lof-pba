@@ -227,14 +227,12 @@
               {emailEscuelaAlias}
               {emailEscuelaBloqueado}
               {telefonoMismoQueEscuela}
-              colorPrimario={store.color_primario}
               busy={store.busy}
               onCueInput={store.onCueInput}
               onCuitInput={store.onCuitInput}
               onTelefonoInput={store.onTelefonoInput}
               onTelefonoEscuelaInput={store.onTelefonoEscuelaInput}
               onEmailEscuelaInput={onEmailEscuelaInput}
-              onColorChange={(v) => { store.setColor_primario(v); escuelaDirty = true }}
               onDirty={() => { escuelaDirty = true }}
               onToggleTelefono={toggleTelefonoMismoQueEscuela}
               onValidar={confirmarValidarDatos}
