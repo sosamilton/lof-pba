@@ -39,6 +39,7 @@ import { TABLE_PREFERRED_IDS, buildMapById } from '$core/utils/utils.js'
  * @property {any[]} rubros
  * @property {number} totalEntradas
  * @property {number} totalSalidas
+ * @property {number} saldoEjercicioAnterior
  * @property {number} saldoBanco
  * @property {number} saldoEfectivo
  */
@@ -214,11 +215,11 @@ export const loadCierreData = async (ejercicioId) => {
     'GE-LIBRERIA': 'Texto40',
     'GE-MOBILIARIO': 'Texto41',
     'GE-OTROS': 'GASTOS H|Texto42;GASTOS I|Texto43',
-    'GP-ORGRIFAS': 'Texto44',
-    'GP-ORGFESTIVALES': 'Texto45',
-    'GP-KIOSCO': 'Texto46',
-    'GP-OTROS': 'Texto47',
-    'OG-OTROS': 'GASTOS D|Texto54;GASTOS E|Texto55',
+    'GP-ORGRIFAS': 'Texto51',
+    'GP-ORGFESTIVALES': 'Texto52',
+    'GP-KIOSCO': 'Texto53',
+    'GP-OTROS': 'GASTOS D|Texto54;GASTOS E|Texto55',
+    'OG-OTROS': 'Texto50|Texto56;Texto49|Texto57',
   }
   for (const r of rubros) {
     const correcto = CAMPO_PDF_CORRECTO[r.codigo_rubro]
@@ -233,6 +234,7 @@ export const loadCierreData = async (ejercicioId) => {
   // (asumiendo cuenta única; refinable con cuentas reales después)
   const saldoInicialBanco = Number(ejercicio.saldo_inicial_banco) || 0
   const saldoInicialEfectivo = Number(ejercicio.saldo_inicial_efectivo) || 0
+  const saldoEjercicioAnterior = saldoInicialBanco + saldoInicialEfectivo
   const saldoBanco = saldoInicialBanco + totalEntradas - totalSalidas
   const saldoEfectivo = saldoInicialEfectivo
 
@@ -259,6 +261,7 @@ export const loadCierreData = async (ejercicioId) => {
     subrubros,
     totalEntradas,
     totalSalidas,
+    saldoEjercicioAnterior,
     saldoBanco,
     saldoEfectivo,
   }

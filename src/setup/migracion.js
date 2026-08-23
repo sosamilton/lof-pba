@@ -138,6 +138,52 @@ export const syncRubrosPia = async () => {
 }
 
 /**
+ * Corrige `campo_pdf` de rubros existentes en instalaciones que fueron
+ * sembradas con versiones anteriores del seed (antes del fix 2026-08-23).
+ *
+ * El bug: los rubros GP (Gastos propios de la Entidad) estaban mapeados a
+ * Texto44-47 (campos del RESUMEN ANUAL, columna izquierda) en lugar de
+ * Texto51-53 + GASTOS D|Texto54;GASTOS E|Texto55 (columna derecha, SALIDAS).
+ * Y OG-OTROS estaba mapeado a los campos de GP-OTROS en lugar de los suyos
+ * (Texto50|Texto56;Texto49|Texto57).
+ *
+ * Esta función actualiza solo los rubros cuyo `campo_pdf` coincide con el
+ * valor viejo incorrecto, sin tocar rubros que ya tengan el valor correcto
+ * o que hayan sido personalizados.
+ *
+ * @returns {Promise<{fixed: number, skipped: number, reason?: string}>}
+ */
+const CAMPO_PDF_FIXES = {
+  'GP-ORGRIFAS': { old: 'Texto44', new: 'Texto51' },
+  'GP-ORGFESTIVALES': { old: 'Texto45', new: 'Texto52' },
+  'GP-KIOSCO': { old: 'Texto46', new: 'Texto53' },
+  'GP-OTROS': { old: 'Texto47', new: 'GASTOS D|Texto54;GASTOS E|Texto55' },
+  'OG-OTROS': { old: 'GASTOS D|Texto54;GASTOS E|Texto55', new: 'Texto50|Texto56;Texto49|Texto57' },
+}
+
+export const fixRubrosPiaCampoPdf = async () => {
+  const tRubros = await resolveTableId(TABLE_PREFERRED_IDS.rubros_pia)
+  if (!tRubros) return { fixed: 0, skipped: 0, reason: 'no-table' }
+
+  const existentes = await fetchRecords(tRubros)
+  let fixed = 0
+  let skipped = 0
+
+  for (const r of existentes) {
+    const codigo = String(r.codigo_rubro || '').trim()
+    const fix = CAMPO_PDF_FIXES[codigo]
+    if (!fix) { skipped++; continue }
+    const actual = String(r.campo_pdf || '').trim()
+    if (actual === fix.new) { skipped++; continue }
+    if (actual !== fix.old) { skipped++; continue }
+    await applyUserActions([['UpdateRecord', tRubros, r.id, { campo_pdf: fix.new }]])
+    fixed++
+  }
+
+  return { fixed, skipped }
+}
+
+/**
  * Sincroniza `SUBRUBROS_SEED` con la tabla `subrubros` de Grist. Agrega las
  * subcategorías conocidas por el sistema que todavía no existan (comparando
  * por `rubro_id` + `nombre_subrubro` normalizado), sin duplicar ni tocar

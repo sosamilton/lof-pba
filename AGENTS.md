@@ -79,13 +79,24 @@ El PIA (`public/templates/PIA_cooperadoras_editable_2025.pdf`) es un AcroForm co
   - ≤N subrubros → uno por slot, en orden de mayor a menor monto, sin agrupar.
   - \>N subrubros → los primeros (N-1) van individuales; el resto se agrupa como "Varios" en el **último** slot.
 
-Grupos con 2 líneas libres confirmadas (verificado por posición de campos del AcroForm, no solo por el texto impreso): Gastos Alumno (`GA-OTROS`), Gastos Escuela (`GE-OTROS`), Otros Gastos (`OG-OTROS`), Otros Ingresos (`OI-OTROS`). **Gastos Entidad (`GP-OTROS`) es la excepción**: sus 2 líneas libres del papel (`Texto47`, `Texto48`) son campos de **monto únicamente, sin campo de descripción** en el AcroForm — no hay forma de imprimir un nombre de subcategoría ahí, por eso se mantiene como campo único (`Texto47`) y cualquier subrubro que tenga simplemente suma al total sin desglose visible en el PDF.
+Grupos con 2 líneas libres confirmadas (verificado por posición de campos del AcroForm, no solo por el texto impreso): Gastos Alumno (`GA-OTROS` → `GASTOS F|Texto33;GASTOS G|Texto34`), Gastos Escuela (`GE-OTROS` → `GASTOS H|Texto42;GASTOS I|Texto43`), Gastos Entidad (`GP-OTROS` → `GASTOS D|Texto54;GASTOS E|Texto55`), Otros Gastos (`OG-OTROS` → `Texto50|Texto56;Texto49|Texto57`), Otros Ingresos (`OI-OTROS` → `INGRESO A|Texto26;INGRESO B|Texto27`). Los 5 rubros "Otros..." tienen 2 slots libres con campo de descripción + monto.
+
+### Fix histórico de mapeo PDF (2026-08-23)
+
+**Bug corregido:** Los rubros GP (Gastos propios de la Entidad) estaban mapeados a `Texto44-47` (campos del RESUMEN ANUAL, columna izquierda) en lugar de `Texto51-53` + `GASTOS D|Texto54;GASTOS E|Texto55` (columna derecha, SALIDAS). `OG-OTROS` estaba mapeado a los campos de `GP-OTROS` en lugar de los suyos (`Texto50|Texto56;Texto49|Texto57`). Esto causaba que el PIA se rellenara con valores completamente incorrectos: los montos de rifas/festivales/kiosco iban al RESUMEN ANUAL, y "Otros gastos" pisaba las líneas d/e de "Gastos propios de la Entidad".
+
+**Corrección:**
+- Seed CSV (`public/seeds/rubros_pia.csv`): mapeos correctos.
+- `CAMPO_PDF_CORRECTO` en `cierreDataService.js`: mismo mapeo como fixup runtime.
+- `fixRubrosPiaCampoPdf` en `migracion.js`: corrige instalaciones existentes via `UpdateRecord` (idempotente, solo actualiza si el valor actual coincide con el viejo incorrecto).
+- `piaFieldMap.js`: agrega RESUMEN ANUAL (`Texto44-48`) con totales/saldos calculados desde `saldoEjercicioAnterior`.
+- `cierreDataService.js`: agrega `saldoEjercicioAnterior` al retorno.
 
 ⚠️ Antes de tocar `campo_pdf` de cualquier rubro, verificar la posición real de los campos del AcroForm (no solo el texto extraído, que puede mezclar el orden de columnas visuales) — es un formulario oficial que la cooperadora presenta a la DGCyE, un error acá corrompe silenciosamente ese formulario. Ver `src/app/modules/tesoreria/cierre/piaFieldMap.test.js` para los casos cubiertos de `distribuirEnSlots`.
 
-### Falta CRUD de subrubros en el SPA
+### CRUD de subrubros en el SPA
 
-Hoy no hay UI en el SPA para que una cooperadora cree subrubros custom (ej. una subcategoría propia dentro de "Otros gastos (Entidad)"); solo se pueden crear editando la grilla nativa `subrubros` en Grist directamente. Es una mejora pendiente identificada (2026-08-22) para destrabar el caso de uso completo de "el usuario define su propia subcategoría".
+La página de Configuración tiene un tab "Categorías y subcategorías" con CRUD completo de subrubros. Los usuarios pueden crear/editar/eliminar subrubros bajo cualquier rubro. El store `categoriasStore.svelte.js` valida duplicados (normalizado) y bloquea eliminación de subrubros en uso por movimientos.
 
 ## Feature futuro: conciliación bancaria (no implementado)
 

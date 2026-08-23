@@ -35,6 +35,7 @@
  * @property {number} sociosAdherentes
  * @property {number} saldoBanco
  * @property {number} saldoEfectivo
+ * @property {number} saldoEjercicioAnterior
  * @property {number} totalEntradas
  * @property {number} totalSalidas
  */
@@ -351,13 +352,26 @@ export const buildPiaFieldMap = (data) => {
     }
   }
 
-  // Totales
+  // Totales (campos del cuadro principal)
   fields['TOTAL ENTRADAS'] = fmtMonto(data.totalEntradas)
   fields['TOTAL SALIDAS'] = fmtMonto(data.totalSalidas)
 
-  // Saldos
+  // Saldos (sección "A- En Banco" / "A- En Caja Chica")
   fields['CC'] = fmtMonto(data.saldoBanco)
   fields['EFECTIVO'] = fmtMonto(data.saldoEfectivo)
+
+  // --- Resumen Anual (Texto44-48, columna izquierda) ---
+  // Estos campos NO son rubros: son los totales del resumen que replica
+  // TOTAL ENTRADAS, SALDO ANTERIOR, TOTAL GENERAL, TOTAL SALIDAS y SALDO PROXIMO.
+  // Antes estaban mapeados incorrectamente como rubros GP (bug corregido 2026-08-23).
+  const saldoAnt = data.saldoEjercicioAnterior || 0
+  const totalGeneral = data.totalEntradas + saldoAnt
+  const saldoProximo = totalGeneral - data.totalSalidas
+  fields['Texto44'] = fmtMonto(data.totalEntradas)
+  fields['Texto45'] = fmtMonto(saldoAnt)
+  fields['Texto46'] = fmtMonto(totalGeneral)
+  fields['Texto47'] = fmtMonto(data.totalSalidas)
+  fields['Texto48'] = fmtMonto(saldoProximo)
 
   // --- Datos banco ---
   if (banco) {
