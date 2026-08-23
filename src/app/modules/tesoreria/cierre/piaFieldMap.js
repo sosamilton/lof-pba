@@ -117,6 +117,60 @@ const fmtFecha = (fecha) => {
 }
 
 /**
+ * Reparte una lista de subrubros (ya ordenados desc por monto) entre N pares
+ * de campos desc|monto de un rubro "Otros" del PIA (ver `distribuirEnSlots`
+ * en el comentario del cuadro 8, más abajo, para el formato de `campo_pdf`).
+ *
+ * Regla de reparto:
+ *   - Sin subrubros con monto: si el rubro tiene un total igualmente (carga
+ *     hecha sin elegir subrubro), va como "Varios" en el primer slot.
+ *   - Hasta N subrubros con monto: uno por slot, en orden (mayor primero),
+ *     sin agrupar — cada uno con su nombre y monto real.
+ *   - Más de N subrubros: los primeros (N-1) van cada uno en su propio slot;
+ *     el resto se agrupa en el ÚLTIMO slot como "Varios" (suma de los
+ *     montos restantes).
+ *
+ * @param {Array<[string,string]>} pares - [[descField, montoField], ...] en orden
+ * @param {Array<{nombre:string, monto:number}>} subrubroTotales - ordenados desc por monto
+ * @param {number} totalRubro - total del rubro (fallback si no hay subrubros con monto)
+ * @returns {Array<{descField:string, montoField:string, nombre:string, monto:number}>}
+ */
+export const distribuirEnSlots = (pares, subrubroTotales, totalRubro) => {
+  const n = pares.length
+  if (n === 0) return []
+
+  if (subrubroTotales.length === 0) {
+    if (totalRubro <= 0) return []
+    const [descField, montoField] = pares[0]
+    return [{ descField, montoField, nombre: 'Varios', monto: totalRubro }]
+  }
+
+  if (subrubroTotales.length <= n) {
+    return subrubroTotales.map((s, i) => ({
+      descField: pares[i][0],
+      montoField: pares[i][1],
+      nombre: s.nombre,
+      monto: s.monto,
+    }))
+  }
+
+  // Más subrubros que slots: top (n-1) individuales + resto agrupado en el último slot.
+  const individuales = subrubroTotales.slice(0, n - 1)
+  const resto = subrubroTotales.slice(n - 1)
+  const sumaResto = resto.reduce((acc, s) => acc + s.monto, 0)
+
+  const out = individuales.map((s, i) => ({
+    descField: pares[i][0],
+    montoField: pares[i][1],
+    nombre: s.nombre,
+    monto: s.monto,
+  }))
+  const [descField, montoField] = pares[n - 1]
+  out.push({ descField, montoField, nombre: 'Varios', monto: sumaResto })
+  return out
+}
+
+/**
  * Construye el mapa { fieldName: value } para el PIA.
  * @param {PiaData} data
  * @returns {Record<string, string>}
@@ -236,10 +290,16 @@ export const buildPiaFieldMap = (data) => {
 
   // --- Cuadro 8: Recursos y Gastos ---
   // Los rubros tienen campo_pdf que indica qué campo(s) del PDF recibirán el total.
-  // Para rubros "Otros", campo_pdf tiene formato "descField|montoField":
-  //   - descField (ancho > 100): recibe el NOMBRE del subrubro (o "Varios" si agrupa)
-  //   - montoField (ancho < 80): recibe el MONTO del subrubro (o suma de agrupados)
-  // Para rubros fijos, campo_pdf es un solo campo que recibe el monto total.
+  //
+  // Formatos soportados:
+  //   - Un solo campo ("Texto47"): rubro fijo, recibe el monto total.
+  //   - Un par "descField|montoField": rubro "Otros" con UN slot libre en el
+  //     PDF. descField (ancho > 100) recibe el NOMBRE del subrubro (o
+  //     "Varios" si agrupa), montoField recibe el MONTO.
+  //   - Varios pares separados por ";" ("descA|montoA;descB|montoB"): rubro
+  //     "Otros" con N slots libres (ej. Gastos Alumno tiene 2 líneas libres
+  //     en el PIA: "GASTOS F|Texto33;GASTOS G|Texto34"). Se reparten según
+  //     `distribuirEnSlots` (ver abajo).
   const totales = data.totalesPorRubro || new Map()
   const totalesPorSubrubro = data.totalesPorSubrubro || new Map()
   const subrubros = data.subrubros || []
@@ -260,14 +320,16 @@ export const buildPiaFieldMap = (data) => {
     const rubroId = Number(rubro.id)
     const totalRubro = totales.get(rubroId) || 0
 
-    const partes = campoPdf.split('|').map((s) => s.trim()).filter(Boolean)
+    // Cada slot es un grupo separado por ";"; cada grupo puede ser un campo
+    // único (rubro fijo) o un par "desc|monto" (slot de rubro "Otros").
+    const slots = String(campoPdf).split(';').map((s) => s.trim()).filter(Boolean)
+    const pares = slots
+      .map((s) => s.split('|').map((p) => p.trim()).filter(Boolean))
+      .filter((partes) => partes.length === 2)
 
-    if (partes.length === 2) {
-      // Rubro "Otros": partes[0] = campo descripción, partes[1] = campo monto
-      const [descField, montoField] = partes
+    if (pares.length > 0 && pares.length === slots.length) {
+      // Todos los slots son pares desc|monto: rubro "Otros" con N slots.
       const subsDelRubro = subrubrosPorRubro.get(rubroId) || []
-
-      // Calcular totales por subrubro para este rubro
       const subrubroTotales = subsDelRubro
         .map((sr) => ({
           nombre: sr.nombre_subrubro || 'S/N',
@@ -276,37 +338,14 @@ export const buildPiaFieldMap = (data) => {
         .filter((s) => s.monto > 0)
         .sort((a, b) => b.monto - a.monto) // mayores primero
 
-      if (subrubroTotales.length === 0) {
-        // Sin subrubros con datos: poner "Varios" y el total del rubro
-        if (totalRubro > 0) {
-          fields[descField] = 'Varios'
-          fields[montoField] = fmtMonto(totalRubro)
-        }
-      } else if (subrubroTotales.length <= 1) {
-        // Un solo subrubro: nombre + monto
-        fields[descField] = subrubroTotales[0].nombre
-        fields[montoField] = fmtMonto(subrubroTotales[0].monto)
-      } else {
-        // Múltiples subrubros: el PDF tiene un solo par desc+monto por rubro "Otros".
-        // Mostrar el de mayor monto y agrupar el resto como "Varios (suma)".
-        // NOTA: El PIA tiene un solo slot por rubro "Otros", así que agrupamos todo.
-        const mayor = subrubroTotales[0]
-        const resto = subrubroTotales.slice(1)
-        const sumaResto = resto.reduce((acc, s) => acc + s.monto, 0)
-
-        if (sumaResto > 0) {
-          // Mostrar: "SubrubroMayor + Varios" en desc, total en monto
-          fields[descField] = `${mayor.nombre} + Varios`
-          fields[montoField] = fmtMonto(totalRubro)
-        } else {
-          fields[descField] = mayor.nombre
-          fields[montoField] = fmtMonto(mayor.monto)
-        }
+      for (const item of distribuirEnSlots(pares, subrubroTotales, totalRubro)) {
+        fields[item.descField] = item.nombre
+        fields[item.montoField] = fmtMonto(item.monto)
       }
     } else {
-      // Rubro fijo: un solo campo, recibe el monto total
+      // Rubro fijo: uno o más campos simples, todos reciben el monto total.
       const val = fmtMonto(totalRubro)
-      for (const campo of partes) {
+      for (const campo of slots) {
         if (campo) fields[campo] = val
       }
     }
