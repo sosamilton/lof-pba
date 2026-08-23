@@ -4,7 +4,10 @@
   import { Separator } from '$lib/components/ui/separator'
   import { Switch } from '$lib/components/ui/switch'
   import { Button } from '$lib/components/ui/button'
+  import { Input } from '$lib/components/ui/input'
+  import { Label } from '$lib/components/ui/label'
   import * as Select from '$lib/components/ui/select'
+  import Combobox from '$lib/components/Combobox.svelte'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
   import RefreshIcon from '@lucide/svelte/icons/refresh-cw'
   import WrenchIcon from '@lucide/svelte/icons/wrench'
@@ -14,12 +17,29 @@
   import ArrowUpCircleIcon from '@lucide/svelte/icons/arrow-up-circle'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import CalendarIcon from '@lucide/svelte/icons/calendar'
+  import PaletteIcon from '@lucide/svelte/icons/palette'
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
+  import { identidad } from '$core/data/identidad'
 
   let {
     store,
-    identidadNombre = '',
   } = $props()
+
+  const identidadNombre = identidad.nombre
+
+  // Estado local para edición del título (guarda on blur / Enter)
+  let titleDraft = $state('')
+  let titleDirty = $state(false)
+
+  $effect(() => {
+    if (!titleDirty) titleDraft = store.appTitle || ''
+  })
+
+  const guardarTitulo = () => {
+    if (!titleDirty) return
+    titleDirty = false
+    store.onAppTitleChange(titleDraft.trim())
+  }
 
   const PERIODICIDADES = [
     { value: 'mensual', label: 'Mensual' },
@@ -47,6 +67,62 @@
 
 <Card.Root class="pt-2 border-0 shadow-none">
   <Card.Content class="flex flex-col gap-4 pt-4">
+    <!-- Apariencia y preferencias -->
+    <div class="rounded-lg border border-border px-4 py-3 flex flex-col gap-4">
+      <div class="flex items-center gap-2">
+        <PaletteIcon class="size-4 text-primary" />
+        <span class="text-sm font-semibold">Apariencia y preferencias</span>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1.5">
+          <Label for="app-title">Título de la app</Label>
+          <Input
+            id="app-title"
+            bind:value={titleDraft}
+            oninput={() => { titleDirty = true }}
+            onblur={guardarTitulo}
+            onkeydown={(/** @type {KeyboardEvent} */ e) => { if (e.key === 'Enter') { e.preventDefault(); guardarTitulo() } }}
+            placeholder={identidadNombre}
+            disabled={store.savingConfig}
+            class="mt-0.5"
+          />
+          <p class="text-xs text-muted-foreground">Nombre que aparece en el sidebar y en el título del navegador.</p>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <Label for="color-primario">Color de marca</Label>
+          <div class="flex items-center gap-2 mt-0.5">
+            <Input
+              id="color-primario"
+              type="color"
+              value={store.color_primario}
+              oninput={(/** @type {Event} */ e) => store.onColorChange(/** @type {HTMLInputElement} */ (e.target)?.value)}
+              disabled={store.savingConfig}
+              class="h-10 w-16 p-1"
+            />
+            <span class="text-sm font-mono text-muted-foreground">{store.color_primario}</span>
+          </div>
+          <p class="text-xs text-muted-foreground">Se aplica inmediatamente al cambiar.</p>
+        </div>
+
+        <div class="flex flex-col gap-1.5 sm:col-span-2">
+          <Label for="cuenta-default">Cuenta por defecto</Label>
+          <Combobox
+            value={store.cuentaDefaultId}
+            items={store.cuentas.map((c) => ({ value: c.id, label: c.nombre_cuenta }))}
+            placeholder="Elegir…"
+            searchPlaceholder="Buscar cuenta…"
+            class="mt-0.5"
+            onchange={(v) => store.onCuentaDefaultChange(v)}
+          />
+          <p class="text-xs text-muted-foreground">Cuenta que se pre-selecciona al crear un movimiento nuevo.</p>
+        </div>
+      </div>
+    </div>
+
+    <Separator />
+
     <div class="rounded-lg border border-border px-4 py-3 flex flex-col gap-3">
       <div class="flex items-center justify-between">
         <div>

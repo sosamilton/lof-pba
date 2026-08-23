@@ -15,6 +15,7 @@
   import BarChartIcon from '@lucide/svelte/icons/bar-chart'
   import FileCheckIcon from '@lucide/svelte/icons/file-check'
   import BuildingIcon from '@lucide/svelte/icons/building-2'
+  import SettingsIcon from '@lucide/svelte/icons/settings'
   import CommandIcon from '@lucide/svelte/icons/command'
   import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
   import { identidad } from '$core/data/identidad'
@@ -38,6 +39,7 @@
     resumen: BarChartIcon,
     gobierno: GavelIcon,
     cierre: FileCheckIcon,
+    configuracion: SettingsIcon,
   }
 
   const shortcutLabels = {

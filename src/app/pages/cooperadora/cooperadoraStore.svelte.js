@@ -9,7 +9,6 @@ import {
 } from '$core/grist/grist'
 import { normalizeFields, TABLE_PREFERRED_IDS } from '$core/utils/utils'
 import { loadConfig, saveConfig } from './cooperadoraApi.js'
-import { applyBrandTheme } from '$core/ui/theme'
 import { notify } from '$core/ui/notify.svelte'
 import { createBaseState } from '$core/grist/stores/gristStore.svelte'
 import {
@@ -52,7 +51,6 @@ let escuela = $state({})
 let banco = $state({})
 /** @type {Record<string, any>} */
 let kiosco = $state({})
-let color_primario = $state('#16b378')
 // Flag de validación de la estructura de cargos (estatuto). Cuando está en
 // true, la edición de cargos en Institucional se bloquea; solo se desbloquea
 // al guardar una AGE con motivo "Reforma estatuto".
@@ -112,7 +110,6 @@ const load = async () => {
     banco.cbu = formatCbu(banco.cbu || '')
     await ejerciciosMgr.reload(tEjercicios)
     const config = await loadConfig()
-    if (config?.color_primario) color_primario = config.color_primario
     cargos_validados = Boolean(config?.cargos_validados)
     federacion_adherida = Boolean(config?.federacion_adherida)
     await cargosMgr.loadCargos()
@@ -139,12 +136,6 @@ const saveCooperadora = async () => {
     await _updateRecord(tEscuela, escuelaRaw)
     await _updateRecord(tBanco, bancoRaw)
     await _updateRecord(tKiosco, kiosco)
-    const config = await loadConfig()
-    await saveConfig({
-      ...config,
-      cooperadora_nombre: escuela.cooperadora_nombre || '',
-      color_primario: color_primario || config?.color_primario || '#16b378',
-    })
     bs.setNotice('Datos guardados.'); notify.success(bs.notice)
   })
 }
@@ -232,8 +223,6 @@ export const cooperadoraStore = {
   get escuela() { return escuela },
   get banco() { return banco },
   get kiosco() { return kiosco },
-  get color_primario() { return color_primario },
-  setColor_primario: (v) => { color_primario = v; applyBrandTheme(v) },
   onCueInput,
   onCuitInput,
   onCbuInput,
