@@ -22,8 +22,8 @@ GE-COMBUSTIBLE,Combustible y calefacción,Gastos Escuela,Salida,Texto39,false,tr
 GE-LIBRERIA,Librería,Gastos Escuela,Salida,Texto40,false,true
 GE-MOBILIARIO,Mobiliario,Gastos Escuela,Salida,Texto41,false,true
 GE-OTROS,Otros gastos (Escuela),Gastos Escuela,Salida,GASTOS H|Texto42;GASTOS I|Texto43,false,true
-GP-ORGRIFAS,Organización de rifas,Gastos Entidad,Salida,Texto44,false,true
-GP-ORGFESTIVALES,Organización de festivales,Gastos Entidad,Salida,Texto45,false,true
-GP-KIOSCO,Kiosco,Gastos Entidad,Salida,Texto46,false,true
-GP-OTROS,Otros gastos (Entidad),Gastos Entidad,Salida,Texto47,false,true
-OG-OTROS,Otros gastos,Otros Gastos,Salida,GASTOS D|Texto54;GASTOS E|Texto55,false,true
+GP-ORGRIFAS,Organización de rifas,Gastos Entidad,Salida,Texto51,false,true
+GP-ORGFESTIVALES,Organización de festivales,Gastos Entidad,Salida,Texto52,false,true
+GP-KIOSCO,Kiosco,Gastos Entidad,Salida,Texto53,false,true
+GP-OTROS,Otros gastos (Entidad),Gastos Entidad,Salida,GASTOS D|Texto54;GASTOS E|Texto55,false,true
+OG-OTROS,Otros gastos,Otros Gastos,Salida,Texto50|Texto56;Texto49|Texto57,false,true

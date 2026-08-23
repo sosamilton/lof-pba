@@ -10,7 +10,7 @@ import {
 } from '$core/grist/grist'
 import { REQUIRED_TABLES } from '$core/grist/schema'
 import { getSchemaDiff, ensureSchema } from '$setup/initLof'
-import { deduplicatePersonas, syncRubrosPia, syncSubrubrosPia } from '$setup/migracion'
+import { deduplicatePersonas, syncRubrosPia, syncSubrubrosPia, fixRubrosPiaCampoPdf } from '$setup/migracion'
 import { loadConfig, saveConfig, crearEjercicioApi } from '$app/pages/cooperadora/cooperadoraApi.js'
 import { notify, withNotify } from '$core/ui/notify.svelte'
 import { createBaseState } from '$core/grist/stores/gristStore.svelte'
@@ -89,9 +89,15 @@ const check = async () => {
           // syncSubrubrosPia depende de que los rubros padre ya existan
           // (ej. GP-OTROS), por eso corre siempre después.
           const resSub = await syncSubrubrosPia()
+          // fixRubrosPiaCampoPdf corrige el mapeo PDF de rubros GP/OG en
+          // instalaciones sembradas con versiones anteriores al fix 2026-08-23.
+          const resFix = await fixRubrosPiaCampoPdf()
           const totalAgregados = (res?.added || 0) + (resSub?.added || 0)
           if (totalAgregados > 0) {
             notify.success(`Se agregaron ${totalAgregados} categoría(s) nueva(s) al plan de cuentas.`)
+          }
+          if (resFix?.fixed > 0) {
+            notify.success(`Se corrigió el mapeo PDF de ${resFix.fixed} rubro(s) del plan de cuentas.`)
           }
         } catch (e) {
           // Non-fatal: la sincronización falla silenciosamente, no bloquea Inicio.

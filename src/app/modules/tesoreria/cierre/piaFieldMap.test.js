@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { distribuirEnSlots } from './piaFieldMap'
+import { distribuirEnSlots, buildPiaFieldMap } from './piaFieldMap'
 
 describe('distribuirEnSlots', () => {
   const pares = [
@@ -65,5 +65,100 @@ describe('distribuirEnSlots', () => {
 
   it('sin slots: no asigna nada', () => {
     expect(distribuirEnSlots([], [{ nombre: 'A', monto: 100 }], 100)).toEqual([])
+  })
+})
+
+describe('buildPiaFieldMap - RESUMEN ANUAL (Texto44-48)', () => {
+  // Datos mínimos para que buildPiaFieldMap no falle
+  const baseData = {
+    escuela: {}, banco: null, ejercicio: {}, asamblea: null,
+    autoridadesCD: [], autoridadesCRC: [], autoridadesFed: [],
+    cargosMap: new Map(), rubros: [], subrubros: [],
+    totalesPorRubro: new Map(), totalesPorSubrubro: new Map(),
+    kiosco: null, totalSocios: 0, sociosActivos: 0, sociosHonorarios: 0, sociosAdherentes: 0,
+  }
+
+  it('llena Texto44-48 con los totales del resumen anual', () => {
+    const fields = buildPiaFieldMap({
+      ...baseData,
+      totalEntradas: 10000,
+      totalSalidas: 6000,
+      saldoEjercicioAnterior: 2000,
+      saldoBanco: 6000,
+      saldoEfectivo: 500,
+    })
+    // Texto44 = TOTAL ENTRADAS (resumen)
+    expect(fields['Texto44']).toBe('10.000,00')
+    // Texto45 = SALDO EJERCICIO ANTERIOR
+    expect(fields['Texto45']).toBe('2.000,00')
+    // Texto46 = TOTAL GENERAL (entradas + saldo anterior)
+    expect(fields['Texto46']).toBe('12.000,00')
+    // Texto47 = TOTAL SALIDAS (resumen)
+    expect(fields['Texto47']).toBe('6.000,00')
+    // Texto48 = SALDO PROXIMO (total general - total salidas)
+    expect(fields['Texto48']).toBe('6.000,00')
+  })
+
+  it('con saldo anterior 0: TOTAL GENERAL = TOTAL ENTRADAS', () => {
+    const fields = buildPiaFieldMap({
+      ...baseData,
+      totalEntradas: 5000,
+      totalSalidas: 3000,
+      saldoEjercicioAnterior: 0,
+      saldoBanco: 2000,
+      saldoEfectivo: 0,
+    })
+    expect(fields['Texto44']).toBe('5.000,00')
+    expect(fields['Texto45']).toBe('')
+    expect(fields['Texto46']).toBe('5.000,00')
+    expect(fields['Texto47']).toBe('3.000,00')
+    expect(fields['Texto48']).toBe('2.000,00')
+  })
+})
+
+describe('buildPiaFieldMap - GP-OTROS con 2 slots (GASTOS D/E)', () => {
+  const rubroGpOtros = {
+    id: 100, codigo_rubro: 'GP-OTROS', campo_pdf: 'GASTOS D|Texto54;GASTOS E|Texto55',
+  }
+  const baseData = {
+    escuela: {}, banco: null, ejercicio: {}, asamblea: null,
+    autoridadesCD: [], autoridadesCRC: [], autoridadesFed: [],
+    cargosMap: new Map(), totalesPorRubro: new Map(), totalesPorSubrubro: new Map(),
+    kiosco: null, totalSocios: 0, sociosActivos: 0, sociosHonorarios: 0, sociosAdherentes: 0,
+    totalEntradas: 0, totalSalidas: 0, saldoEjercicioAnterior: 0,
+    saldoBanco: 0, saldoEfectivo: 0,
+  }
+
+  it('2 subrubros: uno en GASTOS D, otro en GASTOS E', () => {
+    const subrubros = [
+      { id: 1, rubro_id: 100, nombre_subrubro: 'Impuestos bancarios' },
+      { id: 2, rubro_id: 100, nombre_subrubro: 'Mantenimiento' },
+    ]
+    const totalesPorSubrubro = new Map([[1, 5000], [2, 2000]])
+    const fields = buildPiaFieldMap({
+      ...baseData, rubros: [rubroGpOtros], subrubros,
+      totalesPorSubrubro,
+    })
+    expect(fields['GASTOS D']).toBe('Impuestos bancarios')
+    expect(fields['Texto54']).toBe('5.000,00')
+    expect(fields['GASTOS E']).toBe('Mantenimiento')
+    expect(fields['Texto55']).toBe('2.000,00')
+  })
+
+  it('3 subrubros: top 1 individual, resto agrupado como Varios en GASTOS E', () => {
+    const subrubros = [
+      { id: 1, rubro_id: 100, nombre_subrubro: 'Impuestos bancarios' },
+      { id: 2, rubro_id: 100, nombre_subrubro: 'Mantenimiento' },
+      { id: 3, rubro_id: 100, nombre_subrubro: 'Papelería' },
+    ]
+    const totalesPorSubrubro = new Map([[1, 5000], [2, 2000], [3, 1000]])
+    const fields = buildPiaFieldMap({
+      ...baseData, rubros: [rubroGpOtros], subrubros,
+      totalesPorSubrubro,
+    })
+    expect(fields['GASTOS D']).toBe('Impuestos bancarios')
+    expect(fields['Texto54']).toBe('5.000,00')
+    expect(fields['GASTOS E']).toBe('Varios')
+    expect(fields['Texto55']).toBe('3.000,00')
   })
 })
