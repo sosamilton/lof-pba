@@ -116,7 +116,13 @@
         {#if (subrubrosByRubro.get(Number(store.form.rubro_id)) || []).length > 0}
           <Field.Field>
             <Field.FieldLabel for="subrubro">Subrubro</Field.FieldLabel>
-            <Select.Root type="single" bind:value={store.form.subrubro_id} disabled={!store.form.rubro_id} allowDeselect={true}>
+            <Select.Root
+              type="single"
+              value={store.form.subrubro_id ? String(store.form.subrubro_id) : undefined}
+              onValueChange={(v) => { store.form.subrubro_id = v ? Number(v) : '' }}
+              disabled={!store.form.rubro_id}
+              allowDeselect={true}
+            >
               <Select.Trigger id="subrubro" class="mt-1 w-full">
                 <Select.Value placeholder="(Opcional)" />
               </Select.Trigger>
