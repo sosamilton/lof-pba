@@ -7,13 +7,13 @@ RP-KIOSCO,Kiosco,Recursos Propios,Entrada,Texto22,false,true
 RP-INTERESES,Intereses bancarios,Recursos Propios,Entrada,Texto23,false,true
 RP-REINTEGROS,Reintegrados banco (débitos / mant. / etc.),Recursos Propios,Entrada,Texto24,false,true
 RO-SUBSIDIO,Subsidios de la DGCYE,Recursos Oficiales,Entrada,Texto25,false,true
-OI-OTROS,Otros Ingresos,Otros Ingresos,Entrada,INGRESO A|Texto26,false,true
+OI-OTROS,Otros Ingresos,Otros Ingresos,Entrada,INGRESO A|Texto26;INGRESO B|Texto27,false,true
 GA-ROPA,Ropa y calzado,Gastos Alumno,Salida,Texto28,false,true
 GA-LIBROS,Libros y útiles,Gastos Alumno,Salida,Texto29,false,true
 GA-EXCURSIONES,Excursiones,Gastos Alumno,Salida,Texto30,false,true
 GA-EMERGENCIAS,Emergencias sanitarias,Gastos Alumno,Salida,Texto31,false,true
 GA-GOLOSINAS,Golosinas - premios y medallas,Gastos Alumno,Salida,Texto32,false,true
-GA-OTROS,Otros gastos (Alumno),Gastos Alumno,Salida,GASTOS F|Texto33,false,true
+GA-OTROS,Otros gastos (Alumno),Gastos Alumno,Salida,GASTOS F|Texto33;GASTOS G|Texto34,false,true
 GE-MATDIDACTICO,Material didáctico,Gastos Escuela,Salida,Texto35,false,true
 GE-MANTSUBSIDIO,Mant. y mejoras con subsidios,Gastos Escuela,Salida,Texto36,false,true
 GE-MANTPROPIOS,Mant. y mejoras con fondos propios,Gastos Escuela,Salida,Texto37,false,true
@@ -21,9 +21,9 @@ GE-LIMPIEZA,Artículos de limpieza,Gastos Escuela,Salida,Texto38,false,true
 GE-COMBUSTIBLE,Combustible y calefacción,Gastos Escuela,Salida,Texto39,false,true
 GE-LIBRERIA,Librería,Gastos Escuela,Salida,Texto40,false,true
 GE-MOBILIARIO,Mobiliario,Gastos Escuela,Salida,Texto41,false,true
-GE-OTROS,Otros gastos (Escuela),Gastos Escuela,Salida,GASTOS H|Texto42,false,true
+GE-OTROS,Otros gastos (Escuela),Gastos Escuela,Salida,GASTOS H|Texto42;GASTOS I|Texto43,false,true
 GP-ORGRIFAS,Organización de rifas,Gastos Entidad,Salida,Texto44,false,true
 GP-ORGFESTIVALES,Organización de festivales,Gastos Entidad,Salida,Texto45,false,true
 GP-KIOSCO,Kiosco,Gastos Entidad,Salida,Texto46,false,true
 GP-OTROS,Otros gastos (Entidad),Gastos Entidad,Salida,Texto47,false,true
-OG-OTROS,Otros gastos,Otros Gastos,Salida,GASTOS D|Texto54,false,true
+OG-OTROS,Otros gastos,Otros Gastos,Salida,GASTOS D|Texto54;GASTOS E|Texto55,false,true
