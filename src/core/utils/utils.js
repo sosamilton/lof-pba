@@ -88,6 +88,19 @@ export const daysSince = (iso) => {
   return Math.floor((Date.now() - d.getTime()) / 86400000)
 }
 
+// Fecha de "hoy" en formato YYYY-MM-DD según el reloj/timezone LOCAL del
+// dispositivo. A diferencia de `new Date().toISOString().slice(0, 10)`
+// (que usa UTC), esta función es consistente con `dateToInput`/`daysSince`/
+// `ageFromBirth`, que parsean strings de fecha como medianoche LOCAL
+// (`${iso}T00:00:00`). En timezones detrás de UTC (ej. Argentina, UTC-3),
+// `toISOString()` ya devuelve la fecha del día siguiente entre las 21:00 y
+// las 23:59 hora local, lo que desalinea "hoy" respecto de estas funciones.
+export const todayISO = () => {
+  const d = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
 export const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
@@ -219,6 +232,9 @@ export const getActiveMenuItems = (config) => {
     items.push({ route: 'resumen', label: 'Resumen' })
     items.push({ route: 'cierre', label: 'Cierre / Presentación' })
   }
+
+  // Configuración siempre visible (modalidad, versiones, categorías/subrubros)
+  items.push({ route: 'configuracion', label: 'Configuración' })
 
   return items
 }
