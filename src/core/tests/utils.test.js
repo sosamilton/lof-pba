@@ -8,6 +8,7 @@ import {
   ageFromBirth,
   isAdult,
   daysSince,
+  todayISO,
   TABLE_PREFERRED_IDS
 } from '$core/utils/utils'
 
@@ -148,7 +149,11 @@ describe('daysSince', () => {
     expect(daysSince('invalid')).toBeNull()
   })
   it('returns 0 for today', () => {
-    const today = new Date().toISOString().slice(0, 10)
+    // Usar todayISO() (fecha local) en vez de toISOString() (UTC): en
+    // timezones detrás de UTC (ej. Argentina), toISOString() ya da la
+    // fecha de mañana entre las 21:00 y 23:59 hora local, lo que rompía
+    // este test de forma intermitente según la hora de ejecución.
+    const today = todayISO()
     expect(daysSince(today)).toBe(0)
   })
   it('returns positive for past date', () => {
