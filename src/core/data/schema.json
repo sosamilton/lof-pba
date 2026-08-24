@@ -83,20 +83,6 @@
           }
         },
         {
-          "id": "email_asesor",
-          "fields": {
-            "label": "Email asesor",
-            "type": "Text"
-          }
-        },
-        {
-          "id": "telefono_asesor",
-          "fields": {
-            "label": "Telefono asesor",
-            "type": "Text"
-          }
-        },
-        {
           "id": "email_escuela",
           "fields": {
             "label": "Email institucional escuela",
@@ -986,13 +972,6 @@
           }
         },
         {
-          "id": "es_traspaso",
-          "fields": {
-            "label": "Es traspaso",
-            "type": "Bool"
-          }
-        },
-        {
           "id": "fijo",
           "fields": {
             "label": "Fijo",
@@ -1380,20 +1359,6 @@
           "fields": {
             "label": "Persona",
             "type": "Ref:personas"
-          }
-        },
-        {
-          "id": "fuera_de_termino",
-          "fields": {
-            "label": "Cargado fuera de termino",
-            "type": "Bool"
-          }
-        },
-        {
-          "id": "periodo_cerrado",
-          "fields": {
-            "label": "Periodo cerrado",
-            "type": "Bool"
           }
         },
         {

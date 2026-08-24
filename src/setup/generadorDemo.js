@@ -468,8 +468,6 @@ export const generarDatosPrueba = async ({
             socio_id: null,
             persona_id: null,
             carga_id: cargaId,
-            fuera_de_termino: false,
-            periodo_cerrado: esFirmada,
             creado_por: 'demo',
             creado_el: new Date().toISOString(),
           })
@@ -549,8 +547,6 @@ export const generarDatosPrueba = async ({
         cuenta_destino_id: cuentaDestinoId,
         socio_id: socioId,
         persona_id: personaId,
-        fuera_de_termino: Math.random() < 0.1,
-        periodo_cerrado: false,
         creado_por: 'demo',
         creado_el: new Date().toISOString(),
       })
@@ -599,8 +595,6 @@ export const generarDatosPrueba = async ({
           cuenta_destino_id: null,
           socio_id: socioId,
           persona_id: personaId,
-          fuera_de_termino: false,
-          periodo_cerrado: false,
           creado_por: 'demo',
           creado_el: new Date().toISOString(),
         })

@@ -989,7 +989,6 @@ export function calcularMorosidad(ejercicio, movimientos, rubros, socios, asambl
  *   periodosPendientes: string[],
  *   periodosFirmados: string[],
  *   periodosAbiertos: string[],
- *   fueraDeTermino: {cantidad: number, importe: number},
  *   rubrosFijosSinMovimiento: Array<{id: number, nombre: string, tipo: string}>,
  *   cierresDuplicados: Array<{periodo: string, cantidad: number}>,
  * }}
@@ -1025,15 +1024,6 @@ export function saludOperativa(ejercicio, movimientos, cierres, rubros, periodic
       periodosPendientes.push(p)
     }
   }
-  // Fuera de término
-  let cantidadFT = 0
-  let importeFT = 0
-  for (const m of movimientos || []) {
-    if (m.fuera_de_termino === true) {
-      cantidadFT += 1
-      importeFT += Number(m.importe) || 0
-    }
-  }
   // Rubros fijos sin movimiento
   const rubrosFijosSinMovimiento = rubrosSinMovimiento(movimientos, rubros, { soloFijos: true })
     .map((r) => ({ id: r.id, nombre: r.nombre, tipo: r.tipo }))
@@ -1053,7 +1043,6 @@ export function saludOperativa(ejercicio, movimientos, cierres, rubros, periodic
     periodosPendientes,
     periodosFirmados,
     periodosAbiertos,
-    fueraDeTermino: { cantidad: cantidadFT, importe: importeFT },
     rubrosFijosSinMovimiento,
     cierresDuplicados,
   }

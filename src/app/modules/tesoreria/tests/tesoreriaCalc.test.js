@@ -633,12 +633,6 @@ describe('saludOperativa', () => {
     expect(s.periodosFirmados).toContain('2026-03')
     expect(s.periodosAbiertos.length + s.periodosPendientes.length + s.periodosFirmados.length).toBe(12)
   })
-  it('cuenta movimientos fuera de término', () => {
-    const movsFT = [...movsEj, mov({ fuera_de_termino: true, importe: 500 })]
-    const s = saludOperativa(ejercicio, movsFT, [], rubros)
-    expect(s.fueraDeTermino.cantidad).toBe(1)
-    expect(s.fueraDeTermino.importe).toBe(500)
-  })
   it('lista rubros fijos sin movimiento', () => {
     const s = saludOperativa(ejercicio, movsEj, [], rubros)
     const ids = s.rubrosFijosSinMovimiento.map((r) => r.id)

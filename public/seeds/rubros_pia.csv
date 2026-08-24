@@ -1,29 +1,29 @@
-codigo_rubro,nombre_oficial,grupo_rubro,tipo_rubro,campo_pdf,es_traspaso,fijo
-RP-CUOTA,Cuota Social,Recursos Propios,Entrada,Texto18,false,true
-RP-DONACION,Donación de dinero,Recursos Propios,Entrada,Texto19,false,true
-RP-RIFAS,Rifas,Recursos Propios,Entrada,Texto20,false,true
-RP-FESTIVALES,Festivales / actos / quermese,Recursos Propios,Entrada,Texto21,false,true
-RP-KIOSCO,Kiosco,Recursos Propios,Entrada,Texto22,false,true
-RP-INTERESES,Intereses bancarios,Recursos Propios,Entrada,Texto23,false,true
-RP-REINTEGROS,Reintegrados banco (débitos / mant. / etc.),Recursos Propios,Entrada,Texto24,false,true
-RO-SUBSIDIO,Subsidios de la DGCYE,Recursos Oficiales,Entrada,Texto25,false,true
-OI-OTROS,Otros Ingresos,Otros Ingresos,Entrada,INGRESO A|Texto26;INGRESO B|Texto27,false,true
-GA-ROPA,Ropa y calzado,Gastos Alumno,Salida,Texto28,false,true
-GA-LIBROS,Libros y útiles,Gastos Alumno,Salida,Texto29,false,true
-GA-EXCURSIONES,Excursiones,Gastos Alumno,Salida,Texto30,false,true
-GA-EMERGENCIAS,Emergencias sanitarias,Gastos Alumno,Salida,Texto31,false,true
-GA-GOLOSINAS,Golosinas - premios y medallas,Gastos Alumno,Salida,Texto32,false,true
-GA-OTROS,Otros gastos (Alumno),Gastos Alumno,Salida,GASTOS F|Texto33;GASTOS G|Texto34,false,true
-GE-MATDIDACTICO,Material didáctico,Gastos Escuela,Salida,Texto35,false,true
-GE-MANTSUBSIDIO,Mant. y mejoras con subsidios,Gastos Escuela,Salida,Texto36,false,true
-GE-MANTPROPIOS,Mant. y mejoras con fondos propios,Gastos Escuela,Salida,Texto37,false,true
-GE-LIMPIEZA,Artículos de limpieza,Gastos Escuela,Salida,Texto38,false,true
-GE-COMBUSTIBLE,Combustible y calefacción,Gastos Escuela,Salida,Texto39,false,true
-GE-LIBRERIA,Librería,Gastos Escuela,Salida,Texto40,false,true
-GE-MOBILIARIO,Mobiliario,Gastos Escuela,Salida,Texto41,false,true
-GE-OTROS,Otros gastos (Escuela),Gastos Escuela,Salida,GASTOS H|Texto42;GASTOS I|Texto43,false,true
-GP-ORGRIFAS,Organización de rifas,Gastos Entidad,Salida,Texto51,false,true
-GP-ORGFESTIVALES,Organización de festivales,Gastos Entidad,Salida,Texto52,false,true
-GP-KIOSCO,Kiosco,Gastos Entidad,Salida,Texto53,false,true
-GP-OTROS,Otros gastos (Entidad),Gastos Entidad,Salida,GASTOS D|Texto54;GASTOS E|Texto55,false,true
-OG-OTROS,Otros gastos,Otros Gastos,Salida,Texto50|Texto56;Texto49|Texto57,false,true
+codigo_rubro,nombre_oficial,grupo_rubro,tipo_rubro,campo_pdf,fijo
+RP-CUOTA,Cuota Social,Recursos Propios,Entrada,Texto18,true
+RP-DONACION,Donación de dinero,Recursos Propios,Entrada,Texto19,true
+RP-RIFAS,Rifas,Recursos Propios,Entrada,Texto20,true
+RP-FESTIVALES,Festivales / actos / quermese,Recursos Propios,Entrada,Texto21,true
+RP-KIOSCO,Kiosco,Recursos Propios,Entrada,Texto22,true
+RP-INTERESES,Intereses bancarios,Recursos Propios,Entrada,Texto23,true
+RP-REINTEGROS,Reintegrados banco (débitos / mant. / etc.),Recursos Propios,Entrada,Texto24,true
+RO-SUBSIDIO,Subsidios de la DGCYE,Recursos Oficiales,Entrada,Texto25,true
+OI-OTROS,Otros Ingresos,Otros Ingresos,Entrada,INGRESO A|Texto26;INGRESO B|Texto27,true
+GA-ROPA,Ropa y calzado,Gastos Alumno,Salida,Texto28,true
+GA-LIBROS,Libros y útiles,Gastos Alumno,Salida,Texto29,true
+GA-EXCURSIONES,Excursiones,Gastos Alumno,Salida,Texto30,true
+GA-EMERGENCIAS,Emergencias sanitarias,Gastos Alumno,Salida,Texto31,true
+GA-GOLOSINAS,Golosinas - premios y medallas,Gastos Alumno,Salida,Texto32,true
+GA-OTROS,Otros gastos (Alumno),Gastos Alumno,Salida,GASTOS F|Texto33;GASTOS G|Texto34,true
+GE-MATDIDACTICO,Material didáctico,Gastos Escuela,Salida,Texto35,true
+GE-MANTSUBSIDIO,Mant. y mejoras con subsidios,Gastos Escuela,Salida,Texto36,true
+GE-MANTPROPIOS,Mant. y mejoras con fondos propios,Gastos Escuela,Salida,Texto37,true
+GE-LIMPIEZA,Artículos de limpieza,Gastos Escuela,Salida,Texto38,true
+GE-COMBUSTIBLE,Combustible y calefacción,Gastos Escuela,Salida,Texto39,true
+GE-LIBRERIA,Librería,Gastos Escuela,Salida,Texto40,true
+GE-MOBILIARIO,Mobiliario,Gastos Escuela,Salida,Texto41,true
+GE-OTROS,Otros gastos (Escuela),Gastos Escuela,Salida,GASTOS H|Texto42;GASTOS I|Texto43,true
+GP-ORGRIFAS,Organización de rifas,Gastos Entidad,Salida,Texto51,true
+GP-ORGFESTIVALES,Organización de festivales,Gastos Entidad,Salida,Texto52,true
+GP-KIOSCO,Kiosco,Gastos Entidad,Salida,Texto53,true
+GP-OTROS,Otros gastos (Entidad),Gastos Entidad,Salida,GASTOS D|Texto54;GASTOS E|Texto55,true
+OG-OTROS,Otros gastos,Otros Gastos,Salida,Texto50|Texto56;Texto49|Texto57,true
