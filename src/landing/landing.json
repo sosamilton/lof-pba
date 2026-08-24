@@ -187,6 +187,11 @@
         "titulo": "Cierre de ciclo",
         "descripcion": "Cierre del ejercicio con cálculo de saldos, generación de PIA y Nómina en PDF, Memoria anual exportable, datos en solo lectura y creación automática del próximo ejercicio.",
         "imagen": "img/screenshot/cierre.png"
+      },
+      {
+        "titulo": "Configuración",
+        "descripcion": "Preferencias de la cooperadora, modalidad de gestión, categorías y subcategorías con activar/desactivar, revalidación de schema y mantenimiento.",
+        "imagen": "img/screenshot/configuracion.png"
       }
     ]
   },

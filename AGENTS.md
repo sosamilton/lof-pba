@@ -96,7 +96,51 @@ Grupos con 2 líneas libres confirmadas (verificado por posición de campos del 
 
 ### CRUD de subrubros en el SPA
 
-La página de Configuración tiene un tab "Categorías y subcategorías" con CRUD completo de subrubros. Los usuarios pueden crear/editar/eliminar subrubros bajo cualquier rubro. El store `categoriasStore.svelte.js` valida duplicados (normalizado) y bloquea eliminación de subrubros en uso por movimientos.
+La página de Configuración tiene un tab "Categorías y subcategorías" con CRUD completo de subrubros. Los usuarios pueden crear/editar/eliminar subrubros bajo cualquier rubro. El store `categoriasStore.svelte.js` valida duplicados (normalizado) y bloquea eliminación de subrubros en uso por movimientos. Además tiene `toggleSubrubroActivo` para activar/desactivar (soft-delete: no se elimina, solo se oculta del selector de movimientos). El selector de subrubros en `Movimientos.svelte` filtra inactivos, salvo el que ya está seleccionado en el form (para no ocultar un subrubro asignado a un movimiento existente).
+
+### configStore reactivo (brand/tema en vivo)
+
+`configStore` (`src/core/grist/stores/configStore.svelte`) cachea la config de la cooperadora. `AppShell.svelte` tiene un `$effect` que reacciona a `configStore.config` para actualizar brand (título/subtítulo) y tema (color primario) en vivo sin recargar. Cualquier cambio de config (color, título, cuenta default) debe llamar `configStore.load()` después de guardar para refrescar el cache. `cooperadoraStore.saveCooperadora` e `inicioStore.onAppTitleChange` también sincronizan la tabla `escuela` (fuente de verdad) al guardar.
+
+## Attachments de Grist (comprobantes de movimientos)
+
+Los movimientos pueden tener comprobantes adjuntos (facturas, recibos, tickets). El flujo es:
+
+1. **Upload**: `uploadAttachments(files)` en `src/core/grist/grist.js` hace POST multipart a `/api/docs/{docId}/attachments?auth=<jwt>` via proxy same-origin `/grist-api/`. Devuelve `[attId]`.
+2. **Vinculación**: al guardar el movimiento, `toAttachmentCellValue(ids)` convierte los IDs al formato Attachments de Grist: `["L", id1, id2, ...]` (designador `L` como primer elemento, IDs como números planos — **NO** pares `["L", id]` anidados, eso causa `#KeyError`). Se guarda en la celda `comprobante` del registro.
+3. **Lectura**: `extractAttachmentIds(value)` extrae los IDs del formato Grist de vuelta a un array plano.
+4. **Descarga**: `getAttachmentUrl(attId)` genera la URL del proxy con token fresco. El token de `getAccessToken()` expira a los 15 min, así que la URL se genera al momento del click (en `handleDownload`), no al cargar el componente.
+
+### Auth de attachments: 3 capas
+
+1. **docId truncado**: Grist self-hosted puede devolver `baseUrl` con el docId truncado en `getAccessToken()`. `getApiContext()` decodifica el JWT y usa `payload.docId` como fuente de verdad.
+2. **CSRF**: el access token se envía como `?auth=<jwt>` (formato que Grist espera para access tokens, no `Authorization: Bearer` que es para API keys). Los POST con access token son tratados como anónimos para CSRF — requieren header `X-Requested-With: XMLHttpRequest`.
+3. **Cross-origin**: el header `X-Requested-With` dispara preflight CORS del browser. Grist rechaza cross-origin con credenciales. El proxy (Vite dev, nginx prod) strips el header `Origin` antes de forwardear para que Grist no vea el request como cross-origin.
+
+### Proxy de attachments
+
+- **Dev (Vite)**: `vite.config.js` proxy `/grist-api` → `GRIST_PROXY_TARGET || http://localhost:8489`, rewrite strips `/grist-api` prefix, `configure` remueve headers `Origin` y `Referer`.
+- **Prod (nginx)**: `docker/nginx.conf` location `/grist-api/` → `http://grist:8484/`, `proxy_set_header Origin ""`.
+- **Docker**: `docker-compose.dev.yml` setea `GRIST_PROXY_TARGET=http://grist:8484` (Grist accesible por nombre de servicio dentro de la red Docker).
+
+### Attachments huérfanos
+
+Si se sube un archivo y se cancela el movimiento sin guardar, el archivo queda huérfano en la tabla `_grist_Attachments` (existe pero no está referenciado por ninguna celda). Esto es el mismo comportamiento de la UI nativa de Grist. Grist tiene `/attachments/removeUnused` para limpiar huérfanos periódicamente. No se hace cleanup automático al cancelar porque no hay endpoint para borrar un attachment individual por ID, y `removeUnused` borraría attachments de otros formularios abiertos simultáneamente.
+
+## Fechas: usar todayISO(), no toISOString().slice(0,10)
+
+`new Date().toISOString()` devuelve UTC. En Argentina (UTC-3), después de las 21:00 la fecha UTC es el día siguiente, lo que hacía que los forms defaultearan a mañana y fallaran validación de "fecha futura". `todayISO()` (en `src/core/utils/utils.js`) usa la fecha local del browser. Usar siempre `todayISO()` para defaults de formularios, nunca `new Date().toISOString().slice(0, 10)`.
+
+## Campos legacy removidos (2026-08-24)
+
+Los siguientes campos fueron removidos del schema y del código por no tener uso:
+- `movimientos.fuera_de_termino` (Bool) — sin lógica asociada, generaba ruido en saludOperativa
+- `movimientos.periodo_cerrado` (Bool) — sin uso
+- `rubros_pia.es_traspaso` (Bool) — era siempre false
+- `escuela.email_asesor` (Text) — se usa del asesor via persona_id
+- `escuela.telefono_asesor` (Text) — ídem
+
+`ensureSchema` no elimina columnas existentes en Grist (solo agrega faltantes). Si una instalación tiene estos campos, quedan como columnas orphan en Grist pero no afectan funcionamiento.
 
 ## Feature futuro: conciliación bancaria (no implementado)
 
