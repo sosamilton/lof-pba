@@ -215,6 +215,7 @@ El seeder solo está disponible cuando `import.meta.env.DEV` es true y no viaja 
 | Documento | Contenido |
 | --- | --- |
 | [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md) | Arquitectura detallada, capas, flujo de datos, integración con Grist |
+| [`docs/ARQUITECTURA_DESCONEXION_GRIST.md`](docs/ARQUITECTURA_DESCONEXION_GRIST.md) | Plan de migración: desacoplar de Grist → PouchDB/CouchDB + Tauri |
 | [`docs/PATRONES.md`](docs/PATRONES.md) | Patrones de código: runes, stores reactivos, routing, schema |
 | [`docs/TECNOLOGIAS.md`](docs/TECNOLOGIAS.md) | Stack tecnológico y justificación de decisiones |
 | [`docs/DOCKER.md`](docs/DOCKER.md) | Guía completa de Docker (producción y desarrollo) |
