@@ -1,4 +1,5 @@
-import { dateToInput, buildMapById, normalize } from '$core/utils/utils.js'
+import { dateToInput, buildMapById, normalize, todayISO } from '$core/utils/utils.js'
+import { extractAttachmentIds, toAttachmentCellValue } from '$core/grist/grist'
 
 /**
  * Lógica CRUD individual de movimientos: seleccionar, nuevo, validar, guardar,
@@ -33,13 +34,14 @@ export function createFormLogic({ formState, relatedData, base, cierresService }
       cuenta_destino_id: m?.cuenta_destino_id ?? '',
       socio_id: m?.socio_id ?? '',
       persona_id: m?.persona_id ?? '',
+      comprobante: extractAttachmentIds(m?.comprobante),
     })
   }
 
   const nuevo = () => {
     formState.setSelectedId(null)
     formState.setListOpen(true)
-    const today = new Date().toISOString().slice(0, 10)
+    const today = todayISO()
     formState.setForm({
       id: null,
       fecha: today,
@@ -53,6 +55,7 @@ export function createFormLogic({ formState, relatedData, base, cierresService }
       cuenta_destino_id: '',
       socio_id: '',
       persona_id: '',
+      comprobante: [],
     })
   }
 
@@ -133,6 +136,7 @@ export function createFormLogic({ formState, relatedData, base, cierresService }
         persona_id: form.tipo_movimiento !== 'Traspaso' ? (form.persona_id || '') : '',
         creado_por: relatedData.userName,
         creado_el: new Date().toISOString(),
+        comprobante: toAttachmentCellValue(form.comprobante || []),
       }
 
       delete fields.id

@@ -1,5 +1,5 @@
 import { applyUserActions } from '$core/grist/grist.js'
-import { normalizeFields, dateToInput } from '$core/utils/utils.js'
+import { normalizeFields, dateToInput, todayISO } from '$core/utils/utils.js'
 
 /**
  * Registro de hechos relevantes para la Memoria anual.
@@ -33,7 +33,7 @@ export function createHechosRelevantesManager({ getTHechos, getEjercicio, loadHe
   const newHecho = () => {
     const ej = getEjercicio()
     hechoForm = {
-      fecha: new Date().toISOString().slice(0, 10),
+      fecha: todayISO(),
       categoria: 'Evento',
       descripcion: '',
       monto: '',
@@ -47,7 +47,7 @@ export function createHechosRelevantesManager({ getTHechos, getEjercicio, loadHe
   const editHecho = (h) => {
     hechoForm = {
       id: h.id,
-      fecha: dateToInput(h.fecha) || new Date().toISOString().slice(0, 10),
+      fecha: dateToInput(h.fecha) || todayISO(),
       categoria: h.categoria || 'Otro',
       descripcion: h.descripcion || '',
       monto: h.monto ?? '',

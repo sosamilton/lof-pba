@@ -1,4 +1,4 @@
-import { dateToInput } from '$core/utils/utils.js'
+import { dateToInput, todayISO } from '$core/utils/utils.js'
 import { formatDni, formatCuil, formatTelefonoNational } from '$core/format/format.js'
 
 /**
@@ -51,7 +51,7 @@ export function buildNewSocioForm(prefill = {}) {
     email: '',
     tipo_socio: 'Activo',
     fecha_nacimiento: '',
-    fecha_alta: new Date().toISOString().slice(0, 10),
+    fecha_alta: todayISO(),
     fecha_baja: '',
     motivo_baja: '',
   }

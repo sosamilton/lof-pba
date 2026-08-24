@@ -1,5 +1,5 @@
 import { applyUserActions } from '$core/grist/grist.js'
-import { normalizeFields, addMonths } from '$core/utils/utils.js'
+import { normalizeFields, addMonths, todayISO } from '$core/utils/utils.js'
 import { findOrCreatePersona, personaLabel } from '$app/modules/comunidad/personas/personasApi.js'
 import { parseDni as normalizeDni, isValidDni } from '$core/format/format.js'
 
@@ -39,7 +39,7 @@ export function createReemplazoAutoridad({
         apellido_nombre: '',
         dni: '',
         cuil: '',
-        fecha_asuncion: new Date().toISOString().slice(0, 10),
+        fecha_asuncion: todayISO(),
         acta_origen_ref: '',
         fecha_acta_origen: '',
         asamblea_id: null,
@@ -77,7 +77,7 @@ export function createReemplazoAutoridad({
       const tAutoridades = getTAutoridades()
       const cargo = cargos.find((c) => Number(c.id) === Number(nuevo.cargoId)) || {}
       const duracionMeses = cargo.duracion_meses ?? ''
-      const fechaAsuncion = nuevo.fecha_asuncion || new Date().toISOString().slice(0, 10)
+      const fechaAsuncion = nuevo.fecha_asuncion || todayISO()
       const fechaVenc = fechaAsuncion ? addMonths(fechaAsuncion, duracionMeses) : ''
       const tipoOrigen = nuevo.asamblea_id ? 'ReunionCD' : 'ReunionCD'
 

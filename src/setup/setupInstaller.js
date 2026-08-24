@@ -1,6 +1,6 @@
 import { gristReady, resolveTableId, applyUserActions, invalidateTablesCache, fetchRecords, addRecords } from '$core/grist/grist'
 import { ensureSchema, initDemoData } from './initLof'
-import { TABLE_PREFERRED_IDS, MODULES, fechasEjercicio } from '$core/utils/utils'
+import { TABLE_PREFERRED_IDS, MODULES, fechasEjercicio, todayISO } from '$core/utils/utils'
 import { saveConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
 import { normalizeEmail, normalizeTelefonoForStorage, isValidCbuChecksum } from '$core/format/format'
 import { currentYear } from './setupConstants'
@@ -79,7 +79,7 @@ export async function doInstall(s) {
           sucursal: s.banco.sucursal || '',
           cuenta_corriente: s.banco.cuenta_corriente || '',
           cbu: cbuDigits || '',
-          vigente_desde: new Date().toISOString().slice(0, 10),
+          vigente_desde: todayISO(),
           banco_validado: bancoValidado
         }]])
       }
