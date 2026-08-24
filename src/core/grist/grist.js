@@ -256,14 +256,150 @@ export const applyUserActions = async (actions) => {
   return res
 }
 
+// Decodifica el payload de un JWT para extraer campos. El JWT es
+// header.payload.signature, donde payload es base64url JSON.
+// Grist (self-hosted) puede devolver un baseUrl con el docId truncado en
+// getAccessToken(), distinto al docId real embebido en el token. Usamos el
+// docId del token como fuente de verdad para construir las URLs de la API.
+const decodeJwtPayload = (token) => {
+  if (!token) return null
+  try {
+    const parts = token.split('.')
+    if (parts.length < 2) return null
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    return JSON.parse(atob(b64))
+  } catch {
+    return null
+  }
+}
+
 export const getApiContext = async () => {
   await withGristContext()
   const res = await window.grist.docApi.getAccessToken({ readOnly: false })
   const token = res?.token
   const baseUrl = String(res?.baseUrl || '').replace(/\/+$/, '')
-  const m = baseUrl.match(/\/api\/docs\/([^/]+)$/)
-  const docId = m?.[1] || null
+  // El docId del token JWT es la fuente de verdad. El baseUrl de Grist puede
+  // tener el docId truncado (bug confirmado en self-hosted), lo que causa 401.
+  const payload = decodeJwtPayload(token)
+  const docId = payload?.docId || (() => {
+    const m = baseUrl.match(/\/api\/docs\/([^/]+)$/)
+    return m?.[1] || null
+  })()
   return { token, baseUrl, docId }
+}
+
+// --- Attachments API ---
+// Grist guarda archivos adjuntos en la tabla _grist_Attachments. Las celdas
+// tipo "Attachments" guardan ["L", attId] (o un array de esos). Para subir,
+// hay que POST multipart a /api/docs/{docId}/attachments, que devuelve [attId].
+// Para descargar, GET /api/docs/{docId}/attachments/{attId}/download.
+//
+// CORS: el custom widget se sirve desde un origen distinto al de Grist (ej.
+// localhost:5173 vs localhost:8489). Grist no envía Access-Control-Allow-Origin,
+// así que las llamadas directas fallan. Solución: un proxy reverse en el
+// servidor del SPA (nginx en prod, Vite en dev) que mapea /grist-api/ → Grist.
+// Las llamadas van same-origin a /grist-api/api/docs/{docId}/attachments y
+// el proxy las forwardea.
+//
+// Auth: el access token de getAccessToken() se envía como ?auth=<jwt> en la
+// query string, que es el formato que Grist espera para access tokens (ver
+// docs oficiales: getAccessToken example usa ?auth=). El proxy solo reescribe
+// el path (strips /grist-api prefix) y forwardea el query string tal cual.
+// No se usa Authorization: Bearer porque ese header es para API keys, no
+// para access tokens de getAccessToken().
+
+/**
+ * Construye la URL base del proxy para la API de attachments.
+ * Usa el docId extraído del JWT (fuente de verdad) para construir la URL
+ * del proxy same-origin /grist-api/api/docs/{docId}.
+ * @returns {Promise<{token: string, proxyBaseUrl: string}>}
+ */
+const getAttachmentApiContext = async () => {
+  const { token, docId } = await getApiContext()
+  if (!docId) throw new Error('No se pudo resolver el docId de Grist.')
+  const proxyBaseUrl = `/grist-api/api/docs/${docId}`
+  return { token, proxyBaseUrl }
+}
+
+/**
+ * Sube uno o más archivos a Grist como attachments.
+ * @param {File[]} files
+ * @returns {Promise<number[]>} Array de attachment IDs (uno por archivo)
+ */
+export const uploadAttachments = async (files) => {
+  const { token, proxyBaseUrl } = await getAttachmentApiContext()
+  const formData = new FormData()
+  for (const f of files) formData.append('upload', f)
+  const res = await fetch(`${proxyBaseUrl}/attachments?auth=${encodeURIComponent(token)}`, {
+    method: 'POST',
+    body: formData,
+    // Grist trata los access tokens como anónimos para CSRF. Los POST
+    // anónimos requieren este header (o Content-Type: application/json,
+    // que no aplica para multipart). Sin este header, Grist devuelve 401.
+    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`Error al subir archivo: ${res.status} ${res.statusText} — ${body}`)
+  }
+  const ids = await res.json()
+  return ids
+}
+
+/**
+ * Obtiene metadata de un attachment.
+ * @param {number} attId
+ * @returns {Promise<{fileName: string, fileSize: number, timeUploaded?: string}>}
+ */
+export const getAttachmentMetadata = async (attId) => {
+  const { token, proxyBaseUrl } = await getAttachmentApiContext()
+  const res = await fetch(`${proxyBaseUrl}/attachments/${attId}?auth=${encodeURIComponent(token)}`)
+  if (!res.ok) throw new Error(`Error al obtener metadata: ${res.status}`)
+  return res.json()
+}
+
+/**
+ * Construye la URL de descarga de un attachment (para <a href> o <img>).
+ * Usa el proxy same-origin con token en query string.
+ * @param {number} attId
+ * @returns {Promise<string>} URL con token embebido
+ */
+export const getAttachmentUrl = async (attId) => {
+  const { token, proxyBaseUrl } = await getAttachmentApiContext()
+  return `${proxyBaseUrl}/attachments/${attId}/download?auth=${encodeURIComponent(token)}`
+}
+
+/**
+ * Normaliza el valor de una celda Attachments de Grist.
+ * Grist devuelve ["L", attId] o un array de esos. Esta función devuelve
+ * un array plano de IDs numéricos.
+ * @param {any} value
+ * @returns {number[]}
+ */
+export const extractAttachmentIds = (value) => {
+  if (!value) return []
+  if (typeof value === 'number') return [value]
+  if (Array.isArray(value)) {
+    // ["L", 123] → 123 ; [["L", 123], ["L", 456]] → [123, 456]
+    return value.map((v) => {
+      if (typeof v === 'number') return v
+      if (Array.isArray(v) && v[1] != null) return Number(v[1])
+      return null
+    }).filter((v) => v != null && !Number.isNaN(v))
+  }
+  return []
+}
+
+/**
+ * Convierte un array de IDs numéricos al formato que Grist espera
+ * para escribir en una celda Attachments: ["L", id1, id2, ...].
+ * El "L" es el designador de lista de Grist, y los IDs van como
+ * números planos después (no como pares ["L", id]).
+ * @param {number[]} ids
+ * @returns {Array<string|number>}
+ */
+export const toAttachmentCellValue = (ids) => {
+  return ['L', ...ids.map((id) => Number(id))]
 }
 
 export const createTables = async (tables) => {

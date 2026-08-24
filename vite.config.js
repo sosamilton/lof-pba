@@ -51,6 +51,33 @@ export default defineConfig({
   base: './',
   server: {
     allowedHosts: ['lof-dev'],
+    // Proxy a la API REST de Grist para evitar CORS desde el custom widget.
+    // El widget se sirve desde Vite (localhost:5173), y la API de Grist está
+    // en otro puerto (localhost:8489). Sin proxy, el browser bloquea por CORS.
+    // Con proxy, las llamadas a /grist-api/ las hace Vite server-side → no CORS.
+    //
+    // Auth: el browser envía el access token de getAccessToken() como query
+    // parameter (?auth=<jwt>), que es el formato que Grist espera para access
+    // tokens. El proxy solo reescribe el path (strips /grist-api prefix) y
+    // forwardea el query string tal cual. No necesita convertir a header.
+    //
+    // Origin: el header X-Requested-With (necesario para CSRF de Grist en POST
+    // con access tokens) dispara un preflight CORS del browser. Grist rechaza
+    // requests cross-origin con credenciales. El proxy strips el header Origin
+    // para que Grist no vea el request como cross-origin.
+    proxy: {
+      '/grist-api': {
+        target: process.env.GRIST_PROXY_TARGET || 'http://localhost:8489',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/grist-api/, ''),
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            proxyReq.removeHeader('origin')
+            proxyReq.removeHeader('referer')
+          })
+        },
+      },
+    },
   },
   define: {
     __APP_VERSION__: JSON.stringify(APP_VERSION),

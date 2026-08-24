@@ -9,6 +9,7 @@
   import Combobox from '$lib/components/Combobox.svelte'
   import { notifyAfter } from '$core/ui/notify.svelte'
   import PersonaVinculadaField from './PersonaVinculadaField.svelte'
+  import ComprobanteField from './ComprobanteField.svelte'
 
   let {
     store,
@@ -159,6 +160,15 @@
         value={personaVinculadaValue}
         onchange={onPersonaVinculadaChange}
       />
+
+      <Field.Field class="sm:col-span-2">
+        <Field.FieldLabel for="comprobante">Comprobante</Field.FieldLabel>
+        <ComprobanteField
+          attachmentIds={store.form.comprobante || []}
+          onchange={(ids) => { store.form.comprobante = ids }}
+        />
+        <Field.FieldDescription>Factura, recibo o ticket del movimiento (opcional).</Field.FieldDescription>
+      </Field.Field>
     </Field.FieldGroup>
 
     <Field.FieldDescription>

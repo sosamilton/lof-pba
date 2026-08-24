@@ -67,6 +67,9 @@ services:
     environment:
       # Vite necesita esto para servir desde el container
       - NODE_ENV=development
+      # Proxy target para /grist-api/ (ver vite.config.js). Dentro de Docker,
+      # Grist es accesible por nombre de servicio + puerto interno (no localhost).
+      - GRIST_PROXY_TARGET=http://grist:8484
     restart: unless-stopped
 
 volumes:
