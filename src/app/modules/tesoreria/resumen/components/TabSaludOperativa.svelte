@@ -6,7 +6,6 @@
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
   import LockIcon from '@lucide/svelte/icons/lock'
   import CalendarIcon from '@lucide/svelte/icons/calendar'
-  import ClockIcon from '@lucide/svelte/icons/clock'
   import FileWarningIcon from '@lucide/svelte/icons/file-warning'
 
   let { store } = $props()
@@ -14,7 +13,6 @@
 
   let hayAlertas = $derived(
     s.periodosPendientes.length > 0 ||
-    s.fueraDeTermino.cantidad > 0 ||
     s.rubrosFijosSinMovimiento.length > 0 ||
     s.cierresDuplicados.length > 0
   )
@@ -50,24 +48,6 @@
               </Badge>
             {/each}
           </div>
-        {/if}
-      </Card.Content>
-    </Card.Root>
-
-    <!-- Fuera de término -->
-    <Card.Root class={s.fueraDeTermino.cantidad > 0 ? 'border-yellow-500/40' : ''}>
-      <Card.Header>
-        <Card.Title class="text-sm flex items-center gap-2">
-          <ClockIcon class="size-4" />
-          Movimientos fuera de término
-        </Card.Title>
-      </Card.Header>
-      <Card.Content class="pt-4">
-        {#if s.fueraDeTermino.cantidad === 0}
-          <p class="text-sm text-muted-foreground">No hay movimientos marcados como fuera de término.</p>
-        {:else}
-          <div class="text-lg font-bold">{s.fueraDeTermino.cantidad} movimientos</div>
-          <div class="text-sm text-muted-foreground">Importe total: {formatARS(s.fueraDeTermino.importe)}</div>
         {/if}
       </Card.Content>
     </Card.Root>

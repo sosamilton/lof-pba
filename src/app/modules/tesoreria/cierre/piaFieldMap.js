@@ -279,8 +279,8 @@ export const buildPiaFieldMap = (data) => {
   fields['ASESOR/A'] = asesor?.apellido_nombre || ''
   fields['DNI4'] = asesor?.dni || ''
   // Email/teléfono del asesor (campos izquierdos de la sección de contacto)
-  fields['EMAIL'] = asesor?.email || escuela.email_asesor || ''
-  fields['TELÉFONO'] = asesor?.telefono || escuela.telefono_asesor || ''
+  fields['EMAIL'] = asesor?.email || ''
+  fields['TELÉFONO'] = asesor?.telefono || ''
 
   // --- Federación (Titular + Suplente) ---
   const fed = data.autoridadesFed || []
