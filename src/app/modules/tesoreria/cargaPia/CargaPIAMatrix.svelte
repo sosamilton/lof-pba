@@ -630,10 +630,13 @@
       <div class="relative min-h-0 self-stretch min-h-[75vh]">
         <div class="absolute inset-0 overflow-y-auto rounded-lg border border-border bg-card">
           {#each periodosAgrupados as pg (pg.periodo)}
-            <button
+            <div
               class="w-full border-b border-border px-4 py-3 text-left transition-colors hover:bg-accent {periodoKey === pg.periodo ? 'bg-primary/10' : ''}"
-              onclick={() => seleccionarPeriodo(pg)}
+              role="button"
+              tabindex="0"
               aria-pressed={periodoKey === pg.periodo}
+              onclick={() => seleccionarPeriodo(pg)}
+              onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); seleccionarPeriodo(pg) } }}
             >
               <div class="flex items-center justify-between gap-2">
                 <span class="font-semibold text-sm">{pg.periodoLabel}</span>
@@ -654,10 +657,10 @@
                 {/if}
                 {pg.cargas.length} carga{pg.cargas.length > 1 ? 's' : ''}
                 {#if pg.firmado}
-                  <span class="ml-2 text-primary hover:underline" onclick={(e) => { e.stopPropagation(); abrirReabrir(pg.periodo) }}>· Reabrir</span>
+                  <button type="button" class="ml-2 text-primary hover:underline align-baseline bg-transparent border-0 p-0 cursor-pointer text-xs" onclick={(e) => { e.stopPropagation(); abrirReabrir(pg.periodo) }}>· Reabrir</button>
                 {/if}
               </div>
-            </button>
+            </div>
           {/each}
         </div>
       </div>
