@@ -9,6 +9,7 @@ import {
 } from '$core/grist/grist'
 import { normalizeFields, TABLE_PREFERRED_IDS } from '$core/utils/utils'
 import { loadConfig, saveConfig } from './cooperadoraApi.js'
+import { configStore } from '$core/grist/stores/configStore.svelte'
 import { notify } from '$core/ui/notify.svelte'
 import { createBaseState } from '$core/grist/stores/gristStore.svelte'
 import {
@@ -136,6 +137,14 @@ const saveCooperadora = async () => {
     await _updateRecord(tEscuela, escuelaRaw)
     await _updateRecord(tBanco, bancoRaw)
     await _updateRecord(tKiosco, kiosco)
+    // Sincronizar cache de UI en configuracion (fuente de verdad = escuela)
+    const config = await loadConfig()
+    await saveConfig({
+      ...config,
+      escuela_nombre: escuela.escuela_nombre || '',
+      cooperadora_nombre: escuela.cooperadora_nombre || '',
+    })
+    await configStore.load() // refresca cache reactivo para AppShell
     bs.setNotice('Datos guardados.'); notify.success(bs.notice)
   })
 }

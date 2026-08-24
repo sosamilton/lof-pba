@@ -142,7 +142,7 @@ const crearSubrubro = async (rubroId, nombre) => {
       error = 'No se encontró la tabla subrubros.'
       return false
     }
-    const fields = normalizeFields({ rubro_id: Number(rubroId), nombre_subrubro: limpio })
+    const fields = normalizeFields({ rubro_id: Number(rubroId), nombre_subrubro: limpio, activo: true, creado_por: 'SPA' })
     await applyUserActions([['AddRecord', tSubrubros, null, fields]])
     notice = `Subrubro "${limpio}" creado.`
     notify.success(notice)
@@ -247,6 +247,37 @@ const eliminarSubrubro = async (id) => {
   }
 }
 
+/**
+ * Activa o desactiva un subrubro (soft-delete: no se elimina, solo se
+ * oculta del selector de movimientos).
+ * @param {number} id
+ * @param {boolean} nuevoEstado
+ * @returns {Promise<boolean>}
+ */
+const toggleSubrubroActivo = async (id, nuevoEstado) => {
+  _busy = true
+  error = ''
+  notice = ''
+  try {
+    const tSubrubros = await resolveTableId(TABLE_PREFERRED_IDS.subrubros)
+    if (!tSubrubros) {
+      error = 'No se encontró la tabla subrubros.'
+      return false
+    }
+    await applyUserActions([['UpdateRecord', tSubrubros, Number(id), { activo: nuevoEstado }]])
+    notice = nuevoEstado ? 'Subrubro reactivado.' : 'Subrubro desactivado.'
+    notify.success(notice)
+    await refresh()
+    return true
+  } catch (e) {
+    error = e?.message || String(e)
+    notify.error('No se pudo cambiar el estado del subrubro.')
+    return false
+  } finally {
+    _busy = false
+  }
+}
+
 const subscribe = () => {
   if (_unsub) _unsub()
   _unsub = subscribeRecords(() => {
@@ -279,4 +310,5 @@ export const categoriasStore = {
   crearSubrubro,
   editarSubrubro,
   eliminarSubrubro,
+  toggleSubrubroActivo,
 }

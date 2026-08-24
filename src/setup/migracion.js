@@ -216,7 +216,7 @@ export const syncSubrubrosPia = async () => {
     if (!rubroId) continue // rubro padre todavía no existe en este documento
     const key = `${rubroId}:${normalize(seed.nombreSubrubro)}`
     if (existentesKeys.has(key)) continue
-    faltantes.push({ rubro_id: rubroId, nombre_subrubro: seed.nombreSubrubro })
+    faltantes.push({ rubro_id: rubroId, nombre_subrubro: seed.nombreSubrubro, activo: true, creado_por: 'sistema' })
   }
 
   if (faltantes.length === 0) {

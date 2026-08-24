@@ -164,6 +164,16 @@
       // keep defaults
     }
   })
+
+  // Reactivo: cuando configStore.config cambia (ej. desde Configuración),
+  // actualizar brand y tema en vivo sin recargar.
+  $effect(() => {
+    const c = configStore.config
+    if (!c) return
+    if (c.cooperadora_nombre) brandTitle = c.cooperadora_nombre
+    if (c.escuela_nombre) brandSub = c.escuela_nombre
+    if (c.color_primario) applyBrandTheme(c.color_primario)
+  })
 </script>
 
 <Sidebar.Provider>

@@ -12,6 +12,7 @@ import { REQUIRED_TABLES } from '$core/grist/schema'
 import { getSchemaDiff, ensureSchema } from '$setup/initLof'
 import { deduplicatePersonas, syncRubrosPia, syncSubrubrosPia, fixRubrosPiaCampoPdf } from '$setup/migracion'
 import { loadConfig, saveConfig, crearEjercicioApi } from '$app/pages/cooperadora/cooperadoraApi.js'
+import { configStore } from '$core/grist/stores/configStore.svelte'
 import { notify, withNotify } from '$core/ui/notify.svelte'
 import { createBaseState } from '$core/grist/stores/gristStore.svelte'
 import { saldosStore } from '$app/modules/tesoreria/resumen/saldosStore.svelte.js'
@@ -400,6 +401,7 @@ const onColorChange = async (hex) => {
   try {
     const config = await loadConfig()
     await saveConfig({ ...config, color_primario: hex })
+    await configStore.load() // refresca cache reactivo para AppShell
     notify.success('Color de marca actualizado.')
   } catch (e) {
     bs.setError(e?.message || String(e))
@@ -408,7 +410,8 @@ const onColorChange = async (hex) => {
 }
 
 /**
- * Guarda el título de la app (cooperadora_nombre) en config.
+ * Guarda el título de la app (cooperadora_nombre) en config y sincroniza
+ * la tabla escuela (fuente de verdad) para que ambas queden consistentes.
  * @param {string} nombre
  */
 const onAppTitleChange = async (nombre) => {
@@ -417,6 +420,15 @@ const onAppTitleChange = async (nombre) => {
   try {
     const config = await loadConfig()
     await saveConfig({ ...config, cooperadora_nombre: nombre })
+    await configStore.load() // refresca cache reactivo para AppShell
+    // Sincronizar fuente de verdad: tabla escuela
+    const tEscuela = await resolveTableId(TABLE_PREFERRED_IDS.escuela)
+    if (tEscuela) {
+      const escRecs = await fetchRecords(tEscuela)
+      if (escRecs.length > 0) {
+        await applyUserActions([['UpdateRecord', tEscuela, escRecs[0].id, { cooperadora_nombre: nombre }]])
+      }
+    }
     notify.success('Título actualizado.')
   } catch (e) {
     bs.setError(e?.message || String(e))
@@ -434,6 +446,7 @@ const onCuentaDefaultChange = async (cuentaId) => {
   try {
     const config = await loadConfig()
     await saveConfig({ ...config, cuenta_default_id: cuentaDefaultId })
+    await configStore.load() // refresca cache reactivo
     notify.success('Cuenta por defecto actualizada.')
   } catch (e) {
     bs.setError(e?.message || String(e))
