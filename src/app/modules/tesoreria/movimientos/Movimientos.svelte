@@ -101,7 +101,11 @@
   )
   let subrubrosByRubro = $derived.by(() => {
     const map = new Map()
+    // Subrubro actualmente seleccionado en el form (para no ocultarlo si está inactivo)
+    const selectedSubrubroId = store.form?.subrubro_id ? Number(store.form.subrubro_id) : null
     for (const s of store.subrubros) {
+      // Filtrar inactivos, salvo el que está seleccionado en el form actual
+      if (s.activo === false && Number(s.id) !== selectedSubrubroId) continue
       const k = Number(s.rubro_id)
       if (!map.has(k)) map.set(k, [])
       map.get(k).push(s)
