@@ -102,6 +102,20 @@
             "label": "Datos validados",
             "type": "Bool"
           }
+        },
+        {
+          "id": "estatuto",
+          "fields": {
+            "label": "Estatuto de la cooperadora",
+            "type": "Attachment"
+          }
+        },
+        {
+          "id": "estatuto_validado",
+          "fields": {
+            "label": "Estatuto validado",
+            "type": "Bool"
+          }
         }
       ]
     },

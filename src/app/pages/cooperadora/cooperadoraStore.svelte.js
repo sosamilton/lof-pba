@@ -6,6 +6,8 @@ import {
   isInGrist,
   resolveTableId,
   subscribeRecords,
+  extractAttachmentIds,
+  toAttachmentCellValue,
 } from '$core/grist/grist'
 import { normalizeFields, TABLE_PREFERRED_IDS } from '$core/utils/utils'
 import { loadConfig, saveConfig } from './cooperadoraApi.js'
@@ -167,6 +169,32 @@ const validarBanco = async () => {
   })
 }
 
+// --- Estatuto (PDF adjunto) ---
+
+// Guarda el attachment ID del estatuto en la tabla escuela.
+const saveEstatuto = async (/** @type {number | null} */ attId) => {
+  await bs.wrapAsync(async () => {
+    if (!tEscuela) { bs.setError('No se encontró la tabla escuela.'); return }
+    const cellValue = attId ? toAttachmentCellValue([attId]) : null
+    await applyUserActions([['UpdateRecord', tEscuela, escuela.id, { estatuto: cellValue }]])
+    escuela.estatuto = cellValue
+    bs.setNotice(attId ? 'Estatuto guardado.' : 'Estatuto eliminado.'); notify.success(bs.notice)
+  })
+}
+
+// Valida (bloquea) el estatuto. Una vez validado, no se puede reemplazar desde la app.
+const validarEstatuto = async () => {
+  await bs.wrapAsync(async () => {
+    if (!tEscuela) { bs.setError('No se encontró la tabla escuela.'); return }
+    if (!extractAttachmentIds(escuela.estatuto).length) {
+      bs.setError('No hay estatuto cargado para validar.'); notify.error(bs.error); return
+    }
+    await applyUserActions([['UpdateRecord', tEscuela, escuela.id, { estatuto_validado: true }]])
+    escuela.estatuto_validado = true
+    bs.setNotice('Estatuto validado y bloqueado.'); notify.success(bs.notice)
+  })
+}
+
 // Verifica (bloquea) la estructura de cargos del estatuto. Una vez
 // validada, la edición en Institucional se deshabilita; solo se desbloquea
 // al registrar una AGE con motivo "Reforma estatuto".
@@ -241,6 +269,8 @@ export const cooperadoraStore = {
   validarDatos,
   validarBanco,
   validarCargos,
+  saveEstatuto,
+  validarEstatuto,
   desbloquearCargos,
   get cargos_validados() { return cargos_validados },
   get federacion_adherida() { return federacion_adherida },

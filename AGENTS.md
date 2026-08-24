@@ -102,6 +102,16 @@ La página de Configuración tiene un tab "Categorías y subcategorías" con CRU
 
 `configStore` (`src/core/grist/stores/configStore.svelte`) cachea la config de la cooperadora. `AppShell.svelte` tiene un `$effect` que reacciona a `configStore.config` para actualizar brand (título/subtítulo) y tema (color primario) en vivo sin recargar. Cualquier cambio de config (color, título, cuenta default) debe llamar `configStore.load()` después de guardar para refrescar el cache. `cooperadoraStore.saveCooperadora` e `inicioStore.onAppTitleChange` también sincronizan la tabla `escuela` (fuente de verdad) al guardar.
 
+## Estatuto de la cooperadora (PDF adjunto)
+
+La tabla `escuela` tiene una columna `estatuto` (tipo `Attachment`) y `estatuto_validado` (Bool). El módulo Institucional tiene un tab "Estatuto" donde se sube el PDF del estatuto de la cooperadora. El flujo es:
+
+1. **Upload**: `EstatutoField.svelte` valida que el archivo sea PDF y usa `uploadAttachments([file])` para subirlo a Grist.
+2. **Guardado**: `cooperadoraStore.saveEstatuto(attId)` convierte el ID con `toAttachmentCellValue([attId])` y lo guarda en la celda `estatuto` de la tabla `escuela`.
+3. **Validación**: `cooperadoraStore.validarEstatuto()` setea `estatuto_validado = true`. Una vez validado, el componente bloquea la edición (no se puede reemplazar ni quitar el archivo desde la app).
+4. **Lectura**: `extractAttachmentIds(escuela.estatuto)` extrae el ID del attachment para mostrarlo.
+5. **Descarga**: usa `getAttachmentUrl(attId)` con token fresco al click, igual que comprobantes de movimientos.
+
 ## Attachments de Grist (comprobantes de movimientos)
 
 Los movimientos pueden tener comprobantes adjuntos (facturas, recibos, tickets). El flujo es:

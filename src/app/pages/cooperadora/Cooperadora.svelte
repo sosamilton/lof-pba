@@ -25,6 +25,9 @@
   import DialogReemplazo from '$app/modules/gobierno/autoridades/components/DialogReemplazo.svelte'
   import DialogHistorico from './components/DialogHistorico.svelte'
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
+  import EstatutoField from './components/EstatutoField.svelte'
+  import FileTextIcon from '@lucide/svelte/icons/file-text'
+  import { extractAttachmentIds } from '$core/grist/grist'
 
   let dialogEjercicioAbierto = $state(false)
   let ejercicioEditandoId = $state(null)
@@ -165,6 +168,24 @@
   const bancoValidado = $derived(store.banco?.banco_validado === true)
   const emailEscuelaBloqueado = $derived(escuelaValidada && !emailEscuelaDirty && Boolean(emailEscuelaAlias))
 
+  // Estatuto
+  const estatutoAttachmentId = $derived(extractAttachmentIds(store.escuela?.estatuto)[0] ?? null)
+  const estatutoValidado = $derived(store.escuela?.estatuto_validado === true)
+
+  const handleEstatutoChange = async (/** @type {number | null} */ attId) => {
+    await store.saveEstatuto(attId)
+  }
+
+  const confirmarValidarEstatuto = () => {
+    openConfirm({
+      title: '¿Validar y bloquear el estatuto?',
+      description: 'Una vez validado, el estatuto no podrá reemplazarse desde la app. Si necesitás cambiarlo, podés modificarlo directamente en las tablas de Grist.',
+      confirmLabel: 'Validar y bloquear',
+      variant: 'default',
+      onConfirm: () => store.validarEstatuto(),
+    })
+  }
+
   const handleSave = async () => {
     await store.saveCooperadora()
     escuelaDirty = false
@@ -205,6 +226,10 @@
         <Tabs.Trigger value="ejercicios" class="px-3">
           <CalendarRangeIcon data-icon="inline-start" />
           Ejercicios
+        </Tabs.Trigger>
+        <Tabs.Trigger value="estatuto" class="px-3">
+          <FileTextIcon data-icon="inline-start" />
+          Estatuto
         </Tabs.Trigger>
       </Tabs.List>
 
@@ -311,6 +336,32 @@
           onEliminar={confirmarEliminarEjercicio}
           onCrear={store.createEjercicio}
         />
+      </Tabs.Content>
+
+      <!-- Tab: Estatuto -->
+      <Tabs.Content value="estatuto" class="flex flex-col gap-4">
+        <Card.Root>
+          <Card.Header>
+            <Card.Title class="text-base flex items-center gap-2">
+              Estatuto de la cooperadora
+              {#if estatutoValidado}
+                <Badge variant="secondary"><LockIcon class="size-3" /> Validado</Badge>
+              {/if}
+            </Card.Title>
+            <Card.Description>
+              Subí el PDF del estatuto de la cooperadora. Una vez validado, queda bloqueado para evitar cambios accidentales.
+            </Card.Description>
+          </Card.Header>
+          <Card.Content>
+            <EstatutoField
+              attachmentId={estatutoAttachmentId}
+              validado={estatutoValidado}
+              busy={store.busy}
+              onchange={handleEstatutoChange}
+              onValidar={confirmarValidarEstatuto}
+            />
+          </Card.Content>
+        </Card.Root>
       </Tabs.Content>
     </Tabs.Root>
   </div>
