@@ -13,6 +13,7 @@
   import InfoIcon from '@lucide/svelte/icons/info'
   import ChevronDownIcon from '@lucide/svelte/icons/chevron-down'
   import ChevronRightIcon from '@lucide/svelte/icons/chevron-right'
+  import PowerIcon from '@lucide/svelte/icons/power'
 
   let { store } = $props()
 
@@ -155,9 +156,6 @@
                       </div>
                       <div class="flex items-center gap-2 text-xs text-muted-foreground">
                         <span>{r.tipo_rubro}</span>
-                        {#if r.es_traspaso}
-                          <Badge variant="outline" class="h-4 text-[10px]">Traspaso</Badge>
-                        {/if}
                       </div>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
@@ -180,8 +178,22 @@
                     <Separator />
                     <div class="flex flex-col gap-0.5 px-3 py-2">
                       {#each subs as s (s.id)}
-                        <div class="flex items-center gap-2 py-1 text-sm">
-                          <span class="flex-1 truncate pl-4 text-muted-foreground">↳ {s.nombre_subrubro}</span>
+                        <div class="flex items-center gap-2 py-1 text-sm" class:opacity-50={s.activo === false}>
+                          <span class="flex-1 truncate pl-4 text-muted-foreground" class:line-through={s.activo === false}>↳ {s.nombre_subrubro}</span>
+                          {#if s.activo === false}
+                            <Badge variant="outline" class="h-4 text-[10px]">Inactivo</Badge>
+                          {/if}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            class="h-6 w-6 p-0"
+                            onclick={() => store.toggleSubrubroActivo(s.id, s.activo !== false ? false : true)}
+                            disabled={store.busy}
+                            aria-label={s.activo === false ? 'Reactivar subrubro' : 'Desactivar subrubro'}
+                            title={s.activo === false ? 'Reactivar' : 'Desactivar'}
+                          >
+                            <PowerIcon class="size-3.5" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
