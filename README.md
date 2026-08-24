@@ -44,6 +44,15 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 </details>
 
 <details>
+<summary><strong>Página de Configuración</strong></summary>
+
+- **General** — modalidad de gestión, periodicidad (mensual, semanal, trimestral, semestral, anual), versión instalada vs. última disponible, revalidar schema, reparar referencias rotas, deduplicar personas por DNI.
+- **Categorías y subcategorías** — listado de rubros PIA agrupados por grupo, con CRUD completo de subrubros. Activar/desactivar subrubros sin borrarlos (los desactivados no aparecen al cargar movimientos nuevos, pero siguen asignados a los existentes). Bloqueo de eliminación de subrubros en uso.
+- **Reactividad en vivo** — cambios de marca (nombre, color) se reflejan inmediatamente en toda la app sin recargar.
+
+</details>
+
+<details>
 <summary><strong>Dashboard de inicio</strong></summary>
 
 - **Situación actual**: foto instantánea del estado operativo — saldos por cuenta (Banco, Efectivo, Caja Chica) en tarjetas individuales con saldo total, última carga de movimientos, período actual, ejercicio en curso y alerta cuando no hay ejercicio activo con CTA a gestionar ejercicios.
@@ -73,7 +82,7 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 <details>
 <summary><strong>Tesorería</strong></summary>
 
-- **Movimientos** — entradas, salidas y traspasos con rubro/subrubro según PIA, destino bancario (Cuenta corriente / Plazo fijo), socio o persona asociada, y combobox con búsqueda para listas grandes. Filtrado de rubros por tipo, subrubros dinámicos por rubro. Filtros por rubro, ejercicio, período y persona (ejercicio en curso seleccionado por defecto). Selector de ejercicio con label "en curso".
+- **Movimientos** — entradas, salidas y traspasos con rubro/subrubro según PIA, destino bancario (Cuenta corriente / Plazo fijo), socio o persona asociada, y combobox con búsqueda para listas grandes. Filtrado de rubros por tipo, subrubros dinámicos por rubro. Filtros por rubro, ejercicio, período y persona (ejercicio en curso seleccionado por defecto). Selector de ejercicio con label "en curso". **Comprobantes adjuntos**: subí facturas, recibos o tickets a cada movimiento; los archivos quedan vinculados al movimiento y se pueden descargar o previsualizar cuando quieras.
 - **Cuota societaria rápida** — atajo Ctrl+1 o botón para pre-cargar movimiento de cuota social en un click.
 - **Gestión por etapas (carga consolidada)** — matriz de carga por rubro con múltiples filas por cuenta (hasta 3), importe en formato pesos argentinos ($ 1.234,56). Layout de dos columnas (lista de períodos + matriz editable) igual que Comunidad. Múltiples cargas por período: cada carga es una carga parcial que se consolida al firmar el período. Selector de carga dentro del período. Firma y cierre a nivel período (bloquea todas las cargas). Reapertura devuelve todas las cargas a borrador. Períodos firmados son read-only.
 - **Periodicidad configurable** — elegí con qué frecuencia gestionás la tesorería: mensual, semanal, trimestral, semestral o anual. Se configura en Inicio → Configuración y se aplica a resúmenes, gráficos, tablas y cargas. Las cargas mensuales existentes se agrupan automáticamente en bloques (trimestral/semestral/anual) sin migrar datos. Etiquetas de períodos con rangos de fechas claros (ej: "2027-W17 (07/06 al 14/06)" para semanas, "Ene - Mar 2026" para trimestres).
@@ -225,7 +234,9 @@ El seeder solo está disponible cuando `import.meta.env.DEV` es true y no viaja 
 | Listo | Cierre automático con próximo ejercicio — al cerrar el activo, crea el siguiente con saldos arrastrados |
 | Listo | Periodicidad configurable — mensual, semanal, trimestral, semestral o anual, con agrupación automática de cargas existentes |
 | Listo | Morosidad inteligente — detecta datos mixtos (vinculados + no vinculados) y calcula deudores solo sobre el tramo identificable |
-| Próximo | Adjuntos y actas — carga guiada de comprobantes con trazabilidad |
+| Listo | Comprobantes adjuntos a movimientos — subí facturas, recibos o tickets a cada movimiento y descargalos cuando quieras |
+| Listo | Página de Configuración — modalidad, periodicidad, categorías y subcategorías con activar/desactivar, mantenimiento de datos |
+| Próximo | Actas de Comisión Directiva — carga guiada de actas de CD con resoluciones vinculadas al ejercicio |
 | Después | Balance de tesorería exportable |
 | Después | Accesos y roles — permisos por tesorería, comisión, asesoría |
 | Futuro | App móvil — consulta de saldos, movimientos, notificaciones |
