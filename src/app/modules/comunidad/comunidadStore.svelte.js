@@ -11,7 +11,7 @@ import { usePersonaSearch } from '$lib/hooks/usePersonaSearch.svelte.js'
 import { validateSocio, validateEdad } from './socios/socioValidator.js'
 import { buildPersonaForm, buildNewPersonaForm } from './personas/personaFormManager.js'
 import { hasLegacyData, fillFormFromPersona, checkExistingPersona } from './personas/personaLinker.js'
-import { normalize, dateToInput, normalizeFields } from '$core/utils/utils.js'
+import { normalize, dateToInput, normalizeFields, todayISO } from '$core/utils/utils.js'
 import { TIPOS_SOCIO, MOTIVOS_BAJA, CATEGORIAS_VINCULO } from './constants.js'
 
 // --- Table IDs ---
@@ -188,7 +188,7 @@ const onFechaNacimientoInput = () => {
 const toggleBaja = () => {
   if (!showBaja) {
     if (!form.fecha_baja) {
-      form.fecha_baja = new Date().toISOString().slice(0, 10)
+      form.fecha_baja = todayISO()
     }
   }
   showBaja = !showBaja

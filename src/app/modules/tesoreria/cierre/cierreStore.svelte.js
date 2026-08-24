@@ -1,6 +1,6 @@
 import { applyUserActions, fetchRecords, resolveTableId } from '$core/grist/grist.js'
 import { createBaseState } from '$core/grist/stores/gristStore.svelte.js'
-import { TABLE_PREFERRED_IDS, fechasEjercicio } from '$core/utils/utils.js'
+import { TABLE_PREFERRED_IDS, fechasEjercicio, todayISO } from '$core/utils/utils.js'
 import { notify } from '$core/ui/notify.svelte'
 import { loadCierreData } from './cierreDataService.js'
 import { buildPiaFieldMap } from './piaFieldMap.js'
@@ -228,7 +228,7 @@ const cerrarEjercicio = async (id) => {
     const ej = ejercicios.find((e) => Number(e.id) === Number(id))
     if (!ej) { bs.setError('No se encontró el ejercicio.'); return }
     const eraEnCurso = ej.en_curso === true
-    const hoy = new Date().toISOString().slice(0, 10)
+    const hoy = todayISO()
 
     // 1. Marcar cerrado
     const actions = [['UpdateRecord', tEj, id, { cerrado: true, fecha_cierre: hoy }]]

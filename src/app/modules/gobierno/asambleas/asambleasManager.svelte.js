@@ -1,5 +1,5 @@
 import { fetchRecords, applyUserActions } from '$core/grist/grist.js'
-import { normalizeFields, dateToInput } from '$core/utils/utils.js'
+import { normalizeFields, dateToInput, todayISO } from '$core/utils/utils.js'
 import { extractRowId } from '$app/modules/comunidad/personas/personasApi.js'
 
 /**
@@ -64,7 +64,7 @@ export function createAsambleasManager({ getTAsambleas, getTResoluciones, getTAu
     selectedAsambleaId = null
     asambleaForm = {
       id: null,
-      fecha: new Date().toISOString().slice(0, 10),
+      fecha: todayISO(),
       tipo_asamblea: tipo,
       acta_numero: '',
       acta_fojas: '',

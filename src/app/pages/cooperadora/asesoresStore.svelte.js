@@ -1,5 +1,5 @@
 import { applyUserActions, fetchRecords, gristReady, isInGrist, resolveTableId, subscribeRecords } from '$core/grist/grist.js'
-import { TABLE_PREFERRED_IDS } from '$core/utils/utils.js'
+import { TABLE_PREFERRED_IDS, todayISO } from '$core/utils/utils.js'
 import { createBaseState } from '$core/grist/stores/gristStore.svelte.js'
 import { notify } from '$core/ui/notify.svelte'
 import { findOrCreatePersona, personaLabel } from '$app/modules/comunidad/personas/personasApi.js'
@@ -88,7 +88,7 @@ const refresh = async () => {
  * @param {number} [deleganteId=null] - ID del Director (si es delegación)
  */
 const openNuevoDraft = (tipoInicial = 'Director', deleganteId = null) => {
-  const hoy = new Date().toISOString().slice(0, 10)
+  const hoy = todayISO()
   // Si es delegación, buscar el Director activo para setear persona_delegante_id
   const directorActivo = asesores.find((a) => a.activo && a.tipo_origen === 'Director')
   draft = {
@@ -110,7 +110,7 @@ const openNuevoDraft = (tipoInicial = 'Director', deleganteId = null) => {
 const openCesarDraft = (asesor) => {
   draft = {
     ...asesor,
-    fecha_cese: new Date().toISOString().slice(0, 10),
+    fecha_cese: todayISO(),
     motivo_cese: 'CeseDireccion',
   }
 }

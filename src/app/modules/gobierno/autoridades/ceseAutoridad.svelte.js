@@ -1,5 +1,5 @@
 import { applyUserActions } from '$core/grist/grist.js'
-import { normalizeFields } from '$core/utils/utils.js'
+import { normalizeFields, todayISO } from '$core/utils/utils.js'
 
 /**
  * Cese / renuncia de una autoridad.
@@ -21,7 +21,7 @@ export function createCeseAutoridad({ getTAutoridades, loadAutoridades, bs }) {
   const openCese = (row) => {
     ceseTarget = {
       ...row,
-      fecha_cese: row.fecha_cese || new Date().toISOString().slice(0, 10),
+      fecha_cese: row.fecha_cese || todayISO(),
       motivo_cese: row.motivo_cese || 'Renuncia',
       acta_origen_ref: row.acta_origen_ref || '',
       fecha_acta_origen: row.fecha_acta_origen || '',

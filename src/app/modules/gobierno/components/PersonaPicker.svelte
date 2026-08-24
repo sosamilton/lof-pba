@@ -14,7 +14,7 @@
   import { useFieldWarnings } from '$lib/hooks/useFieldWarnings.svelte.js'
   import { formatDni, parseDni, parseCuil, normalizeTelefonoForStorage, normalizeEmail, buildCuilPendiente, isCuilPendiente } from '$core/format/format.js'
   import { resolveTableId, applyUserActions } from '$core/grist/grist.js'
-  import { TABLE_PREFERRED_IDS } from '$core/utils/utils.js'
+  import { TABLE_PREFERRED_IDS, todayISO } from '$core/utils/utils.js'
 
   let {
     personaId = null,
@@ -49,7 +49,7 @@
   // Cuando showCreateSocio es true (carga desde asamblea/autoridades),
   // el tipo de persona se fija en Física (las autoridades siempre son físicas)
   // y el socio se crea siempre (no es opcional).
-  const effectiveTipoPersona = showCreateSocio ? 'Fisica' : tipoPersona
+  let effectiveTipoPersona = $derived(showCreateSocio ? 'Fisica' : tipoPersona)
 
   // Form de nueva persona — usa los mismos campos que PersonaFormFields
   function buildNewPerson() {
@@ -187,7 +187,7 @@
           await applyUserActions([['AddRecord', tSocios, null, {
             persona_id: persona.id,
             tipo_socio: 'Activo',
-            fecha_alta: fechaAltaSocio || new Date().toISOString().slice(0, 10),
+            fecha_alta: fechaAltaSocio || todayISO(),
           }]])
         }
       }

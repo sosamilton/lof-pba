@@ -1,5 +1,5 @@
 import { applyUserActions } from '$core/grist/grist.js'
-import { normalizeFields, dateToInput } from '$core/utils/utils.js'
+import { normalizeFields, dateToInput, todayISO } from '$core/utils/utils.js'
 import { extractRowId, personaLabel } from '$app/modules/comunidad/personas/personasApi.js'
 import { esConstitucionCD, calcularVencimiento, grupoAVencer } from './renovacionCD.js'
 
@@ -43,7 +43,7 @@ export function createCargarAutoridades({
     const cargos = getCargos()
     const autoridades = getAutoridades()
     const a = asambleaId ? asambleas.find((x) => Number(x.id) === Number(asambleaId)) || null : null
-    const fecha = dateToInput(a?.fecha) || new Date().toISOString().slice(0, 10)
+    const fecha = dateToInput(a?.fecha) || todayISO()
     const tipo = a?.tipo_asamblea || 'AGE'
     const verificada = Boolean(a?.verificada)
 
@@ -282,7 +282,7 @@ export function createCargarAutoridades({
 
       // Si es una AGE nueva, crearla recién ahora (solo si hay autoridades para guardar)
       if (needsAgeCreation && !asambleaId) {
-        const today = new Date().toISOString().slice(0, 10)
+        const today = todayISO()
         const ageFields = normalizeFields({
           fecha: today,
           tipo_asamblea: 'AGE',
