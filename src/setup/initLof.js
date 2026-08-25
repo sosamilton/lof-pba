@@ -188,6 +188,13 @@ export const initDemoData = async (tables) => {
 }
 
 export const getSchemaDiff = async () => {
+  // En modo PouchDB, no hay tablas internas _grist_Tables ni schema
+  // relacional que comparar — PouchDB es schemaless. Devolvemos diff vacío
+  // para que Inicio no muestre "tablas faltantes" ni ofrezca reparar.
+  if (isPouchMode()) {
+    return { missingTables: [], missingColumns: [], actualTableIds: {}, refColumns: [], formulaMigrations: [] }
+  }
+
   const schema = await loadLofSchema()
   const tablesMeta = await fetchTableData('_grist_Tables')
   const colsMeta = await fetchTableData('_grist_Tables_column')
