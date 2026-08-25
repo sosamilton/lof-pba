@@ -6,7 +6,9 @@
  * en el bundle en build time. El usuario puede override desde la UI
  * (tab Sincronización en Configuración).
  *
- * Si hay URL configurada, el sync arranca automáticamente al iniciar la app.
+ * Por defecto el guardado remoto está DESACTIVADO (solo local).
+ * Se activa explícitamente desde la UI o desde env con VITE_SYNC_ENABLED=true.
+ * Las env vars solo pre-configuran URL/credenciales — no habilitan sync.
  */
 
 import { startSync, stopSync, getSyncStatus, subscribeSyncStatus } from '$core/data/pouchSync.js'
@@ -18,6 +20,11 @@ import { getActiveBackend } from '$core/data/dataRepository.js'
 const ENV_URL = typeof __VITE_COUCHDB_URL__ !== 'undefined' ? __VITE_COUCHDB_URL__ : (import.meta.env?.VITE_COUCHDB_URL || '')
 const ENV_USER = typeof __VITE_COUCHDB_USER__ !== 'undefined' ? __VITE_COUCHDB_USER__ : (import.meta.env?.VITE_COUCHDB_USER || '')
 const ENV_PASSWORD = typeof __VITE_COUCHDB_PASSWORD__ !== 'undefined' ? __VITE_COUCHDB_PASSWORD__ : (import.meta.env?.VITE_COUCHDB_PASSWORD || '')
+// VITE_SYNC_ENABLED=true activa sync por defecto. Sin esta env, sync arranca apagado.
+const ENV_SYNC_ENABLED = (() => {
+  const v = typeof __VITE_SYNC_ENABLED__ !== 'undefined' ? __VITE_SYNC_ENABLED__ : (import.meta.env?.VITE_SYNC_ENABLED || '')
+  return String(v).toLowerCase() === 'true'
+})()
 
 let _syncStatus = 'idle'
 let _syncing = false
@@ -73,7 +80,8 @@ const load = async () => {
 const getConfig = () => {
   const saved = _config || {}
   return {
-    sync_enabled: saved.sync_enabled ?? Boolean(ENV_URL),
+    // Default: desactivado. Se activa desde la UI o con VITE_SYNC_ENABLED=true.
+    sync_enabled: saved.sync_enabled ?? ENV_SYNC_ENABLED,
     sync_url: saved.sync_url || ENV_URL || '',
     sync_user: saved.sync_user || ENV_USER || '',
     sync_password: saved.sync_password || ENV_PASSWORD || '',
