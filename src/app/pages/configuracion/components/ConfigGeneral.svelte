@@ -21,25 +21,52 @@
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
   import { identidad } from '$core/data/identidad'
   import { exportBackup } from '$core/data/backup.js'
-  import { getActiveBackend } from '$core/data/dataRepository'
+  import { getActiveBackend, exportGristDoc, importGristDoc } from '$core/data/dataRepository'
   import DownloadIcon from '@lucide/svelte/icons/download'
   import UploadIcon from '@lucide/svelte/icons/upload'
+  import { notify } from '$core/ui/notify.svelte'
 
   const isPouchMode = getActiveBackend() === 'pouch'
+  const isGristMode = getActiveBackend() === 'grist'
   let exporting = $state(false)
   let exportResult = $state(null)
+  let importing = $state(false)
+  let importResult = $state(null)
+  let gristFileInput = $state(null)
 
   const handleExport = async () => {
     exporting = true
     exportResult = null
     try {
-      const res = await exportBackup()
+      const res = isPouchMode
+        ? await exportBackup()
+        : await exportGristDoc()
       exportResult = res
     } catch (e) {
-      // non-fatal
-      console.error('[backup] export failed:', e)
+      notify.error(e?.message || 'Error al exportar')
     } finally {
       exporting = false
+    }
+  }
+
+  const handleGristImport = async (/** @type {Event} */ e) => {
+    const input = /** @type {HTMLInputElement} */ (e.target)
+    const file = input.files?.[0]
+    if (!file) return
+    importing = true
+    importResult = null
+    const id = notify.loading('Importando documento Grist…')
+    try {
+      const res = await importGristDoc(file)
+      notify.dismiss(id)
+      importResult = res
+      notify.success(`Importación completada: ${res.recordCount} registros en ${res.tableCount} tablas.`)
+    } catch (e) {
+      notify.dismiss(id)
+      notify.error(e?.message || 'Error al importar documento Grist')
+    } finally {
+      importing = false
+      input.value = ''
     }
   }
 
@@ -284,6 +311,52 @@
           <div class="text-xs text-muted-foreground rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
             Backup creado: <strong>{exportResult.filename}</strong>
             ({(exportResult.size / 1024 / 1024).toFixed(2)} MB, {exportResult.docCount} documentos).
+          </div>
+        {/if}
+      </div>
+    {:else if isGristMode}
+      <Separator />
+      <div class="rounded-lg border border-border px-4 py-3 flex flex-col gap-3">
+        <div class="flex items-center gap-2">
+          <DownloadIcon class="size-4 text-primary" />
+          <span class="text-sm font-semibold">Backup y restauración</span>
+        </div>
+        <p class="text-xs text-muted-foreground">
+          Exportá el documento Grist completo (.grist) con todas las tablas, datos y adjuntos.
+          Para restaurar, importá un .grist existente: se reemplazarán los datos actuales del documento.
+        </p>
+        <input
+          bind:this={gristFileInput}
+          type="file"
+          accept=".grist"
+          class="hidden"
+          onchange={handleGristImport}
+        />
+        <div class="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onclick={handleExport} disabled={exporting}>
+            <DownloadIcon data-icon="inline-start" />
+            {exporting ? 'Exportando…' : 'Exportar .grist'}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onclick={() => gristFileInput?.click()}
+            disabled={importing}
+          >
+            <UploadIcon data-icon="inline-start" />
+            {importing ? 'Importando…' : 'Importar .grist'}
+          </Button>
+        </div>
+        {#if exportResult}
+          <div class="text-xs text-muted-foreground rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
+            Documento exportado: <strong>{exportResult.filename}</strong>
+            ({(exportResult.size / 1024 / 1024).toFixed(2)} MB).
+          </div>
+        {/if}
+        {#if importResult}
+          <div class="text-xs text-muted-foreground rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
+            Importación completada: <strong>{importResult.recordCount}</strong> registros
+            en <strong>{importResult.tableCount}</strong> tablas.
           </div>
         {/if}
       </div>
