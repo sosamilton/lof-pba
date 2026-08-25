@@ -145,8 +145,12 @@ const asambleasMgr = createAsambleasManager({
   loadAutoridades,
   bs,
   // Al guardar una AGE con motivo "Reforma estatuto", desbloquear la edición
-  // de los cargos del estatuto en Institucional.
-  onReformaEstatuto: () => cooperadoraStore.desbloquearCargos(),
+  // de los cargos del estatuto Y del PDF del estatuto en Institucional.
+  // El asambleaId se pasa para vincularlo al nuevo registro de estatuto.
+  onReformaEstatuto: (asambleaId) => {
+    cooperadoraStore.desbloquearCargos()
+    return cooperadoraStore.desbloquearEstatuto(asambleaId)
+  },
 })
 
 const personaSearch = createPersonaSearchDispatcher()

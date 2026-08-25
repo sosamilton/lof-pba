@@ -164,14 +164,15 @@ export const TABLE_PREFERRED_IDS = {
   configuracion: ['Configuracion', 'configuracion'],
   cierres_mensuales: ['Cierres_mensuales', 'cierres_mensuales'],
   planillas_generadas: ['Planillas_generadas', 'planillas_generadas'],
-  hechos_relevantes: ['Hechos_relevantes', 'hechos_relevantes']
+  hechos_relevantes: ['Hechos_relevantes', 'hechos_relevantes'],
+  estatutos: ['Estatutos', 'estatutos']
 }
 
 export const MODULES = {
   carga_consolidada: {
     label: 'Carga consolidada',
     description: 'Cargá los rubros PIA por período (mensual o anual). Ideal para cooperadoras que no registran cada movimiento individual.',
-    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asesores', 'asambleas', 'resoluciones', 'rubros_pia', 'planillas_generadas', 'configuracion', 'movimientos', 'cargas', 'cuentas', 'cierres_mensuales'],
+    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asesores', 'asambleas', 'resoluciones', 'rubros_pia', 'planillas_generadas', 'configuracion', 'movimientos', 'cargas', 'cuentas', 'cierres_mensuales', 'estatutos'],
     menuItems: [
       { route: 'inicio', label: 'Inicio' },
       { route: 'comunidad', label: 'Comunidad' },
@@ -184,7 +185,7 @@ export const MODULES = {
   gestion_integral: {
     label: 'Gestión integral',
     description: 'Registrá gastos, movimientos, socios, asambleas y memorias. Generá reportes PIA y nómina automáticamente.',
-    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asesores', 'asambleas', 'resoluciones', 'cuentas', 'rubros_pia', 'subrubros', 'movimientos', 'cargas', 'configuracion', 'planillas_generadas', 'cierres_mensuales'],
+    tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asesores', 'asambleas', 'resoluciones', 'cuentas', 'rubros_pia', 'subrubros', 'movimientos', 'cargas', 'configuracion', 'planillas_generadas', 'cierres_mensuales', 'estatutos'],
     menuItems: [
       { route: 'inicio', label: 'Inicio' },
       { route: 'cooperadora', label: 'Institucional' },

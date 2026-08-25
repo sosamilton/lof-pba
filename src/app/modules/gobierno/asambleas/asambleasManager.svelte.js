@@ -183,10 +183,11 @@ export function createAsambleasManager({ getTAsambleas, getTResoluciones, getTAu
 
       await loadAsambleas()
       // Si es una AGE con motivo "Reforma estatuto", desbloquear la edición
-      // de los cargos del estatuto en Institucional (baja el flag
-      // cargos_validados de la configuración).
+      // de los cargos del estatuto Y del PDF del estatuto en Institucional.
+      // Se pasa el asambleaId para vincularlo al nuevo registro de estatuto
+      // que se cree al reemplazar el PDF.
       if (f.tipo_asamblea === 'AGE' && f.motivo_convocatoria === 'Reforma estatuto' && onReformaEstatuto) {
-        try { await onReformaEstatuto() } catch (e) { console.warn('[asamblea] No se pudo desbloquear cargos:', e?.message || e) }
+        try { await onReformaEstatuto(asambleaId) } catch (e) { console.warn('[asamblea] No se pudo desbloquear estatuto:', e?.message || e) }
       }
       if (!f.id && !opts.keepForm) asambleaForm = null
       return asambleaId
