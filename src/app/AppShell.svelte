@@ -19,7 +19,10 @@
   import CommandIcon from '@lucide/svelte/icons/command'
   import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
   import InfoIcon from '@lucide/svelte/icons/info'
+  import ArrowUpCircleIcon from '@lucide/svelte/icons/arrow-up-circle'
   import { identidad } from '$core/data/identidad'
+  import { updateCheck } from '$core/utils/updateCheck.svelte'
+  import { notify } from '$core/ui/notify.svelte'
 
   let { title = identidad.nombre, children } = $props()
 
@@ -164,6 +167,34 @@
     } catch {
       // keep defaults
     }
+
+    // Verificar si hay una versión más reciente publicada (best-effort).
+    // No molesta si no hay internet o el fetch falla.
+    updateCheck.init()
+  })
+
+  // Mostrar toast cuando se detecta una actualización disponible.
+  // Se dispara una sola vez cuando updateAvailable pasa a true.
+  let _notifiedUpdate = false
+  $effect(() => {
+    if (updateCheck.updateAvailable && !_notifiedUpdate) {
+      _notifiedUpdate = true
+      notify.info(
+        `Versión ${updateCheck.latestVersion} disponible (tenés v${updateCheck.currentVersion})`,
+        {
+          duration: 8000,
+          description: 'Descargala desde la página de releases.',
+          action: {
+            label: 'Descargar',
+            onClick: () => {
+              if (updateCheck.releaseUrl) {
+                window.open(updateCheck.releaseUrl, '_blank')
+              }
+            },
+          },
+        },
+      )
+    }
   })
 
   // Reactivo: cuando configStore.config cambia (ej. desde Configuración),
@@ -246,6 +277,18 @@
         <HeartHandshakeIcon class="size-6 shrink-0 text-primary" />
         <div class="text-[11px] text-muted-foreground/80 leading-tight group-data-[collapsible=icon]:hidden">
           {identidad.nombre} v{versionActual}{#if shaActual && shaActual !== 'dev'} · {shaActual}{/if}
+          {#if updateCheck.updateAvailable}
+            <a
+              href={updateCheck.releaseUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-0.5 ml-1 text-primary hover:underline"
+              title="Hay una versión más reciente (v{updateCheck.latestVersion})"
+            >
+              <ArrowUpCircleIcon class="size-3" />
+              v{updateCheck.latestVersion}
+            </a>
+          {/if}
         </div>
       </div>
     </Sidebar.Footer>
@@ -264,7 +307,20 @@
       >
         <CommandIcon class="size-4" />
       </button>
-      <span class="text-xs text-muted-foreground">v{versionActual}</span>
+      <span class="text-xs text-muted-foreground">
+        v{versionActual}
+        {#if updateCheck.updateAvailable}
+          <a
+            href={updateCheck.releaseUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-0.5 ml-1 text-primary hover:underline"
+            title="Versión {updateCheck.latestVersion} disponible"
+          >
+            <ArrowUpCircleIcon class="size-3" />
+          </a>
+        {/if}
+      </span>
     </header>
     <main
       bind:this={mainEl}
