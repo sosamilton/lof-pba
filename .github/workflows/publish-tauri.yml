@@ -160,5 +160,55 @@ jobs:
             > En Windows: click en "Más información" → "Ejecutar de todas formas".
           releaseDraft: false
           prerelease: false
+          updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
           # tauriScript: npx tauri  # descomentar si hace falta forzar el resolvedor
+
+  # --- latest.json para verificación de versión desde el SPA -----------------
+  # Genera un manifest simple con la versión + URLs de descarga y lo sube al
+  # release. El SPA (versión web/PWA/Grist) lo fetcha desde:
+  #   https://github.com/sosamilton/spa-cooperadora/releases/latest/download/latest.json
+  # GitHub redirige automáticamente al asset del release más reciente.
+  # No depende de Tauri signing — siempre se genera, haya o no clave privada.
+  publish-latest-json:
+    needs: publish-tauri
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Compute version
+        id: ver
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=dev-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+            echo "tag=dev-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate latest.json
+        shell: bash
+        run: |
+          cat > latest.json <<EOF
+          {
+            "version": "${{ steps.ver.outputs.version }}",
+            "tag": "${{ steps.ver.outputs.tag }}",
+            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "release_url": "https://github.com/sosamilton/spa-cooperadora/releases/tag/${{ steps.ver.outputs.tag }}",
+            "download_url": "https://github.com/sosamilton/spa-cooperadora/releases/latest",
+            "notes": "LOF Desktop v${{ steps.ver.outputs.version }}"
+          }
+          EOF
+          cat latest.json
+
+      - name: Upload latest.json to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          files: latest.json
+          fail_on_unmatched_files: true

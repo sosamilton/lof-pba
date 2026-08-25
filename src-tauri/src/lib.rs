@@ -2,6 +2,7 @@
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|_app| {
             // En Tauri, la app se sirve desde el webview integrado.
             // PouchDB usa IndexedDB del webview, que funciona en Tauri 2.
