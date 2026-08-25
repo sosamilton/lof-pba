@@ -7,6 +7,7 @@
   import { trackPageview } from '$core/analytics/plausible.js'
   import { isInstalled } from '$app/pages/cooperadora/cooperadoraApi.js'
   import { identidad } from '$core/data/identidad'
+  import { syncStore as sync } from '$app/pages/configuracion/syncStore.svelte.js'
 
   const activeBackend = getActiveBackend()
   const isPouchMode = activeBackend === 'pouch'
@@ -66,6 +67,16 @@
         const opts = await getWidgetOptions()
         if (opts?.lastRoute && opts.lastRoute !== router.current && opts.lastRoute !== 'landing') {
           navigate(opts.lastRoute)
+        }
+        // Auto-start sync si está configurado y habilitado (solo PouchDB)
+        if (isPouchMode) {
+          try {
+            await sync.load()
+            const cfg = sync.config
+            if (cfg.sync_enabled && cfg.sync_auto) {
+              sync.start()
+            }
+          } catch { /* sync es opcional */ }
         }
       }
     }

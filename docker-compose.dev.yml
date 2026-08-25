@@ -9,13 +9,15 @@
 #   - Grist:         http://localhost:${GRIST_PORT:-8489}
 #   - MinIO console: http://localhost:${MINIO_CONSOLE_PORT:-9101}
 #   - Vite:          http://localhost:${DEV_PORT:-5173}  (HMR vía bind mount)
+#   - CouchDB:       http://localhost:${COUCHDB_PORT:-5984}  (sync target)
+#   - CouchDB Fauxton: http://localhost:${COUCHDB_PORT:-5984}/_utils/
 #
 # Los cambios en src/ se reflejan en caliente (HMR) gracias al volumen.
 # node_modules se mantiene en un volumen anónimo para no pisar el del host.
 # Para conectar la app: en Grist, Add Widget → Custom → URL http://localhost:5173
 # con Access level "Full document access".
 #
-# Datos de dev en ./data/grist-dev/ y ./data/minio-dev/ (separados de prod).
+# Datos de dev en ./data/grist-dev/, ./data/minio-dev/ y ./data/couchdb-dev/.
 
 include:
   - docker/grist/docker-compose.grist.yml
@@ -70,6 +72,28 @@ services:
       # Proxy target para /grist-api/ (ver vite.config.js). Dentro de Docker,
       # Grist es accesible por nombre de servicio + puerto interno (no localhost).
       - GRIST_PROXY_TARGET=http://grist:8484
+      # CouchDB sync target. Dentro de Docker, CouchDB es accesible por nombre
+      # de servicio. El browser (host) accede via COUCHDB_PORT mapeado.
+      # VITE_COUCHDB_URL es lo que la app usa para sync desde el navegador.
+      - VITE_COUCHDB_URL=http://localhost:${COUCHDB_PORT:-5984}/lof
+      - VITE_COUCHDB_USER=${COUCHDB_USER:-admin}
+      - VITE_COUCHDB_PASSWORD=${COUCHDB_PASSWORD:-admin}
+    restart: unless-stopped
+
+  # --- CouchDB (sync target para PouchDB) -----------------------------------
+  # PouchDB se sincroniza bidireccionalmente con esta instancia.
+  # En dev, admin/admin por defecto. En prod, usar COUCHDB_USER/PASSWORD fuertes.
+  couchdb:
+    image: couchdb:3
+    container_name: lof-dev-couchdb
+    ports:
+      - "${COUCHDB_PORT:-5984}:5984"
+    volumes:
+      - ${COUCHDB_DATA_DIR:-./data/couchdb-dev}:/opt/couchdb/data
+    environment:
+      - COUCHDB_USER=${COUCHDB_USER:-admin}
+      - COUCHDB_PASSWORD=${COUCHDB_PASSWORD:-admin}
+      - COUCHDB_SINGLE_NODE=true
     restart: unless-stopped
 
 volumes:
