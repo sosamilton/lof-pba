@@ -3,10 +3,13 @@
   import { Toaster } from '$lib/components/ui/sonner'
   import AppShell from '$app/AppShell.svelte'
   import { initRouter, router, navigate } from '$core/ui/router.svelte'
-  import { detectGrist, getGristStatus, getWidgetOptions, isInGrist, subscribeAccess, listTables } from '$core/data/dataRepository'
+  import { detectGrist, getGristStatus, getWidgetOptions, isInGrist, subscribeAccess, listTables, getActiveBackend } from '$core/data/dataRepository'
   import { trackPageview } from '$core/analytics/plausible.js'
   import { isInstalled } from '$app/pages/cooperadora/cooperadoraApi.js'
   import { identidad } from '$core/data/identidad'
+
+  const activeBackend = getActiveBackend()
+  const isPouchMode = activeBackend === 'pouch'
 
   import Inicio from '$app/pages/inicio/Inicio.svelte'
   import Landing from '$landing/Landing.svelte'
@@ -27,14 +30,22 @@
 
   const checkInstalled = async () => {
     try {
-      const tables = await listTables()
-      const hasConfig = tables.some((t) => String(t).toLowerCase() === 'configuracion')
-      if (!hasConfig) {
-        needsSetup = true
-        return
+      if (isPouchMode) {
+        // En modo PouchDB, listTables devuelve keys del schema (siempre existen).
+        // Verificamos directamente si hay config instalada.
+        const installed = await isInstalled()
+        needsSetup = !installed
+      } else {
+        // En modo Grist, verificamos que la tabla configuracion exista.
+        const tables = await listTables()
+        const hasConfig = tables.some((t) => String(t).toLowerCase() === 'configuracion')
+        if (!hasConfig) {
+          needsSetup = true
+          return
+        }
+        const installed = await isInstalled()
+        needsSetup = !installed
       }
-      const installed = await isInstalled()
-      needsSetup = !installed
     } catch {
       needsSetup = true
     }
@@ -142,7 +153,20 @@
     {/snippet}
   </AppShell>
 {:else if gristStatus === 'no-access'}
-  <NeedsAccess />
+  {#if isPouchMode}
+    <!-- En modo PouchDB, no-access significa que IndexedDB no está disponible -->
+    <main class="max-w-[620px] mx-auto px-4 py-8">
+      <div class="rounded-2xl border border-border bg-muted/5 p-5">
+        <h1 class="text-xl font-bold leading-tight mb-2">No se pudo acceder al almacenamiento local</h1>
+        <p class="text-sm text-muted-foreground leading-relaxed">
+          Tu navegador no soporta IndexedDB o está bloqueado. Probá con otro navegador
+          o revisá la configuración de privacidad.
+        </p>
+      </div>
+    </main>
+  {:else}
+    <NeedsAccess />
+  {/if}
 {:else if router.current === 'instalacion'}
   <InstallGuide />
 {:else if router.current === 'sobre-lof'}

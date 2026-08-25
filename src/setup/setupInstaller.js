@@ -1,9 +1,11 @@
-import { gristReady, resolveTableId, applyUserActions, invalidateTablesCache, fetchRecords, addRecords } from '$core/data/dataRepository'
+import { gristReady, resolveTableId, applyUserActions, invalidateTablesCache, fetchRecords, addRecords, getActiveBackend } from '$core/data/dataRepository'
 import { ensureSchema, initDemoData } from './initLof'
 import { TABLE_PREFERRED_IDS, MODULES, fechasEjercicio, todayISO } from '$core/utils/utils'
 import { saveConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
 import { normalizeEmail, normalizeTelefonoForStorage, isValidCbuChecksum } from '$core/format/format'
 import { currentYear } from './setupConstants'
+
+const isPouchMode = () => getActiveBackend() === 'pouch'
 
 /**
  * Lógica de instalación: crea tablas, registros iniciales y config.
@@ -15,6 +17,7 @@ export async function doInstall(s) {
   s.error = ''
   try {
     // Invalidar cache de tablas para que ensureSchema vea el estado real de Grist.
+    // En modo PouchDB es un no-op.
     invalidateTablesCache()
 
     const schemaResult = await ensureSchema()
@@ -218,8 +221,10 @@ export async function doInstall(s) {
       }
     }
 
-    // Limpieza post-instalación: renombrar página del widget
-    await cleanupDefaultTable()
+    // Limpieza post-instalación: renombrar página del widget (solo Grist)
+    if (!isPouchMode()) {
+      await cleanupDefaultTable()
+    }
 
     invalidateTablesCache()
     await new Promise((resolve) => setTimeout(resolve, 1000))

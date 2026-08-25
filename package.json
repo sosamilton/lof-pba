@@ -10,12 +10,16 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
   },
   "devDependencies": {
     "@internationalized/date": "^3.12.2",
     "@lucide/svelte": "^1.28.0",
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@tauri-apps/cli": "^2.11.4",
     "fake-indexeddb": "^6.2.5",
     "mode-watcher": "^1.1.0",
     "svelte": "^5.56.4",
