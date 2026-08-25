@@ -106,7 +106,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
             librsvg2-dev \
             patchelf \
             libssl-dev \
@@ -162,7 +161,8 @@ jobs:
           prerelease: false
           updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
-          # tauriScript: npx tauri  # descomentar si hace falta forzar el resolvedor
+          # Forzar npm en vez de bun (bun no está en Windows y crashea en macOS)
+          tauriScript: npx tauri
 
   # --- latest.json para verificación de versión desde el SPA -----------------
   # Genera un manifest simple con la versión + URLs de descarga y lo sube al
