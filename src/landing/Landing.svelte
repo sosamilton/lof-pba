@@ -56,6 +56,12 @@
   import GristIcon from '$lib/components/GristIcon.svelte'
   import ReleasesDialog from './ReleasesDialog.svelte'
   import HistoryIcon from '@lucide/svelte/icons/history'
+  import MonitorIcon from '@lucide/svelte/icons/monitor'
+  import GlobeIcon from '@lucide/svelte/icons/globe'
+  import HardDriveIcon from '@lucide/svelte/icons/hard-drive'
+  import LaptopIcon from '@lucide/svelte/icons/laptop'
+  import SaveIcon from '@lucide/svelte/icons/save'
+  import UploadIcon from '@lucide/svelte/icons/upload'
   import { identidad } from '$core/data/identidad'
   import data from './landing.json'
 
@@ -164,27 +170,215 @@
             </Button>
           {:else}
             <Button variant="secondary" size="lg" onclick={() => navigate('inicio')}>
-              <DownloadIcon data-icon="inline-start" />
-              Empezar a usar LOF
+              <GlobeIcon data-icon="inline-start" />
+              Probar en el navegador
             </Button>
           {/if}
-          <Button variant="outline" size="lg" href={enlaces.repo} target="_blank" rel="noopener noreferrer">
+          <Button variant="outline" size="lg" onclick={() => navigate('instalacion')}>
+            <DownloadIcon data-icon="inline-start" />
+            Cómo instalarlo
+          </Button>
+          <Button variant="ghost" size="lg" href={enlaces.repo} target="_blank" rel="noopener noreferrer">
             <CodeXmlIcon data-icon="inline-start" />
             Ver repo / colaborar
           </Button>
         </div>
         <p class="text-sm text-muted-foreground">
-          Software libre bajo {identidad.licencia}. Funciona con Grist, una plataforma de datos libre y autoinstalable.
+          Software libre bajo {identidad.licencia}. Funciona en el navegador, en Grist o como app de escritorio.
+          Tus datos siempre son tuyos.
         </p>
         <div class="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 max-w-2xl">
           <ShieldIcon class="size-5 shrink-0 text-primary mt-0.5" />
           <p class="text-sm text-muted-foreground">
-            <strong class="text-foreground">Tus datos están en tu documento de Grist.</strong>
-            LOF es la herramienta que los organiza y presenta. No necesitás crear una cuenta en LOF
-            ni subir los datos de tu cooperadora a otro sistema.
+            <strong class="text-foreground">Tus datos son tuyos y se guardan en tu dispositivo.</strong>
+            No necesitás crear una cuenta ni subir nada a internet. Podés respaldarlos cuando quieras
+            y llevarlos a otra computadora. Si ya usás Grist, también podés conectarlo.
           </p>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- FORMAS DE USO: múltiples formas de usar LOF, sin jerga técnica -->
+  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="formas-heading">
+    <div class="flex flex-col gap-2 mb-6">
+      <h2 id="formas-heading" class="text-2xl font-bold tracking-tight">Tres formas de usar LOF</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        Elegí la que mejor se adapte a tu escuela. Podés empezar con una y cambiar después —
+        tus datos siempre los podés llevar con vos.
+      </p>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-3">
+      <!-- Prueba rápida -->
+      <Card.Root class="border-2 border-primary/30 bg-primary/5">
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            <div class="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <GlobeIcon class="size-5" />
+            </div>
+            <div class="flex flex-col">
+              <Card.Title class="text-base">Probar en el navegador</Card.Title>
+              <Badge variant="default" class="w-fit mt-1">Sin instalar nada</Badge>
+            </div>
+          </div>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground mb-3">
+            Entrá a la página web y empezá a usar LOF directamente. Los datos se guardan en tu navegador,
+            como cuando guardás una contraseña. No instalás nada.
+          </p>
+          <ul class="flex flex-col gap-1.5 text-xs text-muted-foreground">
+            <li class="flex items-start gap-2">
+              <CheckCircleIcon class="mt-0.5 size-3.5 shrink-0 text-primary" />
+              Ideal para probar y para uso individual
+            </li>
+            <li class="flex items-start gap-2">
+              <CheckCircleIcon class="mt-0.5 size-3.5 shrink-0 text-primary" />
+              Funciona sin internet después de la primera carga
+            </li>
+            <li class="flex items-start gap-2">
+              <CheckCircleIcon class="mt-0.5 size-3.5 shrink-0 text-primary" />
+              Podés respaldar tus datos a un archivo cuando quieras
+            </li>
+          </ul>
+        </Card.Content>
+      </Card.Root>
+
+      <!-- Con respaldo / servidor local -->
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            <div class="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <HardDriveIcon class="size-5" />
+            </div>
+            <div class="flex flex-col">
+              <Card.Title class="text-base">Con respaldo en tu compu</Card.Title>
+              <Badge variant="secondary" class="w-fit mt-1">Recomendado</Badge>
+            </div>
+          </div>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground mb-3">
+            Si alguien en la escuela tiene algo de conocimientos técnicos, podés instalar un respaldo
+            local que sincroniza automáticamente. Así varios dispositivos comparten los mismos datos.
+          </p>
+          <ul class="flex flex-col gap-1.5 text-xs text-muted-foreground">
+            <li class="flex items-start gap-2">
+              <CheckCircleIcon class="mt-0.5 size-3.5 shrink-0 text-primary" />
+              Varios dispositivos ven los mismos datos en tiempo real
+            </li>
+            <li class="flex items-start gap-2">
+              <CheckCircleIcon class="mt-0.5 size-3.5 shrink-0 text-primary" />
+              Respaldo automático: si una compu se rompe, los datos siguen
+            </li>
+            <li class="flex items-start gap-2">
+              <CheckCircleIcon class="mt-0.5 size-3.5 shrink-0 text-primary" />
+              Funciona 100% sin internet dentro de la escuela
+            </li>
+          </ul>
+        </Card.Content>
+      </Card.Root>
+
+      <!-- Grist -->
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            <div class="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <GristIcon class="size-5" />
+            </div>
+            <div class="flex flex-col">
+              <Card.Title class="text-base">Dentro de Grist</Card.Title>
+              <Badge variant="outline" class="w-fit mt-1">Para usuarios de Grist</Badge>
+            </div>
+          </div>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground mb-3">
+            Si ya usás Grist (una planilla inteligente gratuita), podés agregar LOF como aplicación
+            dentro de tu documento. Los datos viven en Grist y LOF les da pantallas amigables.
+          </p>
+          <ul class="flex flex-col gap-1.5 text-xs text-muted-foreground">
+            <li class="flex items-start gap-2">
+              <CheckCircleIcon class="mt-0.5 size-3.5 shrink-0 text-primary" />
+              Aprovechás todo el poder de Grist para consultar datos
+            </li>
+            <li class="flex items-start gap-2">
+              <CheckCircleIcon class="mt-0.5 size-3.5 shrink-0 text-primary" />
+              Versionado y backups nativos de Grist
+            </li>
+            <li class="flex items-start gap-2">
+              <CheckCircleIcon class="mt-0.5 size-3.5 shrink-0 text-primary" />
+              Funciona en la nube o en tu propio servidor
+            </li>
+          </ul>
+        </Card.Content>
+      </Card.Root>
+    </div>
+
+    <!-- App de escritorio (mención breve) -->
+    <div class="mt-4 flex items-start gap-3 rounded-lg border border-border bg-card/50 px-4 py-3">
+      <LaptopIcon class="size-5 shrink-0 text-muted-foreground mt-0.5" />
+      <p class="text-sm text-muted-foreground">
+        <strong class="text-foreground">¿Preferís una app de escritorio?</strong>
+        También hay versiones nativas para Windows, Linux y macOS que se descargan e instalan
+        como cualquier programa. Los datos se guardan en tu compu, sin navegador.
+        Disponibles en la <a href={enlaces.repo + '/releases'} target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">página de releases</a>.
+      </p>
+    </div>
+  </section>
+
+  <!-- CÓMO SE GUARDAN TUS DATOS -->
+  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="datos-heading">
+    <div class="flex flex-col gap-2 mb-6">
+      <h2 id="datos-heading" class="text-2xl font-bold tracking-tight">Cómo se guardan tus datos</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        Tu información es tuya. Acá te explicamos en simple dónde queda guardada y cómo llevarla con vos.
+      </p>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            <div class="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <SaveIcon class="size-5" />
+            </div>
+            <Card.Title class="text-base">Respaldo a un archivo</Card.Title>
+          </div>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground">
+            Desde la configuración de la app podés exportar todos los datos a un archivo comprimido (.lof).
+            Es como hacer una copia de seguridad. Guardalo en un pendrive o subilo a la nube.
+            Si tu compu se rompe o querés migrar a otra, importás el archivo y seguís trabajando como si nada.
+          </p>
+        </Card.Content>
+      </Card.Root>
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            <div class="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <UploadIcon class="size-5" />
+            </div>
+            <Card.Title class="text-base">Migrar a otra computadora</Card.Title>
+          </div>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground">
+            Cuando cambia la comisión directiva o reemplazás la compu, no perdés nada.
+            Exportás el respaldo en la compu vieja, lo pasás a la nueva (por pendrive, mail o como quieras)
+            y lo importás desde la configuración. Todos los socios, movimientos y asambleas aparecen igual que antes.
+          </p>
+        </Card.Content>
+      </Card.Root>
+    </div>
+    <div class="mt-4 flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 max-w-2xl">
+      <ShieldIcon class="size-5 shrink-0 text-primary mt-0.5" />
+      <p class="text-sm text-muted-foreground">
+        <strong class="text-foreground">Sin cuentas, sin nube, sin telemetría.</strong>
+        LOF no te pide que crees una cuenta ni que subas tus datos a ningún servidor.
+        Todo queda en tu dispositivo o en tu servidor, bajo tu control. Si mañana dejás de usar LOF,
+        los datos siguen siendo tuyos y los podés exportar cuando quieras.
+      </p>
     </div>
   </section>
 
@@ -360,6 +554,7 @@
           </div>
           <p class="text-sm text-muted-foreground max-w-prose">
             {identidad.lema}. Software libre bajo {identidad.licencia}.
+            Funciona en el navegador, con respaldo local o dentro de Grist.
           </p>
         </div>
         <div class="flex flex-wrap gap-3">

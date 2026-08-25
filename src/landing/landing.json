@@ -223,8 +223,8 @@
     ]
   },
   "guia_instalacion": {
-    "titulo": "Empezar a usar LOF",
-    "subtitulo": "LOF funciona dentro de Grist. No necesitás instalar nada en tu computadora ni saber programar.",
+    "titulo": "Cómo empezar a usar LOF",
+    "subtitulo": "Elegí la forma que mejor se adapte a tu escuela. Podés probar en el navegador, instalar un respaldo local, usarlo dentro de Grist o descargar la app de escritorio.",
     "pasos": [
       {
         "titulo": "Crear un documento nuevo",
