@@ -1,5 +1,5 @@
 import { dateToInput, buildMapById, normalize, todayISO } from '$core/utils/utils.js'
-import { extractAttachmentIds, toAttachmentCellValue } from '$core/grist/grist'
+import { extractAttachmentIds, toAttachmentCellValue } from '$core/data/dataRepository'
 
 /**
  * Lógica CRUD individual de movimientos: seleccionar, nuevo, validar, guardar,

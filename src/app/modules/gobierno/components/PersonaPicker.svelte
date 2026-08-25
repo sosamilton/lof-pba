@@ -13,7 +13,7 @@
   import { personaLabel, findOrCreatePersona, localidadesItems } from '$app/modules/comunidad/personas/personasApi.js'
   import { useFieldWarnings } from '$lib/hooks/useFieldWarnings.svelte.js'
   import { formatDni, parseDni, parseCuil, normalizeTelefonoForStorage, normalizeEmail, buildCuilPendiente, isCuilPendiente } from '$core/format/format.js'
-  import { resolveTableId, applyUserActions } from '$core/grist/grist.js'
+  import { resolveTableId, applyUserActions } from '$core/data/dataRepository'
   import { TABLE_PREFERRED_IDS, todayISO } from '$core/utils/utils.js'
 
   let {

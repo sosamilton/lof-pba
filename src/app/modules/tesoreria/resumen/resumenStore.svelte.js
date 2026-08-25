@@ -1,5 +1,5 @@
-import { createBaseState, resolveTableIds, fetchRelated } from '$core/grist/stores/gristStore.svelte.js'
-import { applyUserActions, isInGrist } from '$core/grist/grist.js'
+import { createBaseState, resolveTableIds, fetchRelated } from '$core/data/dataStore.svelte'
+import { applyUserActions, isInGrist } from '$core/data/dataRepository'
 import { normalizeFields } from '$core/utils/utils.js'
 import { loadConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
 import {

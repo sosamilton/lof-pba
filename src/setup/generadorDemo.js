@@ -5,7 +5,7 @@
 // En prod este módulo se carga via import() dinámico dentro de un guard DEV,
 // así que Vite lo separa en un chunk que no se carga en producción.
 
-import { addRecords, applyUserActions, fetchRecords, resolveTableId } from '$core/grist/grist'
+import { addRecords, applyUserActions, fetchRecords, resolveTableId } from '$core/data/dataRepository'
 import { TABLE_PREFERRED_IDS, addMonths } from '$core/utils/utils'
 import { extractRowId } from '$app/modules/comunidad/personas/personasApi.js'
 import localidades from '$core/data/localidades-buenos-aires.json'

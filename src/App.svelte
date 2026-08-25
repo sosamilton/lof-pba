@@ -3,7 +3,7 @@
   import { Toaster } from '$lib/components/ui/sonner'
   import AppShell from '$app/AppShell.svelte'
   import { initRouter, router, navigate } from '$core/ui/router.svelte'
-  import { detectGrist, getGristStatus, getWidgetOptions, isInGrist, subscribeAccess, listTables } from '$core/grist/grist'
+  import { detectGrist, getGristStatus, getWidgetOptions, isInGrist, subscribeAccess, listTables } from '$core/data/dataRepository'
   import { trackPageview } from '$core/analytics/plausible.js'
   import { isInstalled } from '$app/pages/cooperadora/cooperadoraApi.js'
   import { identidad } from '$core/data/identidad'

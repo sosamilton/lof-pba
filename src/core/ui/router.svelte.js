@@ -1,4 +1,4 @@
-import { setWidgetOption } from '$core/grist/grist.js'
+import { setWidgetOption } from '$core/data/dataRepository'
 
 const normalize = (h) => {
   const v = String(h || '').replace(/^#/, '').trim()

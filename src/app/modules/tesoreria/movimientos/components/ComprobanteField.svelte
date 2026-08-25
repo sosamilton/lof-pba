@@ -5,7 +5,7 @@
     uploadAttachments,
     getAttachmentMetadata,
     getAttachmentUrl,
-  } from '$core/grist/grist'
+  } from '$core/data/dataRepository'
   import UploadIcon from '@lucide/svelte/icons/upload'
   import PaperclipIcon from '@lucide/svelte/icons/paperclip'
   import TrashIcon from '@lucide/svelte/icons/trash-2'

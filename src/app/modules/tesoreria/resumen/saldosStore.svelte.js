@@ -1,5 +1,5 @@
-import { createBaseState, resolveTableIds, fetchRelated } from '$core/grist/stores/gristStore.svelte.js'
-import { isInGrist } from '$core/grist/grist.js'
+import { createBaseState, resolveTableIds, fetchRelated } from '$core/data/dataStore.svelte'
+import { isInGrist } from '$core/data/dataRepository'
 import {
   calcularSaldosPorCuenta,
   calcularSaldoTotal,

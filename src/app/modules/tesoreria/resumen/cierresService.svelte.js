@@ -1,5 +1,5 @@
-import { resolveTableIds, fetchRelated } from '$core/grist/stores/gristStore.svelte.js'
-import { applyUserActions } from '$core/grist/grist.js'
+import { resolveTableIds, fetchRelated } from '$core/data/dataStore.svelte'
+import { applyUserActions } from '$core/data/dataRepository'
 import { normalizeFields } from '$core/utils/utils.js'
 
 /**

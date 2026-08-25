@@ -1,4 +1,4 @@
-import { gristReady, listTables, resolveTableId, fetchRecords } from '$core/grist/grist'
+import { gristReady, listTables, resolveTableId, fetchRecords } from '$core/data/dataRepository'
 import { TABLE_PREFERRED_IDS, MODULES, MESES } from '$core/utils/utils'
 import { ORGANISMOS, ORGANISMO_LABELS } from '$app/modules/gobierno/constants.js'
 import { loadConfig, getTablesForModules } from '$app/pages/cooperadora/cooperadoraApi.js'

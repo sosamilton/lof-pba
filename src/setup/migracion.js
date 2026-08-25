@@ -1,4 +1,4 @@
-import { addRecords, applyUserActions, fetchRecords, resolveTableId } from '$core/grist/grist'
+import { addRecords, applyUserActions, fetchRecords, resolveTableId } from '$core/data/dataRepository'
 import { parseDni as normalizeDni } from '$core/format/format'
 import { TABLE_PREFERRED_IDS, normalize } from '$core/utils/utils'
 import { loadSeedCsv } from '$setup/initLof'

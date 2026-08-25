@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte'
-  import { retryAccess, subscribeAccess, getGristStatus } from '$core/grist/grist'
+  import { retryAccess, subscribeAccess, getGristStatus } from '$core/data/dataRepository'
   import { Button } from '$lib/components/ui/button'
   import { Alert, AlertDescription } from '$lib/components/ui/alert'
   import ShieldCheckIcon from '@lucide/svelte/icons/shield-check'

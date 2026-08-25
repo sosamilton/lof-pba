@@ -4,7 +4,7 @@ import {
   gristReady,
   resolveTableId,
   subscribeRecords,
-} from '$core/grist/grist'
+} from '$core/data/dataRepository'
 import { TABLE_PREFERRED_IDS, normalize, normalizeFields } from '$core/utils/utils'
 import { notify, withNotify } from '$core/ui/notify.svelte'
 

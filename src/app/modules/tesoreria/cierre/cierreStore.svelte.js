@@ -1,5 +1,5 @@
-import { applyUserActions, fetchRecords, resolveTableId } from '$core/grist/grist.js'
-import { createBaseState } from '$core/grist/stores/gristStore.svelte.js'
+import { applyUserActions, fetchRecords, resolveTableId } from '$core/data/dataRepository'
+import { createBaseState } from '$core/data/dataStore.svelte'
 import { TABLE_PREFERRED_IDS, fechasEjercicio, todayISO } from '$core/utils/utils.js'
 import { notify } from '$core/ui/notify.svelte'
 import { loadCierreData } from './cierreDataService.js'

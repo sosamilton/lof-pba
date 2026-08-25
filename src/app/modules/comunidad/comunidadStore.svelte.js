@@ -1,5 +1,5 @@
-import { createGristStore, extendStore } from '$core/grist/stores/gristStore.svelte.js'
-import { fetchRecords, resolveTableId, subscribeRecords, applyUserActions } from '$core/grist/grist.js'
+import { createGristStore, extendStore } from '$core/data/dataStore.svelte'
+import { fetchRecords, resolveTableId, subscribeRecords, applyUserActions } from '$core/data/dataRepository'
 import { TABLE_PREFERRED_IDS } from '$core/utils/utils.js'
 import { findOrCreatePersona, findPersonaByDni, updatePersona, personaLabel } from './personas/personasApi.js'
 import {

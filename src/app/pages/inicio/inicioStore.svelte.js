@@ -7,14 +7,14 @@ import {
   resolveTableId,
   fetchRecords,
   applyUserActions,
-} from '$core/grist/grist'
+} from '$core/data/dataRepository'
 import { REQUIRED_TABLES } from '$core/grist/schema'
 import { getSchemaDiff, ensureSchema } from '$setup/initLof'
 import { deduplicatePersonas, syncRubrosPia, syncSubrubrosPia, fixRubrosPiaCampoPdf } from '$setup/migracion'
 import { loadConfig, saveConfig, crearEjercicioApi } from '$app/pages/cooperadora/cooperadoraApi.js'
 import { configStore } from '$core/grist/stores/configStore.svelte'
 import { notify, withNotify } from '$core/ui/notify.svelte'
-import { createBaseState } from '$core/grist/stores/gristStore.svelte'
+import { createBaseState } from '$core/data/dataStore.svelte'
 import { saldosStore } from '$app/modules/tesoreria/resumen/saldosStore.svelte.js'
 import { createDashboardStore } from './dashboardStore.svelte.js'
 import { TABLE_PREFERRED_IDS, normalizeFields } from '$core/utils/utils'

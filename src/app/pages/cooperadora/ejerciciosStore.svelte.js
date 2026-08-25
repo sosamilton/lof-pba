@@ -1,4 +1,4 @@
-import { applyUserActions, fetchRecords } from '$core/grist/grist'
+import { applyUserActions, fetchRecords } from '$core/data/dataRepository'
 import { normalizeFields, fechasEjercicio } from '$core/utils/utils'
 import { crearEjercicioApi } from './cooperadoraApi.js'
 import { notify } from '$core/ui/notify.svelte'

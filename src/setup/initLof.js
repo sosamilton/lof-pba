@@ -1,5 +1,5 @@
 import { csvToObjects, normalizeSeedValue, parseCsv } from '$core/utils/csv'
-import { addRecords, applyUserActions, createTables, fetchTableData } from '$core/grist/grist'
+import { addRecords, applyUserActions, createTables, fetchTableData } from '$core/data/dataRepository'
 import schemaJson from '$core/data/schema.json'
 
 const base = () => String(import.meta.env.BASE_URL || '/')

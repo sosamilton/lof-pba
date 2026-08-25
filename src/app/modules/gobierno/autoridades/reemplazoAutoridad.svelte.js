@@ -1,4 +1,4 @@
-import { applyUserActions } from '$core/grist/grist.js'
+import { applyUserActions } from '$core/data/dataRepository'
 import { normalizeFields, addMonths, todayISO } from '$core/utils/utils.js'
 import { findOrCreatePersona, personaLabel } from '$app/modules/comunidad/personas/personasApi.js'
 import { parseDni as normalizeDni, isValidDni } from '$core/format/format.js'

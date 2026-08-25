@@ -1,4 +1,4 @@
-import { applyUserActions, fetchRecords, resolveTableId, withMultiplayerProtection } from '$core/grist/grist'
+import { applyUserActions, fetchRecords, resolveTableId, withMultiplayerProtection } from '$core/data/dataRepository'
 import { TABLE_PREFERRED_IDS } from '$core/utils/utils'
 import { parseDni, parseCuil, isCuilPendiente } from '$core/format/format.js'
 

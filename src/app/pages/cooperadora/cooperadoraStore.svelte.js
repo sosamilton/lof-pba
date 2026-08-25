@@ -8,12 +8,12 @@ import {
   subscribeRecords,
   extractAttachmentIds,
   toAttachmentCellValue,
-} from '$core/grist/grist'
+} from '$core/data/dataRepository'
 import { normalizeFields, TABLE_PREFERRED_IDS } from '$core/utils/utils'
 import { loadConfig, saveConfig } from './cooperadoraApi.js'
 import { configStore } from '$core/grist/stores/configStore.svelte'
 import { notify } from '$core/ui/notify.svelte'
-import { createBaseState } from '$core/grist/stores/gristStore.svelte'
+import { createBaseState } from '$core/data/dataStore.svelte'
 import {
   formatCue,
   formatCuil,

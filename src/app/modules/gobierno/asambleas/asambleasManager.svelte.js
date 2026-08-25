@@ -1,4 +1,4 @@
-import { fetchRecords, applyUserActions } from '$core/grist/grist.js'
+import { fetchRecords, applyUserActions } from '$core/data/dataRepository'
 import { normalizeFields, dateToInput, todayISO } from '$core/utils/utils.js'
 import { extractRowId } from '$app/modules/comunidad/personas/personasApi.js'
 

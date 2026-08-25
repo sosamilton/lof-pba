@@ -27,7 +27,7 @@
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
   import EstatutoField from './components/EstatutoField.svelte'
   import FileTextIcon from '@lucide/svelte/icons/file-text'
-  import { extractAttachmentIds } from '$core/grist/grist'
+  import { extractAttachmentIds } from '$core/data/dataRepository'
 
   let dialogEjercicioAbierto = $state(false)
   let ejercicioEditandoId = $state(null)

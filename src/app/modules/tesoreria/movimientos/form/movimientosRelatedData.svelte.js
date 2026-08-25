@@ -1,4 +1,4 @@
-import { resolveTableIds, fetchRelated } from '$core/grist/stores/gristStore.svelte.js'
+import { resolveTableIds, fetchRelated } from '$core/data/dataStore.svelte'
 import { loadConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
 import { normalize } from '$core/utils/utils.js'
 

@@ -5,7 +5,7 @@ import {
   isInGrist,
   resolveTableId,
   subscribeRecords,
-} from '$core/grist/grist'
+} from '$core/data/dataRepository'
 import { TABLE_PREFERRED_IDS, normalizeFields } from '$core/utils/utils'
 
 /**

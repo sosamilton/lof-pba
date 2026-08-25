@@ -1,5 +1,5 @@
-import { createBaseState, resolveTableIds, fetchRelated } from '$core/grist/stores/gristStore.svelte.js'
-import { fetchRecords, subscribeRecords } from '$core/grist/grist.js'
+import { createBaseState, resolveTableIds, fetchRelated } from '$core/data/dataStore.svelte'
+import { fetchRecords, subscribeRecords } from '$core/data/dataRepository'
 import { createWidgetOptions } from './widgetOptions.svelte.js'
 import { createAutoridadRows } from './autoridades/autoridadRows.svelte.js'
 import { createAsambleasManager } from './asambleas/asambleasManager.svelte.js'

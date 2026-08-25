@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte'
-  import { fetchRecords, resolveTableId } from '$core/grist/grist'
+  import { fetchRecords, resolveTableId } from '$core/data/dataRepository'
   import { TABLE_PREFERRED_IDS } from '$core/utils/utils'
   import { formatARS, dateToInput, buildMapById } from '$core/utils/utils'
   import { formatFecha } from '$core/format/format'

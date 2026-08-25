@@ -1,4 +1,4 @@
-import { gristReady, resolveTableId, applyUserActions, invalidateTablesCache, fetchRecords, addRecords } from '$core/grist/grist'
+import { gristReady, resolveTableId, applyUserActions, invalidateTablesCache, fetchRecords, addRecords } from '$core/data/dataRepository'
 import { ensureSchema, initDemoData } from './initLof'
 import { TABLE_PREFERRED_IDS, MODULES, fechasEjercicio, todayISO } from '$core/utils/utils'
 import { saveConfig } from '$app/pages/cooperadora/cooperadoraApi.js'

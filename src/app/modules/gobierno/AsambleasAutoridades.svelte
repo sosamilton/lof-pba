@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte'
   import { asambleasAutoridadesStore as store } from './asambleasAutoridadesStore.svelte'
-  import { isInGrist } from '$core/grist/grist'
+  import { isInGrist } from '$core/data/dataRepository'
   import * as Tabs from '$lib/components/ui/tabs'
   import { Skeleton } from '$lib/components/ui/skeleton'
   import PageScaff from '$lib/components/PageScaffold.svelte'

@@ -1,5 +1,5 @@
-import { createGristStore, extendStore } from '$core/grist/stores/gristStore.svelte.js'
-import { fetchRecords } from '$core/grist/grist'
+import { createGristStore, extendStore } from '$core/data/dataStore.svelte'
+import { fetchRecords } from '$core/data/dataRepository'
 import { normalizeFields } from '$core/utils/utils'
 
 const base = createGristStore({ tableKey: 'configuracion' })
