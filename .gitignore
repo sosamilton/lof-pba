@@ -34,7 +34,8 @@ scripts/cooperadoras-csv/*
 *.geojson
 
 # Docker data volumes (bind mounts — SQLite, MinIO, etc.)
-data/
+# Solo el directorio top-level, no src/core/data/
+/data/
 
 # Environment files with secrets
 .env
@@ -48,3 +49,5 @@ _spec/
 .claude/
 .vscode/
 .windsurf/
+lof/
+# PouchDB local database (created at runtime)
