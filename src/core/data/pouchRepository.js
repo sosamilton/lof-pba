@@ -282,7 +282,22 @@ const _saveCounters = async () => {
 
 const _nextId = async (tableKey) => {
   const counters = await _loadCounters()
-  const next = (counters[tableKey] || 0) + 1
+  let next = (counters[tableKey] || 0) + 1
+  // Safety net: si el contador está desactualizado (ej. después de un backup
+  // restore sin _local/counters), verificar que el ID no exista ya.
+  // Si existe, incrementar hasta encontrar uno libre.
+  const db = _getDb()
+  for (let attempts = 0; attempts < 1000; attempts++) {
+    const docId = `${tableKey}_${next}`
+    try {
+      await db.get(docId)
+      // El doc ya existe — probar el siguiente ID
+      next++
+    } catch (e) {
+      if (e.status === 404) break // ID libre — usarlo
+      throw e
+    }
+  }
   counters[tableKey] = next
   await _saveCounters()
   return next
@@ -411,7 +426,7 @@ export const applyUserActions = async (actions) => {
     const [type, tableId, rowId, fields] = action
 
     if (type === 'AddRecord') {
-      const id = rowId != null ? Number(rowId) : await _nextId(tableId)
+      let id = rowId != null ? Number(rowId) : await _nextId(tableId)
       const doc = {
         _id: `${tableId}_${id}`,
         type: tableId,
@@ -420,7 +435,21 @@ export const applyUserActions = async (actions) => {
       }
       // Eliminar id duplicado si estaba en fields
       doc.id = id
-      const res = await db.put(doc)
+      let res
+      try {
+        res = await db.put(doc)
+      } catch (e) {
+        // 409 conflict: el ID ya existe (ej. contador desactualizado tras
+        // backup restore). Si el ID fue auto-generado, reintentar con uno nuevo.
+        if (e.status === 409 && rowId == null) {
+          id = await _nextId(tableId)
+          doc._id = `${tableId}_${id}`
+          doc.id = id
+          res = await db.put(doc)
+        } else {
+          throw e
+        }
+      }
       results.push({ id, rev: res.rev })
 
       // Actualizar contador si se auto-generó
@@ -569,8 +598,8 @@ export const uploadAttachments = async (files) => {
   const db = _getDb()
   const ids = []
   for (const file of files) {
-    const id = await _nextId('attachment')
-    const docId = `attachment_${id}`
+    let id = await _nextId('attachment')
+    let docId = `attachment_${id}`
     const doc = {
       _id: docId,
       type: 'attachment',
@@ -580,10 +609,27 @@ export const uploadAttachments = async (files) => {
       mimeType: file.type,
       timeUploaded: new Date().toISOString(),
     }
-    await db.put(doc)
-    // Adjuntar el blob al doc
-    const buffer = await file.arrayBuffer()
-    await db.putAttachment(docId, 'file', doc._rev, buffer, file.type || 'application/octet-stream')
+    let putRes
+    try {
+      putRes = await db.put(doc)
+    } catch (e) {
+      // 409: ID ya existe (contador desactualizado). Reintentar.
+      if (e.status === 409) {
+        id = await _nextId('attachment')
+        docId = `attachment_${id}`
+        doc._id = docId
+        doc.id = id
+        putRes = await db.put(doc)
+      } else {
+        throw e
+      }
+    }
+    // Adjuntar el blob al doc.
+    // Usar el rev devuelto por db.put (putRes.rev), NO doc._rev que sigue
+    // siendo undefined porque db.put no muta el objeto original.
+    // putAttachment espera un Blob (no un ArrayBuffer) — File extiende Blob,
+    // así que pasamos el file directamente.
+    await db.putAttachment(docId, 'file', putRes.rev, file, file.type || 'application/octet-stream')
     ids.push(id)
   }
   return ids

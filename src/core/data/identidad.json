@@ -6,10 +6,10 @@
   "ubicacion": "Provincia de Buenos Aires, Argentina",
   "licencia": "AGPL-3.0",
   "enlaces": {
-    "repo": "https://github.com/sosamilton/spa-cooperadora",
-    "app": "https://sosamilton.github.io/spa-cooperadora/",
+    "repo": "https://github.com/sosamilton/lof-pba",
+    "app": "https://sosamilton.github.io/lof-pba/",
     "grist_docs": "https://support.getgrist.com/widget-custom/",
     "grist": "https://www.getgrist.com/",
-    "licencia": "https://github.com/sosamilton/spa-cooperadora/blob/main/LICENSE"
+    "licencia": "https://github.com/sosamilton/lof-pba/blob/main/LICENSE"
   }
 }

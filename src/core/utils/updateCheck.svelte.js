@@ -3,9 +3,12 @@
  *
  * Funciona en cualquier entorno (SPA web, PWA, Grist widget, Tauri):
  *  1. Si no hay internet (navigator.onLine === false), no hace nada.
- *  2. Hace fetch a `latest.json` hosteado en el GitHub release más reciente.
- *     GitHub redirige automáticamente desde /releases/latest/download/latest.json
- *     al asset del release más reciente — URL estable, sin rate limits de API.
+ *  2. Hace fetch a la API de GitHub para obtener el release más reciente.
+ *     La API de GitHub envía Access-Control-Allow-Origin: *, por lo que
+ *     funciona desde el navegador sin errores CORS (a diferencia de los
+ *     assets de releases que redirigen a objects.githubusercontent.com sin
+ *     cabeceras CORS).
+ *     Rate limit: 60 req/hour sin token — suficiente para un check cada 6h.
  *  3. Compara la versión remota con la del bundle (__APP_VERSION__, horneada
  *     en build time por Vite define).
  *  4. Cachea el resultado en localStorage por CHECK_INTERVAL_MS para no
@@ -17,10 +20,11 @@
  * best-effort: mejor silencio que un error disruptivo.
  */
 
-// URL estable: GitHub redirige al asset latest.json del release más reciente.
-// No usa la API de GitHub (que tendría rate limits de 60 req/hour sin token).
-const LATEST_JSON_URL =
-  'https://github.com/sosamilton/spa-cooperadora/releases/latest/download/latest.json'
+// API de GitHub: devuelve JSON con tag_name, html_url, published_at, body, etc.
+// A diferencia de los assets de releases, la API envía cabeceras CORS.
+const RELEASES_API_URL =
+  'https://api.github.com/repos/sosamilton/lof-pba/releases/latest'
+const DOWNLOAD_URL = 'https://github.com/sosamilton/lof-pba/releases/latest'
 
 // Cache en localStorage: no re-verificar más seguido que esto.
 const CHECK_INTERVAL_MS = 1000 * 60 * 60 * 6 // 6 horas
@@ -99,12 +103,16 @@ function writeCache(data) {
 
 /**
  * Aplica el resultado al estado reactivo.
+ * Acepta el formato del cache (version, release_url, download_url) o
+ * el formato de la API de GitHub (tag_name, html_url, published_at, body).
  */
 function applyResult(data) {
-  latestVersion = data.version || ''
-  releaseUrl = data.release_url || ''
-  downloadUrl = data.download_url || ''
-  updateAvailable = compareVersions(data.version, currentVersion) > 0
+  const version = data.version || (data.tag_name ? data.tag_name.replace(/^v/, '') : '')
+  if (!version) return
+  latestVersion = version
+  releaseUrl = data.release_url || data.html_url || ''
+  downloadUrl = data.download_url || DOWNLOAD_URL
+  updateAvailable = compareVersions(version, currentVersion) > 0
   lastChecked = Date.now()
 }
 
@@ -135,15 +143,22 @@ async function check(opts = {}) {
 
   checking = true
   try {
-    const res = await fetch(LATEST_JSON_URL, {
+    const res = await fetch(RELEASES_API_URL, {
       cache: 'no-cache',
-      headers: { Accept: 'application/json' },
+      headers: { Accept: 'application/vnd.github+json' },
     })
     if (!res.ok) return
     const data = await res.json()
-    if (!data.version) return
-    applyResult(data)
-    writeCache(data)
+    // La API de GitHub devuelve { tag_name, html_url, published_at, body, ... }
+    // Normalizar al formato del cache antes de aplicar y guardar.
+    const normalized = {
+      version: data.tag_name ? data.tag_name.replace(/^v/, '') : '',
+      release_url: data.html_url || '',
+      download_url: DOWNLOAD_URL,
+    }
+    if (!normalized.version) return
+    applyResult(normalized)
+    writeCache(normalized)
   } catch {
     // Red caída, CORS, DNS, etc. — silencioso.
   } finally {

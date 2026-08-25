@@ -166,9 +166,11 @@ jobs:
 
   # --- latest.json para verificación de versión desde el SPA -----------------
   # Genera un manifest simple con la versión + URLs de descarga y lo sube al
-  # release. El SPA (versión web/PWA/Grist) lo fetcha desde:
-  #   https://github.com/sosamilton/spa-cooperadora/releases/latest/download/latest.json
+  # release. El Tauri updater (desktop) lo fetcha desde:
+  #   https://github.com/sosamilton/lof-pba/releases/latest/download/latest.json
   # GitHub redirige automáticamente al asset del release más reciente.
+  # Nota: el SPA web usa la API de GitHub (api.github.com) que sí envía CORS,
+  # pero el Tauri updater (Rust, sin restricciones CORS) usa este asset directo.
   # No depende de Tauri signing — siempre se genera, haya o no clave privada.
   publish-latest-json:
     needs: publish-tauri
@@ -199,8 +201,8 @@ jobs:
             "version": "${{ steps.ver.outputs.version }}",
             "tag": "${{ steps.ver.outputs.tag }}",
             "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "release_url": "https://github.com/sosamilton/spa-cooperadora/releases/tag/${{ steps.ver.outputs.tag }}",
-            "download_url": "https://github.com/sosamilton/spa-cooperadora/releases/latest",
+            "release_url": "https://github.com/sosamilton/lof-pba/releases/tag/${{ steps.ver.outputs.tag }}",
+            "download_url": "https://github.com/sosamilton/lof-pba/releases/latest",
             "notes": "LOF Desktop v${{ steps.ver.outputs.version }}"
           }
           EOF

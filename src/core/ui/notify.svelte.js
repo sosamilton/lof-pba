@@ -41,16 +41,29 @@ export async function withNotify(loadingMsg, fn, opts = {}) {
 
 /**
  * Helper para mostrar notificación después de un save del store.
- * Reemplaza el patrón duplicado: await store.saveX(); if (store.error) notify.error(...); else if (store.notice) notify.success(...)
+ * Soporta dos patrones:
+ *  1. Stores basados en createGristStore que setean store.error / store.notice.
+ *  2. Stores custom (ej: comunidadStore) que retornan { error } o { success }.
  *
- * @param {object} store - Store con .error y .notice
+ * @param {object} store - Store con .error y .notice (patrón 1)
  * @param {Function} fn - Función async del store (ej: store.savePersona)
  * @returns {Promise<any>} Resultado de fn
  */
 export async function notifyAfter(store, fn) {
   const result = await fn.call(store)
-  if (store.error) notify.error(store.error)
-  else if (store.notice) notify.success(store.notice)
+  // Patrón 1: store setea .error / .notice
+  if (store.error) {
+    notify.error(store.error)
+  } else if (store.notice) {
+    notify.success(store.notice)
+  } else if (result && typeof result === 'object') {
+    // Patrón 2: la función retorna { error } o { success }
+    if (result.error) {
+      notify.error(result.error)
+    } else if (result.success) {
+      notify.success('Guardado correctamente.')
+    }
+  }
   return result
 }
 

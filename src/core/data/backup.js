@@ -134,7 +134,31 @@ export async function importBackup(file) {
     await newDb.bulkDocs(batch)
   }
 
+  // Reconstruir _local/counters escaneando todos los docs.
+  // El backup excluye _local/* (counters, options), así que sin esto
+  // _nextId arrancaría desde 1 y chocaría con docs existentes (409 conflict).
+  await _rebuildCounters(newDb)
+
   return { docCount: payload.docs.length }
+}
+
+/**
+ * Reconstruye el doc _local/counters escaneando todos los docs de la DB.
+ * Para cada tipo de tabla (campo `type`), encuentra el ID máximo numérico.
+ */
+async function _rebuildCounters(db) {
+  const result = await db.allDocs({ include_docs: true })
+  const counters = {}
+  for (const row of result.rows) {
+    const doc = row.doc
+    if (!doc || !doc.type || doc._id.startsWith('_local/')) continue
+    const numId = Number(doc.id)
+    if (Number.isNaN(numId)) continue
+    if (!counters[doc.type] || counters[doc.type] < numId) {
+      counters[doc.type] = numId
+    }
+  }
+  await db.put({ _id: '_local/counters', value: counters })
 }
 
 /**
