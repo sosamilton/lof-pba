@@ -1,7 +1,7 @@
 {
   "name": "lof-pba",
   "private": true,
-  "version": "0.1.0-dev",
+  "version": "2.0.0",
   "type": "module",
   "maintainers": [
     "Milton Sosa <milton.sosa.22@gmail.com>"
