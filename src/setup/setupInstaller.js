@@ -16,6 +16,20 @@ export async function doInstall(s) {
   s.installing = true
   s.error = ''
   try {
+    // Si se restauró un backup, los datos ya están en la DB.
+    // Solo marcar como instalado y recargar.
+    if (s.restoreResult) {
+      // Leer la config del backup para marcar instalado=true
+      const { loadConfig, saveConfig } = await import('$app/pages/cooperadora/cooperadoraApi.js')
+      const config = await loadConfig()
+      if (config) {
+        await saveConfig({ ...config, instalado: true })
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      window.location.reload()
+      return
+    }
+
     // Invalidar cache de tablas para que ensureSchema vea el estado real de Grist.
     // En modo PouchDB es un no-op.
     invalidateTablesCache()

@@ -44,7 +44,7 @@ const _loadedTables = new Map()
  * Devuelve la instancia singleton de PouchDB.
  * La crea con el nombre "lof" si no existe.
  */
-const getDb = () => {
+const _getDb = () => {
   if (!_db) {
     _db = new PouchDB('lof', { auto_compaction: true })
     _indexReady = false
@@ -58,10 +58,16 @@ const getDb = () => {
  */
 const _ensureIndex = async () => {
   if (_indexReady) return
-  const db = getDb()
+  const db = _getDb()
   await db.createIndex({ index: { fields: ['type'] } })
   _indexReady = true
 }
+
+/**
+ * Devuelve la instancia singleton de PouchDB (para backup/restore).
+ * Exporta acceso directo a la DB para operaciones de dump/restore.
+ */
+export const getDb = _getDb
 
 /**
  * Reset interno — para tests. Destruye la DB y limpia el estado.
@@ -100,7 +106,7 @@ export const isInGrist = () => _status === 'ready'
 export const detectGrist = async () => {
   if (_status === 'ready') return 'ready'
   try {
-    const db = getDb()
+    const db = _getDb()
     // Verificar que la DB responde
     await db.info()
     // Crear índice de type para Mango queries
@@ -141,7 +147,7 @@ const _notifyAccess = () => {
 
 const _setupChangesListener = () => {
   if (_changesListener) return
-  const db = getDb()
+  const db = _getDb()
   _changesListener = db.changes({
     since: 'now',
     live: true,
@@ -171,7 +177,7 @@ export const subscribeOptions = (callback) => {
 
 export const getWidgetOptions = async () => {
   try {
-    const db = getDb()
+    const db = _getDb()
     const doc = await db.get('_local/options').catch(() => null)
     _currentOptions = doc?.value || {}
     return _currentOptions
@@ -181,7 +187,7 @@ export const getWidgetOptions = async () => {
 }
 
 export const setWidgetOption = async (key, value) => {
-  const db = getDb()
+  const db = _getDb()
   let doc
   try {
     doc = await db.get('_local/options')
@@ -232,7 +238,7 @@ export const tableDataToRecords = (data) => {
 
 const _loadCounters = async () => {
   if (_counters) return _counters
-  const db = getDb()
+  const db = _getDb()
   try {
     const doc = await db.get('_local/counters')
     _counters = doc.value || {}
@@ -243,7 +249,7 @@ const _loadCounters = async () => {
 }
 
 const _saveCounters = async () => {
-  const db = getDb()
+  const db = _getDb()
   let doc
   try {
     doc = await db.get('_local/counters')
@@ -299,7 +305,7 @@ const _recordToDoc = (tableKey, record) => {
  * Aplica computedFields si la tabla tiene fórmulas.
  */
 export const fetchRecords = async (tableId, options = {}) => {
-  const db = getDb()
+  const db = _getDb()
   const tableKey = tableId
 
   // Asegurar índice de type
@@ -378,7 +384,7 @@ export const fetchTableData = async (tableId) => {
  * En PouchDB se traducen a operaciones de doc.
  */
 export const applyUserActions = async (actions) => {
-  const db = getDb()
+  const db = _getDb()
   const results = []
 
   for (const action of actions) {
@@ -540,7 +546,7 @@ export const ensureOneRow = async (tableId) => {
  * Devuelve un array de IDs numéricos (compatibilidad con Grist).
  */
 export const uploadAttachments = async (files) => {
-  const db = getDb()
+  const db = _getDb()
   const ids = []
   for (const file of files) {
     const id = await _nextId('attachment')
@@ -567,7 +573,7 @@ export const uploadAttachments = async (files) => {
  * Obtiene metadata de un attachment por ID.
  */
 export const getAttachmentMetadata = async (attId) => {
-  const db = getDb()
+  const db = _getDb()
   const id = Number(attId)
   try {
     const doc = await db.get(`attachment_${id}`)
@@ -586,7 +592,7 @@ export const getAttachmentMetadata = async (attId) => {
  * Devuelve una URL object URL para usar en <a href> o <img>.
  */
 export const getAttachmentUrl = async (attId) => {
-  const db = getDb()
+  const db = _getDb()
   const id = Number(attId)
   try {
     const doc = await db.get(`attachment_${id}`, { attachments: true })
@@ -647,7 +653,7 @@ const _buildComputedContext = async (tableKey) => {
   // Solo socios, autoridades y asesores necesitan lookup de personas
   if (!['socios', 'autoridades', 'asesores'].includes(tableKey)) return {}
 
-  const db = getDb()
+  const db = _getDb()
   const result = await db.find({ selector: { type: 'personas' }, limit: 100000 })
   const personas = new Map()
   for (const doc of result.docs) {

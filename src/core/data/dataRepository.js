@@ -133,5 +133,8 @@ export const addRecords = _impl.addRecords
 export const withMultiplayerProtection = _impl.withMultiplayerProtection
 export const ensureOneRow = _impl.ensureOneRow
 
+// Acceso directo a PouchDB (para backup/restore). Solo disponible en modo pouch.
+export const getPouchDb = _pouch.getDb
+
 // Exportar el backend activo para debugging
 export const getActiveBackend = () => _backend

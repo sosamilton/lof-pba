@@ -7,12 +7,110 @@
   import { Badge } from '$lib/components/ui/badge'
   import { MODULES } from '../setupStore.svelte'
   import { identidad } from '$core/data/identidad'
+  import { getActiveBackend } from '$core/data/dataRepository'
+  import { validateBackup } from '$core/data/backup.js'
+  import UploadIcon from '@lucide/svelte/icons/upload'
+  import FileIcon from '@lucide/svelte/icons/file-text'
+  import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
+  import AlertCircleIcon from '@lucide/svelte/icons/circle-alert'
 
   let { store } = $props()
 
+  const isPouchMode = getActiveBackend() === 'pouch'
   const modeKeys = Object.entries(MODULES).filter(([, m]) => !m.optional)
   const optionalKeys = Object.entries(MODULES).filter(([, m]) => m.optional)
+
+  let fileInput = $state(null)
+  let validation = $state(null)
+  let validating = $state(false)
+
+  const handleFile = async (/** @type {Event} */ e) => {
+    const target = /** @type {HTMLInputElement} */ (e.target)
+    const file = target.files?.[0]
+    if (!file) return
+    validation = null
+    validating = true
+    try {
+      const result = await validateBackup(file)
+      validation = result
+      if (result.valid) {
+        await store.restoreFromBackup(file)
+      }
+    } catch (err) {
+      validation = { valid: false, error: err?.message || String(err) }
+    } finally {
+      validating = false
+    }
+  }
 </script>
+
+{#if isPouchMode}
+  <Card.Root class="mb-4 border-primary/30">
+    <Card.Content class="pt-6">
+      <div class="flex items-center gap-2 mb-1.5">
+        <UploadIcon class="size-5 text-primary" />
+        <h2 class="text-[17px] font-bold">¿Tenés un backup?</h2>
+      </div>
+      <p class="text-[13px] text-muted-foreground mb-4">
+        Si ya exportaste un backup de {identidad.nombre} antes, subilo acá para
+        restaurar todos los datos y saltar la configuración manual.
+      </p>
+
+      <div
+        class="flex flex-col items-center justify-center gap-2 p-5 rounded-xl border-2 border-dashed border-border bg-muted/5 cursor-pointer transition-colors hover:border-primary/40"
+        role="button"
+        tabindex="0"
+        onclick={() => fileInput?.click()}
+        onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput?.click() } }}
+      >
+        {#if store.restoring}
+          <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+          <p class="text-sm text-muted-foreground">Restaurando backup…</p>
+        {:else if store.restoreResult}
+          <CheckCircleIcon class="size-8 text-primary" />
+          <p class="text-sm font-semibold">Backup restaurado</p>
+          <p class="text-xs text-muted-foreground">{store.restoreResult.docCount} documentos importados. Presioná "Instalar ahora" para continuar.</p>
+        {:else}
+          <UploadIcon class="size-8 text-muted-foreground/50" />
+          <p class="text-sm font-medium">Hacé clic para seleccionar un archivo .lof</p>
+          <p class="text-xs text-muted-foreground">Archivo de backup exportado desde {identidad.nombre}</p>
+        {/if}
+      </div>
+
+      <input
+        bind:this={fileInput}
+        type="file"
+        accept=".lof,application/octet-stream"
+        class="hidden"
+        onchange={handleFile}
+      />
+
+      {#if validation && !validation.valid}
+        <div class="mt-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <AlertCircleIcon class="size-4 text-destructive shrink-0 mt-0.5" />
+          <p class="text-xs text-destructive">{validation.error}</p>
+        </div>
+      {/if}
+
+      {#if store.restoreError}
+        <div class="mt-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <AlertCircleIcon class="size-4 text-destructive shrink-0 mt-0.5" />
+          <p class="text-xs text-destructive">{store.restoreError}</p>
+        </div>
+      {/if}
+
+      {#if store.restoreResult}
+        <div class="mt-3 flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
+          <FileIcon class="size-4 text-primary shrink-0 mt-0.5" />
+          <p class="text-xs text-muted-foreground">
+            Todos los datos fueron restaurados. Presioná <strong>"Instalar ahora"</strong>
+            para finalizar y entrar a la app.
+          </p>
+        </div>
+      {/if}
+    </Card.Content>
+  </Card.Root>
+{/if}
 
 <Card.Root class="mb-4">
   <Card.Content class="pt-6">
