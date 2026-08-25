@@ -107,7 +107,7 @@
         <span class="text-lg font-bold tracking-tight">{identidad.nombre}</span>
         <Badge variant="secondary" class="hidden sm:inline-flex">{identidad.ubicacion}</Badge>
       </div>
-      <Button variant="ghost" size="sm" onclick={() => navigate('inicio')}>
+      <Button variant="ghost" size="sm" onclick={() => navigate('landing')}>
         <ArrowLeftIcon data-icon="inline-start" />
         Volver
       </Button>
@@ -576,7 +576,7 @@
   <footer class="border-t border-border bg-card">
     <div class="mx-auto max-w-5xl px-4 py-8">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Button variant="outline" onclick={() => navigate('inicio')}>
+        <Button variant="outline" onclick={() => navigate('landing')}>
           <ArrowLeftIcon data-icon="inline-start" />
           Volver al inicio
         </Button>

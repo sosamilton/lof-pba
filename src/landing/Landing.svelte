@@ -48,6 +48,7 @@
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
   import DownloadIcon from '@lucide/svelte/icons/download'
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right'
+  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left'
   import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
   import BookOpenIcon from '@lucide/svelte/icons/book-open'
   import FileTextIcon from '@lucide/svelte/icons/file-text'
@@ -57,6 +58,8 @@
   import HistoryIcon from '@lucide/svelte/icons/history'
   import { identidad } from '$core/data/identidad'
   import data from './landing.json'
+
+  let { installed = false } = $props()
 
   const { problemas, funciones, titulo_seccion, subtitulo_seccion, capturas, roadmap } = data
   const enlaces = identidad.enlaces
@@ -90,6 +93,13 @@
         <Badge variant="secondary" class="hidden sm:inline-flex">{identidad.ubicacion}</Badge>
       </div>
       <div class="flex items-center gap-2">
+        {#if installed}
+          <Button variant="default" size="sm" onclick={() => navigate('inicio')}>
+            <ArrowLeftIcon data-icon="inline-start" />
+            <span class="hidden sm:inline">Volver a la app</span>
+            <span class="sm:hidden">App</span>
+          </Button>
+        {/if}
         {#if versionActual !== 'dev'}
           <button
             type="button"
@@ -112,10 +122,12 @@
           <CodeXmlIcon data-icon="inline-start" />
           <span class="hidden sm:inline">GitHub</span>
         </Button>
-        <Button variant="outline" size="sm" href={enlaces.grist} target="_blank" rel="noopener noreferrer" aria-label="Abrir Grist">
-          <span class="hidden sm:inline">Grist</span>
-          <ExternalLinkIcon data-icon="inline-end" />
-        </Button>
+        {#if !installed}
+          <Button variant="outline" size="sm" href={enlaces.grist} target="_blank" rel="noopener noreferrer" aria-label="Abrir Grist">
+            <span class="hidden sm:inline">Grist</span>
+            <ExternalLinkIcon data-icon="inline-end" />
+          </Button>
+        {/if}
       </div>
     </div>
   </nav>
@@ -145,10 +157,17 @@
           </p>
         </div>
         <div class="flex flex-wrap gap-3">
-          <Button variant="secondary" size="lg" onclick={() => navigate('instalacion')}>
-            <DownloadIcon data-icon="inline-start" />
-            Empezar a usar LOF
-          </Button>
+          {#if installed}
+            <Button variant="secondary" size="lg" onclick={() => navigate('inicio')}>
+              <ArrowLeftIcon data-icon="inline-start" />
+              Abrir la app
+            </Button>
+          {:else}
+            <Button variant="secondary" size="lg" onclick={() => navigate('inicio')}>
+              <DownloadIcon data-icon="inline-start" />
+              Empezar a usar LOF
+            </Button>
+          {/if}
           <Button variant="outline" size="lg" href={enlaces.repo} target="_blank" rel="noopener noreferrer">
             <CodeXmlIcon data-icon="inline-start" />
             Ver repo / colaborar

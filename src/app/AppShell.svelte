@@ -18,6 +18,7 @@
   import SettingsIcon from '@lucide/svelte/icons/settings'
   import CommandIcon from '@lucide/svelte/icons/command'
   import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
+  import InfoIcon from '@lucide/svelte/icons/info'
   import { identidad } from '$core/data/identidad'
 
   let { title = identidad.nombre, children } = $props()
@@ -233,6 +234,14 @@
     </Sidebar.Content>
     <Sidebar.Rail />
     <Sidebar.Footer>
+      <Sidebar.Menu>
+        <Sidebar.MenuItem>
+          <Sidebar.MenuButton onclick={() => go('landing')} tooltipContent="Ver landing" class="h-auto min-h-8">
+            <InfoIcon class="shrink-0" />
+            <span class="flex-1 leading-tight">Ver landing</span>
+          </Sidebar.MenuButton>
+        </Sidebar.MenuItem>
+      </Sidebar.Menu>
       <div class="flex items-center gap-2 px-2 py-1 select-none">
         <HeartHandshakeIcon class="size-6 shrink-0 text-primary" />
         <div class="text-[11px] text-muted-foreground/80 leading-tight group-data-[collapsible=icon]:hidden">

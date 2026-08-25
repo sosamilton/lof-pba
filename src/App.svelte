@@ -57,9 +57,14 @@
     gristStatus = status
     if (status === 'ready') {
       await checkInstalled()
+      // En modo PouchDB (standalone), si no está instalada y el usuario
+      // no navegó explícitamente a una ruta de la app, mostrar la landing.
+      if (isPouchMode && needsSetup && router.current === 'inicio') {
+        navigate('landing')
+      }
       if (!needsSetup) {
         const opts = await getWidgetOptions()
-        if (opts?.lastRoute && opts.lastRoute !== router.current) {
+        if (opts?.lastRoute && opts.lastRoute !== router.current && opts.lastRoute !== 'landing') {
           navigate(opts.lastRoute)
         }
       }
@@ -85,7 +90,9 @@
     if (!ready) return
 
     let path
-    if (gristStatus === 'ready' && needsSetup) {
+    if (router.current === 'landing') {
+      path = '/'
+    } else if (gristStatus === 'ready' && needsSetup) {
       path = '/app/setup'
     } else if (gristStatus === 'ready') {
       path = `/app/${router.current}`
@@ -110,6 +117,10 @@
       <p class="text-sm text-muted-foreground">Cargando…</p>
     </div>
   </div>
+{:else if router.current === 'landing'}
+  <Landing installed={gristStatus === 'ready' && !needsSetup} />
+{:else if router.current === 'sobre-lof'}
+  <SobreLof />
 {:else if gristStatus === 'ready' && needsSetup}
   <SetupWizard />
 {:else if gristStatus === 'ready'}
@@ -169,8 +180,6 @@
   {/if}
 {:else if router.current === 'instalacion'}
   <InstallGuide />
-{:else if router.current === 'sobre-lof'}
-  <SobreLof />
 {:else}
   <Landing />
 {/if}
