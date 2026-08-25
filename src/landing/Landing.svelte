@@ -199,6 +199,70 @@
     </div>
   </section>
 
+  <!-- QUÉ RESUELVE: problemas cotidianos de las cooperadoras -->
+  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="problemas-heading">
+    <div class="flex flex-col gap-2 mb-6">
+      <h2 id="problemas-heading" class="text-2xl font-bold tracking-tight">¿Te pasa esto?</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        Situaciones cotidianas de las cooperadoras escolares que LOF ayuda a resolver.
+      </p>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {#each problemas as p}
+        {@const Icon = iconMap[p.icono]}
+        <Card.Root>
+          <Card.Header>
+            <div class="flex items-center gap-3">
+              {@render iconBadge(Icon)}
+              <Card.Title class="text-base">{p.titulo}</Card.Title>
+            </div>
+          </Card.Header>
+          <Card.Content>
+            <p class="text-sm text-muted-foreground">{p.descripcion}</p>
+          </Card.Content>
+        </Card.Root>
+      {/each}
+    </div>
+  </section>
+
+  <!-- FUNCIONES -->
+  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="funciones-heading">
+    <div class="flex flex-col gap-2 mb-6">
+      <h2 id="funciones-heading" class="text-2xl font-bold tracking-tight">{titulo_seccion || 'Cómo te ayuda todos los días'}</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        {subtitulo_seccion || 'Áreas para la gestión diaria de tu cooperadora, alineadas con el estatuto modelo y la PIA.'}
+      </p>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2">
+      {#each funciones as f}
+        {@const Icon = iconMap[f.icono]}
+        <Card.Root>
+          <Card.Header>
+            <div class="flex items-center gap-3">
+              {@render iconBadge(Icon)}
+              <div class="flex flex-col">
+                <Card.Title class="text-base">{f.titulo}</Card.Title>
+                <Card.Description>{f.descripcion}</Card.Description>
+              </div>
+            </div>
+          </Card.Header>
+          <Card.Content>
+            <ul class="flex flex-col gap-2">
+              {#each f.items as item}
+                <li class="flex items-start gap-2 text-sm text-muted-foreground">
+                  <CheckCircleIcon class="mt-0.5 size-4 shrink-0 text-primary" />
+                  {item}
+                </li>
+              {/each}
+            </ul>
+          </Card.Content>
+        </Card.Root>
+      {/each}
+    </div>
+  </section>
+
+  <Separator />
+
   <!-- FORMAS DE USO: múltiples formas de usar LOF, sin jerga técnica -->
   <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="formas-heading">
     <div class="flex flex-col gap-2 mb-6">
@@ -379,68 +443,6 @@
         Todo queda en tu dispositivo o en tu servidor, bajo tu control. Si mañana dejás de usar LOF,
         los datos siguen siendo tuyos y los podés exportar cuando quieras.
       </p>
-    </div>
-  </section>
-
-  <!-- QUÉ RESUELVE: problemas cotidianos de las cooperadoras -->
-  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="problemas-heading">
-    <div class="flex flex-col gap-2 mb-6">
-      <h2 id="problemas-heading" class="text-2xl font-bold tracking-tight">¿Te pasa esto?</h2>
-      <p class="text-sm text-muted-foreground max-w-prose">
-        Situaciones cotidianas de las cooperadoras escolares que LOF ayuda a resolver.
-      </p>
-    </div>
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {#each problemas as p}
-        {@const Icon = iconMap[p.icono]}
-        <Card.Root>
-          <Card.Header>
-            <div class="flex items-center gap-3">
-              {@render iconBadge(Icon)}
-              <Card.Title class="text-base">{p.titulo}</Card.Title>
-            </div>
-          </Card.Header>
-          <Card.Content>
-            <p class="text-sm text-muted-foreground">{p.descripcion}</p>
-          </Card.Content>
-        </Card.Root>
-      {/each}
-    </div>
-  </section>
-
-  <!-- FUNCIONES -->
-  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="funciones-heading">
-    <div class="flex flex-col gap-2 mb-6">
-      <h2 id="funciones-heading" class="text-2xl font-bold tracking-tight">{titulo_seccion || 'Cómo te ayuda todos los días'}</h2>
-      <p class="text-sm text-muted-foreground max-w-prose">
-        {subtitulo_seccion || 'Áreas para la gestión diaria de tu cooperadora, alineadas con el estatuto modelo y la PIA.'}
-      </p>
-    </div>
-    <div class="grid gap-4 sm:grid-cols-2">
-      {#each funciones as f}
-        {@const Icon = iconMap[f.icono]}
-        <Card.Root>
-          <Card.Header>
-            <div class="flex items-center gap-3">
-              {@render iconBadge(Icon)}
-              <div class="flex flex-col">
-                <Card.Title class="text-base">{f.titulo}</Card.Title>
-                <Card.Description>{f.descripcion}</Card.Description>
-              </div>
-            </div>
-          </Card.Header>
-          <Card.Content>
-            <ul class="flex flex-col gap-2">
-              {#each f.items as item}
-                <li class="flex items-start gap-2 text-sm text-muted-foreground">
-                  <CheckCircleIcon class="mt-0.5 size-4 shrink-0 text-primary" />
-                  {item}
-                </li>
-              {/each}
-            </ul>
-          </Card.Content>
-        </Card.Root>
-      {/each}
     </div>
   </section>
 

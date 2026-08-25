@@ -132,6 +132,8 @@
   <Landing installed={gristStatus === 'ready' && !needsSetup} />
 {:else if router.current === 'sobre-lof'}
   <SobreLof />
+{:else if router.current === 'instalacion'}
+  <InstallGuide />
 {:else if gristStatus === 'ready' && needsSetup}
   <SetupWizard />
 {:else if gristStatus === 'ready'}
@@ -189,8 +191,6 @@
   {:else}
     <NeedsAccess />
   {/if}
-{:else if router.current === 'instalacion'}
-  <InstallGuide />
 {:else}
   <Landing />
 {/if}
