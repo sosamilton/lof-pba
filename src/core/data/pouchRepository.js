@@ -70,6 +70,26 @@ const _ensureIndex = async () => {
 export const getDb = _getDb
 
 /**
+ * Resetea el singleton interno de PouchDB.
+ * Usar después de db.destroy() para que la próxima llamada a getDb()
+ * cree una instancia nueva en lugar de devolver la destruida.
+ */
+export const _resetDbSingleton = () => {
+  _db = null
+  _status = 'none'
+  _counters = null
+  _indexReady = false
+  _currentOptions = null
+  if (_changesListener) {
+    _changesListener.cancel()
+    _changesListener = null
+  }
+  _recordsSubscribers.clear()
+  _optionsSubscribers.clear()
+  _accessSubscribers.clear()
+}
+
+/**
  * Reset interno — para tests. Destruye la DB y limpia el estado.
  * No exportar en producción.
  */

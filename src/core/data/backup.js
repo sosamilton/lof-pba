@@ -11,7 +11,7 @@
  */
 
 import { gzipSync, gunzipSync, strToU8, strFromU8 } from 'fflate'
-import { getPouchDb, getActiveBackend } from './dataRepository.js'
+import { getPouchDb, getActiveBackend, resetPouchDbSingleton } from './dataRepository.js'
 
 const MAGIC = 'LOFBK1'
 const VERSION = 1
@@ -115,7 +115,8 @@ export async function importBackup(file) {
 
   // Destruir la DB actual y recrear limpia
   await db.destroy()
-  // Re-crear la DB (getPouchDb la crea lazy en la próxima llamada)
+  // Resetear el singleton para que getPouchDb cree una instancia nueva
+  resetPouchDbSingleton()
   const newDb = getPouchDb()
 
   // bulkDocs con los documentos del backup.
