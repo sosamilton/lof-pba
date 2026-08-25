@@ -1,6 +1,37 @@
 # Desconexión de Grist: análisis de viabilidad y plan de migración
 
-> **Objetivo:** desacoplar LOF de Grist y convertirlo en una aplicación independiente, manteniendo la SPA en Svelte. Se incorpora Tauri como contenedor de escritorio (Windows, Linux, macOS) y se reemplaza el almacenamiento con PouchDB (cliente) + CouchDB (sync server), respetando offline-first y soberanía de datos.
+> **ESTADO: COMPLETADO** — La desconexión de Grist se implementó en la rama `feat/abstract-data-layer`. LOF ahora funciona como aplicación independiente con PouchDB (local) + CouchDB (sync opcional) + Tauri (desktop). Grist sigue soportándose como backend alternativo vía la capa de datos desacoplada.
+
+> **Objetivo original:** desacoplar LOF de Grist y convertirlo en una aplicación independiente, manteniendo la SPA en Svelte. Se incorpora Tauri como contenedor de escritorio (Windows, Linux, macOS) y se reemplaza el almacenamiento con PouchDB (cliente) + CouchDB (sync server), respetando offline-first y soberanía de datos.
+
+---
+
+## Resumen de lo implementado
+
+| Fase | Descripción | Estado |
+|------|-------------|--------|
+| **Fase 0** | Repository interface unificado (`dataRepository.js`) | ✅ Completado |
+| **Fase 1** | PouchDB repository (CRUD, queries, suscripciones, attachments) | ✅ Completado |
+| **Fase 2** | Setup wizard standalone + seeds PouchDB | ✅ Completado |
+| **Fase 3** | Tauri desktop (Windows, Linux, macOS) | ✅ Completado |
+| **Fase 4** | Backup/restore (.lof comprimido) | ✅ Completado |
+| **Fase 5** | Sync opcional con CouchDB (Docker Compose) | ✅ Completado |
+
+### Archivos clave creados
+
+- `src/core/data/dataRepository.js` — facade unificado
+- `src/core/data/pouchRepository.js` — implementación PouchDB
+- `src/core/data/pouchSchema.js` — índices y seeds
+- `src/core/data/pouchSync.js` — sync bidireccional con CouchDB
+- `src/core/data/computedFields.js` — equivalentes JS de fórmulas de Grist
+- `src/core/data/backup.js` — exportación/importación de backup
+- `src-tauri/` — configuración de Tauri
+- `docker/Dockerfile.tauri` — build Dockerizado para Linux
+- `scripts/tauri-docker-build.sh` — script de build
+
+### Lo que sigue de este documento
+
+El análisis de dependencias y fórmulas que sigue es el trabajo original de investigación que guió la migración. Se conserva como referencia histórica del proceso.
 
 ---
 

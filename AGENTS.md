@@ -1,5 +1,41 @@
 # Project Rules
 
+## Arquitectura de datos (importante)
+
+LOF tiene una **capa de datos desacoplada**. Todos los stores y módulos importan de `dataRepository.js` (facade unificado), nunca del backend directo.
+
+### Backends soportados
+
+| Backend | Modo | Detección | Storage |
+|---------|------|-----------|---------|
+| **PouchDB** | Standalone (default) | No está en iframe | IndexedDB del navegador |
+| **Grist** | Custom Widget | `window.self !== window.top` | Documento Grist (SQLite) |
+
+### Sync con CouchDB (opcional)
+
+- PouchDB puede sincronizar bidireccionalmente con CouchDB.
+- **Desactivado por defecto**. Se activa desde Configuración → Sincronización o con `VITE_SYNC_ENABLED=true`.
+- `pouchSync.js` maneja la replicación (live + retry + conflict resolution nativo).
+- `syncStore.svelte.js` gestiona la config (URL, credenciales, auto-sync).
+
+### Backup/restore
+
+- `src/core/data/backup.js` — exportación a `.lof` (gzip) e importación.
+- Exportar: Configuración → General → Backup y restauración.
+- Importar: Setup wizard → primera página → "¿Tenés un backup?".
+
+### Desktop vía Tauri
+
+- `src-tauri/` — configuración de Tauri 2.
+- Build Dockerizado: `scripts/tauri-docker-build.sh` (genera .deb, .rpm, AppImage).
+
+### Reglas para cambios de código
+
+- **Nunca** importar directamente de `grist/grist.js` o `pouchRepository.js` en stores o módulos. Siempre usar `dataRepository.js`.
+- `src/core/grist/` se mantiene para compatibilidad con el modo Grist Widget. No eliminar.
+- `computedFields.js` contiene los equivalentes JS de las fórmulas de Grist. Si se agrega una columna formula al schema, agregar su equivalente JS acá.
+- `TABLE_PREFERRED_IDS` (en `utils.js`) mapea keys lógicas a IDs físicos. Funciona para ambos backends.
+
 ## Entorno de shell: nvm antes de npm
 
 El host usa `nvm` para gestionar Node. **Antes de ejecutar cualquier comando `npm` (o `npx`/`node`) por primera vez en una sesión de shell**, correr primero:

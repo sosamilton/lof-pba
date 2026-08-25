@@ -35,16 +35,24 @@ Design system basado en **bits-ui** (primitivas accesibles) + **shadcn-svelte** 
 - Notificaciones toast: `svelte-sonner`.
 - Modo claro/oscuro: `mode-watcher`.
 
-### Grist como backend
+### PouchDB + CouchDB (offline-first con sync opcional)
 
-La decisión arquitectónica más importante: **no hay backend propio**. Grist es el backend. Ventajas:
+La app guarda los datos localmente en **PouchDB** (IndexedDB del navegador). Esto permite funcionar **100% offline** sin servidor. Cuando hay un servidor **CouchDB** configurado, PouchDB sincroniza bidireccionalmente y automáticamente — los cambios locales se replican al servidor y viceversa al reconectar.
 
-- **Soberanía de datos**: el documento es un SQLite exportable/respaldable.
-- **Cero infraestructura**: no hay servidor, base de datos ni API que mantener.
-- **Auditable**: fórmulas y datos visibles en el propio Grist.
-- **Autoinstalable**: Grist es software libre.
+- **Offline-first**: la app funciona sin conexión. Los datos se guardan en el navegador.
+- **Sync opcional**: si hay CouchDB, la replicación es automática y bidireccional con conflict resolution nativo de PouchDB.
+- **Soberanía de datos**: cada cooperadora tiene su propia base de datos. No hay cuenta en LOF ni datos subidos a terceros.
+- **Backup/restore**: exportación a archivo `.lof` comprimido (gzip) desde Configuración.
 
-La app se integra vía `grist-plugin-api` cargado en runtime dentro del iframe del widget. Toda la lógica de acceso vive en `core/grist/grist.js`.
+La capa de datos está desacoplada vía `dataRepository.js` (facade unificado). Los stores y módulos importan de ahí, nunca del backend directo. Esto permite soportar también **Grist** como backend alternativo (la app puede funcionar como Custom Widget de Grist).
+
+### Tauri 2 (desktop)
+
+La misma SPA se empaqueta como app de escritorio nativa para **Windows, Linux y macOS** vía Tauri 2. El build se hace en Docker (Ubuntu 22.04 con WebKitGTK) para generar paquetes `.deb`, `.rpm` y `.AppImage` sin depender del host.
+
+- **Mismo código**: la SPA servida por Tauri es la misma que corre en el navegador.
+- **Sin Electron**: Tauri usa el webview nativo del sistema (WebKitGTK en Linux, WebView2 en Windows, WKWebView en macOS). Binario pequeño (~10MB vs ~150MB de Electron).
+- **Build Dockerizado**: `scripts/tauri-docker-build.sh` compila dentro de un container con todas las dependencias nativas.
 
 ### Hash routing propio
 
@@ -75,7 +83,9 @@ CI que hace deploy a **GitHub Pages** y build/push de la imagen a **GHCR** en el
 
 | Decisión | Por qué | Trade-off |
 | --- | --- | --- |
-| Sin backend propio | Soberanía de datos, cero infraestructura. | La app solo funciona con datos dentro de Grist. |
+| PouchDB local + CouchDB sync opcional | Offline-first, soberanía de datos, sync automático. | IndexedDB tiene límites de storage en algunos navegadores. |
+| Capa de datos desacoplada (dataRepository) | Soporta PouchDB y Grist sin tocar stores. | Complejidad de mantener 2 backends. |
+| Tauri para desktop | Binario pequeño, webview nativo, sin Electron. | Requiere build Dockerizado para Linux (dependencias nativas). |
 | Sin TypeScript | Accesibilidad para contribuyentes no-tech. | Menor seguridad de tipos en tiempo de compilación (mitigado con JSDoc). |
 | Hash routing | Compatibilidad con Pages e iframes. | URLs menos "limpias" (`/#/socios`). |
 | `base: './'` | Portable a cualquier host/subpath. | No compatible con rutas absolutas en assets. |
@@ -89,6 +99,9 @@ CI que hace deploy a **GitHub Pages** y build/push de la imagen a **GHCR** en el
 - vite `^8.1`
 - @tailwindcss/vite `^4.3` / tailwindcss `^4.3`
 - bits-ui `^2.18`
+- pouchdb `^9.0`
+- fflate `^0.8` (compresión gzip para backup)
+- tauri `^2` (desktop)
 - vitest `^3.2`
 
 > Node recomendado: 24 (el CI usa 24).

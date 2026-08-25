@@ -1,27 +1,40 @@
 # Arquitectura
 
-Este documento describe la arquitectura de LOF, las capas de la aplicación, el flujo de datos y los mecanismos de integración con Grist.
+Este documento describe la arquitectura de LOF, las capas de la aplicación, el flujo de datos y los mecanismos de persistencia.
 
 ## Visión general
 
-LOF es una **SPA sin backend propio**. Toda la persistencia vive en un **documento Grist**: la app se ejecuta dentro de un iframe de Grist como *Custom Widget* y se comunica con el documento a través de `grist-plugin-api`. No hay servidor de aplicación, base de datos propia ni API intermedia: Grist **es** el backend.
+LOF es una **SPA offline-first** construida con Svelte 5. Los datos se guardan localmente en **PouchDB** (IndexedDB del navegador). Opcionalmente, se sincronizan con un servidor **CouchDB** para acceso multi-dispositivo. La app puede funcionar también como *Custom Widget* de **Grist** (backend alternativo).
+
+La capa de datos está desacoplada vía `dataRepository.js` — un facade unificado que delega al backend activo (PouchDB o Grist) según el entorno. Todos los stores y módulos importan de ahí, nunca del backend directo.
 
 ```
-┌─────────────────────────── Grist Document (host) ───────────────────────────┐
-│  Tablas: configuracion, escuela, ejercicios, personas, socios, movimientos, │
-│          cargas, cierres_mensuales, autoridades, asambleas, resoluciones,    │
-│          hechos_relevantes, cuentas, rubros_pia, ...                        │
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  LOF SPA (Svelte 5 + Vite)                                                  │
 │                                                                             │
-│   ┌──────────────────────── iframe: Custom Widget ─────────────────────┐    │
-│   │  LOF SPA (Svelte 5 + Vite)                                          │    │
-│   │                                                                     │    │
-│   │  UI ────────────► Stores (runes) ──────► core/grist/grist.js ► API   │    │
-│   │  (modules)        createGristStore()    fetchRecords/applyUserActions│   │
-│   └─────────────────────────────────────────────────────────────────────┘    │
+│  UI ────────────► Stores (runes) ──────► dataRepository.js (facade)          │
+│  (modules)        createGristStore()         ├─ PouchDB (standalone)         │
+│                                              │   ↕ sync opcional             │
+│                                              │  CouchDB (servidor remoto)    │
+│                                              └─ Grist (Custom Widget)        │
+│                                                  (backend alternativo)       │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Cuando la app se abre **fuera** de Grist (navegador directo, GitHub Pages sin iframe), no hay `grist-plugin-api` disponible y se muestra la **landing pública** o la pantalla de **NeedsAccess** según corresponda.
+### Modos de ejecución
+
+| Modo | Backend | Detección | Distribución |
+|------|---------|-----------|--------------|
+| **Standalone** | PouchDB (local) + CouchDB sync opcional | No está en iframe | Navegador, PWA, Tauri desktop |
+| **Grist Widget** | Grist (documento host) | `window.self !== window.top` | Custom Widget dentro de Grist |
+
+### Selección de backend
+
+`dataRepository.js` detecta automáticamente qué backend usar:
+
+1. `?backend=pouch` o `?backend=grist` en la URL (forzado manual)
+2. `localStorage.setItem('lof-backend', 'pouch'|'grist')` (persistente)
+3. Auto: si está en un iframe → Grist; si no → PouchDB
 
 ## Capas
 
@@ -62,22 +75,29 @@ Núcleo de la aplicación, agnóstico de la UI. Subdividido por responsabilidad:
 
 | Archivo | Responsabilidad |
 | --- | --- |
-| `grist/grist.js` | Detección de entorno, carga de `grist-plugin-api`, `fetchRecords`, `applyUserActions`, suscripciones (`onRecords`, `onOptions`, `onAccess`), resolución de tablas, access token. |
-| `grist/schema.js` | Definición declarativa de tablas y columnas requeridas (importa `schema.json`). |
-| `grist/stores/gristStore.svelte.js` | Factory `createGristStore()` que envuelve una tabla de Grist con estado reactivo (`$state`) y métodos `load/save/remove/refresh`. |
+| `data/dataRepository.js` | **Facade unificado** — punto único de acceso a datos. Delega a PouchDB o Grist según backend activo. |
+| `data/pouchRepository.js` | Implementación PouchDB: CRUD, queries, suscripciones, attachments, IDs secuenciales. |
+| `data/gristRepository.js` | Wrapper de compatibilidad — re-exporta `grist/grist.js` para el facade. |
+| `data/pouchSchema.js` | Índices PouchDB (Mango queries) y seeds. |
+| `data/pouchSync.js` | Sync bidireccional PouchDB↔CouchDB. |
+| `data/computedFields.js` | Equivalente JS de las fórmulas de Grist (lookup de persona_id, período, etc.). |
+| `data/backup.js` | Exportación/importación de backup (.lof comprimido con gzip). |
+| `data/schema.json` | Definición declarativa de tablas y columnas (JSON estático). |
+| `data/identidad.json` / `identidad.js` | Identidad institucional (nombre, principios). |
+| `data/localidades-buenos-aires.json` | Localidades de toda la Provincia de Buenos Aires. |
+| `grist/grist.js` | Integración con Grist (Custom Widget): `grist-plugin-api`, `fetchRecords`, `applyUserActions`, attachments, auth. |
+| `grist/schema.js` | `REQUIRED_TABLES` desde `schema.json` (usado en validación de schema). |
+| `grist/stores/gristStore.svelte.js` | Factory `createGristStore()` que envuelve una tabla con estado reactivo (`$state`) y métodos `load/save/remove/refresh`. |
 | `grist/stores/configStore.svelte.js` | Store para la tabla `configuracion`. |
 | `format/format.js` | Formateo para display de DNI, CUIL, teléfono, fechas y ARS. |
 | `format/emailInstitucional.js` | Generación de emails institucionales. |
 | `format/escuelas.js` | Búsqueda y validación de CUE contra índice oficial de PBA. |
 | `utils/utils.js` | Helpers genéricos: `TABLE_PREFERRED_IDS`, `MODULES`, helpers de fechas. |
 | `utils/csv.js` | Importación de seeds CSV. |
-| `ui/router.svelte.js` | Hash router reactivo; persiste `lastRoute` como widget option. |
+| `ui/router.svelte.js` | Hash router reactivo. |
 | `ui/keyboard.svelte.js` | Atajos de teclado globales. |
 | `ui/notify.svelte.js` | Wrapper sobre `svelte-sonner`. |
 | `ui/theme.js` | Tema dinámico (color de marca → OKLCH). |
-| `data/schema.json` | Definición declarativa de tablas y columnas (JSON estático). |
-| `data/identidad.json` / `identidad.js` | Identidad institucional (nombre, principios). |
-| `data/localidades-buenos-aires.json` | Localidades de toda la Provincia de Buenos Aires. |
 | `tests/` | Tests unitarios Vitest. |
 
 > **Nota:** la lógica de personas (`findOrCreatePersona`, normalización DNI/CUIL) se movió a `app/modules/comunidad/personas/personasApi.js` y la de configuración (`isInstalled()`) a `app/pages/cooperadora/cooperadoraApi.js`. Los hooks reactivos (`usePersonaSearch`, `useListFilter`, `useFieldWarnings`) se movieron a `src/lib/hooks/`.
@@ -94,37 +114,55 @@ Núcleo de la aplicación, agnóstico de la UI. Subdividido por responsabilidad:
 
 1. Un módulo llama a `store.load()` (o lo hace `onMount`).
 2. `createGristStore` resuelve el `tableId` vía `resolveTableId(TABLE_PREFERRED_IDS[tableKey])`.
-3. `fetchRecords(tableId, options)` ejecuta `grist.docApi.fetchTable`, convierte el formato columnar a registros y aplica `filter` / `columns` / `sort` / `limit` / `offset`.
+3. `fetchRecords(tableId, options)` (vía `dataRepository.js`) delega al backend activo:
+   - **PouchDB**: `db.find({ selector: { type: tableKey } })` + `computedFields` para fórmulas.
+   - **Grist**: `grist.docApi.fetchTable`, convierte formato columnar a registros.
 4. Los registros se asignan a `records = $state([...])` y la UI se actualiza por reactividad.
 
 ### Escritura
 
 1. El usuario edita un formulario (estado local del store del módulo).
 2. `beforeSave(fields, record)` normaliza/valida (ej: DNI, CUIL, limpieza de vacíos).
-3. `applyUserActions([['AddRecord' | 'UpdateRecord' | 'RemoveRecord', tableId, id, fields]])` envía la acción a Grist.
+3. `applyUserActions([['AddRecord' | 'UpdateRecord' | 'RemoveRecord', tableId, id, fields]])` (vía `dataRepository.js`) delega al backend:
+   - **PouchDB**: `db.put(doc)` con IDs secuenciales (`_local/counters`).
+   - **Grist**: envía la acción a Grist via `grist.docApi.applyUserActions`.
 4. `afterSave(record, tableId)` ejecuta lógica post-guardado (ej: refrescar registros relacionados).
-5. El store refresca `records` (vía `load()` o suscripción `onRecords`).
+5. El store refresca `records` (vía `load()` o suscripción).
 
 ### Suscripciones en vivo
 
-`grist.js` registra `grist.onRecords` y `grist.onOptions` una sola vez y multiplexa los eventos a suscriptores (patrón pub/sub interno). Esto permite que varios stores/componentes reaccionen a cambios del documento sin acoplarse directamente a la API de Grist.
+- **PouchDB**: `db.changes({ live: true })` notifica cambios. `pouchRepository.js` multiplexa a suscriptores.
+- **Grist**: `grist.onRecords` y `grist.onOptions` registrados una sola vez y multiplexados.
+
+### Sync con CouchDB
+
+Cuando hay un servidor CouchDB configurado (Configuración → Sincronización), `pouchSync.js` inicia replicación bidireccional:
+
+```
+PouchDB (local) ←→ CouchDB (remoto)
+  - live: cambios en tiempo real
+  - retry: reconexión automática
+  - conflict resolution nativo de PouchDB
+```
+
+El sync está **desactivado por defecto**. Se activa desde la UI o con `VITE_SYNC_ENABLED=true`.
 
 ## Detección de entorno
 
-`detectGrist()` (en `core/grist/grist.js`) implementa un *probe* con reintentos:
+`detectGrist()` (en `dataRepository.js` → backend activo) implementa un *probe*:
 
-1. Verifica que esté en browser y dentro de un iframe (`window.self !== window.top`).
-2. Carga `./grist-plugin-api.js` dinámicamente si no está presente.
-3. Llama a `grist.ready({ requiredAccess: 'full', allowSelectBy: true })`.
-4. Hace `docApi.listTables()` con timeout y reintentos para confirmar acceso real.
-5. Resultado: `ready` (acceso completo), `no-access` (sin permisos) o `none` (fuera de Grist).
+- **PouchDB**: verifica que IndexedDB responda (`db.info()`) y crea el índice de `type`.
+- **Grist**: verifica iframe, carga `grist-plugin-api`, llama `grist.ready()`, hace `listTables()` con timeout.
+
+Resultado: `ready` (acceso completo), `no-access` (sin permisos/IndexedDB) o `none`.
 
 `App.svelte` reacciona a ese estado:
 
 - `none` → `Landing`
-- `no-access` → `NeedsAccess`
+- `no-access` → `NeedsAccess` (Grist) o error de IndexedDB (PouchDB)
 - `ready` + no instalado → `SetupWizard`
 - `ready` + instalado → `AppShell` con la ruta actual
+- Auto-start sync si `sync_enabled` + `sync_auto` están activos
 
 ## Routing
 
@@ -146,8 +184,10 @@ Núcleo de la aplicación, agnóstico de la UI. Subdividido por responsabilidad:
 
 La app compila a **estáticos** (`dist/`) servibles desde cualquier host estático:
 
-- **GitHub Pages** — vía el workflow de Actions (canal principal).
-- **Docker + nginx** — imagen multi-stage publicada en GHCR (canal autoinstalable).
+- **Navegador / PWA** — servida por nginx, GitHub Pages o cualquier host estático. Datos en PouchDB (IndexedDB).
+- **Docker + nginx** — imagen multi-stage publicada en GHCR. Con CouchDB opcional para sync.
+- **Tauri desktop** — app nativa para Windows, Linux y macOS. Build Dockerizado para Linux.
+- **Grist Custom Widget** — cargada como widget dentro de un documento Grist.
 - **Cualquier CDN/estático** — por `base: './'` los paths son relativos.
 
-Ver [`DOCKER.md`](DOCKER.md) para el detalle contenedores.
+Ver [`DOCKER.md`](DOCKER.md) para el detalle de contenedores y [`.env.example`](.env.example) para variables de entorno.
