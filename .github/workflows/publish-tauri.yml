@@ -1,0 +1,164 @@
+name: Build & Release Tauri desktop apps
+
+# Build nativo de binarios Tauri para Linux, Windows y macOS.
+# Se dispara con el mismo patrón que deploy-pages.yml (tag v* en main)
+# y sube los artefactos a una GitHub Release asociada al tag.
+#
+# Plataformas:
+#   - Linux x64   → .AppImage + .deb
+#   - Linux arm64 → .AppImage
+#   - Windows x64 → .msi + .exe (NSIS)
+#   - macOS Arm   → .dmg (M1+)
+#   - macOS Intel → .dmg
+#
+# Code signing (opcional, via secrets):
+#   macOS:  APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY
+#   Windows: TAURI_PRIVATE_KEY, TAURI_KEY_PASSWORD (updater signature)
+#           Para code signing real de Windows hace falta un certificado EV
+#           y variables adicionales (ver docs Tauri). Sin eso, los binarios
+#           funcionan pero SmartScreen advierte al usuario.
+#
+# Si no se configuran los secrets, el build igual funciona (binarios sin firma).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag a publicar (ej: v0.1.0). Si se omite, usa el tag actual."
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tauri-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            args: "--target aarch64-apple-darwin"
+            label: macos-arm64
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+            args: "--target x86_64-apple-darwin"
+            label: macos-x64
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            args: ""
+            label: linux-x64
+          - platform: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            args: ""
+            label: linux-arm64
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            args: ""
+            label: windows-x64
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Compute version
+        id: ver
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=dev-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+            echo "tag=dev-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: ${{ matrix.label }}
+
+      - name: Install Linux dependencies
+        if: startsWith(matrix.platform, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      # Code signing de macOS (opcional — solo si están seteados los secrets)
+      - name: Import macOS certificate
+        if: matrix.platform == 'macos-latest' && env.APPLE_CERTIFICATE != ''
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
+          security create-keychain -p build build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p build build.keychain
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k build build.keychain
+
+      - name: Build & publish Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS code signing (opcional)
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          # Updater signature (opcional — para auto-update firmado)
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        with:
+          tagName: ${{ steps.ver.outputs.tag }}
+          releaseName: "LOF Desktop v${{ steps.ver.outputs.version }}"
+          releaseBody: |
+            ## LOF Desktop v${{ steps.ver.outputs.version }}
+
+            Binarios nativos para Windows, Linux y macOS.
+
+            ### Instalación
+            - **Windows**: descargar `LOF_*_x64-setup.exe` o `LOF_*_x64_en-US.msi` y ejecutar.
+            - **Linux**: descargar `LOF_*.AppImage` (portable) o `LOF_*.deb` (Debian/Ubuntu).
+            - **macOS Arm (M1+)**: descargar `LOF_*_aarch64.dmg`.
+            - **macOS Intel**: descargar `LOF_*_x64.dmg`.
+
+            > ⚠️ Si los binarios no están firmados, el SO advertirá al abrir.
+            > En macOS: click derecho → Abrir para bypassar Gatekeeper.
+            > En Windows: click en "Más información" → "Ejecutar de todas formas".
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}
+          # tauriScript: npx tauri  # descomentar si hace falta forzar el resolvedor

@@ -168,7 +168,7 @@ LOF es una SPA construida con **Svelte 5** para gestionar cooperadoras escolares
 
 ```bash
 cp .env.example .env   # solo la primera vez
-docker compose -f docker-compose.dev.yml up
+docker compose up      # standalone con CouchDB
 ```
 
 | Servicio | URL | Rol |
@@ -208,7 +208,10 @@ npm run dev          # http://localhost:5173
 
 ```bash
 # Con Docker + hot-reload + CouchDB
-docker compose -f docker-compose.dev.yml up
+docker compose up
+
+# Con Docker + Grist (alternativa)
+docker compose -f docker-compose.grist.yml up
 ```
 
 La app guarda los datos localmente en PouchDB (IndexedDB). Para sincronizar con CouchDB, ir a **Configuración → Sincronización** después de instalar.

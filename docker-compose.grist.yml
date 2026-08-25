@@ -1,0 +1,78 @@
+# docker-compose.grist.yml — entorno de DESARROLLO LOCAL con Grist como backend
+# Vite dev server con HMR + Grist + Redis + MinIO.
+# No construye el bundle: usa `npm run dev` dentro del container.
+#
+# Uso:
+#   docker compose -f docker-compose.grist.yml up
+#
+# Servicios:
+#   - Grist:         http://localhost:${GRIST_PORT:-8489}
+#   - MinIO console: http://localhost:${MINIO_CONSOLE_PORT:-9101}
+#   - Vite:          http://localhost:${DEV_PORT:-5173}  (HMR vía bind mount)
+#   - CouchDB:       http://localhost:${COUCHDB_PORT:-5984}  (sync target)
+#   - CouchDB Fauxton: http://localhost:${COUCHDB_PORT:-5984}/_utils/
+#
+# Los cambios en src/ se reflejan en caliente (HMR) gracias al volumen.
+# node_modules se mantiene en un volumen anónimo para no pisar el del host.
+# Para conectar la app: en Grist, Add Widget → Custom → URL http://localhost:5173
+# con Access level "Full document access".
+#
+# Datos de dev en ./data/grist-dev/, ./data/minio-dev/ y ./data/couchdb-dev/.
+
+include:
+  - docker/grist/docker-compose.grist.yml
+
+services:
+  # --- Overrides dev para el stack de Grist ---------------------------------
+  # Hereda toda la config del include y solo cambia ports, volumes y container.
+  grist:
+    container_name: grist-dev
+    ports:
+      - "${GRIST_PORT:-8489}:8484"
+    volumes:
+      - ${GRIST_PERSIST_DIR:-./data/grist-dev/persist}:/persist
+      - ${GRIST_DOCS_DIR:-./data/grist-dev/docs}:/docs
+    environment:
+      APP_HOME_URL: http://localhost:${GRIST_PORT:-8489}
+      # Galería de widgets apuntando al middleware dev de Vite (ver vite.config.js).
+      # Se resuelve por red interna de Docker (nombre de servicio "lof-dev", puerto
+      # interno 5173 fijo; no confundir con DEV_PORT que es solo el mapeo al host).
+      GRIST_WIDGET_LIST_URL: http://lof-dev:5173/manifest.json
+
+  redis:
+    container_name: grist-dev-redis
+
+  minio:
+    container_name: grist-dev-minio
+    ports:
+      - "${MINIO_PORT:-9100}:9000"
+      - "${MINIO_CONSOLE_PORT:-9101}:9001"
+    volumes:
+      - ${MINIO_DATA_DIR:-./data/minio-dev}:/data
+
+  minio-init:
+    container_name: grist-dev-minio-init
+
+  # --- SPA dev server -------------------------------------------------------
+  lof-dev:
+    image: node:24-alpine
+    container_name: lof-dev
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "${DEV_PORT:-5173}:5173"
+    volumes:
+      # Código fuente montado en vivo (HMR)
+      - ./:/app
+      # node_modules aislado del host para evitar conflictos de plataforma
+      - lof_node_modules:/app/node_modules
+    environment:
+      # Vite necesita esto para servir desde el container
+      - NODE_ENV=development
+      # Proxy target para /grist-api/ (ver vite.config.js). Dentro de Docker,
+      # Grist es accesible por nombre de servicio + puerto interno (no localhost).
+      - GRIST_PROXY_TARGET=http://grist:8484
+    restart: unless-stopped
+
+volumes:
+  lof_node_modules:

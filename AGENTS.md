@@ -185,7 +185,7 @@ Los movimientos pueden tener comprobantes adjuntos (facturas, recibos, tickets).
 
 - **Dev (Vite)**: `vite.config.js` proxy `/grist-api` → `GRIST_PROXY_TARGET || http://localhost:8489`, rewrite strips `/grist-api` prefix, `configure` remueve headers `Origin` y `Referer`.
 - **Prod (nginx)**: `docker/nginx.conf` location `/grist-api/` → `http://grist:8484/`, `proxy_set_header Origin ""`.
-- **Docker**: `docker-compose.dev.yml` setea `GRIST_PROXY_TARGET=http://grist:8484` (Grist accesible por nombre de servicio dentro de la red Docker).
+- **Docker**: `docker-compose.grist.yml` setea `GRIST_PROXY_TARGET=http://grist:8484` (Grist accesible por nombre de servicio dentro de la red Docker).
 
 ### Attachments huérfanos
 
