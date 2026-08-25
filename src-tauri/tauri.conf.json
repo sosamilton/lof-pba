@@ -38,7 +38,7 @@
     "category": "Productivity",
     "shortDescription": "Gestión de cooperadoras escolares de PBA",
     "longDescription": "LOF es una aplicación para gestionar cooperadoras escolares de la Provincia de Buenos Aires: tesorería, comunidad, gobierno institucional y cierre de ciclo.",
-    "createUpdaterArtifacts": true
+    "createUpdaterArtifacts": false
   },
   "plugins": {
     "updater": {
