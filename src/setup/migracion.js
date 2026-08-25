@@ -1,8 +1,9 @@
-import { addRecords, applyUserActions, fetchRecords, resolveTableId } from '$core/grist/grist'
+import { addRecords, applyUserActions, fetchRecords, fetchTableData, resolveTableId, extractAttachmentIds, toAttachmentCellValue } from '$core/grist/grist'
 import { parseDni as normalizeDni } from '$core/format/format'
-import { TABLE_PREFERRED_IDS, normalize } from '$core/utils/utils'
+import { TABLE_PREFERRED_IDS, normalize, todayISO } from '$core/utils/utils'
 import { loadSeedCsv } from '$setup/initLof'
 import { csvToObjects, normalizeSeedValue, parseCsv } from '$core/utils/csv'
+import { extractRowId } from '$app/modules/comunidad/personas/personasApi.js'
 
 /**
  * Semilla de subrubros "oficiales" que el sistema conoce de antemano (no son
@@ -159,6 +160,116 @@ const CAMPO_PDF_FIXES = {
   'GP-KIOSCO': { old: 'Texto46', new: 'Texto53' },
   'GP-OTROS': { old: 'Texto47', new: 'GASTOS D|Texto54;GASTOS E|Texto55' },
   'OG-OTROS': { old: 'GASTOS D|Texto54;GASTOS E|Texto55', new: 'Texto50|Texto56;Texto49|Texto57' },
+}
+
+/**
+ * Corrige el tipo de la columna `escuela.estatuto` en instalaciones donde
+ * fue creada con el tipo inválido `Attachment` (singular) en lugar de
+ * `Attachments` (plural, el único tipo válido de Grist para adjuntos).
+ *
+ * El bug se introdujo en el commit e3ee918 (feat institucional estatuto) y
+ * provocaba `AttributeError: module 'grist' has no attribute 'Attachment'`
+ * al procesar la columna en el sandbox de Grist. Con el schema corregido,
+ * `ensureSchema` crea la columna correctamente en instalaciones nuevas; esta
+ * migración reparadora cubre las instalaciones que ya tenían la columna
+ * rota (ModifyColumn cambia el tipo sin perder datos).
+ *
+ * Idempotente: solo actúa si la columna existe con tipo `Attachment`.
+ *
+ * @returns {Promise<{fixed: number, reason?: string}>}
+ */
+export const fixEstatutoColumnType = async () => {
+  const tEscuela = await resolveTableId(TABLE_PREFERRED_IDS.escuela)
+  if (!tEscuela) return { fixed: 0, reason: 'no-table' }
+
+  const tablesMeta = await fetchTableData('_grist_Tables')
+  const colsMeta = await fetchTableData('_grist_Tables_column')
+  if (!tablesMeta?.id || !colsMeta?.id) return { fixed: 0, reason: 'no-meta' }
+
+  // Resolver el rowId de la tabla escuela en _grist_Tables
+  const tableRowId = (() => {
+    for (let i = 0; i < tablesMeta.id.length; i += 1) {
+      if (String(tablesMeta.tableId[i] || '').toLowerCase() === String(tEscuela).toLowerCase()) {
+        return tablesMeta.id[i]
+      }
+    }
+    return null
+  })()
+  if (tableRowId == null) return { fixed: 0, reason: 'no-table-row' }
+
+  // Buscar la columna estatuto y verificar su tipo actual
+  for (let i = 0; i < colsMeta.id.length; i += 1) {
+    if (colsMeta.parentId[i] !== tableRowId) continue
+    if (String(colsMeta.colId[i] || '') !== 'estatuto') continue
+    const currentType = String(colsMeta.type[i] || '')
+    if (currentType === 'Attachment') {
+      await applyUserActions([
+        ['ModifyColumn', tEscuela, 'estatuto', { type: 'Attachments' }],
+      ])
+      return { fixed: 1 }
+    }
+    return { fixed: 0, reason: `type-ok (${currentType})` }
+  }
+  // La columna no existe todavía: ensureSchema la creará con el tipo correcto.
+  return { fixed: 0, reason: 'no-column' }
+}
+
+/**
+ * Migra el estatuto del modelo legacy (celda `escuela.estatuto` tipo
+ * Attachments) al nuevo modelo (tabla `estatutos` + `escuela.estatuto_actual_id`
+ * Ref a la versión vigente).
+ *
+ * El nuevo modelo permite conservar el historial de versiones del estatuto:
+ * cada reforma aprobada por AGE crea un nuevo registro en `estatutos`, y
+ * `escuela.estatuto_actual_id` apunta a la versión vigente. Las versiones
+ * anteriores quedan en la tabla para auditoría.
+ *
+ * Esta migración corre una sola vez por instalación: si `estatuto_actual_id`
+ * ya está seteado, no hace nada. Si hay un attachment en `escuela.estatuto`
+ * (legacy) pero `estatuto_actual_id` está vacío, crea un registro en
+ * `estatutos` con ese attachment y lo vincula.
+ *
+ * Requiere que ensureSchema haya creado la tabla `estatutos` y la columna
+ * `escuela.estatuto_actual_id` antes.
+ *
+ * @returns {Promise<{migrated: number, reason?: string}>}
+ */
+export const migrarEstatutoATabla = async () => {
+  const tEscuela = await resolveTableId(TABLE_PREFERRED_IDS.escuela)
+  const tEstatutos = await resolveTableId(TABLE_PREFERRED_IDS.estatutos)
+  if (!tEscuela || !tEstatutos) return { migrated: 0, reason: 'no-table' }
+
+  const escuela = await fetchRecords(tEscuela)
+  if (!escuela || escuela.length === 0) return { migrated: 0, reason: 'no-escuela' }
+  const rec = escuela[0]
+
+  // Si ya tiene estatuto_actual_id vinculado, no migrar
+  if (rec.estatuto_actual_id != null && rec.estatuto_actual_id !== '') {
+    return { migrated: 0, reason: 'already-migrated' }
+  }
+
+  // Si no hay estatuto legacy, no hay nada que migrar
+  const legacyIds = extractAttachmentIds(rec.estatuto)
+  if (legacyIds.length === 0) {
+    return { migrated: 0, reason: 'no-legacy' }
+  }
+
+  // Crear registro en estatutos con el attachment legacy
+  const fields = {
+    estatuto: toAttachmentCellValue(legacyIds),
+    fecha_desde: todayISO(),
+    notas: 'Migrado desde versión anterior',
+  }
+  const res = await applyUserActions([['AddRecord', tEstatutos, null, fields]])
+  const newRowId = extractRowId(res)
+  if (newRowId == null) return { migrated: 0, reason: 'no-row-id' }
+
+  // Vincular estatuto_actual_id al nuevo registro
+  await applyUserActions([
+    ['UpdateRecord', tEscuela, rec.id, { estatuto_actual_id: newRowId }],
+  ])
+
+  return { migrated: 1 }
 }
 
 export const fixRubrosPiaCampoPdf = async () => {
