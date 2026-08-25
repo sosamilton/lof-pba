@@ -1,0 +1,82 @@
+# Docker para build de Tauri (Linux)
+#
+# Tauri en Linux requiere webkit2gtk, GTK, glib y otras system libs.
+# Este Dockerfile las preinstala para que `npm run tauri:build` funcione
+# sin tener que instalar nada en el host.
+#
+# Uso:
+#   docker build -t lof-tauri-builder -f docker/Dockerfile.tauri .
+#   docker run --rm -v $(pwd):/app -v lof-cargo-cache:/root/.cargo -v lof-node-cache:/root/.npm lof-tauri-builder
+#
+# El binario compilado queda en src-tauri/target/release/bundle/
+
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=C.UTF-8
+
+# System dependencies for Tauri on Linux
+# https://tauri.app/start/prerequisites/#linux
+RUN apt-get update && apt-get install -y \
+    # Build tools
+    build-essential \
+    curl \
+    wget \
+    file \
+    pkg-config \
+    # Tauri / webkit2gtk dependencies
+    libwebkit2gtk-4.1-dev \
+    libjavascriptcoregtk-4.1-dev \
+    libsoup-3.0-dev \
+    # GTK / glib
+    libgtk-3-dev \
+    libglib2.0-dev \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libatk1.0-dev \
+    libgdk-pixbuf2.0-dev \
+    # Audio/video (optional but recommended)
+    libgstreamer1.0-dev \
+    libgstreamer-plugins-base1.0-dev \
+    gstreamer1.0-plugins-good \
+    gstreamer1.0-plugins-bad \
+    gstreamer1.0-plugins-ugly \
+    gstreamer1.0-libav \
+    # AppImage dependencies
+    libfuse2 \
+    fuse \
+    # Other
+    librsvg2-dev \
+    libssl-dev \
+    libayatana-appindicator3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 24 via nvm
+ENV NVM_DIR=/root/.nvm
+ENV NODE_VERSION=24
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash \
+    && . $NVM_DIR/nvm.sh \
+    && nvm install $NODE_VERSION \
+    && nvm use $NODE_VERSION \
+    && nvm alias default $NODE_VERSION
+
+# Create a stable symlink so PATH doesn't depend on patch version
+RUN . $NVM_DIR/nvm.sh && NODE_DIR=$(dirname $(which node)) && ln -sf "$NODE_DIR" /root/.nvm/versions/node/v24-latest
+
+# Ensure node/npm/cargo are in PATH for all future shells
+# v24-latest is a symlink to the bin/ directory of the installed node version
+ENV PATH=/root/.nvm/versions/node/v24-latest:/root/.cargo/bin:$PATH
+
+# Install Rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+# Install additional Linux build tools for .deb and .AppImage
+RUN apt-get update && apt-get install -y \
+    dpkg \
+    dpkg-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Default command: build the Tauri app
+CMD ["sh", "-c", "npm ci && npm run tauri:build"]
