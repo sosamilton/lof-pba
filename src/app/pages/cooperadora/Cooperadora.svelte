@@ -27,7 +27,9 @@
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
   import EstatutoField from './components/EstatutoField.svelte'
   import FileTextIcon from '@lucide/svelte/icons/file-text'
-  import { extractAttachmentIds } from '$core/grist/grist'
+  import DownloadIcon from '@lucide/svelte/icons/download'
+  import { formatFecha } from '$core/format/format'
+  import { extractAttachmentIds, getAttachmentUrl } from '$core/grist/grist'
 
   let dialogEjercicioAbierto = $state(false)
   let ejercicioEditandoId = $state(null)
@@ -169,7 +171,7 @@
   const emailEscuelaBloqueado = $derived(escuelaValidada && !emailEscuelaDirty && Boolean(emailEscuelaAlias))
 
   // Estatuto
-  const estatutoAttachmentId = $derived(extractAttachmentIds(store.escuela?.estatuto)[0] ?? null)
+  const estatutoAttachmentId = $derived(store.estatutoVigenteAttachmentId)
   const estatutoValidado = $derived(store.escuela?.estatuto_validado === true)
 
   const handleEstatutoChange = async (/** @type {number | null} */ attId) => {
@@ -179,7 +181,7 @@
   const confirmarValidarEstatuto = () => {
     openConfirm({
       title: '¿Validar y bloquear el estatuto?',
-      description: 'Una vez validado, el estatuto no podrá reemplazarse desde la app. Si necesitás cambiarlo, podés modificarlo directamente en las tablas de Grist.',
+      description: 'Una vez validado, el estatuto no podrá reemplazarse desde la app. Para cambiarlo, registrá una Asamblea Extraordinaria con motivo "Reforma estatuto" en Asambleas y Memorias; al guardarla, la edición se habilitará automáticamente.',
       confirmLabel: 'Validar y bloquear',
       variant: 'default',
       onConfirm: () => store.validarEstatuto(),
@@ -349,7 +351,7 @@
               {/if}
             </Card.Title>
             <Card.Description>
-              Subí el PDF del estatuto de la cooperadora. Una vez validado, queda bloqueado para evitar cambios accidentales.
+              Subí el PDF del estatuto de la cooperadora. Una vez validado, queda bloqueado para evitar cambios accidentales. Para reemplazarlo, registrá una Asamblea Extraordinaria con motivo "Reforma estatuto" en Asambleas y Memorias.
             </Card.Description>
           </Card.Header>
           <Card.Content>
@@ -362,6 +364,57 @@
             />
           </Card.Content>
         </Card.Root>
+
+        {#if store.estatutos.length > 0}
+          <Card.Root>
+            <Card.Header>
+              <Card.Title class="text-base flex items-center gap-2">
+                <HistoryIcon data-icon="inline-start" />
+                Historial de versiones
+              </Card.Title>
+              <Card.Description>
+                Versiones anteriores del estatuto conservadas para auditoría.
+              </Card.Description>
+            </Card.Header>
+            <Card.Content>
+              <div class="flex flex-col gap-2">
+                {#each store.estatutos as est}
+                  {@const attId = extractAttachmentIds(est.estatuto)[0] ?? null}
+                  {@const isVigente = Number(est.id) === Number(store.escuela?.estatuto_actual_id)}
+                  <div class="flex items-center gap-2 rounded-md border border-border px-3 py-2">
+                    <FileTextIcon class="size-4 text-muted-foreground shrink-0" />
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm truncate">
+                        {formatFecha(est.fecha_desde) || 'Sin fecha'}
+                        {#if est.notas}<span class="text-muted-foreground"> — {est.notas}</span>{/if}
+                      </p>
+                    </div>
+                    {#if isVigente}
+                      <Badge variant="secondary" class="shrink-0">Vigente</Badge>
+                    {/if}
+                    {#if attId}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        class="h-7 w-7 p-0 shrink-0"
+                        onclick={async () => {
+                          try {
+                            const url = await getAttachmentUrl(attId)
+                            window.open(url, '_blank', 'noopener,noreferrer')
+                          } catch (e) { console.error(e) }
+                        }}
+                        aria-label="Descargar versión"
+                        title="Descargar/ver"
+                      >
+                        <DownloadIcon class="size-4" />
+                      </Button>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+            </Card.Content>
+          </Card.Root>
+        {/if}
       </Tabs.Content>
     </Tabs.Root>
   </div>

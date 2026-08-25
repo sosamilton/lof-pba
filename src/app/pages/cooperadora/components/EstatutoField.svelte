@@ -97,7 +97,7 @@
       <CheckCircleIcon data-icon="inline-start" />
       <Alert.Title>Estatuto validado</Alert.Title>
       <Alert.Description>
-        El estatuto fue verificado y bloqueado. Para reemplazarlo, pedí a alguien con acceso a Grist que modifique la tabla directamente.
+        El estatuto fue verificado y bloqueado. Para reemplazarlo, registrá una Asamblea Extraordinaria con motivo "Reforma estatuto" en Asambleas y Memorias; al guardarla, la edición se habilitará automáticamente.
       </Alert.Description>
     </Alert.Root>
   {/if}

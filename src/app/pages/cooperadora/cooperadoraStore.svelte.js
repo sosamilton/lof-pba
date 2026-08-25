@@ -9,7 +9,7 @@ import {
   extractAttachmentIds,
   toAttachmentCellValue,
 } from '$core/grist/grist'
-import { normalizeFields, TABLE_PREFERRED_IDS } from '$core/utils/utils'
+import { normalizeFields, TABLE_PREFERRED_IDS, todayISO } from '$core/utils/utils'
 import { loadConfig, saveConfig } from './cooperadoraApi.js'
 import { configStore } from '$core/grist/stores/configStore.svelte'
 import { notify } from '$core/ui/notify.svelte'
@@ -26,6 +26,7 @@ import {
 } from '$core/format/format.js'
 import { createEjerciciosStore } from './ejerciciosStore.svelte.js'
 import { createCargosStore } from './cargosStore.svelte.js'
+import { extractRowId } from '$app/modules/comunidad/personas/personasApi.js'
 
 const bs = createBaseState()
 
@@ -46,6 +47,8 @@ let tAutoridades = $state(null)
 let tMovimientos = $state(null)
 /** @type {string | null} */
 let tAsambleas = $state(null)
+/** @type {string | null} */
+let tEstatutos = $state(null)
 
 // --- Configuración (escuela, banco, kiosco) — permanece en el store principal ---
 /** @type {Record<string, any>} */
@@ -59,6 +62,13 @@ let kiosco = $state({})
 // al guardar una AGE con motivo "Reforma estatuto".
 let cargos_validados = $state(false)
 let federacion_adherida = $state(false)
+// Histórico de versiones del estatuto (tabla `estatutos`). El vigente es el
+// apuntado por escuela.estatuto_actual_id.
+let estatutos = $state([])
+// ID de la asamblea de reforma pendiente: cuando se guarda una AGE con motivo
+// "Reforma estatuto", se desbloquea el estatuto y se guarda el asambleaId acá
+// para vincularlo al nuevo registro de estatuto que se cree al reemplazarlo.
+let _asambleaReformaPendiente = $state(null)
 
 // --- Sub-stores (composición) ---
 const ejerciciosMgr = createEjerciciosStore({
@@ -102,6 +112,7 @@ const load = async () => {
     tAutoridades = await resolveTableId(TABLE_PREFERRED_IDS.autoridades)
     tAsambleas = await resolveTableId(TABLE_PREFERRED_IDS.asambleas)
     tMovimientos = await resolveTableId(TABLE_PREFERRED_IDS.movimientos)
+    tEstatutos = await resolveTableId(TABLE_PREFERRED_IDS.estatutos)
     escuela = (await ensureOneRow(tEscuela)) || {}
     banco = (await ensureOneRow(tBanco)) || {}
     kiosco = (await ensureOneRow(tKiosco)) || {}
@@ -118,6 +129,13 @@ const load = async () => {
     await cargosMgr.loadCargos()
     await cargosMgr.loadAutoridades()
     await cargosMgr.loadAsambleas()
+    // Cargar histórico de estatutos (tabla nueva). Opcional: puede no existir
+    // si el schema no se actualizó todavía.
+    if (tEstatutos) {
+      estatutos = await fetchRecords(tEstatutos, {
+        sort: (a, b) => String(b.fecha_desde || '').localeCompare(String(a.fecha_desde || '')),
+      })
+    }
   } catch (e) { bs.setError(e?.message || String(e)) } finally { bs.setLoading(false) }
 }
 
@@ -171,28 +189,66 @@ const validarBanco = async () => {
 
 // --- Estatuto (PDF adjunto) ---
 
-// Guarda el attachment ID del estatuto en la tabla escuela.
+// Guarda el attachment ID del estatuto. En el nuevo modelo, crea un registro
+// en la tabla `estatutos` y actualiza `escuela.estatuto_actual_id` para
+// apuntar a la versión vigente. El registro anterior queda como histórico.
+// Si attId es null, desvincula el estatuto actual (sin borrar el histórico).
 const saveEstatuto = async (/** @type {number | null} */ attId) => {
   await bs.wrapAsync(async () => {
     if (!tEscuela) { bs.setError('No se encontró la tabla escuela.'); return }
-    const cellValue = attId ? toAttachmentCellValue([attId]) : null
-    await applyUserActions([['UpdateRecord', tEscuela, escuela.id, { estatuto: cellValue }]])
-    escuela.estatuto = cellValue
-    bs.setNotice(attId ? 'Estatuto guardado.' : 'Estatuto eliminado.'); notify.success(bs.notice)
+    if (!tEstatutos) { bs.setError('No se encontró la tabla estatutos. Ejecutá "Actualizar schema" en Inicio.'); return }
+    if (attId == null) {
+      // Desvincular el estatuto vigente (no borra el registro histórico)
+      await applyUserActions([['UpdateRecord', tEscuela, escuela.id, { estatuto_actual_id: null }]])
+      escuela.estatuto_actual_id = null
+      bs.setNotice('Estatuto desvinculado.'); notify.success(bs.notice)
+      return
+    }
+    // Crear registro en estatutos con el nuevo PDF
+    const fields = {
+      estatuto: toAttachmentCellValue([attId]),
+      fecha_desde: todayISO(),
+      asamblea_id: _asambleaReformaPendiente ?? null,
+      notas: _asambleaReformaPendiente ? 'Reemplazado por reforma de estatuto' : '',
+    }
+    const res = await applyUserActions([['AddRecord', tEstatutos, null, fields]])
+    const newRowId = extractRowId(res)
+    if (newRowId == null) { bs.setError('No se pudo crear el registro del estatuto.'); return }
+    // Actualizar estatuto_actual_id en escuela
+    await applyUserActions([['UpdateRecord', tEscuela, escuela.id, { estatuto_actual_id: newRowId }]])
+    escuela.estatuto_actual_id = newRowId
+    // Limpiar la asamblea pendiente (ya se usó para vincular)
+    _asambleaReformaPendiente = null
+    // Recargar histórico
+    estatutos = await fetchRecords(tEstatutos, {
+      sort: (a, b) => String(b.fecha_desde || '').localeCompare(String(a.fecha_desde || '')),
+    })
+    bs.setNotice('Estatuto guardado.'); notify.success(bs.notice)
   })
 }
 
-// Valida (bloquea) el estatuto. Una vez validado, no se puede reemplazar desde la app.
+// Valida (bloquea) el estatuto. Una vez validado, no se puede reemplazar desde
+// la app hasta que se registre una AGE con motivo "Reforma estatuto".
 const validarEstatuto = async () => {
   await bs.wrapAsync(async () => {
     if (!tEscuela) { bs.setError('No se encontró la tabla escuela.'); return }
-    if (!extractAttachmentIds(escuela.estatuto).length) {
+    if (!escuela.estatuto_actual_id) {
       bs.setError('No hay estatuto cargado para validar.'); notify.error(bs.error); return
     }
     await applyUserActions([['UpdateRecord', tEscuela, escuela.id, { estatuto_validado: true }]])
     escuela.estatuto_validado = true
     bs.setNotice('Estatuto validado y bloqueado.'); notify.success(bs.notice)
   })
+}
+
+// Desbloquea el estatuto (lo vuelve reemplazable). Se invoca desde el módulo
+// de Asambleas al guardar una AGE con motivo "Reforma estatuto". Guarda el
+// asambleaId para vincularlo al nuevo registro de estatuto que se cree.
+const desbloquearEstatuto = async (/** @type {number | null} */ asambleaId = null) => {
+  if (!tEscuela) return
+  await applyUserActions([['UpdateRecord', tEscuela, escuela.id, { estatuto_validado: false }]])
+  escuela.estatuto_validado = false
+  _asambleaReformaPendiente = asambleaId
 }
 
 // Verifica (bloquea) la estructura de cargos del estatuto. Una vez
@@ -271,9 +327,21 @@ export const cooperadoraStore = {
   validarCargos,
   saveEstatuto,
   validarEstatuto,
+  desbloquearEstatuto,
   desbloquearCargos,
   get cargos_validados() { return cargos_validados },
   get federacion_adherida() { return federacion_adherida },
+  // Estatuto: histórico de versiones + vigente (resuelto desde estatuto_actual_id)
+  get estatutos() { return estatutos },
+  get estatutoVigente() {
+    const vid = escuela?.estatuto_actual_id
+    if (vid == null || vid === '') return null
+    return estatutos.find((e) => Number(e.id) === Number(vid)) || null
+  },
+  get estatutoVigenteAttachmentId() {
+    const v = estatutos.find((e) => Number(e.id) === Number(escuela?.estatuto_actual_id || 0))
+    return v ? (extractAttachmentIds(v.estatuto)[0] ?? null) : null
+  },
   toggleFederacion,
   // Ejercicios (delegado a sub-store)
   get ejercicios() { return ejerciciosMgr.ejercicios },
