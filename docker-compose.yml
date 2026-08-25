@@ -1,47 +1,64 @@
-# docker-compose.yml — entorno PRODUCTIVO: Grist + LOF SPA
-#
-# Levanta Grist (backend + Redis + MinIO snapshots) y la SPA (frontend),
-# listos para usar y 100% offline.
+# docker-compose.yml — entorno de DESARROLLO LOCAL (standalone con CouchDB)
+# Vite dev server con HMR + CouchDB (sync opcional).
+# No construye el bundle: usa `npm run dev` dentro del container.
 #
 # Uso:
-#   docker compose up -d --build       # construye la SPA y levanta todo
-#   docker compose up -d               # usa imagen de GHCR si ya existe
+#   docker compose up
 #
-# Puertos:
-#   - Grist:         http://localhost:${GRIST_PORT:-8089}
-#   - MinIO console: http://localhost:${MINIO_CONSOLE_PORT:-9001}
-#   - LOF:           http://localhost:${APP_PORT:-8088}
+# Servicios:
+#   - Vite:          http://localhost:${DEV_PORT:-5173}  (HMR vía bind mount)
+#   - CouchDB:       http://localhost:${COUCHDB_PORT:-5984}  (sync target)
+#   - CouchDB Fauxton: http://localhost:${COUCHDB_PORT:-5984}/_utils/
 #
-# Persistencia (bind mounts en ./data/):
-#   - ./data/grist/persist  — documento Grist (SQLite), usuarios, sesiones
-#   - ./data/grist/docs     — documentos importados/exportados
-#   - ./data/minio          — snapshots versionados (S3-compatible)
+# Los cambios en src/ se reflejan en caliente (HMR) gracias al volumen.
+# node_modules se mantiene en un volumen anónimo para no pisar el del host.
+# La app guarda datos localmente en PouchDB (IndexedDB). CouchDB es opcional
+# para sync — se activa desde Configuración → Sincronización.
 #
-# Config: copiar docker/grist/grist.env.example a .env y personalizar.
-# Ver docs/DOCKER.md para detalles.
-
-include:
-  - docker/grist/docker-compose.grist.yml
+# Para usar con Grist: ver docker-compose.grist.yml (incluye Grist + MinIO + Redis).
+#
+# Datos de dev en ./data/couchdb-dev/.
 
 services:
-  grist:
-    environment:
-      # Galería de widgets: le permite a Grist mostrar "LOF" en la lista al
-      # elegir Custom Widget, sin que el usuario tenga que copiar/pegar la URL.
-      # Se resuelve por red interna de Docker (nombre de servicio "lof").
-      GRIST_WIDGET_LIST_URL: http://lof/manifest.json
-
-  lof:
-    image: ghcr.io/${IMAGE_REPO:-sosamilton/lof-pba}:${IMAGE_TAG:-latest}
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: lof
+  # --- SPA dev server -------------------------------------------------------
+  lof-dev:
+    image: node:24-alpine
+    container_name: lof-dev
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
     ports:
-      - "${APP_PORT:-8088}:80"
+      - "${DEV_PORT:-5173}:5173"
+    volumes:
+      # Código fuente montado en vivo (HMR)
+      - ./:/app
+      # node_modules aislado del host para evitar conflictos de plataforma
+      - lof_node_modules:/app/node_modules
     environment:
-      # URL pública (accesible desde el navegador) que Grist va a embeber como
-      # widget. Si cambiás APP_PORT o servís detrás de un dominio propio,
-      # ajustá esta variable para que coincida con lo que ve el usuario.
-      LOF_PUBLIC_URL: ${LOF_PUBLIC_URL:-http://localhost:${APP_PORT:-8088}/}
+      # Vite necesita esto para servir desde el container
+      - NODE_ENV=development
+      # CouchDB sync: pre-configura URL/credenciales en la UI de Configuración.
+      # VITE_SYNC_ENABLED=true activa sync por defecto (se puede apagar desde la UI).
+      - VITE_SYNC_ENABLED=true
+      - VITE_COUCHDB_URL=http://localhost:${COUCHDB_PORT:-5984}/lof
+      - VITE_COUCHDB_USER=${COUCHDB_USER:-admin}
+      - VITE_COUCHDB_PASSWORD=${COUCHDB_PASSWORD:-admin}
     restart: unless-stopped
+
+  # --- CouchDB (sync target para PouchDB) -----------------------------------
+  # PouchDB se sincroniza bidireccionalmente con esta instancia.
+  # En dev, admin/admin por defecto. En prod, usar COUCHDB_USER/PASSWORD fuertes.
+  couchdb:
+    image: couchdb:3
+    container_name: lof-dev-couchdb
+    ports:
+      - "${COUCHDB_PORT:-5984}:5984"
+    volumes:
+      - ${COUCHDB_DATA_DIR:-./data/couchdb-dev}:/opt/couchdb/data
+    environment:
+      - COUCHDB_USER=${COUCHDB_USER:-admin}
+      - COUCHDB_PASSWORD=${COUCHDB_PASSWORD:-admin}
+      - COUCHDB_SINGLE_NODE=true
+    restart: unless-stopped
+
+volumes:
+  lof_node_modules:

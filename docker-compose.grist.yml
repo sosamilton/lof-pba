@@ -1,21 +1,23 @@
-# docker-compose.dev.yml — entorno de DESARROLLO LOCAL
-# Vite dev server con HMR montando el código en volumen + Grist (backend).
+# docker-compose.grist.yml — entorno de DESARROLLO LOCAL con Grist como backend
+# Vite dev server con HMR + Grist + Redis + MinIO.
 # No construye el bundle: usa `npm run dev` dentro del container.
 #
 # Uso:
-#   docker compose -f docker-compose.dev.yml up
+#   docker compose -f docker-compose.grist.yml up
 #
 # Servicios:
 #   - Grist:         http://localhost:${GRIST_PORT:-8489}
 #   - MinIO console: http://localhost:${MINIO_CONSOLE_PORT:-9101}
 #   - Vite:          http://localhost:${DEV_PORT:-5173}  (HMR vía bind mount)
+#   - CouchDB:       http://localhost:${COUCHDB_PORT:-5984}  (sync target)
+#   - CouchDB Fauxton: http://localhost:${COUCHDB_PORT:-5984}/_utils/
 #
 # Los cambios en src/ se reflejan en caliente (HMR) gracias al volumen.
 # node_modules se mantiene en un volumen anónimo para no pisar el del host.
 # Para conectar la app: en Grist, Add Widget → Custom → URL http://localhost:5173
 # con Access level "Full document access".
 #
-# Datos de dev en ./data/grist-dev/ y ./data/minio-dev/ (separados de prod).
+# Datos de dev en ./data/grist-dev/, ./data/minio-dev/ y ./data/couchdb-dev/.
 
 include:
   - docker/grist/docker-compose.grist.yml

@@ -14,19 +14,19 @@
   <a href="https://github.com/sosamilton/spa-cooperadora/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/sosamilton/spa-cooperadora?style=flat" /></a>
   <a href="https://github.com/sosamilton/spa-cooperadora/issues"><img alt="Issues" src="https://img.shields.io/github/issues/sosamilton/spa-cooperadora" /></a>
   <img alt="Svelte 5" src="https://img.shields.io/badge/Svelte-5-ff3e00.svg" />
-  <img alt="Grist" src="https://img.shields.io/badge/backend-Grist-d4a928.svg" />
+  <img alt="PouchDB" src="https://img.shields.io/badge/storage-PouchDB%2FCouchDB-e74c3c.svg" />
+  <img alt="Tauri" src="https://img.shields.io/badge/desktop-Tauri%202-blueviolet.svg" />
 </p>
 
 <p align="center">
   <a href="https://sosamilton.github.io/spa-cooperadora/">Demo</a> ·
   <a href="https://github.com/sosamilton/spa-cooperadora">Repositorio</a> ·
-  <a href="docs/">Documentación</a> ·
-  <a href="https://www.getgrist.com/">Grist</a>
+  <a href="docs/">Documentación</a>
 </p>
 
 ---
 
-LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* dentro de un documento [Grist](https://www.getgrist.com/). No tiene backend propio: lee y escribe directamente en las tablas del documento. Pensada para funcionar **100% offline**, sin CDNs, APIs externas ni telemetría.
+LOF es una SPA construida con **Svelte 5** para gestionar cooperadoras escolares de la Provincia de Buenos Aires. Funciona **100% offline** con almacenamiento local (PouchDB/IndexedDB), sincronización opcional con CouchDB, y puede distribuirse como app de escritorio vía **Tauri** (Windows, Linux, macOS).
 
 > Construida con software libre bajo AGPL-3.0. Pensada desde el territorio, para compañeras y compañeros sin conocimientos técnicos.
 
@@ -40,6 +40,15 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 - **Color de marca** como tema primario de la app (conversión a OKLCH para light/dark mode).
 - **Bloqueo de datos validados**: una vez validados, los datos institucionales y bancarios no se pueden editar sin re-validar.
 - **Módulo Kiosco/Librería** opcional (propio o licitado, con fechas de contrato).
+
+</details>
+
+<details>
+<summary><strong>Página de Configuración</strong></summary>
+
+- **General** — modalidad de gestión, periodicidad (mensual, semanal, trimestral, semestral, anual), versión instalada vs. última disponible, revalidar schema, reparar referencias rotas, deduplicar personas por DNI.
+- **Categorías y subcategorías** — listado de rubros PIA agrupados por grupo, con CRUD completo de subrubros. Activar/desactivar subrubros sin borrarlos (los desactivados no aparecen al cargar movimientos nuevos, pero siguen asignados a los existentes). Bloqueo de eliminación de subrubros en uso.
+- **Reactividad en vivo** — cambios de marca (nombre, color) se reflejan inmediatamente en toda la app sin recargar.
 
 </details>
 
@@ -73,7 +82,7 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 <details>
 <summary><strong>Tesorería</strong></summary>
 
-- **Movimientos** — entradas, salidas y traspasos con rubro/subrubro según PIA, destino bancario (Cuenta corriente / Plazo fijo), socio o persona asociada, y combobox con búsqueda para listas grandes. Filtrado de rubros por tipo, subrubros dinámicos por rubro. Filtros por rubro, ejercicio, período y persona (ejercicio en curso seleccionado por defecto). Selector de ejercicio con label "en curso".
+- **Movimientos** — entradas, salidas y traspasos con rubro/subrubro según PIA, destino bancario (Cuenta corriente / Plazo fijo), socio o persona asociada, y combobox con búsqueda para listas grandes. Filtrado de rubros por tipo, subrubros dinámicos por rubro. Filtros por rubro, ejercicio, período y persona (ejercicio en curso seleccionado por defecto). Selector de ejercicio con label "en curso". **Comprobantes adjuntos**: subí facturas, recibos o tickets a cada movimiento; los archivos quedan vinculados al movimiento y se pueden descargar o previsualizar cuando quieras.
 - **Cuota societaria rápida** — atajo Ctrl+1 o botón para pre-cargar movimiento de cuota social en un click.
 - **Gestión por etapas (carga consolidada)** — matriz de carga por rubro con múltiples filas por cuenta (hasta 3), importe en formato pesos argentinos ($ 1.234,56). Layout de dos columnas (lista de períodos + matriz editable) igual que Comunidad. Múltiples cargas por período: cada carga es una carga parcial que se consolida al firmar el período. Selector de carga dentro del período. Firma y cierre a nivel período (bloquea todas las cargas). Reapertura devuelve todas las cargas a borrador. Períodos firmados son read-only.
 - **Periodicidad configurable** — elegí con qué frecuencia gestionás la tesorería: mensual, semanal, trimestral, semestral o anual. Se configura en Inicio → Configuración y se aplica a resúmenes, gráficos, tablas y cargas. Las cargas mensuales existentes se agrupan automáticamente en bloques (trimestral/semestral/anual) sin migrar datos. Etiquetas de períodos con rangos de fechas claros (ej: "2027-W17 (07/06 al 14/06)" para semanas, "Ene - Mar 2026" para trimestres).
@@ -141,10 +150,13 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 <details>
 <summary><strong>Arquitectura</strong></summary>
 
-- **Single source of truth en personas**: socios y autoridades tienen columnas que son fórmulas de Grist (pull de `$persona_id`), no datos almacenados. Cambiar una persona actualiza automáticamente todos sus registros vinculados.
-- **Migraciones automáticas**: `ensureSchema` detecta columnas que necesitan convertirse a fórmulas y las migra. Reparación de refs rotas, migración de datos legacy y deduplicación de personas por DNI.
-- **Router por hash** con persistencia de última ruta en widget options de Grist.
-- **Fórmulas de Grist**: período (desde fecha), activo en socios (!fecha_baja), habilitado electoral, saldo inicial total del ejercicio.
+- **Offline-first**: los datos se guardan localmente en PouchDB (IndexedDB del navegador). La app funciona sin conexión a internet.
+- **Sync opcional con CouchDB**: cuando hay un servidor CouchDB configurado, PouchDB sincroniza bidireccionalmente y automáticamente. Los cambios locales se replican al servidor y viceversa al reconectar.
+- **Capa de datos desacoplada**: `dataRepository.js` es un facade unificado que delega a PouchDB (standalone) o Grist (widget). Todos los stores y módulos importan de ahí, nunca del backend directo.
+- **Single source of truth en personas**: socios y autoridades derivan sus datos personales de `persona_id` vía `computedFields.js` (equivalente JS de las fórmulas de Grist). Cambiar una persona actualiza automáticamente todos sus registros vinculados.
+- **Desktop vía Tauri**: la misma SPA se empaqueta como app de escritorio para Windows, Linux y macOS, con acceso al filesystem nativo.
+- **Backup/restore**: exportación e importación de todos los datos a archivo `.lof` comprimido (gzip). Restauración desde el setup wizard.
+- **Router por hash** con persistencia de última ruta.
 
 </details>
 
@@ -152,33 +164,57 @@ LOF es una SPA construida con **Svelte 5** que funciona como *Custom Widget* den
 
 ## Inicio rápido
 
+### Opción 1: Docker Compose (recomendado)
+
 ```bash
-cp docker/grist/grist.env.example .env   # solo la primera vez
-docker compose up -d --build
+cp .env.example .env   # solo la primera vez
+docker compose up      # standalone con CouchDB
 ```
 
 | Servicio | URL | Rol |
 | --- | --- | --- |
-| **Grist** | `http://localhost:8089` | Backend — documento SQLite con todas las tablas |
-| **LOF** | `http://localhost:8088` | Frontend — la SPA servida por nginx |
+| **LOF (Vite)** | `http://localhost:5173` | SPA con hot-reload |
+| **CouchDB** | `http://localhost:5984` | Sync server (opcional) |
+| **CouchDB Fauxton** | `http://localhost:5984/_utils/` | Admin UI de CouchDB |
 
-**Pasos:** abrir Grist → crear documento → `Add New` → `Add Widget to Page` → `Custom` → pegar URL `http://localhost:8088` → `Full document access` → completar wizard.
+Abrir `http://localhost:5173` → aparece la landing → click "Empezar a usar LOF" → completar wizard.
 
-> Guía completa de instalación, variables de entorno y troubleshooting en [`docs/DOCKER.md`](docs/DOCKER.md).
+### Opción 2: Local sin Docker
+
+```bash
+nvm use 24
+npm install
+npm run dev          # http://localhost:5173
+```
+
+### Opción 3: App de escritorio (Tauri)
+
+```bash
+# Build Linux (.deb, .rpm, AppImage) via Docker
+bash scripts/tauri-docker-build.sh
+```
+
+Los paquetes se generan en `src-tauri/target/release/bundle/`.
+
+> Guía completa de instalación y variables de entorno en [`.env.example`](.env.example) y [`docs/DOCKER.md`](docs/DOCKER.md).
 
 ## Desarrollo
 
 ```bash
+nvm use 24
 npm install
 npm run dev          # http://localhost:5173
 ```
 
 ```bash
-# Con Docker + hot-reload
-docker compose -f docker-compose.dev.yml up
+# Con Docker + hot-reload + CouchDB
+docker compose up
+
+# Con Docker + Grist (alternativa)
+docker compose -f docker-compose.grist.yml up
 ```
 
-> Fuera de Grist la app muestra la landing pública. Para probar con datos reales, cargarla como Custom Widget en un documento Grist. Ver [`docs/DOCKER.md`](docs/DOCKER.md) y [`docs/OFFLINE.md`](docs/OFFLINE.md).
+La app guarda los datos localmente en PouchDB (IndexedDB). Para sincronizar con CouchDB, ir a **Configuración → Sincronización** después de instalar.
 
 ### Seeder de datos de prueba (dev)
 
@@ -205,7 +241,8 @@ El seeder solo está disponible cuando `import.meta.env.DEV` es true y no viaja 
 
 | Documento | Contenido |
 | --- | --- |
-| [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md) | Arquitectura detallada, capas, flujo de datos, integración con Grist |
+| [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md) | Arquitectura detallada, capas, flujo de datos, capa de datos desacoplada |
+| [`docs/ARQUITECTURA_DESCONEXION_GRIST.md`](docs/ARQUITECTURA_DESCONEXION_GRIST.md) | Historial: desacople de Grist → PouchDB/CouchDB + Tauri (completado) |
 | [`docs/PATRONES.md`](docs/PATRONES.md) | Patrones de código: runes, stores reactivos, routing, schema |
 | [`docs/TECNOLOGIAS.md`](docs/TECNOLOGIAS.md) | Stack tecnológico y justificación de decisiones |
 | [`docs/DOCKER.md`](docs/DOCKER.md) | Guía completa de Docker (producción y desarrollo) |
@@ -225,9 +262,15 @@ El seeder solo está disponible cuando `import.meta.env.DEV` es true y no viaja 
 | Listo | Cierre automático con próximo ejercicio — al cerrar el activo, crea el siguiente con saldos arrastrados |
 | Listo | Periodicidad configurable — mensual, semanal, trimestral, semestral o anual, con agrupación automática de cargas existentes |
 | Listo | Morosidad inteligente — detecta datos mixtos (vinculados + no vinculados) y calcula deudores solo sobre el tramo identificable |
-| Próximo | Adjuntos y actas — carga guiada de comprobantes con trazabilidad |
+| Listo | Comprobantes adjuntos a movimientos — subí facturas, recibos o tickets a cada movimiento y descargalos cuando quieras |
+| Listo | Página de Configuración — modalidad, periodicidad, categorías y subcategorías con activar/desactivar, mantenimiento de datos |
+| Listo | Desacople de Grist — capa de datos abstracta con PouchDB (local) + sync opcional con CouchDB |
+| Listo | App de escritorio vía Tauri — empaquetado para Windows, Linux y macOS |
+| Listo | Backup/restore — exportación e importación de datos a archivo .lof comprimido |
+| Listo | Sync con CouchDB — replicación bidireccional opcional desde Configuración |
+| Próximo | Actas de Comisión Directiva — carga guiada de actas de CD con resoluciones vinculadas al ejercicio |
+| Próximo | Accesos y roles — auth con backend ligero, permisos por tesorería, comisión, asesoría |
 | Después | Balance de tesorería exportable |
-| Después | Accesos y roles — permisos por tesorería, comisión, asesoría |
 | Futuro | App móvil — consulta de saldos, movimientos, notificaciones |
 | Futuro | Conciliación bancaria — carga de resúmenes del Banco Provincia y conciliación automática o guiada |
 | Futuro | Integraciones — DIPREGEP y herramientas de gestión escolar |
@@ -236,7 +279,7 @@ El seeder solo está disponible cuando `import.meta.env.DEV` es true y no viaja 
 
 ## Stack
 
-**Svelte 5** (runes) · **Vite 8** · **Tailwind CSS 4** · **shadcn-svelte** + **bits-ui** · **Grist** (backend) · **Docker** + **nginx** · **Vitest**
+**Svelte 5** (runes) · **Vite 8** · **Tailwind CSS 4** · **shadcn-svelte** + **bits-ui** · **PouchDB** (local) · **CouchDB** (sync opcional) · **Tauri 2** (desktop) · **Docker** + **nginx** · **Vitest**
 
 ## Contribuir
 

@@ -1,4 +1,4 @@
-import { applyUserActions, fetchRecords } from '$core/grist/grist'
+import { applyUserActions, fetchRecords } from '$core/data/dataRepository'
 import { normalizeFields, dateToInput, addMonths } from '$core/utils/utils'
 import { buildVigenteByCargo, ORGANISMOS } from '$app/modules/gobierno/constants.js'
 import { formatCuil } from '$core/format/format.js'

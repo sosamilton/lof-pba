@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte'
-  import { isInGrist, subscribeAccess } from '$core/grist/grist'
+  import { isInGrist, subscribeAccess } from '$core/data/dataRepository'
   import { identidad } from '$core/data/identidad'
   import { inicioStore as store } from './inicioStore.svelte.js'
   import { cooperadoraStore } from '$app/pages/cooperadora/cooperadoraStore.svelte.js'

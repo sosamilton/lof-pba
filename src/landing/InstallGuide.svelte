@@ -51,26 +51,33 @@
   // Selector de modalidad: guía la decisión sin exponer jerga técnica de entrada.
   const CAMINOS = [
     {
-      id: 'ya-tengo',
-      icon: PlugIcon,
-      titulo: 'Ya tengo Grist',
-      descripcion: 'Uso Grist Desktop, la nube o un servidor de mi organización.',
-      cta: 'Agregar LOF a mi documento',
-    },
-    {
-      id: 'nube',
-      icon: CloudIcon,
-      titulo: 'No tengo Grist',
-      descripcion: 'Quiero empezar desde cero, sin instalar nada en mi computadora.',
-      cta: 'Quiero empezar',
+      id: 'navegador',
+      icon: WifiIcon,
+      titulo: 'Probar en el navegador',
+      descripcion: 'Sin instalar nada. Los datos se guardan en tu navegador y podés respaldarlos cuando quieras.',
+      cta: 'Empezar a usar ahora',
       recomendado: true,
     },
     {
-      id: 'servidor',
+      id: 'respaldo',
       icon: ServerIcon,
-      titulo: 'Soy administrador técnico',
-      descripcion: 'Quiero instalar Grist y LOF en un servidor propio (Docker), ideal sin internet.',
-      cta: 'Instalar en un servidor',
+      titulo: 'Con respaldo local (CouchDB)',
+      descripcion: 'Varios dispositivos comparten los mismos datos con sincronización automática. Ideal para escuelas.',
+      cta: 'Cómo configurar el respaldo',
+    },
+    {
+      id: 'grist',
+      icon: PlugIcon,
+      titulo: 'Dentro de Grist',
+      descripcion: 'Si ya usás Grist o querés aprovechar su potencia. Los datos viven en tu documento de Grist.',
+      cta: 'Agregar LOF a Grist',
+    },
+    {
+      id: 'desktop',
+      icon: DownloadIcon,
+      titulo: 'App de escritorio',
+      descripcion: 'Descargá la app nativa para Windows, Linux o macOS. Se instala como cualquier programa.',
+      cta: 'Descargar binarios',
     },
     {
       id: 'no-se',
@@ -107,7 +114,7 @@
         <span class="text-lg font-bold tracking-tight">{identidad.nombre}</span>
         <Badge variant="secondary" class="hidden sm:inline-flex">{identidad.ubicacion}</Badge>
       </div>
-      <Button variant="ghost" size="sm" onclick={() => navigate('inicio')}>
+      <Button variant="ghost" size="sm" onclick={() => navigate('landing')}>
         <ArrowLeftIcon data-icon="inline-start" />
         Volver
       </Button>
@@ -134,23 +141,24 @@
       <h2 class="text-lg font-bold tracking-tight mb-3">Para usar LOF necesitás</h2>
       <div class="grid gap-4 sm:grid-cols-2">
         <div>
-          <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Obligatorio</span>
+          <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Mínimo (probar en navegador)</span>
           <ul class="mt-2 flex flex-col gap-1.5">
-            <li class="flex items-center gap-2 text-sm"><CheckIcon class="size-4 text-primary shrink-0" /> Grist</li>
-            <li class="flex items-center gap-2 text-sm"><CheckIcon class="size-4 text-primary shrink-0" /> Un documento en Grist</li>
-            <li class="flex items-center gap-2 text-sm"><CheckIcon class="size-4 text-primary shrink-0" /> El widget LOF</li>
+            <li class="flex items-center gap-2 text-sm"><CheckIcon class="size-4 text-primary shrink-0" /> Un navegador moderno (Chrome, Firefox, Edge)</li>
+            <li class="flex items-center gap-2 text-sm"><CheckIcon class="size-4 text-primary shrink-0" /> Conexión a internet la primera vez</li>
           </ul>
         </div>
         <div>
-          <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Opcional</span>
+          <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Opcional (según el modo que elijas)</span>
           <ul class="mt-2 flex flex-col gap-1.5">
-            <li class="flex items-center gap-2 text-sm text-muted-foreground"><span class="size-4 shrink-0"></span> Servidor propio (para uso offline)</li>
-            <li class="flex items-center gap-2 text-sm text-muted-foreground"><span class="size-4 shrink-0"></span> Dominio propio</li>
+            <li class="flex items-center gap-2 text-sm text-muted-foreground"><span class="size-4 shrink-0"></span> Grist (si querés usarlo dentro de Grist)</li>
+            <li class="flex items-center gap-2 text-sm text-muted-foreground"><span class="size-4 shrink-0"></span> Docker (para respaldo local con CouchDB)</li>
+            <li class="flex items-center gap-2 text-sm text-muted-foreground"><span class="size-4 shrink-0"></span> App de escritorio (descargable desde GitHub)</li>
           </ul>
         </div>
       </div>
       <p class="mt-4 text-sm text-muted-foreground border-t border-border pt-3">
-        <strong class="text-foreground">No necesitás instalar LOF en tu computadora.</strong> LOF funciona dentro de Grist.
+        <strong class="text-foreground">No necesitás instalar nada para empezar.</strong>
+        Podés probar LOF directamente en el navegador y decidir después si querés agregar respaldo o usar Grist.
       </p>
     </div>
   </section>
@@ -198,13 +206,162 @@
         Elegir otra opción
       </Button>
 
-      {#if camino === 'ya-tengo'}
+      {#if camino === 'navegador'}
         <div class="flex flex-col gap-4">
           <div class="rounded-lg border-2 border-primary/30 bg-primary/5 p-4">
             <p class="text-sm">
-              <strong>Perfecto.</strong> Solo necesitás agregar LOF como aplicación personalizada dentro de tu documento y darle acceso. No hace falta instalar nada más.
+              <strong>La forma más simple.</strong> Entrá a la página de LOF y empezá a usarla.
+              Los datos se guardan en tu navegador (como cuando una página recuerda tu sesión).
+              No instalás nada, no creás cuenta, no subís nada a internet.
             </p>
           </div>
+          <ol class="flex flex-col gap-3">
+            <li class="flex gap-3 rounded-lg border border-border p-3">
+              <div class="flex size-7 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-xs font-bold text-primary">1</div>
+              <div>
+                <div class="text-sm font-semibold">Entrar a la app</div>
+                <p class="text-xs text-muted-foreground mt-0.5">Hacé clic en "Probar en el navegador" en la página principal. Se abre la app directamente.</p>
+              </div>
+            </li>
+            <li class="flex gap-3 rounded-lg border border-border p-3">
+              <div class="flex size-7 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-xs font-bold text-primary">2</div>
+              <div>
+                <div class="text-sm font-semibold">Completar la configuración inicial</div>
+                <p class="text-xs text-muted-foreground mt-0.5">Una guía paso a paso te pregunta los datos de tu escuela, cooperadora, banco y cargos. Lo completás en 5 minutos.</p>
+              </div>
+            </li>
+            <li class="flex gap-3 rounded-lg border border-border p-3">
+              <div class="flex size-7 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-xs font-bold text-primary">3</div>
+              <div>
+                <div class="text-sm font-semibold">¡Listo! Empezá a usar LOF</div>
+                <p class="text-xs text-muted-foreground mt-0.5">La app queda lista para cargar socios, movimientos, asambleas y todo lo que necesitás.</p>
+              </div>
+            </li>
+          </ol>
+          <div class="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+            <ShieldCheckIcon class="size-5 shrink-0 text-primary mt-0.5" />
+            <p class="text-sm text-muted-foreground">
+              <strong class="text-foreground">Respaldoá tus datos regularmente.</strong>
+              Desde Configuración → General podés exportar todos los datos a un archivo (.lof).
+              Si limpiás el navegador o cambiás de compu, importás el archivo y seguís como si nada.
+            </p>
+          </div>
+          <Button variant="default" onclick={() => navigate('inicio')}>
+            <WifiIcon data-icon="inline-start" />
+            Abrir la app ahora
+          </Button>
+        </div>
+      {:else if camino === 'respaldo'}
+        <div class="flex flex-col gap-4">
+          <div class="rounded-lg border-2 border-primary/30 bg-primary/5 p-4">
+            <p class="text-sm">
+              <strong>Respaldo local con sincronización.</strong>
+              Si alguien en la escuela tiene conocimientos técnicos, podés instalar CouchDB
+              (un programa gratuito) en una compu del establecimiento. Todos los dispositivos
+              que se conecten a esa compu verán los mismos datos y se sincronizarán automáticamente.
+            </p>
+          </div>
+          <div class="rounded-lg border border-border bg-muted/5 p-4">
+            <p class="text-sm text-muted-foreground mb-3">
+              Necesitás <strong>Docker</strong> instalado en la compu que va a hacer de servidor.
+              Después es un solo comando:
+            </p>
+            <div class="relative rounded-lg border border-border bg-card overflow-hidden">
+              <div class="flex items-center justify-between px-4 py-2 border-b border-border bg-muted">
+                <span class="text-xs font-mono text-muted-foreground">Terminal</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="h-6 px-2"
+                  onclick={() => copyToClipboard('docker compose up -d', 'couchdb-cmd')}
+                >
+                  {#if copied === 'couchdb-cmd'}
+                    <CheckIcon data-icon="inline-start" class="text-primary" />
+                    Copiado
+                  {:else}
+                    <CopyIcon data-icon="inline-start" />
+                    Copiar
+                  {/if}
+                </Button>
+              </div>
+              <pre class="px-4 py-3 text-sm font-mono overflow-x-auto"><code>docker compose up -d</code></pre>
+            </div>
+            <p class="text-xs text-muted-foreground mt-2">
+              Esto levanta la app + CouchDB. La app queda en <code class="text-xs">http://localhost:5173</code>
+              y CouchDB en <code class="text-xs">http://localhost:5984</code>.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" href="https://docs.docker.com/desktop/setup/install/windows-install/" target="_blank" rel="noreferrer">
+              <DownloadIcon data-icon="inline-start" />
+              Docker para Windows
+              <ExternalLinkIcon data-icon="inline-end" />
+            </Button>
+            <Button variant="outline" size="sm" href="https://docs.docker.com/desktop/setup/install/linux/" target="_blank" rel="noreferrer">
+              <DownloadIcon data-icon="inline-start" />
+              Docker para Linux
+              <ExternalLinkIcon data-icon="inline-end" />
+            </Button>
+          </div>
+          <ol class="flex flex-col gap-3">
+            <li class="flex gap-3 rounded-lg border border-border p-3">
+              <div class="flex size-7 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-xs font-bold text-primary">1</div>
+              <div>
+                <div class="text-sm font-semibold">Levantar el servidor local</div>
+                <p class="text-xs text-muted-foreground mt-0.5">Corré el comando de arriba en la compu que va a hacer de servidor. Tiene que quedar prendida mientras se usa.</p>
+              </div>
+            </li>
+            <li class="flex gap-3 rounded-lg border border-border p-3">
+              <div class="flex size-7 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-xs font-bold text-primary">2</div>
+              <div>
+                <div class="text-sm font-semibold">Abrir la app desde cualquier dispositivo</div>
+                <p class="text-xs text-muted-foreground mt-0.5">Desde otra compu o tablet de la misma red, entrá a la IP del servidor (ej: http://192.168.1.100:5173).</p>
+              </div>
+            </li>
+            <li class="flex gap-3 rounded-lg border border-border p-3">
+              <div class="flex size-7 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-xs font-bold text-primary">3</div>
+              <div>
+                <div class="text-sm font-semibold">Activar la sincronización</div>
+                <p class="text-xs text-muted-foreground mt-0.5">Desde Configuración → Sincronización, activá el sync con CouchDB. Todos los cambios se replican automáticamente.</p>
+              </div>
+            </li>
+          </ol>
+          <div class="flex items-start gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+            <ShieldCheckIcon class="size-5 shrink-0 text-emerald-600 mt-0.5" />
+            <p class="text-sm text-muted-foreground">
+              <strong class="text-foreground">Respaldo automático.</strong>
+              CouchDB guarda cada cambio. Si una compu se rompe, los datos siguen en el servidor.
+              Y si el servidor se cae, cada dispositivo tiene su copia local y sigue funcionando.
+            </p>
+          </div>
+        </div>
+      {:else if camino === 'grist'}
+        <div class="flex flex-col gap-4">
+          <div class="rounded-lg border-2 border-primary/30 bg-primary/5 p-4">
+            <p class="text-sm">
+              <strong>Grist es una planilla inteligente gratuita.</strong>
+              Si ya lo usás o querés aprovechar su potencia para consultar datos, podés agregar LOF
+              como aplicación dentro de tu documento. Los datos viven en Grist y LOF les da pantallas amigables.
+            </p>
+          </div>
+          <div class="flex flex-col gap-3">
+            <div class="rounded-lg border border-border p-4">
+              <div class="flex items-center gap-2 mb-2">
+                <GristIcon class="size-5 text-primary" />
+                <span class="text-sm font-bold">¿No tenés Grist?</span>
+              </div>
+              <p class="text-xs text-muted-foreground mb-3">
+                Podés usarlo gratis en la nube (getgrist.com) o instalarlo en tu compu.
+                El plan gratuito alcanza para la mayoría de las cooperadoras (hasta 5000 filas por tabla).
+              </p>
+              <Button href="https://www.getgrist.com/" target="_blank" rel="noreferrer" size="sm">
+                <GristIcon class="size-4" data-icon="inline-start" />
+                Crear cuenta gratis
+                <ExternalLinkIcon data-icon="inline-end" />
+              </Button>
+            </div>
+          </div>
+          <p class="text-sm text-muted-foreground">Una vez que tengas Grist, agregá LOF a tu documento:</p>
           <ol class="flex flex-col gap-3">
             {#each pasosAgregarWidget as paso, i}
               <li class="flex gap-3 rounded-lg border border-border p-3">
@@ -217,113 +374,85 @@
             {/each}
           </ol>
         </div>
-      {:else if camino === 'nube'}
+      {:else if camino === 'desktop'}
         <div class="flex flex-col gap-4">
           <div class="rounded-lg border-2 border-primary/30 bg-primary/5 p-4">
-            <p class="text-sm mb-3">
-              Usá Grist desde el navegador, sin instalar nada. Es gratis y alcanza para la mayoría de las cooperadoras escolares (hasta 5000 filas por tabla).
+            <p class="text-sm">
+              <strong>App nativa para tu sistema operativo.</strong>
+              Se descarga e instala como cualquier programa. Los datos se guardan en tu compu,
+              sin navegador. Disponible para Windows, Linux y macOS.
             </p>
-            <Button href="https://www.getgrist.com/" target="_blank" rel="noreferrer">
-              <GristIcon class="size-4" data-icon="inline-start" />
-              Crear cuenta gratis en getgrist.com
-              <ExternalLinkIcon data-icon="inline-end" />
-            </Button>
           </div>
-          <p class="text-sm text-muted-foreground">Después de crear tu cuenta, seguí estos pasos:</p>
-          <ol class="flex flex-col gap-3">
-            {#each guia_instalacion.pasos as paso, i}
-              <li class="flex gap-3 rounded-lg border border-border p-3">
-                <div class="flex size-7 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-xs font-bold text-primary">{i + 1}</div>
-                <div>
-                  <div class="text-sm font-semibold">{paso.titulo}</div>
-                  <p class="text-xs text-muted-foreground mt-0.5">{paso.descripcion}</p>
-                </div>
-              </li>
-            {/each}
-          </ol>
-        </div>
-      {:else if camino === 'servidor'}
-        <div class="flex flex-col gap-4">
-          <div class="rounded-lg border border-border bg-muted/5 p-4">
+          <div class="grid gap-3 sm:grid-cols-3">
+            <a
+              href={enlaces.repo + '/releases/latest'}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rounded-lg border border-border p-4 hover:border-primary/50 hover:bg-primary/5 transition-colors text-center"
+            >
+              <div class="flex size-10 mx-auto items-center justify-center rounded-lg bg-primary/10 text-primary mb-2">
+                <DownloadIcon class="size-5" />
+              </div>
+              <div class="text-sm font-semibold">Windows</div>
+              <p class="text-xs text-muted-foreground mt-1">.exe o .msi (x64)</p>
+            </a>
+            <a
+              href={enlaces.repo + '/releases/latest'}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rounded-lg border border-border p-4 hover:border-primary/50 hover:bg-primary/5 transition-colors text-center"
+            >
+              <div class="flex size-10 mx-auto items-center justify-center rounded-lg bg-primary/10 text-primary mb-2">
+                <DownloadIcon class="size-5" />
+              </div>
+              <div class="text-sm font-semibold">Linux</div>
+              <p class="text-xs text-muted-foreground mt-1">.AppImage o .deb</p>
+            </a>
+            <a
+              href={enlaces.repo + '/releases/latest'}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rounded-lg border border-border p-4 hover:border-primary/50 hover:bg-primary/5 transition-colors text-center"
+            >
+              <div class="flex size-10 mx-auto items-center justify-center rounded-lg bg-primary/10 text-primary mb-2">
+                <DownloadIcon class="size-5" />
+              </div>
+              <div class="text-sm font-semibold">macOS</div>
+              <p class="text-xs text-muted-foreground mt-1">.dmg (Arm/Intel)</p>
+            </a>
+          </div>
+          <div class="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 px-4 py-3">
+            <ShieldCheckIcon class="size-5 shrink-0 text-warning mt-0.5" />
             <p class="text-sm text-muted-foreground">
-              Esta modalidad requiere conocimientos técnicos. Instala Grist y LOF juntos en un servidor propio con Docker, ideal para escuelas sin internet estable.
+              <strong class="text-foreground">Aviso de seguridad del sistema operativo.</strong>
+              Los binarios no están firmados digitalmente (es un proyecto libre sin presupuesto para certificados).
+              Al abrirlos por primera vez, el SO advertirá que son de un "desarrollador no identificado".
+              En Windows: click en "Más información" → "Ejecutar de todas formas". En macOS: click derecho → Abrir.
             </p>
           </div>
-          {#if metodoServidor}
-            <div class="flex flex-col gap-3">
-              {#each metodoServidor.comandos as cmd, j}
-                <div class="relative rounded-lg border border-border bg-card overflow-hidden">
-                  <div class="flex items-center justify-between px-4 py-2 border-b border-border bg-muted">
-                    <span class="text-xs font-mono text-muted-foreground">Paso {j + 1}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      class="h-6 px-2"
-                      onclick={() => copyToClipboard(cmd, 'srv-cmd-' + j)}
-                    >
-                      {#if copied === 'srv-cmd-' + j}
-                        <CheckIcon data-icon="inline-start" class="text-primary" />
-                        Copiado
-                      {:else}
-                        <CopyIcon data-icon="inline-start" />
-                        Copiar
-                      {/if}
-                    </Button>
-                  </div>
-                  <pre class="px-4 py-3 text-sm font-mono overflow-x-auto"><code>{cmd}</code></pre>
-                </div>
-              {/each}
-            </div>
-            <div class="flex flex-wrap gap-2">
-              {#each metodoServidor.requisitos as req}
-                <Button variant="outline" size="sm" href={req.enlace} target="_blank" rel="noreferrer">
-                  <DownloadIcon data-icon="inline-start" />
-                  {req.texto}
-                  <ExternalLinkIcon data-icon="inline-end" />
-                </Button>
-              {/each}
-            </div>
-          {/if}
-          <div class="flex items-start gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
-            <ShieldCheckIcon class="size-5 shrink-0 text-emerald-600 mt-0.5" />
-            <p class="text-sm text-muted-foreground">
-              <strong class="text-foreground">Backups y versionado automáticos.</strong>
-              La instalación incluye MinIO (almacenamiento S3-compatible) que guarda snapshots
-              versionados de cada cambio en los documentos. Si alguien borra datos por error,
-              podés restaurar una versión anterior sin complicaciones.
-            </p>
-          </div>
-          <a href={offlineDocUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm text-primary hover:underline w-fit">
-            <FileTextIcon class="size-4" />
-            Ver guía detallada de uso offline
-          </a>
-          <p class="text-sm text-muted-foreground mt-2">Una vez levantado el servidor, agregá LOF a tu documento:</p>
-          <ol class="flex flex-col gap-3">
-            {#each guia_instalacion.pasos as paso, i}
-              <li class="flex gap-3 rounded-lg border border-border p-3">
-                <div class="flex size-7 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-xs font-bold text-primary">{i + 1}</div>
-                <div>
-                  <div class="text-sm font-semibold">{paso.titulo}</div>
-                  <p class="text-xs text-muted-foreground mt-0.5">{paso.descripcion}</p>
-                </div>
-              </li>
-            {/each}
-          </ol>
+          <p class="text-sm text-muted-foreground">
+            Después de instalar, abrí la app y completá la configuración inicial (datos de la escuela, cooperadora, etc.).
+            Los datos se guardan en tu compu. Podés respaldarlos desde Configuración → General.
+          </p>
         </div>
       {:else if camino === 'no-se'}
         <div class="flex flex-col gap-3">
           <p class="text-sm text-muted-foreground mb-2">No hay problema, te ayudamos a elegir:</p>
-          <button type="button" onclick={() => elegirCamino('nube')} class="text-left rounded-lg border border-border p-4 hover:border-primary/50 hover:bg-primary/5">
-            <span class="text-sm font-semibold">¿Tenés internet estable en la escuela y no querés instalar nada?</span>
-            <p class="text-xs text-muted-foreground mt-1">Usá Grist en la nube. Es gratis y no requiere instalar programas.</p>
+          <button type="button" onclick={() => elegirCamino('navegador')} class="text-left rounded-lg border border-border p-4 hover:border-primary/50 hover:bg-primary/5">
+            <span class="text-sm font-semibold">¿Querés probar sin instalar nada?</span>
+            <p class="text-xs text-muted-foreground mt-1">Usá LOF en el navegador. Los datos se guardan en tu dispositivo y podés respaldarlos cuando quieras.</p>
           </button>
-          <button type="button" onclick={() => elegirCamino('servidor')} class="text-left rounded-lg border border-border p-4 hover:border-primary/50 hover:bg-primary/5">
-            <span class="text-sm font-semibold">¿No hay internet estable, o alguien técnico va a administrar el sistema?</span>
-            <p class="text-xs text-muted-foreground mt-1">Instalá Grist y LOF en un servidor propio con Docker. Funciona 100% offline.</p>
+          <button type="button" onclick={() => elegirCamino('respaldo')} class="text-left rounded-lg border border-border p-4 hover:border-primary/50 hover:bg-primary/5">
+            <span class="text-sm font-semibold">¿Varios dispositivos necesitan ver los mismos datos?</span>
+            <p class="text-xs text-muted-foreground mt-1">Configurá un respaldo local con CouchDB. Todos se sincronizan automáticamente.</p>
           </button>
-          <button type="button" onclick={() => elegirCamino('ya-tengo')} class="text-left rounded-lg border border-border p-4 hover:border-primary/50 hover:bg-primary/5">
-            <span class="text-sm font-semibold">¿Ya tenés Grist funcionando?</span>
-            <p class="text-xs text-muted-foreground mt-1">Solo agregá LOF a tu documento existente.</p>
+          <button type="button" onclick={() => elegirCamino('grist')} class="text-left rounded-lg border border-border p-4 hover:border-primary/50 hover:bg-primary/5">
+            <span class="text-sm font-semibold">¿Ya usás Grist o querés aprovechar su potencia?</span>
+            <p class="text-xs text-muted-foreground mt-1">Agregá LOF como aplicación dentro de tu documento de Grist.</p>
+          </button>
+          <button type="button" onclick={() => elegirCamino('desktop')} class="text-left rounded-lg border border-border p-4 hover:border-primary/50 hover:bg-primary/5">
+            <span class="text-sm font-semibold">¿Preferís una app instalada como cualquier programa?</span>
+            <p class="text-xs text-muted-foreground mt-1">Descargá la app nativa para Windows, Linux o macOS.</p>
           </button>
         </div>
       {/if}
@@ -335,9 +464,9 @@
   <!-- ¿QUÉ ES GRIST? -->
   <section class="mx-auto max-w-5xl px-4 py-10 sm:py-14">
     <div class="flex flex-col gap-2 mb-6">
-      <h2 class="text-2xl font-bold tracking-tight">¿Qué es Grist y por qué lo necesito?</h2>
+      <h2 class="text-2xl font-bold tracking-tight">¿Qué es Grist y por qué podría interesarme?</h2>
       <p class="text-sm text-muted-foreground max-w-prose">
-        LOF no funciona solo: necesita Grist para guardar los datos. Es como una app de celular que necesita el sistema operativo. Acá te explicamos en simple:
+        Grist es una de las formas de usar LOF. No es obligatorio, pero tiene ventajas. Acá te explicamos en simple:
       </p>
     </div>
 
@@ -345,19 +474,21 @@
       <div class="rounded-lg border border-border p-4">
         <div class="flex items-center gap-2 mb-2">
           <DatabaseIcon class="size-5 text-primary" />
-          <span class="text-sm font-bold">Grist es donde viven los datos</span>
+          <span class="text-sm font-bold">Grist es como un Excel potente</span>
         </div>
         <p class="text-xs text-muted-foreground">
-          Grist es un programa gratuito y de código abierto, como una planilla de cálculo pero más organizada. Tu cooperadora guarda ahí todos sus datos: socios, movimientos, asambleas, autoridades, todo.
+          Grist es un programa gratuito y de código abierto, como una planilla de cálculo pero más organizada.
+          Si ya lo usás, podés guardar los datos de tu cooperadora ahí y aprovechar todas sus funciones de consulta.
         </p>
       </div>
       <div class="rounded-lg border border-border p-4">
         <div class="flex items-center gap-2 mb-2">
           <GristIcon class="size-5 text-primary" />
-          <span class="text-sm font-bold">LOF es la interfaz</span>
+          <span class="text-sm font-bold">LOF le da pantallas amigables</span>
         </div>
         <p class="text-xs text-muted-foreground">
-          LOF funciona dentro de Grist como un componente personalizado. Es como un "aplicación" que se instala dentro del documento y te da pantallas amigables para cargar y consultar los datos, sin que tengas que mirar las tablas a mano.
+          LOF funciona dentro de Grist como una aplicación que te da pantallas cómodas para cargar y consultar datos,
+          sin que tengas que mirar las tablas a mano. Es como tener una app dedicada sobre tu planilla.
         </p>
       </div>
       <div class="rounded-lg border border-border p-4">
@@ -366,7 +497,8 @@
           <span class="text-sm font-bold">Tus datos son tuyos y son portables</span>
         </div>
         <p class="text-xs text-muted-foreground">
-          Todo lo que cargues queda guardado en el documento de Grist. Si mañana dejás de usar LOF, los datos siguen ahí, accesibles. Podés exportarlos, hacer copias de seguridad o pasarlos a otra compu. No hay lock-in: la información siempre es tuya.
+          Sea en Grist o en tu navegador, todo lo que cargues es tuyo. Podés exportarlo, hacer copias de seguridad
+          o pasarlos a otra compu. No hay lock-in: la información siempre es tuya y la podés llevar con vos.
         </p>
       </div>
     </div>
@@ -576,7 +708,7 @@
   <footer class="border-t border-border bg-card">
     <div class="mx-auto max-w-5xl px-4 py-8">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Button variant="outline" onclick={() => navigate('inicio')}>
+        <Button variant="outline" onclick={() => navigate('landing')}>
           <ArrowLeftIcon data-icon="inline-start" />
           Volver al inicio
         </Button>

@@ -105,6 +105,7 @@
         "Gestión por etapas: cargas parciales que se consolidan al firmar el período",
         "Morosidad inteligente: detecta datos mixtos y calcula deudores solo sobre el tramo identificable",
         "Cuota societaria rápida con un clic o Ctrl+1",
+        "Comprobantes adjuntos: subí facturas o recibos a cada movimiento y descargalos cuando quieras",
         "Filtros por rubro, ejercicio, período y persona"
       ]
     },
@@ -222,8 +223,8 @@
     ]
   },
   "guia_instalacion": {
-    "titulo": "Empezar a usar LOF",
-    "subtitulo": "LOF funciona dentro de Grist. No necesitás instalar nada en tu computadora ni saber programar.",
+    "titulo": "Cómo empezar a usar LOF",
+    "subtitulo": "Elegí la forma que mejor se adapte a tu escuela. Podés probar en el navegador, instalar un respaldo local, usarlo dentro de Grist o descargar la app de escritorio.",
     "pasos": [
       {
         "titulo": "Crear un documento nuevo",
@@ -414,9 +415,19 @@
       "descripcion": "No se pueden crear cargas para períodos futuros. El sistema bloquea cualquier intento de cargar datos adelantados."
     },
     {
+      "estado": "hecho",
+      "titulo": "Comprobantes adjuntos a movimientos",
+      "descripcion": "Subí facturas, recibos o tickets a cada movimiento de tesorería. Los archivos quedan vinculados al movimiento y podés descargarlos o verlos cuando quieras."
+    },
+    {
+      "estado": "hecho",
+      "titulo": "Página de Configuración con categorías y subcategorías",
+      "descripcion": "Configuración general de la cooperadora en una página dedicada. Activá o desactivá subrubros sin borrarlos, revalidá la estructura de datos y deduplicá personas."
+    },
+    {
       "estado": "proximo",
-      "titulo": "Actas y adjuntos",
-      "descripcion": "Carga guiada de actas de Comisión Directiva y asambleas, comprobantes y archivos adjuntos con trazabilidad completa."
+      "titulo": "Actas de Comisión Directiva",
+      "descripcion": "Carga guiada de actas de reuniones de CD con resoluciones vinculadas al ejercicio."
     },
     {
       "estado": "proximo",

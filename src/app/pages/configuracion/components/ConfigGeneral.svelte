@@ -20,6 +20,28 @@
   import PaletteIcon from '@lucide/svelte/icons/palette'
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
   import { identidad } from '$core/data/identidad'
+  import { exportBackup } from '$core/data/backup.js'
+  import { getActiveBackend } from '$core/data/dataRepository'
+  import DownloadIcon from '@lucide/svelte/icons/download'
+  import UploadIcon from '@lucide/svelte/icons/upload'
+
+  const isPouchMode = getActiveBackend() === 'pouch'
+  let exporting = $state(false)
+  let exportResult = $state(null)
+
+  const handleExport = async () => {
+    exporting = true
+    exportResult = null
+    try {
+      const res = await exportBackup()
+      exportResult = res
+    } catch (e) {
+      // non-fatal
+      console.error('[backup] export failed:', e)
+    } finally {
+      exporting = false
+    }
+  }
 
   let {
     store,
@@ -240,6 +262,32 @@
         {store.migrating ? 'Procesando…' : 'Deduplicar personas'}
       </Button>
     </div>
+
+    {#if isPouchMode}
+      <Separator />
+      <div class="rounded-lg border border-border px-4 py-3 flex flex-col gap-3">
+        <div class="flex items-center gap-2">
+          <DownloadIcon class="size-4 text-primary" />
+          <span class="text-sm font-semibold">Backup y restauración</span>
+        </div>
+        <p class="text-xs text-muted-foreground">
+          Exportá todos los datos de tu cooperadora a un archivo comprimido (.lof).
+          Usalo para migrar a otra computadora o como respaldo de seguridad.
+        </p>
+        <div class="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onclick={handleExport} disabled={exporting}>
+            <DownloadIcon data-icon="inline-start" />
+            {exporting ? 'Exportando…' : 'Exportar backup'}
+          </Button>
+        </div>
+        {#if exportResult}
+          <div class="text-xs text-muted-foreground rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
+            Backup creado: <strong>{exportResult.filename}</strong>
+            ({(exportResult.size / 1024 / 1024).toFixed(2)} MB, {exportResult.docCount} documentos).
+          </div>
+        {/if}
+      </div>
+    {/if}
 
     {#if store.dedupResult}
       <Separator />

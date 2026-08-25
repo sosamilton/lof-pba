@@ -1,4 +1,4 @@
-import { gristReady, listTables, resolveTableId, fetchRecords } from '$core/grist/grist'
+import { gristReady, listTables, resolveTableId, fetchRecords } from '$core/data/dataRepository'
 import { TABLE_PREFERRED_IDS, MODULES, MESES } from '$core/utils/utils'
 import { ORGANISMOS, ORGANISMO_LABELS } from '$app/modules/gobierno/constants.js'
 import { loadConfig, getTablesForModules } from '$app/pages/cooperadora/cooperadoraApi.js'
@@ -303,6 +303,29 @@ export class SetupStore {
   // --- Demo (delegan a setupDemo.js, DEV-only) ---
   fillDemoData() { fillDemoData(this) }
   fillAllDemoData() { fillAllDemoData(this) }
+
+  // --- Backup restore ---
+  restoring = $state(false)
+  restoreError = $state('')
+  restoreResult = $state(null)
+
+  async restoreFromBackup(/** @type {File} */ file) {
+    this.restoring = true
+    this.restoreError = ''
+    this.restoreResult = null
+    try {
+      const { importBackup } = await import('$core/data/backup.js')
+      const result = await importBackup(file)
+      this.restoreResult = result
+      // Saltar directamente al último paso (instalar)
+      // El backup ya tiene todos los datos, solo falta recargar.
+      this.step = this.steps.length - 1
+    } catch (e) {
+      this.restoreError = e?.message || String(e)
+    } finally {
+      this.restoring = false
+    }
+  }
 
   // --- Instalación (delega a setupInstaller.js) ---
   async doInstall() { await doInstall(this) }

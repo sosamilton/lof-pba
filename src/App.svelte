@@ -3,10 +3,14 @@
   import { Toaster } from '$lib/components/ui/sonner'
   import AppShell from '$app/AppShell.svelte'
   import { initRouter, router, navigate } from '$core/ui/router.svelte'
-  import { detectGrist, getGristStatus, getWidgetOptions, isInGrist, subscribeAccess, listTables } from '$core/grist/grist'
+  import { detectGrist, getGristStatus, getWidgetOptions, isInGrist, subscribeAccess, listTables, getActiveBackend } from '$core/data/dataRepository'
   import { trackPageview } from '$core/analytics/plausible.js'
   import { isInstalled } from '$app/pages/cooperadora/cooperadoraApi.js'
   import { identidad } from '$core/data/identidad'
+  import { syncStore as sync } from '$app/pages/configuracion/syncStore.svelte.js'
+
+  const activeBackend = getActiveBackend()
+  const isPouchMode = activeBackend === 'pouch'
 
   import Inicio from '$app/pages/inicio/Inicio.svelte'
   import Landing from '$landing/Landing.svelte'
@@ -27,14 +31,22 @@
 
   const checkInstalled = async () => {
     try {
-      const tables = await listTables()
-      const hasConfig = tables.some((t) => String(t).toLowerCase() === 'configuracion')
-      if (!hasConfig) {
-        needsSetup = true
-        return
+      if (isPouchMode) {
+        // En modo PouchDB, listTables devuelve keys del schema (siempre existen).
+        // Verificamos directamente si hay config instalada.
+        const installed = await isInstalled()
+        needsSetup = !installed
+      } else {
+        // En modo Grist, verificamos que la tabla configuracion exista.
+        const tables = await listTables()
+        const hasConfig = tables.some((t) => String(t).toLowerCase() === 'configuracion')
+        if (!hasConfig) {
+          needsSetup = true
+          return
+        }
+        const installed = await isInstalled()
+        needsSetup = !installed
       }
-      const installed = await isInstalled()
-      needsSetup = !installed
     } catch {
       needsSetup = true
     }
@@ -46,10 +58,25 @@
     gristStatus = status
     if (status === 'ready') {
       await checkInstalled()
+      // En modo PouchDB (standalone), si no está instalada y el usuario
+      // no navegó explícitamente a una ruta de la app, mostrar la landing.
+      if (isPouchMode && needsSetup && router.current === 'inicio') {
+        navigate('landing')
+      }
       if (!needsSetup) {
         const opts = await getWidgetOptions()
-        if (opts?.lastRoute && opts.lastRoute !== router.current) {
+        if (opts?.lastRoute && opts.lastRoute !== router.current && opts.lastRoute !== 'landing') {
           navigate(opts.lastRoute)
+        }
+        // Auto-start sync si está configurado y habilitado (solo PouchDB)
+        if (isPouchMode) {
+          try {
+            await sync.load()
+            const cfg = sync.config
+            if (cfg.sync_enabled && cfg.sync_auto) {
+              sync.start()
+            }
+          } catch { /* sync es opcional */ }
         }
       }
     }
@@ -74,7 +101,9 @@
     if (!ready) return
 
     let path
-    if (gristStatus === 'ready' && needsSetup) {
+    if (router.current === 'landing') {
+      path = '/'
+    } else if (gristStatus === 'ready' && needsSetup) {
       path = '/app/setup'
     } else if (gristStatus === 'ready') {
       path = `/app/${router.current}`
@@ -99,6 +128,12 @@
       <p class="text-sm text-muted-foreground">Cargando…</p>
     </div>
   </div>
+{:else if router.current === 'landing'}
+  <Landing installed={gristStatus === 'ready' && !needsSetup} />
+{:else if router.current === 'sobre-lof'}
+  <SobreLof />
+{:else if router.current === 'instalacion'}
+  <InstallGuide />
 {:else if gristStatus === 'ready' && needsSetup}
   <SetupWizard />
 {:else if gristStatus === 'ready'}
@@ -142,11 +177,20 @@
     {/snippet}
   </AppShell>
 {:else if gristStatus === 'no-access'}
-  <NeedsAccess />
-{:else if router.current === 'instalacion'}
-  <InstallGuide />
-{:else if router.current === 'sobre-lof'}
-  <SobreLof />
+  {#if isPouchMode}
+    <!-- En modo PouchDB, no-access significa que IndexedDB no está disponible -->
+    <main class="max-w-[620px] mx-auto px-4 py-8">
+      <div class="rounded-2xl border border-border bg-muted/5 p-5">
+        <h1 class="text-xl font-bold leading-tight mb-2">No se pudo acceder al almacenamiento local</h1>
+        <p class="text-sm text-muted-foreground leading-relaxed">
+          Tu navegador no soporta IndexedDB o está bloqueado. Probá con otro navegador
+          o revisá la configuración de privacidad.
+        </p>
+      </div>
+    </main>
+  {:else}
+    <NeedsAccess />
+  {/if}
 {:else}
   <Landing />
 {/if}

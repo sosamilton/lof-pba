@@ -46,7 +46,7 @@
         <span class="text-lg font-bold tracking-tight">{identidad.nombre}</span>
         <Badge variant="secondary" class="hidden sm:inline-flex">{identidad.ubicacion}</Badge>
       </div>
-      <Button variant="ghost" size="sm" onclick={() => navigate('inicio')}>
+      <Button variant="ghost" size="sm" onclick={() => navigate('landing')}>
         <ArrowLeftIcon data-icon="inline-start" />
         Volver
       </Button>

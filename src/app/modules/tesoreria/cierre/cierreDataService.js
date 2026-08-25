@@ -1,4 +1,4 @@
-import { fetchRecords, resolveTableId } from '$core/grist/grist.js'
+import { fetchRecords, resolveTableId } from '$core/data/dataRepository'
 import { TABLE_PREFERRED_IDS, buildMapById } from '$core/utils/utils.js'
 
 /**

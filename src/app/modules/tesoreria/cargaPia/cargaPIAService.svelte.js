@@ -1,5 +1,5 @@
-import { resolveTableIds } from '$core/grist/stores/gristStore.svelte.js'
-import { fetchRecords, applyUserActions } from '$core/grist/grist.js'
+import { resolveTableIds } from '$core/data/dataStore.svelte'
+import { fetchRecords, applyUserActions } from '$core/data/dataRepository'
 import { normalizeFields, buildMapById } from '$core/utils/utils.js'
 
 /**

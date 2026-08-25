@@ -1,9 +1,11 @@
-import { gristReady, resolveTableId, applyUserActions, invalidateTablesCache, fetchRecords, addRecords } from '$core/grist/grist'
+import { gristReady, resolveTableId, applyUserActions, invalidateTablesCache, fetchRecords, addRecords, getActiveBackend } from '$core/data/dataRepository'
 import { ensureSchema, initDemoData } from './initLof'
 import { TABLE_PREFERRED_IDS, MODULES, fechasEjercicio, todayISO } from '$core/utils/utils'
 import { saveConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
 import { normalizeEmail, normalizeTelefonoForStorage, isValidCbuChecksum } from '$core/format/format'
 import { currentYear } from './setupConstants'
+
+const isPouchMode = () => getActiveBackend() === 'pouch'
 
 /**
  * Lógica de instalación: crea tablas, registros iniciales y config.
@@ -14,7 +16,22 @@ export async function doInstall(s) {
   s.installing = true
   s.error = ''
   try {
+    // Si se restauró un backup, los datos ya están en la DB.
+    // Solo marcar como instalado y recargar.
+    if (s.restoreResult) {
+      // Leer la config del backup para marcar instalado=true
+      const { loadConfig, saveConfig } = await import('$app/pages/cooperadora/cooperadoraApi.js')
+      const config = await loadConfig()
+      if (config) {
+        await saveConfig({ ...config, instalado: true })
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      window.location.reload()
+      return
+    }
+
     // Invalidar cache de tablas para que ensureSchema vea el estado real de Grist.
+    // En modo PouchDB es un no-op.
     invalidateTablesCache()
 
     const schemaResult = await ensureSchema()
@@ -218,8 +235,10 @@ export async function doInstall(s) {
       }
     }
 
-    // Limpieza post-instalación: renombrar página del widget
-    await cleanupDefaultTable()
+    // Limpieza post-instalación: renombrar página del widget (solo Grist)
+    if (!isPouchMode()) {
+      await cleanupDefaultTable()
+    }
 
     invalidateTablesCache()
     await new Promise((resolve) => setTimeout(resolve, 1000))

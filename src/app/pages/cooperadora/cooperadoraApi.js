@@ -1,4 +1,4 @@
-import { applyUserActions, fetchRecords, resolveTableId } from '$core/grist/grist'
+import { applyUserActions, fetchRecords, resolveTableId } from '$core/data/dataRepository'
 import { TABLE_PREFERRED_IDS, MODULES, fechasEjercicio } from '$core/utils/utils'
 
 /** @returns {Promise<Record<string, any> | null>} */

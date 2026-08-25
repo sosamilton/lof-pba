@@ -12,8 +12,8 @@ Guía completa de la dockerización de LOF. La app compila a **estáticos** y se
 | `.dockerignore` | Excluye `node_modules`, `dist`, `.git`, docs, etc. del contexto de build. |
 | `docker/grist/docker-compose.grist.yml` | Stack de **Grist** autocontenido (Grist + Redis + MinIO + init bucket). Incluido por prod y dev. |
 | `docker/grist/grist.env.example` | Template de configuración (copiar a `.env`). |
-| `docker-compose.yml` | Compose de **producción** (include Grist + nginx SPA). |
-| `docker-compose.dev.yml` | Compose de **desarrollo** (include Grist + Vite HMR). |
+| `docker-compose.yml` | Compose de **desarrollo standalone** (Vite HMR + CouchDB). |
+| `docker-compose.grist.yml` | Compose de **desarrollo con Grist** (include Grist + Vite HMR). |
 
 ## Producción
 
@@ -182,19 +182,26 @@ El runtime **no incluye Node ni el código fuente**: solo nginx + los estáticos
 
 ## Desarrollo
 
+### Standalone con CouchDB (default)
+
 ```bash
-docker compose -f docker-compose.dev.yml up
+docker compose up
 # App en http://localhost:5173 con HMR
+# CouchDB en http://localhost:5984
 ```
 
-El compose de dev levanta **Grist + Redis + MinIO + Vite** juntos. Hereda todo el stack de Grist del `include` y solo overridea container names, ports y paths:
+El compose default levanta **Vite + CouchDB**. La app guarda datos en PouchDB (IndexedDB) y puede sincronizar con CouchDB (ver Configuración → Sincronización).
+
+### Con Grist (alternativa)
 
 ```bash
-docker compose -f docker-compose.dev.yml up
+docker compose -f docker-compose.grist.yml up
 # Grist en         http://localhost:8489
 # MinIO console en  http://localhost:9101
 # Vite  en          http://localhost:5173 (HMR)
 ```
+
+El compose de Grist levanta **Grist + Redis + MinIO + Vite** juntos. Hereda todo el stack de Grist del `include` y solo overridea container names, ports y paths.
 
 Servicios:
 
@@ -221,7 +228,7 @@ Una vez levantados ambos servicios:
 | `GRIST_TAG` | `latest` | Tag de la imagen oficial de Grist. |
 
 ```bash
-DEV_PORT=5180 GRIST_PORT=9000 docker compose -f docker-compose.dev.yml up
+DEV_PORT=5180 GRIST_PORT=9000 docker compose -f docker-compose.grist.yml up
 ```
 
 > El dev container reinstala dependencias en cada `up` porque `node_modules` es un volumen anónimo. Para iterar rápido sin reinstalar, podés comentar el `npm install` del `command` después del primer arranque, o usar un volumen con nombre persistente.
@@ -249,20 +256,18 @@ Como la SPA usa paths relativos (`base: './'`) y hash routing, no hace falta con
 
 ## Comparativa rápida
 
-| | Producción (`docker-compose.yml`) | Dev (`docker-compose.dev.yml`) |
+| | Dev standalone (`docker-compose.yml`) | Dev con Grist (`docker-compose.grist.yml`) |
 | --- | --- | --- |
-| Servicios | Grist + Redis + MinIO + SPA | Grist + Redis + MinIO + Vite |
-| Stack Grist | `include` docker/grist/... | `include` + overrides dev |
-| Imagen base SPA | `nginx:1.27-alpine` (build local) | `node:24-alpine` |
-| Imagen Grist | `gristlabs/grist` | `gristlabs/grist` |
-| Servidor SPA | nginx | Vite dev server |
-| HMR | No (estáticos) | Sí |
-| Puerto SPA | 80 → 8088 | 5173 |
-| Puerto Grist | 8089 | 8489 |
-| Puerto MinIO console | 9001 | 9101 |
-| Volumen código | No (copiado en build) | Sí (bind mount) |
-| Volumen datos | `./data/grist/`, `./data/minio/` | `./data/grist-dev/`, `./data/minio-dev/` |
-| Snapshots | Sí (MinIO versionado) | Sí (MinIO versionado) |
-| Auth | Login + admin email | Login + admin email |
-| Healthcheck | Sí (wget) | Sí (wget) |
+| Servicios | Vite + CouchDB | Grist + Redis + MinIO + Vite |
+| Backend | PouchDB (IndexedDB) + CouchDB sync | Grist (documento SQLite) |
+| Stack Grist | No | `include` docker/grist/... + overrides dev |
+| Imagen base SPA | `node:24-alpine` | `node:24-alpine` |
+| Servidor SPA | Vite dev server | Vite dev server |
+| HMR | Sí | Sí |
+| Puerto SPA | 5173 | 5173 |
+| Puerto Grist | — | 8489 |
+| Puerto CouchDB | 5984 | — |
+| Puerto MinIO console | — | 9101 |
+| Volumen código | Sí (bind mount) | Sí (bind mount) |
+| Volumen datos | `./data/couchdb-dev/` | `./data/grist-dev/`, `./data/minio-dev/` |
 | Reinicio | `unless-stopped` | `unless-stopped` |

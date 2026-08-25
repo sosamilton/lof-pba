@@ -1,4 +1,4 @@
-import { fetchRecords, resolveTableId } from '$core/grist/grist'
+import { fetchRecords, resolveTableId } from '$core/data/dataRepository'
 import { TABLE_PREFERRED_IDS, MESES, getModalidadGestion } from '$core/utils/utils'
 import { loadConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
 import { saldosStore } from '$app/modules/tesoreria/resumen/saldosStore.svelte.js'

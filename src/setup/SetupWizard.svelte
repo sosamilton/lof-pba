@@ -73,7 +73,7 @@
           Precargar datos demo
         </Button>
       {/if}
-      {#if store.step > 0 && !store.installing}
+      {#if store.step > 0 && !store.installing && !store.restoreResult}
         <Button variant="outline" onclick={() => store.step -= 1}>Atrás</Button>
       {/if}
       {#if store.step < store.steps.length - 1}

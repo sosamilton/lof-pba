@@ -7,14 +7,14 @@ import {
   resolveTableId,
   fetchRecords,
   applyUserActions,
-} from '$core/grist/grist'
+} from '$core/data/dataRepository'
 import { REQUIRED_TABLES } from '$core/grist/schema'
 import { getSchemaDiff, ensureSchema } from '$setup/initLof'
-import { deduplicatePersonas, syncRubrosPia, syncSubrubrosPia, fixRubrosPiaCampoPdf } from '$setup/migracion'
+import { deduplicatePersonas, syncRubrosPia, syncSubrubrosPia, fixRubrosPiaCampoPdf, fixEstatutoColumnType, migrarEstatutoATabla } from '$setup/migracion'
 import { loadConfig, saveConfig, crearEjercicioApi } from '$app/pages/cooperadora/cooperadoraApi.js'
 import { configStore } from '$core/grist/stores/configStore.svelte'
 import { notify, withNotify } from '$core/ui/notify.svelte'
-import { createBaseState } from '$core/grist/stores/gristStore.svelte'
+import { createBaseState } from '$core/data/dataStore.svelte'
 import { saldosStore } from '$app/modules/tesoreria/resumen/saldosStore.svelte.js'
 import { createDashboardStore } from './dashboardStore.svelte.js'
 import { TABLE_PREFERRED_IDS, normalizeFields } from '$core/utils/utils'
@@ -93,12 +93,25 @@ const check = async () => {
           // fixRubrosPiaCampoPdf corrige el mapeo PDF de rubros GP/OG en
           // instalaciones sembradas con versiones anteriores al fix 2026-08-23.
           const resFix = await fixRubrosPiaCampoPdf()
+          // fixEstatutoColumnType repara el tipo de la columna escuela.estatuto
+          // en instalaciones donde se creó con el tipo inválido `Attachment`
+          // (singular) en lugar de `Attachments`. Bug introducido en e3ee918.
+          const resEstatuto = await fixEstatutoColumnType()
+          // migrarEstatutoATabla mueve el estatuto del modelo legacy
+          // (escuela.estatuto) al nuevo modelo (tabla estatutos + ref).
+          const resMigrarEstatuto = await migrarEstatutoATabla()
           const totalAgregados = (res?.added || 0) + (resSub?.added || 0)
           if (totalAgregados > 0) {
             notify.success(`Se agregaron ${totalAgregados} categoría(s) nueva(s) al plan de cuentas.`)
           }
           if (resFix?.fixed > 0) {
             notify.success(`Se corrigió el mapeo PDF de ${resFix.fixed} rubro(s) del plan de cuentas.`)
+          }
+          if (resEstatuto?.fixed > 0) {
+            notify.success('Se corrigió el tipo de la columna del estatuto.')
+          }
+          if (resMigrarEstatuto?.migrated > 0) {
+            notify.success('Se migró el estatuto al nuevo modelo de historial de versiones.')
           }
         } catch (e) {
           // Non-fatal: la sincronización falla silenciosamente, no bloquea Inicio.

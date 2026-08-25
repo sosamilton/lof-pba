@@ -1,10 +1,16 @@
 import { csvToObjects, normalizeSeedValue, parseCsv } from '$core/utils/csv'
-import { addRecords, applyUserActions, createTables, fetchTableData } from '$core/grist/grist'
+import { addRecords, applyUserActions, createTables, fetchTableData, getActiveBackend } from '$core/data/dataRepository'
 import schemaJson from '$core/data/schema.json'
 
 const base = () => String(import.meta.env.BASE_URL || '/')
 
 export const loadLofSchema = async () => schemaJson
+
+/**
+ * Detecta si estamos en modo PouchDB (standalone) o Grist (widget).
+ * En modo PouchDB, ensureSchema es un no-op (schemaless) — solo crea índices.
+ */
+const isPouchMode = () => getActiveBackend() === 'pouch'
 
 export const loadSeedCsv = async (name) => {
   const url = `${base()}seeds/${name}.csv`
@@ -44,6 +50,16 @@ const getSelfRefColumns = (tableId, columns) => {
 }
 
 export const ensureSchema = async () => {
+  // En modo PouchDB, no hay schema que crear — es schemaless.
+  // Solo aseguramos índices y devolvemos success.
+  if (isPouchMode()) {
+    try {
+      const { ensureIndexes } = await import('$core/data/pouchSchema.js')
+      await ensureIndexes()
+    } catch { /* índices opcionales */ }
+    return { created: 0, addedColumns: 0, repairedRefs: 0, migratedFormulas: 0 }
+  }
+
   const schema = await loadLofSchema()
 
   // Consultar directamente a Grist (source of truth) en vez de usar una lista
@@ -172,6 +188,13 @@ export const initDemoData = async (tables) => {
 }
 
 export const getSchemaDiff = async () => {
+  // En modo PouchDB, no hay tablas internas _grist_Tables ni schema
+  // relacional que comparar — PouchDB es schemaless. Devolvemos diff vacío
+  // para que Inicio no muestre "tablas faltantes" ni ofrezca reparar.
+  if (isPouchMode()) {
+    return { missingTables: [], missingColumns: [], actualTableIds: {}, refColumns: [], formulaMigrations: [] }
+  }
+
   const schema = await loadLofSchema()
   const tablesMeta = await fetchTableData('_grist_Tables')
   const colsMeta = await fetchTableData('_grist_Tables_column')

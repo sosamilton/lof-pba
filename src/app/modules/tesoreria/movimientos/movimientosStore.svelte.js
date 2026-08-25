@@ -1,4 +1,4 @@
-import { createGristStore, extendStore } from '$core/grist/stores/gristStore.svelte.js'
+import { createGristStore, extendStore } from '$core/data/dataStore.svelte'
 import { createRelatedData } from './form/movimientosRelatedData.svelte.js'
 import { createFormState } from './form/movimientosFormState.svelte.js'
 import { createCierresService } from '../resumen/cierresService.svelte.js'

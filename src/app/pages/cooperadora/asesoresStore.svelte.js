@@ -1,6 +1,6 @@
-import { applyUserActions, fetchRecords, gristReady, isInGrist, resolveTableId, subscribeRecords } from '$core/grist/grist.js'
+import { applyUserActions, fetchRecords, gristReady, isInGrist, resolveTableId, subscribeRecords } from '$core/data/dataRepository'
 import { TABLE_PREFERRED_IDS, todayISO } from '$core/utils/utils.js'
-import { createBaseState } from '$core/grist/stores/gristStore.svelte.js'
+import { createBaseState } from '$core/data/dataStore.svelte'
 import { notify } from '$core/ui/notify.svelte'
 import { findOrCreatePersona, personaLabel } from '$app/modules/comunidad/personas/personasApi.js'
 

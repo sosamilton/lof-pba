@@ -102,6 +102,20 @@
             "label": "Datos validados",
             "type": "Bool"
           }
+        },
+        {
+          "id": "estatuto_actual_id",
+          "fields": {
+            "label": "Estatuto vigente",
+            "type": "Ref:estatutos"
+          }
+        },
+        {
+          "id": "estatuto_validado",
+          "fields": {
+            "label": "Estatuto validado",
+            "type": "Bool"
+          }
         }
       ]
     },
@@ -1754,6 +1768,40 @@
           "fields": {
             "label": "Asamblea",
             "type": "Ref:asambleas"
+          }
+        }
+      ]
+    },
+    {
+      "id": "estatutos",
+      "title": "Estatutos",
+      "columns": [
+        {
+          "id": "estatuto",
+          "fields": {
+            "label": "Estatuto (PDF)",
+            "type": "Attachments"
+          }
+        },
+        {
+          "id": "fecha_desde",
+          "fields": {
+            "label": "Fecha de vigencia",
+            "type": "Date"
+          }
+        },
+        {
+          "id": "asamblea_id",
+          "fields": {
+            "label": "Asamblea que lo aprobó",
+            "type": "Ref:asambleas"
+          }
+        },
+        {
+          "id": "notas",
+          "fields": {
+            "label": "Notas",
+            "type": "Text"
           }
         }
       ]

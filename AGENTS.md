@@ -1,5 +1,41 @@
 # Project Rules
 
+## Arquitectura de datos (importante)
+
+LOF tiene una **capa de datos desacoplada**. Todos los stores y módulos importan de `dataRepository.js` (facade unificado), nunca del backend directo.
+
+### Backends soportados
+
+| Backend | Modo | Detección | Storage |
+|---------|------|-----------|---------|
+| **PouchDB** | Standalone (default) | No está en iframe | IndexedDB del navegador |
+| **Grist** | Custom Widget | `window.self !== window.top` | Documento Grist (SQLite) |
+
+### Sync con CouchDB (opcional)
+
+- PouchDB puede sincronizar bidireccionalmente con CouchDB.
+- **Desactivado por defecto**. Se activa desde Configuración → Sincronización o con `VITE_SYNC_ENABLED=true`.
+- `pouchSync.js` maneja la replicación (live + retry + conflict resolution nativo).
+- `syncStore.svelte.js` gestiona la config (URL, credenciales, auto-sync).
+
+### Backup/restore
+
+- `src/core/data/backup.js` — exportación a `.lof` (gzip) e importación.
+- Exportar: Configuración → General → Backup y restauración.
+- Importar: Setup wizard → primera página → "¿Tenés un backup?".
+
+### Desktop vía Tauri
+
+- `src-tauri/` — configuración de Tauri 2.
+- Build Dockerizado: `scripts/tauri-docker-build.sh` (genera .deb, .rpm, AppImage).
+
+### Reglas para cambios de código
+
+- **Nunca** importar directamente de `grist/grist.js` o `pouchRepository.js` en stores o módulos. Siempre usar `dataRepository.js`.
+- `src/core/grist/` se mantiene para compatibilidad con el modo Grist Widget. No eliminar.
+- `computedFields.js` contiene los equivalentes JS de las fórmulas de Grist. Si se agrega una columna formula al schema, agregar su equivalente JS acá.
+- `TABLE_PREFERRED_IDS` (en `utils.js`) mapea keys lógicas a IDs físicos. Funciona para ambos backends.
+
 ## Entorno de shell: nvm antes de npm
 
 El host usa `nvm` para gestionar Node. **Antes de ejecutar cualquier comando `npm` (o `npx`/`node`) por primera vez en una sesión de shell**, correr primero:
@@ -102,6 +138,34 @@ La página de Configuración tiene un tab "Categorías y subcategorías" con CRU
 
 `configStore` (`src/core/grist/stores/configStore.svelte`) cachea la config de la cooperadora. `AppShell.svelte` tiene un `$effect` que reacciona a `configStore.config` para actualizar brand (título/subtítulo) y tema (color primario) en vivo sin recargar. Cualquier cambio de config (color, título, cuenta default) debe llamar `configStore.load()` después de guardar para refrescar el cache. `cooperadoraStore.saveCooperadora` e `inicioStore.onAppTitleChange` también sincronizan la tabla `escuela` (fuente de verdad) al guardar.
 
+## Estatuto de la cooperadora (PDF adjunto + historial de versiones)
+
+El estatuto de la cooperadora usa un modelo de **tabla dedicada** (`estatutos`) que conserva el historial completo de versiones. La tabla `escuela` tiene `estatuto_actual_id` (Ref:estatutos) que apunta a la versión vigente, y `estatuto_validado` (Bool) que bloquea la edición.
+
+### Modelo de datos
+
+- **Tabla `estatutos`**: una fila por versión del estatuto. Columnas: `estatuto` (Attachments, el PDF), `fecha_desde` (Date, fecha de vigencia), `asamblea_id` (Ref:asambleas, asamblea que aprobó esta versión), `notas` (Text).
+- **`escuela.estatuto_actual_id`** (Ref:estatutos): apunta al registro vigente. Al reemplazar el estatuto, se crea un nuevo registro en `estatutos` y se actualiza esta ref. El registro anterior queda como histórico.
+- **`escuela.estatuto_validado`** (Bool): cuando está en true, bloquea la edición del PDF. Solo se desbloquea al guardar una AGE con motivo "Reforma estatuto" (igual que los cargos del estatuto).
+
+### Flujo
+
+1. **Upload**: `EstatutoField.svelte` valida que el archivo sea PDF y usa `uploadAttachments([file])` para subirlo a Grist.
+2. **Guardado**: `cooperadoraStore.saveEstatuto(attId)` crea un registro en `estatutos` (con el attachment, `fecha_desde` = hoy, `asamblea_id` = la AGE de reforma pendiente si la hay) y actualiza `escuela.estatuto_actual_id` para apuntar al nuevo registro. El registro anterior queda como histórico.
+3. **Validación**: `cooperadoraStore.validarEstatuto()` setea `estatuto_validado = true`. Una vez validado, el componente bloquea la edición.
+4. **Desbloqueo**: al guardar una AGE con motivo "Reforma estatuto", `asambleasManager` invoca `onReformaEstatuto(asambleaId)` → `cooperadoraStore.desbloquearEstatuto(asambleaId)` que setea `estatuto_validado = false` y guarda el `asambleaId` para vincularlo al próximo registro de estatuto que se cree. También desbloquea los cargos (`desbloquearCargos`).
+5. **Lectura**: `cooperadoraStore.estatutoVigente` resuelve el registro vigente desde `estatuto_actual_id`. `estatutoVigenteAttachmentId` extrae el ID del attachment. `estatutos` (getter) devuelve todas las versiones ordenadas por `fecha_desde` descendente.
+6. **Descarga**: usa `getAttachmentUrl(attId)` con token fresco al click, igual que comprobantes de movimientos.
+7. **Historial**: el tab "Estatuto" en Institucional muestra una card "Historial de versiones" con todas las versiones, marcando la vigente con un Badge.
+
+### Migración desde modelo legacy
+
+El modelo original guardaba el PDF directamente en `escuela.estatuto` (tipo Attachments, sin historial). `migrarEstatutoATabla` en `migracion.js` mueve el attachment legacy a un registro en `estatutos` y vincula `estatuto_actual_id`. Es idempotente: si `estatuto_actual_id` ya está seteado, no hace nada. Se invoca desde `inicioStore.check()` una sola vez por sesión. La columna `escuela.estatuto` legacy queda como orphan en Grist (no se elimina, pero el schema ya no la declara).
+
+### Bug histórico de tipo (2026-08-24)
+
+El commit e3ee918 definió `escuela.estatuto` con `type: "Attachment"` (singular, inválido en Grist). El tipo correcto es `Attachments` (plural). Esto causaba `AttributeError: module 'grist' has no attribute 'Attachment'` en el sandbox. `fixEstatutoColumnType` en `migracion.js` repara instalaciones existentes via `ModifyColumn`. Con el nuevo modelo (tabla `estatutos`), este bug ya no aplica para instalaciones nuevas, pero la migración reparadora se mantiene para instalaciones legacy.
+
 ## Attachments de Grist (comprobantes de movimientos)
 
 Los movimientos pueden tener comprobantes adjuntos (facturas, recibos, tickets). El flujo es:
@@ -121,7 +185,7 @@ Los movimientos pueden tener comprobantes adjuntos (facturas, recibos, tickets).
 
 - **Dev (Vite)**: `vite.config.js` proxy `/grist-api` → `GRIST_PROXY_TARGET || http://localhost:8489`, rewrite strips `/grist-api` prefix, `configure` remueve headers `Origin` y `Referer`.
 - **Prod (nginx)**: `docker/nginx.conf` location `/grist-api/` → `http://grist:8484/`, `proxy_set_header Origin ""`.
-- **Docker**: `docker-compose.dev.yml` setea `GRIST_PROXY_TARGET=http://grist:8484` (Grist accesible por nombre de servicio dentro de la red Docker).
+- **Docker**: `docker-compose.grist.yml` setea `GRIST_PROXY_TARGET=http://grist:8484` (Grist accesible por nombre de servicio dentro de la red Docker).
 
 ### Attachments huérfanos
 

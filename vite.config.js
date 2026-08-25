@@ -90,6 +90,11 @@ export default defineConfig({
       $app: path.resolve('./src/app'),
       $landing: path.resolve('./src/landing'),
       $setup: path.resolve('./src/setup'),
+      // PouchDB usa `events` de Node.js internamente. Sin este alias,
+      // Vite lo externaliza para el browser y rompe con
+      // "import_browser_external_events.default is not a constructor".
+      // El paquete npm `events` es un polyfill browser-compatible.
+      events: 'events',
     },
   },
 })

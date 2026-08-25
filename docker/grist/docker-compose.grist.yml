@@ -2,8 +2,8 @@
 # ---------------------------------------------------------------------------
 # Stack de Grist autocontenido: Grist + Redis + MinIO (snapshots S3) + init.
 #
-# Diseñado para ser incluido por docker-compose.yml (prod) y
-# docker-compose.dev.yml (dev) mediante la directiva `include`.
+# Diseñado para ser incluido por docker-compose.grist.yml (dev) mediante la
+# directiva `include`.
 #
 # Servicios:
 #   grist       — Grist (backend spreadsheet-database)
