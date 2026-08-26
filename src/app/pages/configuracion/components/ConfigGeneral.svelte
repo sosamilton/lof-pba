@@ -25,6 +25,7 @@
   import DownloadIcon from '@lucide/svelte/icons/download'
   import UploadIcon from '@lucide/svelte/icons/upload'
   import { notify } from '$core/ui/notify.svelte'
+  import { trackEvent } from '$core/analytics/plausible.js'
 
   const isPouchMode = getActiveBackend() === 'pouch'
   const isGristMode = getActiveBackend() === 'grist'
@@ -42,6 +43,8 @@
         ? await exportBackup()
         : await exportGristDoc()
       exportResult = res
+      // Analytics: backup exportado (goal "Backup exportado")
+      trackEvent('backup_exported', { backend: getActiveBackend(), doc_count: res.docCount || 0 })
     } catch (e) {
       notify.error(e?.message || 'Error al exportar')
     } finally {
@@ -60,6 +63,7 @@
       const res = await importGristDoc(file)
       notify.dismiss(id)
       importResult = res
+      trackEvent('backup_imported', { backend: 'grist', record_count: res.recordCount || 0 })
       notify.success(`Importación completada: ${res.recordCount} registros en ${res.tableCount} tablas.`)
     } catch (e) {
       notify.dismiss(id)

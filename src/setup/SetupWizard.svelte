@@ -10,11 +10,17 @@
   import StepInstalar from './steps/StepInstalar.svelte'
   import { applyBrandTheme } from '$core/ui/theme'
   import { identidad } from '$core/data/identidad'
+  import { getActiveBackend } from '$core/data/dataRepository'
+  import { trackEvent } from '$core/analytics/plausible.js'
 
   const store = new SetupStore()
   const dev = import.meta.env.DEV
+  const backend = getActiveBackend()
 
-  onMount(() => store.init())
+  onMount(() => {
+    trackEvent('setup_started', { backend })
+    store.init()
+  })
 
   // Preview en vivo del color de marca elegido en el paso de escuela.
   $effect(() => {
@@ -77,7 +83,7 @@
         <Button variant="outline" onclick={() => store.step -= 1}>Atrás</Button>
       {/if}
       {#if store.step < store.steps.length - 1}
-        <Button onclick={() => store.next()} disabled={!store.canNext()}>Siguiente</Button>
+        <Button onclick={() => { trackEvent('setup_step_completed', { step: store.step + 1, step_name: store.steps[store.step], backend }); store.next() }} disabled={!store.canNext()}>Siguiente</Button>
       {:else}
         <Button onclick={() => store.doInstall()} disabled={store.installing}>
           {store.installing ? 'Instalando…' : 'Instalar ahora'}

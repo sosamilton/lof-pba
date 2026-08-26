@@ -1,6 +1,7 @@
-import { fetchRecords, applyUserActions } from '$core/data/dataRepository'
+import { fetchRecords, applyUserActions, getActiveBackend } from '$core/data/dataRepository'
 import { normalizeFields, dateToInput, todayISO } from '$core/utils/utils.js'
 import { extractRowId } from '$app/modules/comunidad/personas/personasApi.js'
+import { trackEvent } from '$core/analytics/plausible.js'
 
 /**
  * Gestión de asambleas: CRUD de asambleas + resoluciones.
@@ -154,6 +155,8 @@ export function createAsambleasManager({ getTAsambleas, getTResoluciones, getTAu
         asambleaId = extractRowId(res)
         asambleaForm = { ...asambleaForm, id: asambleaId }
         bs.setNotice('Reunión creada.')
+        // Analytics: asamblea creada
+        trackEvent('asamblea_created', { tipo: f.tipo_asamblea || '', backend: getActiveBackend() })
       }
 
       const tResoluciones = getTResoluciones()

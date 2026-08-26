@@ -1,7 +1,8 @@
-import { applyUserActions } from '$core/data/dataRepository'
+import { applyUserActions, getActiveBackend } from '$core/data/dataRepository'
 import { normalizeFields, dateToInput, todayISO } from '$core/utils/utils.js'
 import { extractRowId, personaLabel } from '$app/modules/comunidad/personas/personasApi.js'
 import { esConstitucionCD, calcularVencimiento, grupoAVencer } from './renovacionCD.js'
+import { trackEvent } from '$core/analytics/plausible.js'
 
 /**
  * Cargar autoridades desde una asamblea (AGO/AGE).
@@ -361,6 +362,13 @@ export function createCargarAutoridades({
         ? `${actions.length} autoridad(es) registradas, ${cesarActions.length} cesada(s).`
         : `${actions.length} autoridad(es) registradas.`
       bs.setNotice(msg)
+      // Analytics: autoridades asignadas
+      trackEvent('autoridad_assigned', {
+        cantidad: actions.length,
+        organismo: filasConPersona[0]?.organismo || 'CD',
+        tipo_origen: tipoOrigen,
+        backend: getActiveBackend(),
+      })
       await loadAsambleas()
       await loadAutoridades()
       closeCargarAutoridades()

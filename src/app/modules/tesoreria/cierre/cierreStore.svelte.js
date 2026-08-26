@@ -1,7 +1,8 @@
-import { applyUserActions, fetchRecords, resolveTableId } from '$core/data/dataRepository'
+import { applyUserActions, fetchRecords, resolveTableId, getActiveBackend } from '$core/data/dataRepository'
 import { createBaseState } from '$core/data/dataStore.svelte'
 import { TABLE_PREFERRED_IDS, fechasEjercicio, todayISO } from '$core/utils/utils.js'
 import { notify } from '$core/ui/notify.svelte'
+import { trackEvent } from '$core/analytics/plausible.js'
 import { loadCierreData } from './cierreDataService.js'
 import { buildPiaFieldMap } from './piaFieldMap.js'
 import { buildNominaFieldMap } from './nominaFieldMap.js'
@@ -193,6 +194,11 @@ const descargarPia = async () => {
   a.click()
   document.body.removeChild(a)
   setTimeout(() => URL.revokeObjectURL(url), 5000)
+  // Analytics: PIA generado (goal "PIA generado")
+  trackEvent('cierre_pia_generated', {
+    ejercicio: `${ej.anio_inicio || ''}-${ej.anio_fin || ''}`,
+    backend: getActiveBackend(),
+  })
   notify.success('PIA descargado.')
 }
 

@@ -14,6 +14,7 @@
 import { startSync, stopSync, getSyncStatus, subscribeSyncStatus } from '$core/data/pouchSync.js'
 import { saveConfig, loadConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
 import { getActiveBackend } from '$core/data/dataRepository.js'
+import { trackEvent } from '$core/analytics/plausible.js'
 
 // Defaults desde env vars de Vite (horneadas en build time).
 // En dev sin env, son undefined → sync deshabilitado hasta configurar.
@@ -104,6 +105,10 @@ const save = async (data) => {
     sync_auto: merged.sync_auto,
   })
   _config = await loadConfig()
+  // Analytics: sync habilitado/deshabilitado
+  if (merged.sync_enabled !== current.sync_enabled) {
+    trackEvent('sync_enabled', { enabled: Boolean(merged.sync_enabled), backend: getActiveBackend() })
+  }
 }
 
 /**

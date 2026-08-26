@@ -5,7 +5,7 @@
   import { initRouter, router, navigate } from '$core/ui/router.svelte'
   import { detectGrist, getGristStatus, getWidgetOptions, isInGrist, subscribeAccess, listTables, getActiveBackend } from '$core/data/dataRepository'
   import { trackPageview } from '$core/analytics/plausible.js'
-  import { isInstalled } from '$app/pages/cooperadora/cooperadoraApi.js'
+  import { isInstalled, loadConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
   import { identidad } from '$core/data/identidad'
   import { syncStore as sync } from '$app/pages/configuracion/syncStore.svelte.js'
 
@@ -28,6 +28,7 @@
   let ready = $state(false)
   let gristStatus = $state('none')
   let needsSetup = $state(false)
+  let modalidad = $state('')  // 'gestion_integral' | 'carga_consolidada' | '' (no instalada)
 
   const checkInstalled = async () => {
     try {
@@ -46,6 +47,13 @@
         }
         const installed = await isInstalled()
         needsSetup = !installed
+      }
+      // Cargar modalidad de gestión desde config para segmentar en analytics
+      if (!needsSetup) {
+        try {
+          const config = await loadConfig()
+          modalidad = config?.modulo_gestion_integral ? 'gestion_integral' : 'carga_consolidada'
+        } catch { /* non-fatal */ }
       }
     } catch {
       needsSetup = true
@@ -96,28 +104,43 @@
   // Trackea pageviews en Plausible distinguiendo landing vs app por URL.
   // Landing  → "/"  "/instalacion"  "/sobre-lof"  "/needs-access"
   // App      → "/app/{route}"  o  "/app/setup"
+  // Props: backend (pouch|grist), installed (bool), grist_status, section
   $effect(() => {
     // deps reactivas: ready, gristStatus, needsSetup, router.current
     if (!ready) return
 
     let path
+    let section = 'landing'
     if (router.current === 'landing') {
       path = '/'
+      section = 'landing'
     } else if (gristStatus === 'ready' && needsSetup) {
       path = '/app/setup'
+      section = 'setup'
     } else if (gristStatus === 'ready') {
       path = `/app/${router.current}`
+      section = 'app'
     } else if (gristStatus === 'no-access') {
       path = '/needs-access'
+      section = 'landing'
     } else if (router.current === 'instalacion') {
       path = '/instalacion'
+      section = 'landing'
     } else if (router.current === 'sobre-lof') {
       path = '/sobre-lof'
+      section = 'landing'
     } else {
       path = '/'
+      section = 'landing'
     }
 
-    trackPageview(path)
+    trackPageview(path, {
+      backend: activeBackend,
+      installed: !needsSetup,
+      grist_status: gristStatus,
+      section,
+      modalidad,
+    })
   })
 </script>
 
