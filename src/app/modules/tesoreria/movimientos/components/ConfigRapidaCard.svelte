@@ -23,11 +23,14 @@
   let collapsed = $state(true)
   let saving = $state(false)
 
-  // Valores actuales: override de sesión → defaults persistidos → vacíos
+  // Valores actuales: override de sesión → defaults persistidos → vacíos.
+  // Los IDs se normalizan a String para que coincidan con los values de las
+  // options del Select (que usan String(r.id)). Si no coinciden, el Select
+  // muestra el ID crudo en lugar del label.
   let current = $derived({
     tipo: sessionOverride?.tipo || defaultsMovimiento?.tipo || 'Entrada',
-    rubro_id: sessionOverride?.rubro_id || defaultsMovimiento?.rubro_id || '',
-    cuenta_id: sessionOverride?.cuenta_id || defaultsMovimiento?.cuenta_id || '',
+    rubro_id: String(sessionOverride?.rubro_id || defaultsMovimiento?.rubro_id || ''),
+    cuenta_id: String(sessionOverride?.cuenta_id || defaultsMovimiento?.cuenta_id || ''),
     detalle: sessionOverride?.detalle || defaultsMovimiento?.detalle || '',
   })
 

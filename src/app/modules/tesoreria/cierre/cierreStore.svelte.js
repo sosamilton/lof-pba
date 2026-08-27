@@ -59,6 +59,13 @@ let cargosAll = $state([])
 /** @type {(() => void) | null} */
 let _unsub = null
 
+// Callback que se ejecuta después de cerrar/reabrir un ejercicio, para que
+// otros stores (cooperadoraStore, movimientosStore) puedan recargar sus
+// copias locales de ejercicios.
+/** @type {(() => void | Promise<void>) | null} */
+let _onEjercicioChanged = null
+const setOnEjercicioChanged = (fn) => { _onEjercicioChanged = fn }
+
 const load = async () => {
   bs.setLoading(true)
   bs.clearMessages()
@@ -322,6 +329,10 @@ const cerrarEjercicio = async (id) => {
     notify.success(bs.notice)
     // Re-seleccionar el ejercicio para refrescar cierreData y badges
     if (ejercicioSeleccionadoId) await seleccionarEjercicio(ejercicioSeleccionadoId)
+    // Notificar a otros stores para que recarguen sus copias de ejercicios
+    if (typeof _onEjercicioChanged === 'function') {
+      try { await _onEjercicioChanged() } catch { /* no-op */ }
+    }
   })
 }
 
@@ -339,6 +350,10 @@ const reabrirEjercicio = async (id) => {
     notify.success(bs.notice)
     // Re-seleccionar el ejercicio para refrescar cierreData y badges
     if (ejercicioSeleccionadoId) await seleccionarEjercicio(ejercicioSeleccionadoId)
+    // Notificar a otros stores para que recarguen sus copias de ejercicios
+    if (typeof _onEjercicioChanged === 'function') {
+      try { await _onEjercicioChanged() } catch { /* no-op */ }
+    }
   })
 }
 
@@ -380,6 +395,7 @@ export const cierreStore = {
   reabrirEjercicio,
   subscribe,
   clearTemplateCache,
+  setOnEjercicioChanged,
   // Memoria
   get hechosRelevantes() { return hechosRelevantes },
   get memoriaTexto() {

@@ -1,6 +1,6 @@
 import { resolveTableIds, fetchRelated } from '$core/data/dataStore.svelte'
 import { loadConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
-import { normalize } from '$core/utils/utils.js'
+import { normalize, findEjercicioEnCurso } from '$core/utils/utils.js'
 
 /**
  * Estado y carga de las 7 tablas relacionadas del módulo de movimientos:
@@ -72,7 +72,7 @@ export function createRelatedData({ base }) {
       socios = data.socios || []
       personas = data.personas || []
       ejercicios = data.ejercicios || []
-      ejercicio = ejercicios.find((e) => e.en_curso === true) || null
+      ejercicio = findEjercicioEnCurso(ejercicios)
       cierres = data.cierres_mensuales || []
 
       try {

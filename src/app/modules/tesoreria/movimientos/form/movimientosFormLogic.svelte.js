@@ -23,6 +23,7 @@ export function createFormLogic({ formState, relatedData, base, cierresService }
     formState.setListOpen(true)
     formState.setForm({
       id: m?.id || null,
+      ejercicio_id: m?.ejercicio_id ?? null,
       fecha: dateToInput(m?.fecha),
       tipo_movimiento: m?.tipo_movimiento || 'Entrada',
       rubro_id: m?.rubro_id ?? '',

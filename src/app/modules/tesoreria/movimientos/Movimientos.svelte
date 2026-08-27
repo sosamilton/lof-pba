@@ -4,6 +4,7 @@
   import { normalize, buildMapById } from '$core/utils/utils'
   import { filterBySearch } from '$lib/hooks/useListFilter.svelte.js'
   import { useDebounce } from '$lib/hooks/useDebounce.svelte.js'
+  import { generarPeriodosEjercicio, labelPeriodo, saludOperativa } from '$app/modules/tesoreria/shared/tesoreriaCalc.js'
   import { Button } from '$lib/components/ui/button'
   import { Input } from '$lib/components/ui/input'
   import * as Select from '$lib/components/ui/select'
@@ -60,14 +61,61 @@
       }))
   )
 
-  // Períodos únicos (YYYY-MM) del ejercicio seleccionado
+  // Períodos únicos (YYYY-MM) del ejercicio seleccionado.
+  // Solo se incluyen períodos que caen dentro del rango real del ejercicio
+  // (mes_inicio → mes_inicio-1 del anio_fin), para evitar que movimientos
+  // con fechas fuera de rango (ej. datos demo mal generados) contaminen el
+  // filtro con períodos que no pertenecen al ejercicio.
   let periodosOptions = $derived.by(() => {
     if (!ejercicioFiltro) return []
+    const ej = store.ejercicios.find((e) => String(e.id) === ejercicioFiltro)
+    const periodicidad = store.periodicidad || 'mensual'
+    const periodosValidos = ej ? new Set(generarPeriodosEjercicio(ej, periodicidad)) : null
     const base = store.records
       .filter((m) => String(m.ejercicio_id) === ejercicioFiltro)
       .map((m) => m.periodo)
       .filter(Boolean)
-    return [...new Set(base)].sort().reverse().map((p) => ({ value: p, label: p }))
+      .filter((p) => !periodosValidos || periodosValidos.has(p))
+    return [...new Set(base)].sort().reverse().map((p) => ({
+      value: p,
+      label: labelPeriodo(p, periodicidad, ej),
+    }))
+  })
+
+  // Ejercicio seleccionado en el filtro (no el "en curso" del store)
+  let ejercicioSeleccionado = $derived(
+    ejercicioFiltro
+      ? store.ejercicios.find((e) => String(e.id) === ejercicioFiltro)
+      : store.ejercicio,
+  )
+
+  // True si el ejercicio seleccionado está cerrado → bloquear alta/edición
+  let ejercicioCerrado = $derived(ejercicioSeleccionado?.cerrado === true)
+
+  // True si el movimiento que se está editando pertenece a un ejercicio cerrado.
+  // Se calcula desde el form (que puede ser de otro ejercicio si no hay filtro).
+  let formEjercicioCerrado = $derived.by(() => {
+    if (!store.form?.id) return ejercicioCerrado // nuevo movimiento: usar el filtro
+    const ejId = store.form.ejercicio_id
+    if (!ejId) return false
+    const ej = store.ejercicios.find((e) => String(e.id) === String(ejId))
+    return ej?.cerrado === true
+  })
+
+  // Períodos del ejercicio seleccionado que NO tienen movimientos ni cierres.
+  // Usa saludOperativa() que ya contempla periodicidad, cierres manuales y
+  // firmados. Excluye períodos futuros (no tiene sentido avisar que "falta"
+  // un mes que todavía no empezó).
+  let periodosPendientes = $derived.by(() => {
+    const ej = ejercicioSeleccionado
+    if (!ej || ej.cerrado === true) return []
+    const periodicidad = store.periodicidad || 'mensual'
+    const movsEj = store.records.filter((m) => String(m.ejercicio_id) === String(ej.id))
+    const cierresEj = store.cierres.filter((c) => String(c.ejercicio_id) === String(ej.id))
+    const salud = saludOperativa(ej, movsEj, cierresEj, store.rubros, periodicidad)
+    const hoy = new Date()
+    const hoyKey = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`
+    return salud.periodosPendientes.filter((p) => p <= hoyKey)
   })
 
   // Items de personas para el Combobox (solo modo integral)
@@ -171,7 +219,7 @@
       <Alert.Description>{store.advertenciaCierreManual}</Alert.Description>
     </Alert.Root>
   {/if}
-  {#if store.ejercicio && store.ejercicio.cerrado !== true}
+  {#if ejercicioSeleccionado && ejercicioSeleccionado.cerrado !== true}
     <Alert.Root class="mb-4">
       <AlertTriangleIcon data-icon="inline-start" />
       <Alert.Title>Ejercicio sin cerrar</Alert.Title>
@@ -182,6 +230,14 @@
           Cierre / Presentación
         </button>
         o usá el botón "Cerrar ejercicio" en Resumen.
+        {#if periodosPendientes.length > 0}
+          <div class="mt-2 border-t border-yellow-500/30 pt-2">
+            <span class="font-semibold">Períodos pendientes de carga ({periodosPendientes.length}):</span>
+            <span class="ml-1 text-muted-foreground">
+              {periodosPendientes.map((p) => labelPeriodo(p, store.periodicidad || 'mensual', ejercicioSeleccionado)).join(', ')}
+            </span>
+          </div>
+        {/if}
       </Alert.Description>
     </Alert.Root>
   {/if}
@@ -250,11 +306,15 @@
           {/if}
         </div>
       {/if}
-      <Button data-shortcut="new" onclick={() => store.nuevo()}>
-        <PlusIcon data-icon="inline-start" />
-        Nuevo movimiento
-      </Button>
-      <button data-shortcut="cuota" onclick={store.nuevoCuotaSocietaria} class="hidden" aria-hidden="true" tabindex="-1"></button>
+      {#if !ejercicioCerrado}
+        <Button data-shortcut="new" onclick={() => store.nuevo()}>
+          <PlusIcon data-icon="inline-start" />
+          Nuevo movimiento
+        </Button>
+      {/if}
+      {#if !ejercicioCerrado}
+        <button data-shortcut="cuota" onclick={store.nuevoCuotaSocietaria} class="hidden" aria-hidden="true" tabindex="-1"></button>
+      {/if}
       <span class="text-sm text-muted-foreground">{filtered.length} movimientos</span>
     </div>
 
@@ -275,22 +335,35 @@
 
         <div>
           {#if store.form}
-            <MovimientoForm {store} {filteredRubros} {subrubrosByRubro} {cuentaById} />
+            <MovimientoForm {store} {filteredRubros} {subrubrosByRubro} {cuentaById} readonly={formEjercicioCerrado} />
           {:else if filtered.length === 0}
-            <EmptyState
-              title="Listo para cargar movimientos"
-              sub="Creá el primer movimiento para empezar."
-              actionLabel="Nuevo movimiento"
-              onaction={() => store.nuevo()}
-            >
-              {#snippet actionIcon()}
-                <PlusIcon data-icon="inline-start" />
-              {/snippet}
-            </EmptyState>
+            {#if ejercicioCerrado}
+              <EmptyState
+                title="Sin movimientos"
+                sub="Este ejercicio está cerrado y no tiene movimientos para mostrar."
+              />
+            {:else}
+              <EmptyState
+                title="Listo para cargar movimientos"
+                sub="Creá el primer movimiento para empezar."
+                actionLabel="Nuevo movimiento"
+                onaction={() => store.nuevo()}
+              >
+                {#snippet actionIcon()}
+                  <PlusIcon data-icon="inline-start" />
+                {/snippet}
+              </EmptyState>
+            {/if}
           {:else}
             <div class="flex flex-col items-center gap-2 py-12 text-center">
               <ArrowLeftRightIcon class="size-8 text-muted-foreground" />
-              <p class="text-sm text-muted-foreground">Seleccioná un movimiento o creá uno nuevo.</p>
+              <p class="text-sm text-muted-foreground">
+                {#if ejercicioCerrado}
+                  Seleccioná un movimiento para verlo (ejercicio cerrado — solo lectura).
+                {:else}
+                  Seleccioná un movimiento o creá uno nuevo.
+                {/if}
+              </p>
             </div>
           {/if}
         </div>

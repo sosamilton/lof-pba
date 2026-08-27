@@ -1,4 +1,5 @@
 import { normalize } from '$core/utils/utils.js'
+import { personaLabel } from '$app/modules/comunidad/personas/personasApi.js'
 
 /**
  * Derivados de personas/socios para el formulario de movimientos.
@@ -15,9 +16,6 @@ import { normalize } from '$core/utils/utils.js'
  * }}
  */
 export function createPersonasSelector({ relatedData, formState }) {
-  const personaLabel = (p) =>
-    p.razon_social || `${p.apellido || ''}, ${p.nombre || ''}`.replace(/^,\s*/, '') || '(sin nombre)'
-
   // Construye un item de Combobox con badges de tipo y categoría
   const personaToItem = (p) => ({
     value: p.id,

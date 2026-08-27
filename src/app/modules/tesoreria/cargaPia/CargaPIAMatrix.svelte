@@ -28,6 +28,7 @@
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
+  import { useConfirmDialog } from '$lib/hooks/useConfirmDialog.svelte.js'
 
   // Props para modo embebido (dentro de Movimientos)
   let { embedded = false } = $props()
@@ -96,28 +97,9 @@
   let cargasCargadas = $state(0) // contador para detectar cuando loadCargas terminó
 
   // Diálogo de confirmación reutilizable.
-  let confirmOpen = $state(false)
-  let confirmTitle = $state('')
-  let confirmDescription = $state('')
-  let confirmLabel = $state('Confirmar')
-  let confirmVariant = $state('destructive')
-  let pendingAction = $state(() => {})
+  const confirm = useConfirmDialog()
+  const openConfirm = (opts) => confirm.openConfirm(opts)
 
-  const openConfirm = (opts) => {
-    confirmTitle = opts.title
-    confirmDescription = opts.description || ''
-    confirmLabel = opts.confirmLabel || 'Confirmar'
-    confirmVariant = opts.variant || 'destructive'
-    pendingAction = opts.onConfirm
-    confirmOpen = true
-  }
-
-  const handleConfirm = async () => {
-    confirmOpen = false
-    const fn = pendingAction
-    pendingAction = () => {}
-    await fn()
-  }
   $effect(() => {
     if (!ejercicioSel) return
     const ejId = Number(ejercicioSel)
@@ -938,11 +920,11 @@
 />
 
 <ConfirmDialog
-  bind:open={confirmOpen}
-  title={confirmTitle}
-  description={confirmDescription}
-  confirmLabel={confirmLabel}
-  variant={confirmVariant}
+  bind:open={confirm.open}
+  title={confirm.title}
+  description={confirm.description}
+  confirmLabel={confirm.confirmLabel}
+  variant={confirm.variant}
   busy={store.busy}
-  onConfirm={handleConfirm}
+  onConfirm={confirm.handleConfirm}
 />

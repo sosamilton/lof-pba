@@ -112,6 +112,14 @@ export const MES_NUMERO = {
   Julio: 7, Agosto: 8, Septiembre: 9, Octubre: 10, Noviembre: 11, Diciembre: 12,
 }
 
+/**
+ * Devuelve el ejercicio en curso (en_curso === true) de una lista.
+ * @param {any[]} ejercicios
+ * @returns {any | null}
+ */
+export const findEjercicioEnCurso = (ejercicios) =>
+  (ejercicios || []).find((e) => e.en_curso === true) || null
+
 const _pad2 = (n) => String(n).padStart(2, '0')
 
 /**

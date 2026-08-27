@@ -94,7 +94,6 @@ export const movimientosStore = extendStore(base, {
   migrarCargasLegacy: cargasService.migrarCargasLegacy,
   cerrarPeriodo: cargasService.cerrarPeriodo,
   reabrirPeriodo: cargasService.reabrirPeriodo,
-  periodoFirmado: cargasService.periodoFirmado,
   // cierresService
   firmarPeriodo: cierresService.firmarPeriodo,
   periodoFirmado: cierresService.periodoFirmado,
