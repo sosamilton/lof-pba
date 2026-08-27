@@ -133,6 +133,11 @@ export const addRecords = _impl.addRecords
 export const withMultiplayerProtection = _impl.withMultiplayerProtection
 export const ensureOneRow = _impl.ensureOneRow
 
+// Export/Import de documento Grist completo (.grist). Solo modo Grist.
+// En modo PouchDB estas funciones son undefined (no se llaman desde la UI).
+export const exportGristDoc = _grist.exportGristDoc
+export const importGristDoc = _grist.importGristDoc
+
 // Acceso directo a PouchDB (para backup/restore). Solo disponible en modo pouch.
 export const getPouchDb = _pouch.getDb
 export const resetPouchDbSingleton = _pouch._resetDbSingleton

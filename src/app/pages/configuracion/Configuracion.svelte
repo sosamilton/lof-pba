@@ -9,9 +9,11 @@
   import SettingsIcon from '@lucide/svelte/icons/settings'
   import TagsIcon from '@lucide/svelte/icons/tags'
   import CloudIcon from '@lucide/svelte/icons/cloud'
+  import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import ConfigGeneral from './components/ConfigGeneral.svelte'
   import CategoriasTab from './components/CategoriasTab.svelte'
   import SyncTab from './components/SyncTab.svelte'
+  import IntercambioTab from './components/IntercambioTab.svelte'
 
   let tab = $state('general')
 
@@ -52,6 +54,10 @@
           <CloudIcon data-icon="inline-start" />
           Sincronización
         </Tabs.Trigger>
+        <Tabs.Trigger value="intercambio" class="px-3">
+          <ArrowLeftRightIcon data-icon="inline-start" />
+          Intercambio
+        </Tabs.Trigger>
       </Tabs.List>
 
       <Tabs.Content value="general" class="flex flex-col gap-4">
@@ -64,6 +70,10 @@
 
       <Tabs.Content value="sync" class="flex flex-col gap-4">
         <SyncTab />
+      </Tabs.Content>
+
+      <Tabs.Content value="intercambio" class="flex flex-col gap-4">
+        <IntercambioTab />
       </Tabs.Content>
     </Tabs.Root>
   </div>

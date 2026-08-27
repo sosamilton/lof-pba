@@ -39,7 +39,11 @@
     <script async src="https://plausible.io/js/pa-Doqg1-pwAt0jiRRqr7szb.js"></script>
     <script>
       window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-      plausible.init({ autoCapturePageviews: false })
+      plausible.init({
+        autoCapturePageviews: false,
+        fileDownloads: { fileExtensions: ['pdf', 'lof', 'grist', 'csv', 'zip', 'xlsx', 'docx'] },
+        outboundLinks: true,
+      })
     </script>
 
     <!-- Structured data (JSON-LD) para SEO -->

@@ -60,7 +60,7 @@
         {:else}
           <Button variant="ghost" size="sm" onclick={() => onActivar(e.id)} disabled={busy}>
             <CheckIcon data-icon="inline-start" />
-            Activar
+            Marcar como actual
           </Button>
         {/if}
         {#if e.cerrado === true}

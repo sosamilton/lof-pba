@@ -15,6 +15,7 @@
   let {
     attachmentIds = [],
     onchange = () => {},
+    disabled = false,
   } = $props()
 
   let uploading = $state(false)
@@ -131,7 +132,7 @@
     variant="outline"
     size="sm"
     onclick={() => fileInput?.click()}
-    disabled={uploading}
+    disabled={uploading || disabled}
   >
     {#if uploading}
       <LoaderIcon class="size-4 animate-spin" />

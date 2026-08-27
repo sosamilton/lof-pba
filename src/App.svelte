@@ -5,7 +5,7 @@
   import { initRouter, router, navigate } from '$core/ui/router.svelte'
   import { detectGrist, getGristStatus, getWidgetOptions, isInGrist, subscribeAccess, listTables, getActiveBackend } from '$core/data/dataRepository'
   import { trackPageview } from '$core/analytics/plausible.js'
-  import { isInstalled } from '$app/pages/cooperadora/cooperadoraApi.js'
+  import { isInstalled, loadConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
   import { identidad } from '$core/data/identidad'
   import { syncStore as sync } from '$app/pages/configuracion/syncStore.svelte.js'
 
@@ -24,10 +24,14 @@
   import CargaPIAMatrix from '$app/modules/tesoreria/cargaPia/CargaPIAMatrix.svelte'
   import Gobierno from '$app/modules/gobierno/AsambleasAutoridades.svelte'
   import Configuracion from '$app/pages/configuracion/Configuracion.svelte'
+  import { cierreStore } from '$app/modules/tesoreria/cierre/cierreStore.svelte'
+  import { cooperadoraStore } from '$app/pages/cooperadora/cooperadoraStore.svelte'
+  import { movimientosStore } from '$app/modules/tesoreria/movimientos/movimientosStore.svelte'
 
   let ready = $state(false)
   let gristStatus = $state('none')
   let needsSetup = $state(false)
+  let modalidad = $state('')  // 'gestion_integral' | 'carga_consolidada' | '' (no instalada)
 
   const checkInstalled = async () => {
     try {
@@ -47,6 +51,13 @@
         const installed = await isInstalled()
         needsSetup = !installed
       }
+      // Cargar modalidad de gestión desde config para segmentar en analytics
+      if (!needsSetup) {
+        try {
+          const config = await loadConfig()
+          modalidad = config?.modulo_gestion_integral ? 'gestion_integral' : 'carga_consolidada'
+        } catch { /* non-fatal */ }
+      }
     } catch {
       needsSetup = true
     }
@@ -54,6 +65,14 @@
 
   onMount(async () => {
     const cleanup = await initRouter()
+    // Cuando se cierre/reabra un ejercicio desde Cierre / Presentación,
+    // recargar cooperadoraStore y movimientosStore para que Institucional
+    // y Movimientos reflejen el estado actualizado (cerrado/en curso)
+    // sin necesidad de navegar manualmente.
+    cierreStore.setOnEjercicioChanged(async () => {
+      await cooperadoraStore.load()
+      await movimientosStore.loadAll()
+    })
     const status = await detectGrist()
     gristStatus = status
     if (status === 'ready') {
@@ -96,28 +115,43 @@
   // Trackea pageviews en Plausible distinguiendo landing vs app por URL.
   // Landing  → "/"  "/instalacion"  "/sobre-lof"  "/needs-access"
   // App      → "/app/{route}"  o  "/app/setup"
+  // Props: backend (pouch|grist), installed (bool), grist_status, section
   $effect(() => {
     // deps reactivas: ready, gristStatus, needsSetup, router.current
     if (!ready) return
 
     let path
+    let section = 'landing'
     if (router.current === 'landing') {
       path = '/'
+      section = 'landing'
     } else if (gristStatus === 'ready' && needsSetup) {
       path = '/app/setup'
+      section = 'setup'
     } else if (gristStatus === 'ready') {
       path = `/app/${router.current}`
+      section = 'app'
     } else if (gristStatus === 'no-access') {
       path = '/needs-access'
+      section = 'landing'
     } else if (router.current === 'instalacion') {
       path = '/instalacion'
+      section = 'landing'
     } else if (router.current === 'sobre-lof') {
       path = '/sobre-lof'
+      section = 'landing'
     } else {
       path = '/'
+      section = 'landing'
     }
 
-    trackPageview(path)
+    trackPageview(path, {
+      backend: activeBackend,
+      installed: !needsSetup,
+      grist_status: gristStatus,
+      section,
+      modalidad,
+    })
   })
 </script>
 
@@ -138,43 +172,41 @@
   <SetupWizard />
 {:else if gristStatus === 'ready'}
   <AppShell title={identidad.nombre}>
-    {#snippet children()}
-      {#if router.current === 'cooperadora'}
-        <Cooperadora />
-      {:else if router.current === 'comunidad'}
-        <Comunidad />
-      {:else if router.current === 'movimientos'}
-        <Movimientos />
-      {:else if router.current === 'resumen'}
-        {#await import('$app/modules/tesoreria/resumen/ResumenMensual.svelte')}
-          <div class="flex items-center justify-center py-12" role="status">
-            <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-          </div>
-        {:then mod}
-          <mod.default />
-        {:catch}
-          <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
-        {/await}
-      {:else if router.current.startsWith('carga-pia')}
-        <CargaPIAMatrix />
-      {:else if router.current === 'cierre'}
-        {#await import('$app/modules/tesoreria/cierre/Cierre.svelte')}
-          <div class="flex items-center justify-center py-12" role="status">
-            <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-          </div>
-        {:then mod}
-          <mod.default />
-        {:catch}
-          <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
-        {/await}
-      {:else if router.current === 'gobierno'}
-        <Gobierno />
-      {:else if router.current === 'configuracion'}
-        <Configuracion />
-      {:else}
-        <Inicio />
-      {/if}
-    {/snippet}
+    {#if router.current === 'cooperadora'}
+      <Cooperadora />
+    {:else if router.current === 'comunidad'}
+      <Comunidad />
+    {:else if router.current === 'movimientos'}
+      <Movimientos />
+    {:else if router.current === 'resumen'}
+      {#await import('$app/modules/tesoreria/resumen/ResumenMensual.svelte')}
+        <div class="flex items-center justify-center py-12" role="status">
+          <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+        </div>
+      {:then mod}
+        <mod.default />
+      {:catch}
+        <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
+      {/await}
+    {:else if router.current.startsWith('carga-pia')}
+      <CargaPIAMatrix />
+    {:else if router.current === 'cierre'}
+      {#await import('$app/modules/tesoreria/cierre/Cierre.svelte')}
+        <div class="flex items-center justify-center py-12" role="status">
+          <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+        </div>
+      {:then mod}
+        <mod.default />
+      {:catch}
+        <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
+      {/await}
+    {:else if router.current === 'gobierno'}
+      <Gobierno />
+    {:else if router.current === 'configuracion'}
+      <Configuracion />
+    {:else}
+      <Inicio />
+    {/if}
   </AppShell>
 {:else if gristStatus === 'no-access'}
   {#if isPouchMode}

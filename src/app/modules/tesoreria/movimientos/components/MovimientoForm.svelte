@@ -16,7 +16,12 @@
     filteredRubros = [],
     subrubrosByRubro = new Map(),
     cuentaById = new Map(),
+    readonly = false,
   } = $props()
+
+  // Alias reactivo para pasar a sub-componentes (PersonaVinculadaField,
+  // ComprobanteField) que aceptan `disabled` como prop.
+  let disabled = $derived(readonly)
 
   let personaVinculadaValue = $derived(
     store.personasSeleccionables.tipo === 'socio'
@@ -39,13 +44,21 @@
   <Card.Header>
     <div class="flex items-center justify-between gap-2">
       <Card.Title class="text-base">
-        {store.form.id ? 'Editar movimiento' : 'Nuevo movimiento'}
+        {#if readonly}
+          Movimiento (ejercicio cerrado — solo lectura)
+        {:else if store.form.id}
+          Editar movimiento
+        {:else}
+          Nuevo movimiento
+        {/if}
       </Card.Title>
       <div class="flex gap-2">
-        {#if !store.form.id}
+        {#if !store.form.id && !readonly}
           <Button variant="ghost" size="sm" onclick={store.cancelar}>Cancelar</Button>
         {/if}
-        <Button onclick={handleSave}>Guardar</Button>
+        {#if !readonly}
+          <Button onclick={handleSave}>Guardar</Button>
+        {/if}
       </div>
     </div>
   </Card.Header>
@@ -53,11 +66,11 @@
     <Field.FieldGroup class="grid gap-4 sm:grid-cols-2">
       <Field.Field>
         <Field.FieldLabel for="fecha">Fecha</Field.FieldLabel>
-        <Input id="fecha" type="date" bind:value={store.form.fecha} />
+        <Input id="fecha" type="date" bind:value={store.form.fecha} {disabled} />
       </Field.Field>
       <Field.Field>
         <Field.FieldLabel for="tipo-mov">Tipo</Field.FieldLabel>
-        <Select.Root type="single" bind:value={store.form.tipo_movimiento} onchange={store.onTipoChange}>
+        <Select.Root type="single" bind:value={store.form.tipo_movimiento} onchange={store.onTipoChange} {disabled}>
           <Select.Trigger id="tipo-mov" class="mt-1 w-full">
             <Select.Value placeholder="Elegir…" />
           </Select.Trigger>
@@ -70,13 +83,13 @@
       </Field.Field>
       <Field.Field class="sm:col-span-2">
         <Field.FieldLabel for="detalle">Detalle</Field.FieldLabel>
-        <Textarea id="detalle" bind:value={store.form.detalle} placeholder="Descripción corta (p.ej. Compra kiosco, Pago proveedor, Aporte socio)" />
+        <Textarea id="detalle" bind:value={store.form.detalle} {disabled} placeholder="Descripción corta (p.ej. Compra kiosco, Pago proveedor, Aporte socio)" />
       </Field.Field>
       <Field.Field>
         <Field.FieldLabel for="importe">Importe</Field.FieldLabel>
         <div class="relative mt-1">
           <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">$</span>
-          <Input id="importe" type="number" step="0.01" min="0" bind:value={store.form.importe} class="pl-7" placeholder="0,00" />
+          <Input id="importe" type="number" step="0.01" min="0" bind:value={store.form.importe} {disabled} class="pl-7" placeholder="0,00" />
         </div>
       </Field.Field>
       <Field.Field>
@@ -87,6 +100,7 @@
           placeholder="Elegir…"
           searchPlaceholder="Buscar cuenta…"
           class="mt-1"
+          {disabled}
         />
       </Field.Field>
 
@@ -99,6 +113,7 @@
             placeholder="Elegir…"
             searchPlaceholder="Buscar cuenta…"
             class="mt-1"
+            {disabled}
           />
         </Field.Field>
       {:else}
@@ -112,6 +127,7 @@
             popoverWidth="100%"
             class="mt-1"
             onchange={store.onRubroChange}
+            {disabled}
           />
         </Field.Field>
         {#if (subrubrosByRubro.get(Number(store.form.rubro_id)) || []).length > 0}
@@ -121,7 +137,7 @@
               type="single"
               value={store.form.subrubro_id ? String(store.form.subrubro_id) : undefined}
               onValueChange={(v) => { store.form.subrubro_id = v ? Number(v) : '' }}
-              disabled={!store.form.rubro_id}
+              disabled={!store.form.rubro_id || readonly}
               allowDeselect={true}
             >
               <Select.Trigger id="subrubro" class="mt-1 w-full">
@@ -140,7 +156,7 @@
       {#if String(cuentaById.get(Number(store.form.cuenta_id))?.nombre_cuenta || '') === 'Banco'}
         <Field.Field class="sm:col-span-2">
           <Field.FieldLabel for="destino-banco">Destino en banco</Field.FieldLabel>
-          <Select.Root type="single" bind:value={store.form.destino_bancario} allowDeselect={true}>
+          <Select.Root type="single" bind:value={store.form.destino_bancario} allowDeselect={true} {disabled}>
             <Select.Trigger id="destino-banco" class="mt-1 w-full">
               <Select.Value placeholder="(Opcional)" />
             </Select.Trigger>
@@ -159,6 +175,7 @@
         onSetFiltroCategoria={store.setFiltroCategoria}
         value={personaVinculadaValue}
         onchange={onPersonaVinculadaChange}
+        {disabled}
       />
 
       <Field.Field class="sm:col-span-2">
@@ -166,6 +183,7 @@
         <ComprobanteField
           attachmentIds={store.form.comprobante || []}
           onchange={(ids) => { store.form.comprobante = ids }}
+          {disabled}
         />
         <Field.FieldDescription>Factura, recibo o ticket del movimiento (opcional).</Field.FieldDescription>
       </Field.Field>

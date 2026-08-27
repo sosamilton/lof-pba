@@ -20,6 +20,7 @@
   import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
   import InfoIcon from '@lucide/svelte/icons/info'
   import ArrowUpCircleIcon from '@lucide/svelte/icons/arrow-up-circle'
+  import HandHeartIcon from '@lucide/svelte/icons/hand-heart'
   import { identidad } from '$core/data/identidad'
   import { updateCheck } from '$core/utils/updateCheck.svelte'
   import { notify } from '$core/ui/notify.svelte'
@@ -199,12 +200,14 @@
 
   // Reactivo: cuando configStore.config cambia (ej. desde Configuración),
   // actualizar brand y tema en vivo sin recargar.
+  let isColaborador = $state(false)
   $effect(() => {
     const c = configStore.config
     if (!c) return
     if (c.cooperadora_nombre) brandTitle = c.cooperadora_nombre
     if (c.escuela_nombre) brandSub = c.escuela_nombre
     if (c.color_primario) applyBrandTheme(c.color_primario)
+    isColaborador = c.modo_colaborador === true
   })
 </script>
 
@@ -307,6 +310,12 @@
       >
         <CommandIcon class="size-4" />
       </button>
+      {#if isColaborador}
+        <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+          <HandHeartIcon class="size-3" />
+          Modo colaborador
+        </span>
+      {/if}
       <span class="text-xs text-muted-foreground">
         v{versionActual}
         {#if updateCheck.updateAvailable}

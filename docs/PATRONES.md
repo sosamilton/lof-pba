@@ -159,3 +159,41 @@ Los stores deben llamar a `gristReady()` antes de operar y manejar el caso "no e
 ## 14. Testing
 
 Tests unitarios con **Vitest** en `src/core/tests/`, enfocados en lógica pura (formato, validación, utils, helpers de grist). La UI no tiene tests E2E por ahora.
+
+## 15. Intercambio descentralizado (`.lof`)
+
+Patrón para delegar carga de movimientos a colaboradores externos sin sync en vivo. Ver [`docs/INTERCAMBIO.md`](INTERCAMBIO.md) para el detalle completo.
+
+### Perfiles mode-aware
+
+`EXPORT_PROFILES` en `intercambio.js` define qué tablas exporta cada perfil. Los perfiles `working_set` y `patch_movimientos` se **resuelven dinámicamente** según la modalidad activa (`_resolveProfile`):
+
+```js
+// Se resuelve en runtime según config:
+working_set → working_set_integral | working_set_consolidada
+patch_movimientos → patch_integral | patch_consolidada
+```
+
+Nunca hardcodear el perfil: siempre llamar `exportParcial('working_set')` o `exportParcial('patch_movimientos')` y dejar que `_resolveProfile` decida.
+
+### Metadata `imported_from` como filtro
+
+Los docs importados se marcan con `imported_from: <marker>`. Este campo es la base del filtrado:
+
+- **Export de patch**: `filter: (doc) => !doc.imported_from` → solo lo que el colaborador creó.
+- **Re-import de working set**: se borran los docs con `imported_from` viejo antes de insertar los nuevos.
+- **No exposición**: `_docToRecord()` elimina `imported_from` antes de devolver registros a los stores.
+
+### Merge aditivo con dry-run
+
+El merge **nunca** borra ni pisa datos existentes. El patrón es:
+
+1. `analizarMerge(file)` — dry-run que devuelve reporte + hash. No escribe.
+2. El usuario revisa y aprueba.
+3. `aplicarMerge(file, analisisAprobado)` — re-valida hash + estado, inserta solo lo nuevo, remapea refs.
+
+La re-validación al aplicar es crítica: si la DB cambió entre el análisis y la aplicación (ej: otro merge), se aborta.
+
+### Resolución de tableIds
+
+Los perfiles usan keys lógicas (`'personas'`), pero PouchDB guarda docs con `type` capitalizado (`'Personas'`). Siempre resolver via `_resolveTableType(key)` antes de filtrar por `type` o de llamar `applyUserActions`.

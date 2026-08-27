@@ -1,5 +1,5 @@
-import { createGristStore, extendStore } from '$core/data/dataStore.svelte'
-import { fetchRecords, resolveTableId, subscribeRecords, applyUserActions } from '$core/data/dataRepository'
+import { createGristStore, extendStore, createStoreSubscription } from '$core/data/dataStore.svelte'
+import { fetchRecords, resolveTableId, applyUserActions, getActiveBackend } from '$core/data/dataRepository'
 import { TABLE_PREFERRED_IDS } from '$core/utils/utils.js'
 import { findOrCreatePersona, findPersonaByDni, updatePersona, personaLabel } from './personas/personasApi.js'
 import {
@@ -13,6 +13,7 @@ import { buildPersonaForm, buildNewPersonaForm } from './personas/personaFormMan
 import { hasLegacyData, fillFormFromPersona, checkExistingPersona } from './personas/personaLinker.js'
 import { normalize, dateToInput, normalizeFields, todayISO } from '$core/utils/utils.js'
 import { TIPOS_SOCIO, MOTIVOS_BAJA, CATEGORIAS_VINCULO } from './constants.js'
+import { trackEvent } from '$core/analytics/plausible.js'
 
 // --- Table IDs ---
 let tPersonas = $state(null)
@@ -80,9 +81,7 @@ const load = async () => {
 let _unsub = null
 const subscribe = (onExternalChange) => {
   if (_unsub) _unsub()
-  _unsub = subscribeRecords(() => {
-    load()
-  })
+  _unsub = createStoreSubscription(load, () => false, onExternalChange)
   return () => {
     if (_unsub) _unsub()
     _unsub = null
@@ -260,6 +259,12 @@ const save = async () => {
       personaId = persona.id
       linkedPersona = persona
       form.id = personaId
+      // Analytics: persona creada
+      trackEvent('persona_created', {
+        tipo_persona: form.tipo_persona || '',
+        es_socio: esSocio,
+        backend: getActiveBackend(),
+      })
     }
 
     // 2. Guardar socio si es socio

@@ -313,6 +313,7 @@ const _docToRecord = (doc) => {
   delete rec._id
   delete rec._rev
   delete rec.type
+  delete rec.imported_from // campo interno del intercambio, no exponer a stores
   // Asegurar que id sea numérico
   if (rec.id != null) rec.id = Number(rec.id)
   return rec
@@ -342,6 +343,10 @@ const _recordToDoc = (tableKey, record) => {
 export const fetchRecords = async (tableId, options = {}) => {
   const db = _getDb()
   const tableKey = tableId
+  // Key lógica en minúscula para computedFields (las fórmulas se definen
+  // con keys lógicas: 'movimientos', 'socios', etc.). El tableId físico
+  // puede ser capitalizado ('Movimientos') según TABLE_PREFERRED_IDS.
+  const logicalKey = String(tableId || '').toLowerCase()
 
   // Asegurar índice de type
   await _ensureIndex()
@@ -355,10 +360,10 @@ export const fetchRecords = async (tableId, options = {}) => {
 
   let records = result.docs.map(_docToRecord)
 
-  // Aplicar computed fields (lookups de persona_id, etc.)
-  if (records.length > 0 && _needsComputedFields(tableKey)) {
-    const ctx = await _buildComputedContext(tableKey)
-    records = applyComputedFields(tableKey, records, ctx)
+  // Aplicar computed fields (lookups de persona_id, fórmulas como periodo, etc.)
+  if (records.length > 0 && _needsComputedFields(logicalKey)) {
+    const ctx = await _buildComputedContext(logicalKey)
+    records = applyComputedFields(logicalKey, records, ctx)
   }
 
   // Filter

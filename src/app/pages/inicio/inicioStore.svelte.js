@@ -7,6 +7,7 @@ import {
   resolveTableId,
   fetchRecords,
   applyUserActions,
+  getActiveBackend,
 } from '$core/data/dataRepository'
 import { REQUIRED_TABLES } from '$core/grist/schema'
 import { getSchemaDiff, ensureSchema } from '$setup/initLof'
@@ -19,6 +20,7 @@ import { saldosStore } from '$app/modules/tesoreria/resumen/saldosStore.svelte.j
 import { createDashboardStore } from './dashboardStore.svelte.js'
 import { TABLE_PREFERRED_IDS, normalizeFields } from '$core/utils/utils'
 import { applyBrandTheme } from '$core/ui/theme'
+import { trackEvent } from '$core/analytics/plausible.js'
 
 const bs = createBaseState()
 
@@ -202,6 +204,7 @@ const onModalidadChange = async (nuevaModalidad) => {
       }
     }
     notify.success(`Modalidad cambiada a: ${dash.modalidadGestion}`)
+    trackEvent('config_changed', { field: 'modalidad', value: nuevaModalidad, backend: getActiveBackend() })
   } catch (e) {
     bs.setError(e?.message || String(e))
     notify.error('No se pudo cambiar la modalidad.')
@@ -221,6 +224,7 @@ const onPeriodicidadChange = async (nuevaPeriodicidad) => {
     dash.periodicidad = nuevaPeriodicidad
     saldosStore.setPeriodicidad(nuevaPeriodicidad)
     notify.success(`Periodicidad cambiada a: ${nuevaPeriodicidad}`)
+    trackEvent('config_changed', { field: 'periodicidad', value: nuevaPeriodicidad, backend: getActiveBackend() })
   } catch (e) {
     bs.setError(e?.message || String(e))
     notify.error('No se pudo cambiar la periodicidad.')
@@ -242,7 +246,10 @@ const checkMovimientosSinCarga = async () => {
       filter: (m) => Number(m.ejercicio_id) === ejId && !m.carga_id,
     })
     hasMovimientosSinCarga = movs.length > 0
-  } catch { /* non-fatal */ }
+  } catch (e) {
+    // Non-fatal: no bloquea Inicio, pero logueamos para diagnóstico.
+    console.warn('[inicioStore] checkMovimientosSinCarga falló:', e?.message || e)
+  }
 }
 
 /**
@@ -400,7 +407,10 @@ const loadPreferencias = async () => {
         cuentaDefaultId = fallback ? String(fallback.id) : ''
       }
     }
-  } catch { /* non-fatal */ }
+  } catch (e) {
+    // Non-fatal: no bloquea Inicio, pero logueamos para diagnóstico.
+    console.warn('[inicioStore] loadPreferencias falló:', e?.message || e)
+  }
 }
 
 /**
@@ -416,6 +426,7 @@ const onColorChange = async (hex) => {
     await saveConfig({ ...config, color_primario: hex })
     await configStore.load() // refresca cache reactivo para AppShell
     notify.success('Color de marca actualizado.')
+    trackEvent('config_changed', { field: 'color_primario', backend: getActiveBackend() })
   } catch (e) {
     bs.setError(e?.message || String(e))
     notify.error('No se pudo guardar el color.')
@@ -443,6 +454,7 @@ const onAppTitleChange = async (nombre) => {
       }
     }
     notify.success('Título actualizado.')
+    trackEvent('config_changed', { field: 'cooperadora_nombre', backend: getActiveBackend() })
   } catch (e) {
     bs.setError(e?.message || String(e))
     notify.error('No se pudo guardar el título.')
@@ -461,6 +473,7 @@ const onCuentaDefaultChange = async (cuentaId) => {
     await saveConfig({ ...config, cuenta_default_id: cuentaDefaultId })
     await configStore.load() // refresca cache reactivo
     notify.success('Cuenta por defecto actualizada.')
+    trackEvent('config_changed', { field: 'cuenta_default', backend: getActiveBackend() })
   } catch (e) {
     bs.setError(e?.message || String(e))
     notify.error('No se pudo guardar la cuenta por defecto.')

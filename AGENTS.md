@@ -213,3 +213,57 @@ Idea pendiente para futuro desarrollo (solicitado por usuario 2026-08-22):
 - Alternativa: precarga guiada subiendo un archivo → grilla de ingresos/egresos → categorización manual del movimiento (el usuario asigna rubro/subrubro a cada línea del resumen).
 - No forma parte del scope actual; registrar acá para que no se pierda el contexto cuando se priorice.
 
+## Intercambio descentralizado (`.lof` entre colaboradores)
+
+LOF permite delegar carga de movimientos a colaboradores externos via archivos `.lof` portables sobre PouchDB/PWA. Ver [`docs/INTERCAMBIO.md`](docs/INTERCAMBIO.md) para el detalle completo.
+
+### Arquitectura
+
+- **`src/core/data/intercambio.js`** — núcleo: `exportParcial`, `importWorkingSet`, `analizarMerge`, `aplicarMerge`, `validarIntercambio`, `limpiarDispositivo`.
+- **Perfiles mode-aware**: `working_set` y `patch_movimientos` se resuelven dinámicamente según `modulo_carga_consolidada` / `modulo_gestion_integral`.
+- **Metadata `imported_from`**: marca docs importados. Se filtra en `_docToRecord()` (pouchRepository) para que no filtre a los stores. Se usa como filtro en export de patch (`!doc.imported_from`).
+- **Resolución de tableIds**: los perfiles usan keys lógicas (`'personas'`), pero PouchDB guarda docs con `type` capitalizado (`'Personas'`). `intercambio.js` resuelve via `_resolveTableType()` + `TABLE_PREFERRED_IDS` + `resolveTableId()`.
+
+### Reglas
+
+- **Solo PouchDB**: el intercambio no está disponible en modo Grist Widget.
+- **Merge aditivo**: nunca borra ni pisa datos existentes. Si hay conflictos sin resolver, no se aplica.
+- **Re-validación al aplicar**: `aplicarMerge` re-valida el hash del análisis y el estado de la DB. Si algo cambió, aborta.
+- **Deduplicación**: personas por CUIL/DNI, socios por persona, cargas por ejercicio+período.
+- **Subrubros no editables**: el colaborador no puede crear subrubros. Debe usar los del working set.
+- **Personas sin DNI**: permitidas. El merge genera advertencia pero no bloquea.
+- **`applyUserActions` en merge**: usa `['AddRecord', tableType, null, fields]` para que los counters se actualicen. El retorno es `[{ id, rev }]`, no `retValues`.
+
+### Modo colaborador
+
+- Setup wizard: 3ra opción "¿Te pidieron ayudar con la carga?" (solo PouchDB).
+- Al instalar: `importWorkingSet(file, { inicializar: true })` → setea `modo_colaborador: true` + modalidad.
+- Menú reducido: Movimientos, Comunidad (si integral), Configuración.
+- Badge "Modo colaborador" en barra superior (`AppShell.svelte`).
+- `ConfigRapidaCard` en Movimientos: defaults de config + override de sesión.
+- Al finalizar: `limpiarDispositivo()` destruye la DB y limpia localStorage.
+
+<!-- nexus:start -->
+## Nexus Studio
+
+This project is tracked by Nexus Studio. Its state lives in `.nexus/`:
+`board.yaml` is the board, `issues/` the cards, `specs/<ISSUE>/` their specs,
+`features/<KEY>/` a feature's planning docs, and `method/` the workflows and
+agents you follow. Read `.nexus/method/NEXUS-PATHS.md` for the path contract.
+
+**The board has one writer, the app.** Never edit `board.yaml`. Record work by
+updating the spec's tasks and appending a comment to the issue.
+
+**What a person wrote is not yours to rewrite.** An issue's description and its
+acceptance criteria, and anything a person wrote in a spec, are the INPUT to
+your work. Do not reword, reorder, shorten, tidy or remove them. If something
+there is wrong or missing, say so in your comment and ADD alongside it. Append
+your comment; never replace the comments already on the issue.
+
+**Use the code index before searching by hand.** This project is indexed by
+codegraph: run `codegraph explore "<symbols or question>"` to get the relevant
+source and its call paths in one call, instead of grepping and reading files.
+
+**Use memory.** Check what the project already remembers before asking the
+person to repeat context, and record decisions worth keeping.
+<!-- nexus:end -->

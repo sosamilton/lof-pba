@@ -162,27 +162,68 @@
             {identidad.descripcion}
           </p>
         </div>
-        <div class="flex flex-wrap gap-3">
-          {#if installed}
+        {#if installed}
+          <div class="flex flex-wrap gap-3">
             <Button variant="secondary" size="lg" onclick={() => navigate('inicio')}>
               <ArrowLeftIcon data-icon="inline-start" />
               Abrir la app
             </Button>
-          {:else}
-            <Button variant="secondary" size="lg" onclick={() => navigate('inicio')}>
-              <GlobeIcon data-icon="inline-start" />
-              Probar en el navegador
+            <Button variant="outline" size="lg" onclick={() => navigate('instalacion')}>
+              <DownloadIcon data-icon="inline-start" />
+              Cómo instalarlo
             </Button>
-          {/if}
-          <Button variant="outline" size="lg" onclick={() => navigate('instalacion')}>
-            <DownloadIcon data-icon="inline-start" />
-            Cómo instalarlo
-          </Button>
-          <Button variant="ghost" size="lg" href={enlaces.repo} target="_blank" rel="noopener noreferrer">
-            <CodeXmlIcon data-icon="inline-start" />
-            Ver repo / colaborar
-          </Button>
-        </div>
+          </div>
+        {:else}
+          <div class="grid gap-4 sm:grid-cols-2 max-w-2xl">
+            <!-- Instalar cooperadora -->
+            <button
+              type="button"
+              onclick={() => navigate('inicio')}
+              class="group flex flex-col gap-2 rounded-xl border-2 border-primary/40 bg-primary/5 p-5 text-left transition-all hover:border-primary hover:bg-primary/10 hover:shadow-md"
+            >
+              <div class="flex size-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                <BuildingIcon class="size-5" />
+              </div>
+              <h3 class="text-base font-bold tracking-tight">Instalar mi cooperadora</h3>
+              <p class="text-sm text-muted-foreground leading-relaxed">
+                Configurá LOF para tu escuela por primera vez. Wizard guiado paso a paso, en 5 minutos.
+              </p>
+              <span class="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-primary">
+                Empezar
+                <ArrowRightIcon class="size-4 transition-transform group-hover:translate-x-0.5" />
+              </span>
+            </button>
+
+            <!-- Colaborar -->
+            <button
+              type="button"
+              onclick={() => navigate('inicio?modo=colaborador')}
+              class="group flex flex-col gap-2 rounded-xl border-2 border-amber-500/40 bg-amber-500/5 p-5 text-left transition-all hover:border-amber-500 hover:bg-amber-500/10 hover:shadow-md"
+            >
+              <div class="flex size-10 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600">
+                <HeartHandshakeIcon class="size-5" />
+              </div>
+              <h3 class="text-base font-bold tracking-tight">Ayudar con la carga</h3>
+              <p class="text-sm text-muted-foreground leading-relaxed">
+                ¿Te enviaron un archivo <span class="font-mono">.lof</span>? Importalo y cargá movimientos desde tu dispositivo.
+              </p>
+              <span class="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-amber-600">
+                Importar archivo
+                <ArrowRightIcon class="size-4 transition-transform group-hover:translate-x-0.5" />
+              </span>
+            </button>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <Button variant="outline" size="sm" onclick={() => navigate('instalacion')}>
+              <DownloadIcon data-icon="inline-start" />
+              Cómo instalarlo
+            </Button>
+            <Button variant="ghost" size="sm" href={enlaces.repo} target="_blank" rel="noopener noreferrer">
+              <CodeXmlIcon data-icon="inline-start" />
+              Ver repo / colaborar
+            </Button>
+          </div>
+        {/if}
         <p class="text-sm text-muted-foreground">
           Software libre bajo {identidad.licencia}. Funciona en el navegador, en Grist o como app de escritorio.
           Tus datos siempre son tuyos.

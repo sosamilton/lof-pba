@@ -82,6 +82,7 @@ Núcleo de la aplicación, agnóstico de la UI. Subdividido por responsabilidad:
 | `data/pouchSync.js` | Sync bidireccional PouchDB↔CouchDB. |
 | `data/computedFields.js` | Equivalente JS de las fórmulas de Grist (lookup de persona_id, período, etc.). |
 | `data/backup.js` | Exportación/importación de backup (.lof comprimido con gzip). |
+| `data/intercambio.js` | Intercambio descentralizado `.lof` entre colaboradores: working sets, patches, merge aditivo con dry-run. |
 | `data/schema.json` | Definición declarativa de tablas y columnas (JSON estático). |
 | `data/identidad.json` / `identidad.js` | Identidad institucional (nombre, principios). |
 | `data/localidades-buenos-aires.json` | Localidades de toda la Provincia de Buenos Aires. |
@@ -179,6 +180,33 @@ Resultado: `ready` (acceso completo), `no-access` (sin permisos/IndexedDB) o `no
 ## Schema y migraciones
 
 `data/schema.json` describe cada tabla con sus columnas y tipos. `initLof.js` crea las tablas faltantes con `AddTable` y carga los seeds CSV. `migracion.js` aplica la migración de datos legacy (vinculación de personas, deduplicación por DNI). `grist/schema.js` expone `ensureSchema` que detecta columnas que necesitan convertirse a fórmulas y las migra via `ModifyColumn`. `invalidateTablesCache()` se invoca tras `AddTable` para que `resolveTableId` vuelva a consultar.
+
+## Intercambio descentralizado (modo colaborador)
+
+LOF permite delegar carga de movimientos a colaboradores externos via archivos `.lof` portables, sin sync en vivo. El flujo es:
+
+1. La cooperadora exporta un **working set** (set de trabajo) con datos operativos reducidos.
+2. El colaborador lo importa en una PWA temporal desde el setup wizard (3ra opción).
+3. El colaborador carga movimientos normalmente.
+4. El colaborador exporta un **patch** (solo lo que él creó).
+5. La cooperadora analiza el patch (dry-run), aprueba y aplica el merge.
+
+El merge es **aditivo**: nunca borra ni pisa datos existentes. Deduplica personas por CUIL/DNI, socios por persona, y cargas consolidadas por ejercicio+período. Remapea IDs y referencias consistentemente.
+
+### Metadata `imported_from`
+
+Los docs importados (del working set o del patch) se marcan con `imported_from: <marker>`. Esto permite:
+
+- Filtrarlos al exportar el patch (solo se exporta lo que el colaborador creó).
+- Reemplazar el working set al re-importar (se borran los docs marcados y se insertan los nuevos).
+- Trazabilidad de qué registros vinieron de cada intercambio.
+- `_docToRecord()` en `pouchRepository.js` elimina `imported_from` antes de devolver registros a los stores, para que la metadata interna no filtre a la UI.
+
+### Resolución de tablas
+
+Los perfiles de exportación usan **keys lógicas** en minúscula (`'personas'`, `'cuentas'`), pero los docs en PouchDB tienen `type` **capitalizado** (`'Personas'`, `'Cuentas'`). `intercambio.js` resuelve esta diferencia con helpers que convierten keys a tableIds reales via `TABLE_PREFERRED_IDS` + `resolveTableId()`.
+
+> Ver [`docs/INTERCAMBIO.md`](INTERCAMBIO.md) para el detalle completo del flujo, perfiles y API.
 
 ## Despliegue
 

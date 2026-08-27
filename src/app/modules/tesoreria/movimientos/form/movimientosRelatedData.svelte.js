@@ -1,6 +1,6 @@
 import { resolveTableIds, fetchRelated } from '$core/data/dataStore.svelte'
 import { loadConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
-import { normalize } from '$core/utils/utils.js'
+import { normalize, findEjercicioEnCurso } from '$core/utils/utils.js'
 
 /**
  * Estado y carga de las 7 tablas relacionadas del módulo de movimientos:
@@ -33,8 +33,14 @@ export function createRelatedData({ base }) {
   // Cierres mensuales manuales (para advertencia al cargar detalle en
   // un período que ya tiene un total declarado manualmente — regla "detalle gana").
   let cierres = $state([])
+  // Defaults de movimiento (persistidos en config) + override de sesión
+  let defaultsMovimiento = $state(null) // { tipo, rubro_id, cuenta_id, detalle }
+  let sessionOverride = $state(null) // override en memoria, no persiste
 
   const setCierres = (v) => { cierres = v }
+  const setDefaultsMovimiento = (v) => { defaultsMovimiento = v }
+  const setSessionOverride = (v) => { sessionOverride = v }
+  const resetSessionOverride = () => { sessionOverride = null }
 
   const setEjercicio = (ejId) => {
     const found = ejercicios.find((e) => Number(e.id) === Number(ejId)) || null
@@ -66,7 +72,7 @@ export function createRelatedData({ base }) {
       socios = data.socios || []
       personas = data.personas || []
       ejercicios = data.ejercicios || []
-      ejercicio = ejercicios.find((e) => e.en_curso === true) || null
+      ejercicio = findEjercicioEnCurso(ejercicios)
       cierres = data.cierres_mensuales || []
 
       try {
@@ -83,6 +89,7 @@ export function createRelatedData({ base }) {
         if (config?.modulo_carga_consolidada || config?.modulo_gestion_etapas || config?.modulo_solo_pia) modoGestion = 'carga_consolidada'
         else modoGestion = 'gestion_integral'
         periodicidad = String(config?.periodicidad || 'mensual')
+        defaultsMovimiento = config?.defaults_movimiento || null
       } catch { /* config opcional */ }
     } catch (e) {
       base.setError(e?.message || String(e))
@@ -102,7 +109,12 @@ export function createRelatedData({ base }) {
     get modoGestion() { return modoGestion },
     get periodicidad() { return periodicidad },
     get cierres() { return cierres },
+    get defaultsMovimiento() { return defaultsMovimiento },
+    get sessionOverride() { return sessionOverride },
     setCierres,
+    setDefaultsMovimiento,
+    setSessionOverride,
+    resetSessionOverride,
     setEjercicio,
     loadAll,
   }

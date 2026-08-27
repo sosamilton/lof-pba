@@ -3,10 +3,10 @@ import {
   fetchRecords,
   gristReady,
   resolveTableId,
-  subscribeRecords,
 } from '$core/data/dataRepository'
 import { TABLE_PREFERRED_IDS, normalize, normalizeFields } from '$core/utils/utils'
-import { notify, withNotify } from '$core/ui/notify.svelte'
+import { notify } from '$core/ui/notify.svelte'
+import { createBaseState, createStoreSubscription } from '$core/data/dataStore.svelte'
 
 /**
  * Store para gestión CRUD de rubros_pia (lectura) y subrubros (CRUD completo).
@@ -16,13 +16,11 @@ import { notify, withNotify } from '$core/ui/notify.svelte'
  * editables: el usuario puede crearlos bajo cualquier rubro para
  * sub-clasificar movimientos.
  */
+const bs = createBaseState()
+
 let rubros = $state([])
 let subrubros = $state([])
-let loading = $state(false)
-let error = $state('')
-let notice = $state('')
 let _unsub = null
-let _busy = false
 
 const GRUPO_ORDER = [
   'Recursos Propios',
@@ -67,14 +65,14 @@ let subrubrosPorRubro = $derived.by(() => {
 })
 
 const load = async () => {
-  loading = true
-  error = ''
+  bs.setLoading(true)
+  bs.clearMessages()
   try {
     await gristReady()
     const tRubros = await resolveTableId(TABLE_PREFERRED_IDS.rubros_pia)
     const tSubrubros = await resolveTableId(TABLE_PREFERRED_IDS.subrubros)
     if (!tRubros || !tSubrubros) {
-      error = 'No se encontraron las tablas de categorías. Ejecutá "Reparar schema" en Configuración.'
+      bs.setError('No se encontraron las tablas de categorías. Ejecutá "Reparar schema" en Configuración.')
       return
     }
     const [r, s] = await Promise.all([
@@ -86,9 +84,9 @@ const load = async () => {
       normalize(a.nombre_subrubro).localeCompare(normalize(b.nombre_subrubro)),
     )
   } catch (e) {
-    error = e?.message || String(e)
+    bs.setError(e?.message || String(e))
   } finally {
-    loading = false
+    bs.setLoading(false)
   }
 }
 
@@ -106,7 +104,7 @@ const refresh = async () => {
       normalize(a.nombre_subrubro).localeCompare(normalize(b.nombre_subrubro)),
     )
   } catch (e) {
-    error = e?.message || String(e)
+    bs.setError(e?.message || String(e))
   }
 }
 
@@ -119,42 +117,38 @@ const refresh = async () => {
 const crearSubrubro = async (rubroId, nombre) => {
   const limpio = String(nombre || '').trim()
   if (!limpio) {
-    error = 'El nombre del subrubro es obligatorio.'
+    bs.setError('El nombre del subrubro es obligatorio.')
     return false
   }
   if (!rubroId) {
-    error = 'Elegí un rubro primero.'
+    bs.setError('Elegí un rubro primero.')
     return false
   }
   // Validar duplicado bajo el mismo rubro (case-insensitive, sin acentos)
   const existentes = subrubrosPorRubro.get(Number(rubroId)) || []
   if (existentes.some((s) => normalize(s.nombre_subrubro) === normalize(limpio))) {
-    error = `Ya existe un subrubro "${limpio}" en este rubro.`
+    bs.setError(`Ya existe un subrubro "${limpio}" en este rubro.`)
     return false
   }
 
-  _busy = true
-  error = ''
-  notice = ''
-  try {
+  const result = await bs.wrapAsync(async () => {
     const tSubrubros = await resolveTableId(TABLE_PREFERRED_IDS.subrubros)
     if (!tSubrubros) {
-      error = 'No se encontró la tabla subrubros.'
+      bs.setError('No se encontró la tabla subrubros.')
       return false
     }
     const fields = normalizeFields({ rubro_id: Number(rubroId), nombre_subrubro: limpio, activo: true, creado_por: 'SPA' })
     await applyUserActions([['AddRecord', tSubrubros, null, fields]])
-    notice = `Subrubro "${limpio}" creado.`
-    notify.success(notice)
+    bs.setNotice(`Subrubro "${limpio}" creado.`)
+    notify.success(bs.notice)
     await refresh()
     return true
-  } catch (e) {
-    error = e?.message || String(e)
+  })
+  if (result === undefined) {
     notify.error('No se pudo crear el subrubro.')
     return false
-  } finally {
-    _busy = false
   }
+  return result
 }
 
 /**
@@ -166,42 +160,38 @@ const crearSubrubro = async (rubroId, nombre) => {
 const editarSubrubro = async (id, nuevoNombre) => {
   const limpio = String(nuevoNombre || '').trim()
   if (!limpio) {
-    error = 'El nombre no puede estar vacío.'
+    bs.setError('El nombre no puede estar vacío.')
     return false
   }
   const actual = subrubros.find((s) => Number(s.id) === Number(id))
   if (!actual) {
-    error = 'Subrubro no encontrado.'
+    bs.setError('Subrubro no encontrado.')
     return false
   }
   // Validar duplicado bajo el mismo rubro, excluyendo el propio
   const hermanos = subrubrosPorRubro.get(Number(actual.rubro_id)) || []
   if (hermanos.some((s) => Number(s.id) !== Number(id) && normalize(s.nombre_subrubro) === normalize(limpio))) {
-    error = `Ya existe un subrubro "${limpio}" en este rubro.`
+    bs.setError(`Ya existe un subrubro "${limpio}" en este rubro.`)
     return false
   }
 
-  _busy = true
-  error = ''
-  notice = ''
-  try {
+  const result = await bs.wrapAsync(async () => {
     const tSubrubros = await resolveTableId(TABLE_PREFERRED_IDS.subrubros)
     if (!tSubrubros) {
-      error = 'No se encontró la tabla subrubros.'
+      bs.setError('No se encontró la tabla subrubros.')
       return false
     }
     await applyUserActions([['UpdateRecord', tSubrubros, Number(id), normalizeFields({ nombre_subrubro: limpio })]])
-    notice = 'Subrubro actualizado.'
-    notify.success(notice)
+    bs.setNotice('Subrubro actualizado.')
+    notify.success(bs.notice)
     await refresh()
     return true
-  } catch (e) {
-    error = e?.message || String(e)
+  })
+  if (result === undefined) {
     notify.error('No se pudo actualizar el subrubro.')
     return false
-  } finally {
-    _busy = false
   }
+  return result
 }
 
 /**
@@ -210,14 +200,11 @@ const editarSubrubro = async (id, nuevoNombre) => {
  * @returns {Promise<{ok: boolean, enUso?: number}>}
  */
 const eliminarSubrubro = async (id) => {
-  _busy = true
-  error = ''
-  notice = ''
-  try {
+  const result = await bs.wrapAsync(async () => {
     const tSubrubros = await resolveTableId(TABLE_PREFERRED_IDS.subrubros)
     const tMov = await resolveTableId(TABLE_PREFERRED_IDS.movimientos)
     if (!tSubrubros) {
-      error = 'No se encontró la tabla subrubros.'
+      bs.setError('No se encontró la tabla subrubros.')
       return { ok: false }
     }
 
@@ -227,24 +214,23 @@ const eliminarSubrubro = async (id) => {
         filter: (m) => Number(m.subrubro_id) === Number(id),
       })
       if (movs.length > 0) {
-        error = `No se puede eliminar: hay ${movs.length} movimiento(s) que usan este subrubro. Reasignalos primero.`
-        notify.error(error)
+        bs.setError(`No se puede eliminar: hay ${movs.length} movimiento(s) que usan este subrubro. Reasignalos primero.`)
+        notify.error(bs.error)
         return { ok: false, enUso: movs.length }
       }
     }
 
     await applyUserActions([['RemoveRecord', tSubrubros, Number(id)]])
-    notice = 'Subrubro eliminado.'
-    notify.success(notice)
+    bs.setNotice('Subrubro eliminado.')
+    notify.success(bs.notice)
     await refresh()
     return { ok: true }
-  } catch (e) {
-    error = e?.message || String(e)
+  })
+  if (result === undefined) {
     notify.error('No se pudo eliminar el subrubro.')
     return { ok: false }
-  } finally {
-    _busy = false
   }
+  return result
 }
 
 /**
@@ -255,43 +241,32 @@ const eliminarSubrubro = async (id) => {
  * @returns {Promise<boolean>}
  */
 const toggleSubrubroActivo = async (id, nuevoEstado) => {
-  _busy = true
-  error = ''
-  notice = ''
-  try {
+  const result = await bs.wrapAsync(async () => {
     const tSubrubros = await resolveTableId(TABLE_PREFERRED_IDS.subrubros)
     if (!tSubrubros) {
-      error = 'No se encontró la tabla subrubros.'
+      bs.setError('No se encontró la tabla subrubros.')
       return false
     }
     await applyUserActions([['UpdateRecord', tSubrubros, Number(id), { activo: nuevoEstado }]])
-    notice = nuevoEstado ? 'Subrubro reactivado.' : 'Subrubro desactivado.'
-    notify.success(notice)
+    bs.setNotice(nuevoEstado ? 'Subrubro reactivado.' : 'Subrubro desactivado.')
+    notify.success(bs.notice)
     await refresh()
     return true
-  } catch (e) {
-    error = e?.message || String(e)
+  })
+  if (result === undefined) {
     notify.error('No se pudo cambiar el estado del subrubro.')
     return false
-  } finally {
-    _busy = false
   }
+  return result
 }
 
 const subscribe = () => {
   if (_unsub) _unsub()
-  _unsub = subscribeRecords(() => {
-    if (!_busy && !loading) refresh()
-  })
+  _unsub = createStoreSubscription(refresh, () => bs.busy || bs.loading)
   return () => {
     if (_unsub) _unsub()
     _unsub = null
   }
-}
-
-const clearMessages = () => {
-  error = ''
-  notice = ''
 }
 
 export const categoriasStore = {
@@ -299,14 +274,14 @@ export const categoriasStore = {
   get subrubros() { return subrubros },
   get rubrosPorGrupo() { return rubrosPorGrupo },
   get subrubrosPorRubro() { return subrubrosPorRubro },
-  get loading() { return loading },
-  get error() { return error },
-  get notice() { return notice },
-  get busy() { return _busy },
+  get loading() { return bs.loading },
+  get error() { return bs.error },
+  get notice() { return bs.notice },
+  get busy() { return bs.busy },
   load,
   refresh,
   subscribe,
-  clearMessages,
+  clearMessages: bs.clearMessages,
   crearSubrubro,
   editarSubrubro,
   eliminarSubrubro,

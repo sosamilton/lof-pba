@@ -18,6 +18,7 @@
   import CheckIcon from '@lucide/svelte/icons/check'
   import TrashIcon from '@lucide/svelte/icons/trash-2'
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
+  import { useConfirmDialog } from '$lib/hooks/useConfirmDialog.svelte.js'
 
   const ps = usePersonaSearch()
 
@@ -25,20 +26,16 @@
   let modoDialog = $state('nuevo') // 'nuevo' | 'cesar'
 
   // Diálogo de confirmación para eliminar asesor.
-  let confirmOpen = $state(false)
-  let pendingRemoveId = $state(null)
+  const confirm = useConfirmDialog()
 
   const onEliminar = (id) => {
-    pendingRemoveId = id
-    confirmOpen = true
-  }
-
-  const handleConfirmEliminar = async () => {
-    confirmOpen = false
-    if (pendingRemoveId != null) {
-      await store.remove(pendingRemoveId)
-      pendingRemoveId = null
-    }
+    confirm.openConfirm({
+      title: '¿Eliminar este registro de asesor?',
+      description: 'El registro se quitará de la base de datos. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      variant: 'destructive',
+      onConfirm: () => store.remove(id),
+    })
   }
 
   onMount(() => {
@@ -345,11 +342,11 @@
 </Dialog.Root>
 
 <ConfirmDialog
-  bind:open={confirmOpen}
-  title="¿Eliminar este registro de asesor?"
-  description="El registro se quitará de la base de datos. Esta acción no se puede deshacer."
-  confirmLabel="Eliminar"
-  variant="destructive"
+  bind:open={confirm.open}
+  title={confirm.title}
+  description={confirm.description}
+  confirmLabel={confirm.confirmLabel}
+  variant={confirm.variant}
   busy={store.busy}
-  onConfirm={handleConfirmEliminar}
+  onConfirm={confirm.handleConfirm}
 />

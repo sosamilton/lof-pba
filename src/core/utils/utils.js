@@ -112,6 +112,14 @@ export const MES_NUMERO = {
   Julio: 7, Agosto: 8, Septiembre: 9, Octubre: 10, Noviembre: 11, Diciembre: 12,
 }
 
+/**
+ * Devuelve el ejercicio en curso (en_curso === true) de una lista.
+ * @param {any[]} ejercicios
+ * @returns {any | null}
+ */
+export const findEjercicioEnCurso = (ejercicios) =>
+  (ejercicios || []).find((e) => e.en_curso === true) || null
+
 const _pad2 = (n) => String(n).padStart(2, '0')
 
 /**
@@ -216,6 +224,17 @@ const isCargaConsolidada = (config) =>
 export const getActiveMenuItems = (config) => {
   if (!config) return [{ route: 'inicio', label: 'Inicio' }]
   const items = [{ route: 'inicio', label: 'Inicio' }]
+
+  // Modo colaborador: menú reducido — solo movimientos, comunidad (si integral) y configuración
+  if (config.modo_colaborador) {
+    items.push({ route: 'movimientos', label: 'Movimientos' })
+    if (config.modulo_gestion_integral) {
+      items.push({ route: 'comunidad', label: 'Comunidad' })
+    }
+    items.push({ route: 'configuracion', label: 'Configuración' })
+    return items
+  }
+
   // Información institucional/formal de la cooperadora (escuela, banco,
   // kiosco, cargos, asesor, ejercicios). Visible en ambas modalidades.
   items.push({ route: 'cooperadora', label: 'Institucional' })

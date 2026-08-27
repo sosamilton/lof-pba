@@ -4,6 +4,7 @@ import { TABLE_PREFERRED_IDS, MODULES, fechasEjercicio, todayISO } from '$core/u
 import { saveConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
 import { normalizeEmail, normalizeTelefonoForStorage, isValidCbuChecksum } from '$core/format/format'
 import { currentYear } from './setupConstants'
+import { trackEvent } from '$core/analytics/plausible.js'
 
 const isPouchMode = () => getActiveBackend() === 'pouch'
 
@@ -16,6 +17,19 @@ export async function doInstall(s) {
   s.installing = true
   s.error = ''
   try {
+    // Modo colaborador: importar set de trabajo y marcar como instalado
+    if (s.selectedModules.colaborador && s.workingSetFile) {
+      const { importWorkingSet } = await import('$core/data/intercambio.js')
+      const { ensureSchema } = await import('./initLof')
+      // Crear schema (tablas) antes de importar los docs
+      await ensureSchema()
+      await importWorkingSet(s.workingSetFile, { inicializar: true })
+      trackEvent('setup_completed', { backend: getActiveBackend(), via: 'working_set', cooperadora_tipo: 'colaborador' })
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      window.location.reload()
+      return
+    }
+
     // Si se restauró un backup, los datos ya están en la DB.
     // Solo marcar como instalado y recargar.
     if (s.restoreResult) {
@@ -25,6 +39,8 @@ export async function doInstall(s) {
       if (config) {
         await saveConfig({ ...config, instalado: true })
       }
+      trackEvent('backup_imported', { backend: getActiveBackend() })
+      trackEvent('setup_completed', { backend: getActiveBackend(), via: 'backup' })
       await new Promise((resolve) => setTimeout(resolve, 500))
       window.location.reload()
       return
@@ -139,6 +155,14 @@ export async function doInstall(s) {
       version_instalada: typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev',
       sha_instalado: typeof __APP_SHA__ !== 'undefined' ? __APP_SHA__ : 'dev'
     })
+
+    // Analytics: setup completado (goal "Cooperadora instalada")
+    const cooperadoraTipo = s.selectedModules.gestion_integral
+      ? 'gestion_integral'
+      : s.selectedModules.carga_consolidada
+        ? 'carga_consolidada'
+        : 'solo_pia'
+    trackEvent('setup_completed', { backend: getActiveBackend(), via: 'wizard', cooperadora_tipo: cooperadoraTipo })
 
     const needsEjercicio = s.selectedModules.gestion_integral || s.selectedModules.carga_consolidada
     const needsCargos = s.selectedModules.gestion_integral || s.selectedModules.carga_consolidada

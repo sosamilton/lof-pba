@@ -450,3 +450,172 @@ export const ensureOneRow = async (tableId) => {
   const after = await fetchRecords(tableId)
   return after[0] || null
 }
+
+// --- Export / Import documento Grist completo (.grist) ---------------------
+//
+// Grist expone GET /api/docs/{docId}/download que devuelve el documento
+// completo como SQLite (.grist). Incluye todas las tablas, datos, attachments
+// (si están inline), páginas, widgets e historial.
+//
+// El proxy /grist-api/ forwardea cualquier path a Grist, así que solo hay
+// que hacer fetch a /grist-api/api/docs/{docId}/download?auth=<jwt>.
+//
+// El import parsea el .grist con sql.js (SQLite WASM), extrae las tablas LOF
+// y las escribe en el doc actual via applyUserActions (BulkAddRecord con IDs
+// originales para preservar referencias).
+
+/**
+ * Exporta el documento Grist actual como archivo .grist (SQLite).
+ * @returns {Promise<{ filename: string, size: number }>}
+ */
+export const exportGristDoc = async () => {
+  const { token, docId } = await getApiContext()
+  if (!docId) throw new Error('No se pudo resolver el docId de Grist.')
+  const res = await fetch(`/grist-api/api/docs/${docId}/download?auth=${encodeURIComponent(token)}`)
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`Error al exportar documento: ${res.status} ${res.statusText} — ${body}`)
+  }
+  const blob = await res.blob()
+  const date = new Date().toISOString().slice(0, 10)
+  const filename = `lof-grist-${date}.grist`
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+  return { filename, size: blob.size }
+}
+
+// Orden de importación: tablas sin refs primero, luego las que dependen de ellas.
+// Esto asegura que los lookups de computed fields funcionen al insertar.
+const IMPORT_ORDER = [
+  'rubros_pia', 'cuentas', 'personas', 'escuela', 'datos_banco', 'kiosco_libreria',
+  'ejercicios', 'cargos', 'estatutos', 'configuracion',
+  'socios', 'autoridades', 'asesores', 'asambleas', 'resoluciones',
+  'subrubros', 'cierres_mensuales', 'cargas', 'planillas_generadas', 'hechos_relevantes',
+  'movimientos',
+]
+
+// Columnas internas de Grist que no deben importarse.
+const GRIST_INTERNAL_COLS = new Set(['manualSort', 'id'])
+
+/**
+ * Importa un archivo .grist (SQLite) al documento Grist actual.
+ * Reemplaza todos los datos de las tablas LOF del doc actual con los del archivo.
+ * @param {File} file - Archivo .grist
+ * @returns {Promise<{ tableCount: number, recordCount: number }>}
+ */
+export const importGristDoc = async (file) => {
+  // Cargar sql.js dinámicamente (no viaja en el bundle principal).
+  const initSqlJs = (await import('sql.js')).default
+  const sqlWasmUrl = (await import('sql.js/dist/sql-wasm.wasm?url')).default
+  const SQL = await initSqlJs({ locateFile: () => sqlWasmUrl })
+
+  const buffer = await file.arrayBuffer()
+  const db = new SQL.Database(new Uint8Array(buffer))
+
+  try {
+    // Listar tablas en el archivo .grist (excluir internas de Grist y sqlite_)
+    const tablesResult = db.exec(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE '_grist_%' AND name NOT LIKE 'sqlite_%'"
+    )
+    const fileTableNames = new Set(
+      (tablesResult[0]?.values || []).map((v) => v[0])
+    )
+
+    // Resolver TABLE_PREFERRED_IDS dinámicamente para evitar circularidad
+    const { TABLE_PREFERRED_IDS } = await import('$core/utils/utils')
+
+    // Mapear cada logical key a su nombre físico en el archivo
+    const tablesToImport = []
+    for (const logicalKey of IMPORT_ORDER) {
+      const preferredIds = TABLE_PREFERRED_IDS[logicalKey]
+      if (!preferredIds) continue
+      const physicalName = preferredIds.find((id) => fileTableNames.has(id))
+      if (physicalName) {
+        tablesToImport.push({ logicalKey, physicalName })
+      }
+    }
+
+    if (tablesToImport.length === 0) {
+      throw new Error('El archivo .grist no contiene tablas LOF reconocibles.')
+    }
+
+    let totalRecords = 0
+
+    for (const { logicalKey, physicalName } of tablesToImport) {
+      // 1. Leer records del archivo .grist
+      const queryResult = db.exec(`SELECT * FROM "${physicalName}"`)
+      if (!queryResult || queryResult.length === 0) continue
+
+      const { columns, values } = queryResult[0]
+      if (!columns || !values || values.length === 0) continue
+
+      // Mapear columnas: excluir internas de Grist, mantener el resto
+      const colIndices = []
+      const colNames = []
+      for (let i = 0; i < columns.length; i++) {
+        if (GRIST_INTERNAL_COLS.has(columns[i])) continue
+        colIndices.push(i)
+        colNames.push(columns[i])
+      }
+
+      // Construir records { colName: value, ... } con id incluido
+      const records = values.map((row) => {
+        const rec = {}
+        for (let j = 0; j < colIndices.length; j++) {
+          const val = row[colIndices[j]]
+          // sql.js devuelve null para SQL NULL, strings para text, numbers para int/real
+          // Los BLOBs (attachments inline) se devuelven como Uint8Array — los saltamos
+          rec[colNames[j]] = val instanceof Uint8Array ? null : val
+        }
+        return rec
+      })
+
+      // El id va aparte (es el rowId de Grist)
+      const idIdx = columns.indexOf('id')
+      const rowIds = idIdx >= 0 ? values.map((r) => Number(r[idIdx])) : records.map(() => null)
+
+      // 2. Eliminar records existentes en el doc actual
+      const currentTableId = await resolveTableId(TABLE_PREFERRED_IDS[logicalKey])
+      if (!currentTableId) continue
+
+      const existing = await fetchRecords(currentTableId)
+      if (existing.length > 0) {
+        const deleteActions = existing.map((r) => ['RemoveRecord', currentTableId, r.id])
+        // Batch de a 500 para no saturar Grist
+        for (let i = 0; i < deleteActions.length; i += 500) {
+          await applyUserActions(deleteActions.slice(i, i + 500))
+        }
+      }
+
+      // 3. Insertar records del archivo con IDs originales
+      // Construir colValues para BulkAddRecord
+      const colValues = {}
+      for (const colName of colNames) {
+        colValues[colName] = records.map((r) => r[colName] ?? null)
+      }
+
+      // Batch de a 500 records
+      const BATCH = 500
+      for (let i = 0; i < records.length; i += BATCH) {
+        const batchRowIds = rowIds.slice(i, i + BATCH)
+        const batchColValues = {}
+        for (const [k, arr] of Object.entries(colValues)) {
+          batchColValues[k] = arr.slice(i, i + BATCH)
+        }
+        await applyUserActions([['BulkAddRecord', currentTableId, batchRowIds, batchColValues]])
+      }
+
+      totalRecords += records.length
+    }
+
+    return { tableCount: tablesToImport.length, recordCount: totalRecords }
+  } finally {
+    db.close()
+  }
+}

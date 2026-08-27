@@ -8,6 +8,7 @@
 import { addRecords, applyUserActions, fetchRecords, resolveTableId } from '$core/data/dataRepository'
 import { TABLE_PREFERRED_IDS, addMonths } from '$core/utils/utils'
 import { extractRowId } from '$app/modules/comunidad/personas/personasApi.js'
+import { generarPeriodosEjercicio } from '$app/modules/tesoreria/shared/tesoreriaCalc.js'
 import localidades from '$core/data/localidades-buenos-aires.json'
 
 // ---------------------------------------------------------------------------
@@ -153,30 +154,6 @@ const MES_NOMBRE = [
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
 ]
 
-/**
- * Genera todos los períodos (YYYY-MM) de un ejercicio, desde el mes de inicio
- * del año de inicio hasta el mes anterior al mes de inicio del año de fin.
- * @param {Record<string, any> | null} ejercicio
- * @returns {string[]}
- */
-const generarPeriodosEjercicioLocal = (ejercicio) => {
-  if (!ejercicio) return []
-  const anioInicio = Number(ejercicio.anio_inicio)
-  const anioFin = Number(ejercicio.anio_fin)
-  const mesInicioNum = MES_NUMERO[String(ejercicio.mes_inicio || 'Enero')] || 1
-  if (!anioInicio || !anioFin) return []
-  const periodos = []
-  let anio = anioInicio
-  let mes = mesInicioNum
-  const finMes = mesInicioNum - 1
-  const finReal = finMes < 1 ? { anio: anioFin - 1, mes: 12 } : { anio: anioFin, mes: finMes }
-  while (anio < finReal.anio || (anio === finReal.anio && mes <= finReal.mes)) {
-    periodos.push(`${anio}-${String(mes).padStart(2, '0')}`)
-    mes++
-    if (mes > 12) { mes = 1; anio++ }
-  }
-  return periodos
-}
 
 // ---------------------------------------------------------------------------
 // Generador principal encadenado
@@ -403,7 +380,7 @@ export const generarDatosPrueba = async ({
    * @returns {Promise<{cargas: number, cargasFirmadas: number}>}
    */
   const generarMovimientosConsolidada = async (ejId, ejRec, esUltimoEjercicio) => {
-    const periodos = generarPeriodosEjercicioLocal(ejRec)
+    const periodos = generarPeriodosEjercicio(ejRec)
     const todosRubros = rubrosRecs.filter((r) => r.tipo_rubro === 'Entrada' || r.tipo_rubro === 'Salida')
     log(`Generando cargas y movimientos: ${todosRubros.length} rubros × ${cuentaIds.length} cuentas × ${periodos.length} períodos...`)
 
@@ -505,8 +482,11 @@ export const generarDatosPrueba = async ({
    * @param {number} ejId - ID del ejercicio en Grist
    * @param {number} anioEj - Año de inicio del ejercicio
    * @param {number} cantidad - Cantidad de movimientos extra a generar
+   * @param {any} [ejRec] - Registro del ejercicio (para respetar mes_inicio)
    */
-  const generarMovimientosIntegral = (ejId, anioEj, cantidad) => {
+  const generarMovimientosIntegral = (ejId, anioEj, cantidad, ejRec) => {
+    // Generar fechas solo dentro del rango del ejercicio (mes_inicio → mes_inicio-1 del año siguiente)
+    const periodos = ejRec ? generarPeriodosEjercicio(ejRec) : []
     for (let i = 0; i < cantidad; i++) {
       const tipo = pick(TIPOS_MOV)
       let rubroId = null
@@ -532,7 +512,14 @@ export const generarDatosPrueba = async ({
         personaId = dniToPersonaId.get(pick(dnisPersonas))
       }
 
-      const fecha = genFecha(anioEj, rand(1, 12), rand(1, 28))
+      let fecha
+      if (periodos.length > 0) {
+        const p = pick(periodos)
+        const [y, m] = p.split('-').map(Number)
+        fecha = genFecha(y, m, rand(1, 28))
+      } else {
+        fecha = genFecha(anioEj, rand(1, 12), rand(1, 28))
+      }
 
       movimientosData.push({
         fecha,
@@ -562,7 +549,7 @@ export const generarDatosPrueba = async ({
    */
   const generarCuotaSocialMensual = (ejId, ejRec, cuotaImporte) => {
     if (!rubroCuotaSocialId || cuentaIds.length === 0) return
-    const periodos = generarPeriodosEjercicioLocal(ejRec)
+    const periodos = generarPeriodosEjercicio(ejRec)
 
     // Solo socios activos (sin fecha_baja) pagan cuota social
     const sociosActivosData = sociosData.filter((s) => !s.fecha_baja)
@@ -612,12 +599,12 @@ export const generarDatosPrueba = async ({
     // --- Modo gestion_integral: cuota social mensual por socio + movimientos extra ---
     const cuotaImporte = rand(1500, 5000) // cuota social realista
     const sociosActivosCount = sociosData.filter((s) => !s.fecha_baja).length
-    const periodosCount = generarPeriodosEjercicioLocal(ejercicioRec).length
+    const periodosCount = generarPeriodosEjercicio(ejercicioRec).length
     const cuotaSocialEstimada = Math.floor(sociosActivosCount * periodosCount * 0.9)
     log(`Generando cuota social mensual (${sociosActivosCount} socios activos × ${periodosCount} períodos, ~${cuotaSocialEstimada} movimientos)...`)
     generarCuotaSocialMensual(ejercicioId, ejercicioRec, cuotaImporte)
     log(`Generando ${cantMovimientos} movimientos extra...`)
-    generarMovimientosIntegral(ejercicioId, anioInicio, cantMovimientos)
+    generarMovimientosIntegral(ejercicioId, anioInicio, cantMovimientos, ejercicioRec)
   }
 
   await chunkAndInsert(tMovimientos, movimientosData, batchSize)
@@ -710,7 +697,7 @@ export const generarDatosPrueba = async ({
       for (let eIdx = 0; eIdx < ejerciciosParaGenerar.length; eIdx++) {
         const ej = ejerciciosParaGenerar[eIdx]
         const esUltimoEjercicio = eIdx === ejerciciosParaGenerar.length - 1
-        const periodos = generarPeriodosEjercicioLocal(ej)
+        const periodos = generarPeriodosEjercicio(ej)
         const totalAsambleas = Math.min(cantAsambleas, periodos.length || 1)
         const ejAnioInicio = Number(ej.anio_inicio) || anioInicio
 
@@ -728,7 +715,7 @@ export const generarDatosPrueba = async ({
             log(`Generando cuota social + movimientos extra para ejercicio ${ejAnioInicio}-${ej.anio_fin}...`)
             generarCuotaSocialMensual(ej.id, ej, cuotaImporteAnt)
             const cantEj = Math.floor(cantMovimientos / cantEjercicios)
-            generarMovimientosIntegral(ej.id, ejAnioInicio, cantEj)
+            generarMovimientosIntegral(ej.id, ejAnioInicio, cantEj, ej)
           }
           // Insertar los movimientos de este ejercicio en Grist
           const movsEj = movimientosData.filter((m) => Number(m.ejercicio_id) === Number(ej.id))

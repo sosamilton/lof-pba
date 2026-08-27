@@ -1,5 +1,6 @@
-import { createBaseState, resolveTableIds, fetchRelated } from '$core/data/dataStore.svelte'
-import { fetchRecords, subscribeRecords } from '$core/data/dataRepository'
+import { createBaseState, resolveTableIds, fetchRelated, createStoreSubscription } from '$core/data/dataStore.svelte'
+import { fetchRecords } from '$core/data/dataRepository'
+import { findEjercicioEnCurso } from '$core/utils/utils'
 import { createWidgetOptions } from './widgetOptions.svelte.js'
 import { createAutoridadRows } from './autoridades/autoridadRows.svelte.js'
 import { createAsambleasManager } from './asambleas/asambleasManager.svelte.js'
@@ -57,7 +58,7 @@ const load = async () => {
 
     // Cargar ejercicios primero para saber cuál está en curso
     ejercicios = await fetchRecords(tEjercicios)
-    ejercicio = ejercicios.find((e) => e.en_curso === true) || null
+    ejercicio = findEjercicioEnCurso(ejercicios)
     if (!ejercicio) return
     // Default del histórico: ejercicio en curso
     if (ejercicioHistorico === null) ejercicioHistorico = ejercicio.id
@@ -199,12 +200,7 @@ personaSearch.onSetReemplazoPersona((p) => reemplazoAuth.setReemplazoPersona(p))
 let _unsub = null
 const subscribe = (onExternalChange) => {
   if (_unsub) _unsub()
-  _unsub = subscribeRecords(() => {
-    if (!bs.busy && !bs.loading) {
-      if (onExternalChange) onExternalChange()
-      load()
-    }
-  })
+  _unsub = createStoreSubscription(load, () => bs.busy || bs.loading, onExternalChange)
   return () => {
     if (_unsub) _unsub()
     _unsub = null

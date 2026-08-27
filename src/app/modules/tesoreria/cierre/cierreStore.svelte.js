@@ -1,7 +1,8 @@
-import { applyUserActions, fetchRecords, resolveTableId } from '$core/data/dataRepository'
+import { applyUserActions, fetchRecords, resolveTableId, getActiveBackend } from '$core/data/dataRepository'
 import { createBaseState } from '$core/data/dataStore.svelte'
 import { TABLE_PREFERRED_IDS, fechasEjercicio, todayISO } from '$core/utils/utils.js'
 import { notify } from '$core/ui/notify.svelte'
+import { trackEvent } from '$core/analytics/plausible.js'
 import { loadCierreData } from './cierreDataService.js'
 import { buildPiaFieldMap } from './piaFieldMap.js'
 import { buildNominaFieldMap } from './nominaFieldMap.js'
@@ -57,6 +58,13 @@ let cargosAll = $state([])
 
 /** @type {(() => void) | null} */
 let _unsub = null
+
+// Callback que se ejecuta después de cerrar/reabrir un ejercicio, para que
+// otros stores (cooperadoraStore, movimientosStore) puedan recargar sus
+// copias locales de ejercicios.
+/** @type {(() => void | Promise<void>) | null} */
+let _onEjercicioChanged = null
+const setOnEjercicioChanged = (fn) => { _onEjercicioChanged = fn }
 
 const load = async () => {
   bs.setLoading(true)
@@ -193,6 +201,11 @@ const descargarPia = async () => {
   a.click()
   document.body.removeChild(a)
   setTimeout(() => URL.revokeObjectURL(url), 5000)
+  // Analytics: PIA generado (goal "PIA generado")
+  trackEvent('cierre_pia_generated', {
+    ejercicio: `${ej.anio_inicio || ''}-${ej.anio_fin || ''}`,
+    backend: getActiveBackend(),
+  })
   notify.success('PIA descargado.')
 }
 
@@ -316,6 +329,10 @@ const cerrarEjercicio = async (id) => {
     notify.success(bs.notice)
     // Re-seleccionar el ejercicio para refrescar cierreData y badges
     if (ejercicioSeleccionadoId) await seleccionarEjercicio(ejercicioSeleccionadoId)
+    // Notificar a otros stores para que recarguen sus copias de ejercicios
+    if (typeof _onEjercicioChanged === 'function') {
+      try { await _onEjercicioChanged() } catch { /* no-op */ }
+    }
   })
 }
 
@@ -333,6 +350,10 @@ const reabrirEjercicio = async (id) => {
     notify.success(bs.notice)
     // Re-seleccionar el ejercicio para refrescar cierreData y badges
     if (ejercicioSeleccionadoId) await seleccionarEjercicio(ejercicioSeleccionadoId)
+    // Notificar a otros stores para que recarguen sus copias de ejercicios
+    if (typeof _onEjercicioChanged === 'function') {
+      try { await _onEjercicioChanged() } catch { /* no-op */ }
+    }
   })
 }
 
@@ -374,6 +395,7 @@ export const cierreStore = {
   reabrirEjercicio,
   subscribe,
   clearTemplateCache,
+  setOnEjercicioChanged,
   // Memoria
   get hechosRelevantes() { return hechosRelevantes },
   get memoriaTexto() {

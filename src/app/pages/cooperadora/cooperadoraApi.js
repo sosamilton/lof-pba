@@ -1,5 +1,5 @@
 import { applyUserActions, fetchRecords, resolveTableId } from '$core/data/dataRepository'
-import { TABLE_PREFERRED_IDS, MODULES, fechasEjercicio } from '$core/utils/utils'
+import { TABLE_PREFERRED_IDS, MODULES, fechasEjercicio, findEjercicioEnCurso } from '$core/utils/utils'
 
 /** @returns {Promise<Record<string, any> | null>} */
 export const loadConfig = async () => {
@@ -80,5 +80,5 @@ export const reloadEjercicios = async () => {
   const tEjercicios = await resolveTableId(TABLE_PREFERRED_IDS.ejercicios)
   if (!tEjercicios) return { ejercicios: [], enCurso: null }
   const ejercicios = await fetchRecords(tEjercicios)
-  return { ejercicios, enCurso: ejercicios.find((e) => e.en_curso === true) || null }
+  return { ejercicios, enCurso: findEjercicioEnCurso(ejercicios) }
 }

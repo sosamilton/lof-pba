@@ -23,6 +23,7 @@ export function createFormLogic({ formState, relatedData, base, cierresService }
     formState.setListOpen(true)
     formState.setForm({
       id: m?.id || null,
+      ejercicio_id: m?.ejercicio_id ?? null,
       fecha: dateToInput(m?.fecha),
       tipo_movimiento: m?.tipo_movimiento || 'Entrada',
       rubro_id: m?.rubro_id ?? '',
@@ -42,15 +43,17 @@ export function createFormLogic({ formState, relatedData, base, cierresService }
     formState.setSelectedId(null)
     formState.setListOpen(true)
     const today = todayISO()
+    // Defaults: override de sesión → defaults persistidos → valores hardcodeados
+    const d = relatedData.sessionOverride || relatedData.defaultsMovimiento || {}
     formState.setForm({
       id: null,
       fecha: today,
-      tipo_movimiento: 'Entrada',
-      rubro_id: '',
+      tipo_movimiento: d.tipo || 'Entrada',
+      rubro_id: d.rubro_id || '',
       subrubro_id: '',
-      detalle: '',
+      detalle: d.detalle || '',
       importe: '',
-      cuenta_id: relatedData.cuentaDefaultId || '',
+      cuenta_id: d.cuenta_id || relatedData.cuentaDefaultId || '',
       destino_bancario: '',
       cuenta_destino_id: '',
       socio_id: '',

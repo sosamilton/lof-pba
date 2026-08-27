@@ -148,6 +148,21 @@ LOF es una SPA construida con **Svelte 5** para gestionar cooperadoras escolares
 </details>
 
 <details>
+<summary><strong>Intercambio descentralizado entre colaboradores</strong></summary>
+
+- **Set de trabajo** — la cooperadora exporta un `.lof` con datos operativos reducidos (rubros, cuentas, personas, ejercicios) para que un colaborador cargue movimientos desde su propio dispositivo.
+- **Modo colaborador** — el colaborador instala la PWA desde el setup wizard subiendo el `.lof`, sin configurar nada más. Menú reducido, badge visual, defaults heredados.
+- **Patch de movimientos** — al terminar, el colaborador exporta solo lo que él creó (los registros del working set se excluyen automáticamente).
+- **Merge aditivo con análisis previo** — la cooperadora analiza el patch (dry-run) viendo altas, deduplicaciones, remap de IDs y conflictos antes de aprobar. El merge nunca borra ni pisa datos existentes.
+- **Deduplicación inteligente** — personas por CUIL/DNI, socios por persona, cargas consolidadas por ejercicio+período.
+- **Colaboradores en paralelo** — varios colaboradores pueden trabajar sobre el mismo working set; sus patches se mergean secuencialmente con re-validación de estado.
+- **Limpieza del dispositivo** — al finalizar, el colaborador puede borrar todos los datos de su dispositivo con un click.
+
+> Ver [`docs/INTERCAMBIO.md`](docs/INTERCAMBIO.md) para el detalle del flujo, perfiles y API.
+
+</details>
+
+<details>
 <summary><strong>Arquitectura</strong></summary>
 
 - **Offline-first**: los datos se guardan localmente en PouchDB (IndexedDB del navegador). La app funciona sin conexión a internet.
@@ -156,6 +171,7 @@ LOF es una SPA construida con **Svelte 5** para gestionar cooperadoras escolares
 - **Single source of truth en personas**: socios y autoridades derivan sus datos personales de `persona_id` vía `computedFields.js` (equivalente JS de las fórmulas de Grist). Cambiar una persona actualiza automáticamente todos sus registros vinculados.
 - **Desktop vía Tauri**: la misma SPA se empaqueta como app de escritorio para Windows, Linux y macOS, con acceso al filesystem nativo.
 - **Backup/restore**: exportación e importación de todos los datos a archivo `.lof` comprimido (gzip). Restauración desde el setup wizard.
+- **Intercambio descentralizado**: exportación de sets de trabajo y patches `.lof` para que colaboradores externos carguen movimientos desde su dispositivo y los devuelvan para merge aditivo.
 - **Router por hash** con persistencia de última ruta.
 
 </details>
@@ -247,6 +263,8 @@ El seeder solo está disponible cuando `import.meta.env.DEV` es true y no viaja 
 | [`docs/TECNOLOGIAS.md`](docs/TECNOLOGIAS.md) | Stack tecnológico y justificación de decisiones |
 | [`docs/DOCKER.md`](docs/DOCKER.md) | Guía completa de Docker (producción y desarrollo) |
 | [`docs/OFFLINE.md`](docs/OFFLINE.md) | Escenarios offline, verificación y migración cloud → local |
+| [`docs/INTERCAMBIO.md`](docs/INTERCAMBIO.md) | Intercambio descentralizado `.lof` entre colaboradores |
+| [`docs/FEDERACION.md`](docs/FEDERACION.md) | Plan y arquitectura de federación de cooperadoras (futuro) |
 | [`docs/modulos/`](docs/modulos/) | Especificación funcional y técnica por módulo |
 
 ## Roadmap
@@ -268,6 +286,7 @@ El seeder solo está disponible cuando `import.meta.env.DEV` es true y no viaja 
 | Listo | App de escritorio vía Tauri — empaquetado para Windows, Linux y macOS |
 | Listo | Backup/restore — exportación e importación de datos a archivo .lof comprimido |
 | Listo | Sync con CouchDB — replicación bidireccional opcional desde Configuración |
+| Listo | Intercambio descentralizado `.lof` — sets de trabajo para colaboradores, patches con merge aditivo y deduplicación |
 | Próximo | Actas de Comisión Directiva — carga guiada de actas de CD con resoluciones vinculadas al ejercicio |
 | Próximo | Accesos y roles — auth con backend ligero, permisos por tesorería, comisión, asesoría |
 | Después | Balance de tesorería exportable |

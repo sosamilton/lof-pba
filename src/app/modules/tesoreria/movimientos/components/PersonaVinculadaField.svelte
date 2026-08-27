@@ -10,6 +10,7 @@
     onSetFiltroCategoria = () => {},
     value = '',
     onChange = () => {},
+    disabled = false,
   } = $props()
 </script>
 
@@ -43,6 +44,7 @@
         placeholder="(Ninguno)"
         searchPlaceholder="Buscar persona…"
         class="mt-1"
+        {disabled}
       />
       {#if personasSeleccionables.tipo === 'socio'}
         <Field.FieldDescription>Solo se muestran socios activos (pago societario).</Field.FieldDescription>
