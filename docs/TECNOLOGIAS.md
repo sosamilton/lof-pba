@@ -43,6 +43,7 @@ La app guarda los datos localmente en **PouchDB** (IndexedDB del navegador). Est
 - **Sync opcional**: si hay CouchDB, la replicación es automática y bidireccional con conflict resolution nativo de PouchDB.
 - **Soberanía de datos**: cada cooperadora tiene su propia base de datos. No hay cuenta en LOF ni datos subidos a terceros.
 - **Backup/restore**: exportación a archivo `.lof` comprimido (gzip) desde Configuración.
+- **Intercambio descentralizado**: sets de trabajo y patches `.lof` para que colaboradores externos carguen movimientos desde su dispositivo y los devuelvan para merge aditivo. Ver [`INTERCAMBIO.md`](INTERCAMBIO.md).
 
 La capa de datos está desacoplada vía `dataRepository.js` (facade unificado). Los stores y módulos importan de ahí, nunca del backend directo. Esto permite soportar también **Grist** como backend alternativo (la app puede funcionar como Custom Widget de Grist).
 
@@ -100,7 +101,7 @@ CI que hace deploy a **GitHub Pages** y build/push de la imagen a **GHCR** en el
 - @tailwindcss/vite `^4.3` / tailwindcss `^4.3`
 - bits-ui `^2.18`
 - pouchdb `^9.0`
-- fflate `^0.8` (compresión gzip para backup)
+- fflate `^0.8` (compresión gzip para backup e intercambio `.lof`)
 - tauri `^2` (desktop)
 - vitest `^3.2`
 
