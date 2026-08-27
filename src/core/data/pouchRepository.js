@@ -313,6 +313,7 @@ const _docToRecord = (doc) => {
   delete rec._id
   delete rec._rev
   delete rec.type
+  delete rec.imported_from // campo interno del intercambio, no exponer a stores
   // Asegurar que id sea numérico
   if (rec.id != null) rec.id = Number(rec.id)
   return rec
