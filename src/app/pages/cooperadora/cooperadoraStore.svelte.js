@@ -5,15 +5,14 @@ import {
   gristReady,
   isInGrist,
   resolveTableId,
-  subscribeRecords,
   extractAttachmentIds,
   toAttachmentCellValue,
 } from '$core/data/dataRepository'
-import { normalizeFields, TABLE_PREFERRED_IDS } from '$core/utils/utils'
+import { normalizeFields, TABLE_PREFERRED_IDS, todayISO } from '$core/utils/utils'
 import { loadConfig, saveConfig } from './cooperadoraApi.js'
 import { configStore } from '$core/grist/stores/configStore.svelte'
 import { notify } from '$core/ui/notify.svelte'
-import { createBaseState } from '$core/data/dataStore.svelte'
+import { createBaseState, createStoreSubscription } from '$core/data/dataStore.svelte'
 import {
   formatCue,
   formatCuil,
@@ -302,7 +301,7 @@ const onTelefonoEscuelaInput = () => { escuela.telefono_escuela = formatTelefono
 
 const subscribe = () => {
   if (_unsub) _unsub()
-  _unsub = subscribeRecords(() => { if (!bs.busy && !bs.loading) load() })
+  _unsub = createStoreSubscription(load, () => bs.busy || bs.loading)
   return () => { if (_unsub) _unsub(); _unsub = null }
 }
 

@@ -10,7 +10,7 @@ import {
   periodoDeMovimiento as _periodoDeMovimiento,
   periodoActualKey as _periodoActualKey,
 } from '../shared/tesoreriaCalc.js'
-import { MESES } from '$core/utils/utils'
+import { MESES, findEjercicioEnCurso } from '$core/utils/utils'
 
 const bs = createBaseState()
 
@@ -41,7 +41,7 @@ const load = async () => {
     })
     cuentas = data.cuentas || []
     const ejercicios = data.ejercicios || []
-    ejercicio = ejercicios.find((e) => e.en_curso === true) || null
+    ejercicio = findEjercicioEnCurso(ejercicios)
     const ejId = ejercicio ? Number(ejercicio.id) : null
     movimientos = (data.movimientos || []).filter(
       (m) => Number(m.ejercicio_id) === ejId

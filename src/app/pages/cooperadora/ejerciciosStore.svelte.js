@@ -1,5 +1,5 @@
 import { applyUserActions, fetchRecords } from '$core/data/dataRepository'
-import { normalizeFields, fechasEjercicio } from '$core/utils/utils'
+import { normalizeFields, fechasEjercicio, findEjercicioEnCurso } from '$core/utils/utils'
 import { crearEjercicioApi } from './cooperadoraApi.js'
 import { notify } from '$core/ui/notify.svelte'
 
@@ -45,7 +45,7 @@ export function createEjerciciosStore({ bs, getTEjercicios, getTMovimientos }) {
     const tid = tEj || getTEjercicios()
     if (!tid) return
     ejercicios = await fetchRecords(tid)
-    ejercicioEnCurso = ejercicios.find((e) => e.en_curso === true) || null
+    ejercicioEnCurso = findEjercicioEnCurso(ejercicios)
   }
 
   const createEjercicio = async () => {
@@ -68,7 +68,7 @@ export function createEjerciciosStore({ bs, getTEjercicios, getTMovimientos }) {
         return
       }
       ejercicios = await crearEjercicioApi(nuevoEj, ejercicios)
-      ejercicioEnCurso = ejercicios.find((e) => e.en_curso === true) || null
+      ejercicioEnCurso = findEjercicioEnCurso(ejercicios)
       bs.setNotice('Ejercicio creado.'); notify.success(bs.notice)
       nuevoEj = {
         anio_inicio: '', anio_fin: '', mes_inicio: nuevoEj.mes_inicio || 'Mayo',

@@ -1,5 +1,5 @@
 import { fetchRecords, resolveTableId } from '$core/data/dataRepository'
-import { TABLE_PREFERRED_IDS, MESES, getModalidadGestion } from '$core/utils/utils'
+import { TABLE_PREFERRED_IDS, MESES, getModalidadGestion, findEjercicioEnCurso } from '$core/utils/utils'
 import { loadConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
 import { saldosStore } from '$app/modules/tesoreria/resumen/saldosStore.svelte.js'
 import {
@@ -66,7 +66,7 @@ export function createDashboardStore() {
   const loadEjercicioEnCurso = async (tEjercicios) => {
     if (!tEjercicios) return
     const allEj = await fetchRecords(tEjercicios)
-    ejercicioEnCurso = allEj.find((e) => e.en_curso === true) || null
+    ejercicioEnCurso = findEjercicioEnCurso(allEj)
     if (ejercicioEnCurso) {
       const now = new Date()
       const finAnio = Number(ejercicioEnCurso.anio_fin || 0)
@@ -240,7 +240,6 @@ export function createDashboardStore() {
     get vencimientosProximos() { return vencimientosProximos },
     get alertaAsamblea() { return alertaAsamblea },
     get tableroError() { return tableroError },
-    get moduloGestionIntegral() { return moduloGestionIntegral },
     get modalidadGestion() { return modalidadGestion },
     set modalidadGestion(v) { modalidadGestion = v },
     get moduloGestionIntegral() { return moduloGestionIntegral },

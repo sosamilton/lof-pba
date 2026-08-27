@@ -24,6 +24,9 @@
   import CargaPIAMatrix from '$app/modules/tesoreria/cargaPia/CargaPIAMatrix.svelte'
   import Gobierno from '$app/modules/gobierno/AsambleasAutoridades.svelte'
   import Configuracion from '$app/pages/configuracion/Configuracion.svelte'
+  import { cierreStore } from '$app/modules/tesoreria/cierre/cierreStore.svelte'
+  import { cooperadoraStore } from '$app/pages/cooperadora/cooperadoraStore.svelte'
+  import { movimientosStore } from '$app/modules/tesoreria/movimientos/movimientosStore.svelte'
 
   let ready = $state(false)
   let gristStatus = $state('none')
@@ -62,6 +65,14 @@
 
   onMount(async () => {
     const cleanup = await initRouter()
+    // Cuando se cierre/reabra un ejercicio desde Cierre / Presentación,
+    // recargar cooperadoraStore y movimientosStore para que Institucional
+    // y Movimientos reflejen el estado actualizado (cerrado/en curso)
+    // sin necesidad de navegar manualmente.
+    cierreStore.setOnEjercicioChanged(async () => {
+      await cooperadoraStore.load()
+      await movimientosStore.loadAll()
+    })
     const status = await detectGrist()
     gristStatus = status
     if (status === 'ready') {
@@ -161,43 +172,41 @@
   <SetupWizard />
 {:else if gristStatus === 'ready'}
   <AppShell title={identidad.nombre}>
-    {#snippet children()}
-      {#if router.current === 'cooperadora'}
-        <Cooperadora />
-      {:else if router.current === 'comunidad'}
-        <Comunidad />
-      {:else if router.current === 'movimientos'}
-        <Movimientos />
-      {:else if router.current === 'resumen'}
-        {#await import('$app/modules/tesoreria/resumen/ResumenMensual.svelte')}
-          <div class="flex items-center justify-center py-12" role="status">
-            <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-          </div>
-        {:then mod}
-          <mod.default />
-        {:catch}
-          <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
-        {/await}
-      {:else if router.current.startsWith('carga-pia')}
-        <CargaPIAMatrix />
-      {:else if router.current === 'cierre'}
-        {#await import('$app/modules/tesoreria/cierre/Cierre.svelte')}
-          <div class="flex items-center justify-center py-12" role="status">
-            <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-          </div>
-        {:then mod}
-          <mod.default />
-        {:catch}
-          <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
-        {/await}
-      {:else if router.current === 'gobierno'}
-        <Gobierno />
-      {:else if router.current === 'configuracion'}
-        <Configuracion />
-      {:else}
-        <Inicio />
-      {/if}
-    {/snippet}
+    {#if router.current === 'cooperadora'}
+      <Cooperadora />
+    {:else if router.current === 'comunidad'}
+      <Comunidad />
+    {:else if router.current === 'movimientos'}
+      <Movimientos />
+    {:else if router.current === 'resumen'}
+      {#await import('$app/modules/tesoreria/resumen/ResumenMensual.svelte')}
+        <div class="flex items-center justify-center py-12" role="status">
+          <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+        </div>
+      {:then mod}
+        <mod.default />
+      {:catch}
+        <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
+      {/await}
+    {:else if router.current.startsWith('carga-pia')}
+      <CargaPIAMatrix />
+    {:else if router.current === 'cierre'}
+      {#await import('$app/modules/tesoreria/cierre/Cierre.svelte')}
+        <div class="flex items-center justify-center py-12" role="status">
+          <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+        </div>
+      {:then mod}
+        <mod.default />
+      {:catch}
+        <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
+      {/await}
+    {:else if router.current === 'gobierno'}
+      <Gobierno />
+    {:else if router.current === 'configuracion'}
+      <Configuracion />
+    {:else}
+      <Inicio />
+    {/if}
   </AppShell>
 {:else if gristStatus === 'no-access'}
   {#if isPouchMode}

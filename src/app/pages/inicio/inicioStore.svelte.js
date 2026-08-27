@@ -246,7 +246,10 @@ const checkMovimientosSinCarga = async () => {
       filter: (m) => Number(m.ejercicio_id) === ejId && !m.carga_id,
     })
     hasMovimientosSinCarga = movs.length > 0
-  } catch { /* non-fatal */ }
+  } catch (e) {
+    // Non-fatal: no bloquea Inicio, pero logueamos para diagnóstico.
+    console.warn('[inicioStore] checkMovimientosSinCarga falló:', e?.message || e)
+  }
 }
 
 /**
@@ -404,7 +407,10 @@ const loadPreferencias = async () => {
         cuentaDefaultId = fallback ? String(fallback.id) : ''
       }
     }
-  } catch { /* non-fatal */ }
+  } catch (e) {
+    // Non-fatal: no bloquea Inicio, pero logueamos para diagnóstico.
+    console.warn('[inicioStore] loadPreferencias falló:', e?.message || e)
+  }
 }
 
 /**

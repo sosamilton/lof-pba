@@ -1,6 +1,6 @@
 import { createBaseState, resolveTableIds, fetchRelated } from '$core/data/dataStore.svelte'
 import { applyUserActions, isInGrist } from '$core/data/dataRepository'
-import { normalizeFields } from '$core/utils/utils.js'
+import { normalizeFields, findEjercicioEnCurso } from '$core/utils/utils.js'
 import { loadConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
 import {
   saldoInicialEjercicio as _saldoInicialEjercicio,
@@ -99,7 +99,7 @@ const load = async () => {
     asambleas = data.asambleas || []
     _allMovimientos = data.movimientos || []
     if (!selectedEjercicioId) {
-      const enCurso = ejercicios.find((e) => e.en_curso === true) || null
+      const enCurso = findEjercicioEnCurso(ejercicios)
       ejercicio = enCurso
       selectedEjercicioId = enCurso ? enCurso.id : null
     } else {
