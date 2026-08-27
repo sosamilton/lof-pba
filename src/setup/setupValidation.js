@@ -20,7 +20,11 @@ export function hasFieldErrors(s) {
 }
 
 export function canNext(s) {
-  if (s.step === 0) return s.selectedModuleKeys.some((k) => !MODULES[k]?.optional)
+  if (s.step === 0) {
+    // Modo colaborador: necesita un working set válido
+    if (s.selectedModules.colaborador) return !!s.workingSetFile
+    return s.selectedModuleKeys.some((k) => !MODULES[k]?.optional)
+  }
   if (s.step === 1) {
     // El CUE debe estar resuelto (found o not_found); no se avanza si está
     // idle o typing. Si not_found, debe haber al menos nombre de escuela.

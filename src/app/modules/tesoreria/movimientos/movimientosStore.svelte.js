@@ -53,6 +53,10 @@ export const movimientosStore = extendStore(base, {
   get modoGestion() { return relatedData.modoGestion },
   get periodicidad() { return relatedData.periodicidad },
   get cierres() { return relatedData.cierres },
+  get defaultsMovimiento() { return relatedData.defaultsMovimiento },
+  get sessionOverride() { return relatedData.sessionOverride },
+  setSessionOverride: relatedData.setSessionOverride,
+  resetSessionOverride: relatedData.resetSessionOverride,
   // formState
   get selectedId() { return formState.selectedId },
   get form() { return formState.form },

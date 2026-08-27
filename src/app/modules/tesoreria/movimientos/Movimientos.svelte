@@ -23,6 +23,7 @@
   import * as Alert from '$lib/components/ui/alert'
   import MovimientosList from './components/MovimientosList.svelte'
   import MovimientoForm from './components/MovimientoForm.svelte'
+  import ConfigRapidaCard from './components/ConfigRapidaCard.svelte'
   import CargaPIAMatrix from '../cargaPia/CargaPIAMatrix.svelte'
 
   let q = $state('')
@@ -192,6 +193,14 @@
     <CargaPIAMatrix embedded={true} />
   {:else}
     <!-- Modo gestión integral: listado + formulario individual -->
+    <ConfigRapidaCard
+      rubros={store.rubros}
+      cuentas={store.cuentas}
+      defaultsMovimiento={store.defaultsMovimiento}
+      sessionOverride={store.sessionOverride}
+      onSessionOverride={(v) => store.setSessionOverride(v)}
+      onResetOverride={() => store.resetSessionOverride()}
+    />
     <div class="mb-4 flex flex-wrap items-center gap-3">
       <SearchInput bind:value={q} placeholder="Buscar en detalle" ariaLabel="Buscar movimientos" />
       <Select.Root type="single" bind:value={tipo} allowDeselect={true}>

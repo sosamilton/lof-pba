@@ -17,6 +17,19 @@ export async function doInstall(s) {
   s.installing = true
   s.error = ''
   try {
+    // Modo colaborador: importar set de trabajo y marcar como instalado
+    if (s.selectedModules.colaborador && s.workingSetFile) {
+      const { importWorkingSet } = await import('$core/data/intercambio.js')
+      const { ensureSchema } = await import('./initLof')
+      // Crear schema (tablas) antes de importar los docs
+      await ensureSchema()
+      await importWorkingSet(s.workingSetFile, { inicializar: true })
+      trackEvent('setup_completed', { backend: getActiveBackend(), via: 'working_set', cooperadora_tipo: 'colaborador' })
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      window.location.reload()
+      return
+    }
+
     // Si se restauró un backup, los datos ya están en la DB.
     // Solo marcar como instalado y recargar.
     if (s.restoreResult) {

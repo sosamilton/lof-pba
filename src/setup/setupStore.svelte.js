@@ -66,8 +66,12 @@ export class SetupStore {
   selectedModules = $state(/** @type {Record<ModuleKey, boolean>} */ ({
     carga_consolidada: false,
     gestion_integral: true,
-    kiosco: false
+    kiosco: false,
+    colaborador: false,
   }))
+
+  // Modo colaborador: archivo .lof de set de trabajo para inicializar
+  workingSetFile = $state(/** @type {File | null} */ (null))
 
   schoolData = $state({
     escuela_nombre: '',

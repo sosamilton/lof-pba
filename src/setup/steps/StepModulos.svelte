@@ -9,10 +9,12 @@
   import { identidad } from '$core/data/identidad'
   import { getActiveBackend } from '$core/data/dataRepository'
   import { validateBackup } from '$core/data/backup.js'
+  import { validarIntercambio, importWorkingSet } from '$core/data/intercambio.js'
   import UploadIcon from '@lucide/svelte/icons/upload'
   import FileIcon from '@lucide/svelte/icons/file-text'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
   import AlertCircleIcon from '@lucide/svelte/icons/circle-alert'
+  import HandHeartIcon from '@lucide/svelte/icons/hand-heart'
 
   let { store } = $props()
 
@@ -23,6 +25,36 @@
   let fileInput = $state(null)
   let validation = $state(null)
   let validating = $state(false)
+
+  // --- Modo colaborador ---
+  let wsFileInput = $state(null)
+  let wsValidation = $state(null)
+  let wsValidating = $state(false)
+  let wsImporting = $state(false)
+  let wsResult = $state(null)
+
+  const handleWsFile = async (/** @type {Event} */ e) => {
+    const target = /** @type {HTMLInputElement} */ (e.target)
+    const file = target.files?.[0]
+    if (!file) return
+    wsValidation = null
+    wsValidating = true
+    wsResult = null
+    try {
+      const result = await validarIntercambio(file)
+      wsValidation = result
+      if (result.valid && (result.kind === 'working-set' || result.kind === 'custom')) {
+        store.selectedModules.colaborador = true
+        store.workingSetFile = file
+      } else if (result.valid) {
+        wsValidation = { valid: false, error: `Este archivo es de tipo "${result.kind}". Necesitás un set de trabajo.` }
+      }
+    } catch (err) {
+      wsValidation = { valid: false, error: err?.message || String(err) }
+    } finally {
+      wsValidating = false
+    }
+  }
 
   const handleFile = async (/** @type {Event} */ e) => {
     const target = /** @type {HTMLInputElement} */ (e.target)
@@ -161,6 +193,58 @@
     {/if}
   </Card.Content>
 </Card.Root>
+
+{#if isPouchMode}
+  <Card.Root class="mb-4 border-amber-500/30">
+    <Card.Content class="pt-6">
+      <div class="flex items-center gap-2 mb-1.5">
+        <HandHeartIcon class="size-5 text-amber-600" />
+        <h2 class="text-[17px] font-bold">¿Te pidieron ayudar con la carga?</h2>
+      </div>
+      <p class="text-[13px] text-muted-foreground mb-4">
+        Si una cooperadora te envió un archivo de set de trabajo (.lof), podés
+        importarlo acá y cargar movimientos desde tu dispositivo. Al terminar,
+        exportás los cambios y se los devolvés. No necesitás configurar nada más.
+      </p>
+
+      <div
+        class="flex flex-col items-center justify-center gap-2 p-5 rounded-xl border-2 border-dashed border-border bg-muted/5 cursor-pointer transition-colors hover:border-amber-500/40"
+        role="button"
+        tabindex="0"
+        onclick={() => wsFileInput?.click()}
+        onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); wsFileInput?.click() } }}
+      >
+        {#if wsValidating}
+          <div class="size-6 animate-spin rounded-full border-2 border-amber-600 border-t-transparent"></div>
+          <p class="text-sm text-muted-foreground">Validando set de trabajo…</p>
+        {:else if store.selectedModules.colaborador && store.workingSetFile}
+          <CheckCircleIcon class="size-8 text-amber-600" />
+          <p class="text-sm font-semibold">Set de trabajo listo</p>
+          <p class="text-xs text-muted-foreground">Presioná "Instalar ahora" para comenzar a cargar movimientos.</p>
+        {:else}
+          <UploadIcon class="size-8 text-muted-foreground/50" />
+          <p class="text-sm font-medium">Hacé clic para seleccionar un set de trabajo (.lof)</p>
+          <p class="text-xs text-muted-foreground">Archivo que te envió la cooperadora</p>
+        {/if}
+      </div>
+
+      <input
+        bind:this={wsFileInput}
+        type="file"
+        accept=".lof,application/octet-stream"
+        class="hidden"
+        onchange={handleWsFile}
+      />
+
+      {#if wsValidation && !wsValidation.valid}
+        <div class="mt-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <AlertCircleIcon class="size-4 text-destructive shrink-0 mt-0.5" />
+          <p class="text-xs text-destructive">{wsValidation.error}</p>
+        </div>
+      {/if}
+    </Card.Content>
+  </Card.Root>
+{/if}
 
 {#if store.isDev}
   <Card.Root class="mb-4 border-amber-500/30">

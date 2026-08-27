@@ -54,6 +54,9 @@
 
     {#if store.step === 0}
       <StepModulos {store} />
+    {:else if store.selectedModules.colaborador}
+      <!-- Modo colaborador: saltear pasos intermedios, ir directo a instalar -->
+      <StepInstalar {store} />
     {:else if store.step === 1}
       <StepEscuela {store} />
     {:else if store.step === 2}
@@ -82,7 +85,7 @@
       {#if store.step > 0 && !store.installing && !store.restoreResult}
         <Button variant="outline" onclick={() => store.step -= 1}>Atrás</Button>
       {/if}
-      {#if store.step < store.steps.length - 1}
+      {#if store.step < store.steps.length - 1 && !store.selectedModules.colaborador}
         <Button onclick={() => { trackEvent('setup_step_completed', { step: store.step + 1, step_name: store.steps[store.step], backend }); store.next() }} disabled={!store.canNext()}>Siguiente</Button>
       {:else}
         <Button onclick={() => store.doInstall()} disabled={store.installing}>
