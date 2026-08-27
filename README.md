@@ -264,6 +264,7 @@ El seeder solo está disponible cuando `import.meta.env.DEV` es true y no viaja 
 | [`docs/DOCKER.md`](docs/DOCKER.md) | Guía completa de Docker (producción y desarrollo) |
 | [`docs/OFFLINE.md`](docs/OFFLINE.md) | Escenarios offline, verificación y migración cloud → local |
 | [`docs/INTERCAMBIO.md`](docs/INTERCAMBIO.md) | Intercambio descentralizado `.lof` entre colaboradores |
+| [`docs/FEDERACION.md`](docs/FEDERACION.md) | Plan y arquitectura de federación de cooperadoras (futuro) |
 | [`docs/modulos/`](docs/modulos/) | Especificación funcional y técnica por módulo |
 
 ## Roadmap
