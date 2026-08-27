@@ -414,158 +414,26 @@ export async function analizarMerge(file) {
   const realEjercicioIds = new Set(realEjercicios.map((r) => Number(r.id)))
 
   // FASE 1: Personas — dedup + mapeo
-  const personaMapping = new Map()
-  const personasReporte = []
-  let personasNuevas = 0
-  let personasDeduplicadas = 0
+  const personasPhase = _analizarMergePersonas(patchPersonas, {
+    realPersonasByDni, realPersonasByCuil,
+  })
 
-  for (const p of patchPersonas) {
-    const oldId = Number(p.id)
-    const dni = parseDni(p.dni)
-    const cuil = p.cuil
-    let existing = null
-    if (cuil && realPersonasByCuil.has(cuil)) {
-      existing = realPersonasByCuil.get(cuil)
-    } else if (dni && realPersonasByDni.has(dni)) {
-      existing = realPersonasByDni.get(dni)
-    }
-    if (existing) {
-      personaMapping.set(oldId, Number(existing.id))
-      personasDeduplicadas++
-      personasReporte.push({
-        dni: p.dni || '—', apellido: p.apellido || p.razon_social || '—',
-        nombre: p.nombre || '', estado: 'deduplicada', socioExistenteId: Number(existing.id),
-      })
-    } else {
-      personaMapping.set(oldId, null)
-      personasNuevas++
-      personasReporte.push({
-        dni: p.dni || '—', apellido: p.apellido || p.razon_social || '—',
-        nombre: p.nombre || '', estado: 'nueva',
-      })
-    }
-  }
-
-  // FASE 2: Socios — dedup + mapeo
-  const socioMapping = new Map()
-  const sociosReporte = []
-  let sociosNuevos = 0
-  let sociosDeduplicados = 0
-
-  for (const s of patchSocios) {
-    const oldId = Number(s.id)
-    const personaIdRemapped = personaMapping.get(Number(s.persona_id))
-    let existing = null
-    if (personaIdRemapped != null && realSociosByPersona.has(personaIdRemapped)) {
-      existing = realSociosByPersona.get(personaIdRemapped)
-    }
-    if (existing) {
-      socioMapping.set(oldId, Number(existing.id))
-      sociosDeduplicados++
-      sociosReporte.push({
-        persona: _personaLabelFromDoc(patchPersonas.find((p) => Number(p.id) === Number(s.persona_id))),
-        tipoSocio: s.tipo_socio || '—', fechaAlta: s.fecha_alta || '—', estado: 'deduplicado',
-      })
-    } else {
-      socioMapping.set(oldId, null)
-      sociosNuevos++
-      sociosReporte.push({
-        persona: _personaLabelFromDoc(patchPersonas.find((p) => Number(p.id) === Number(s.persona_id))),
-        tipoSocio: s.tipo_socio || '—', fechaAlta: s.fecha_alta || '—', estado: 'nuevo',
-      })
-    }
-  }
+  // FASE 2: Socios — dedup + mapeo (depende del mapeo de personas)
+  const sociosPhase = _analizarMergeSocios(patchSocios, patchPersonas, {
+    personaMapping: personasPhase.mapping,
+    realSociosByPersona,
+  })
 
   // FASE 2b: Cargas — dedup por ejercicio+periodo + mapeo
-  const cargaMapping = new Map()
-  const cargasReporte = []
-  let cargasNuevas = 0
-  let cargasDeduplicadas = 0
-
-  for (const c of patchCargas) {
-    const oldId = Number(c.id)
-    const ejId = Number(c.ejercicio_id)
-    const periodo = c.periodo
-    const key = `${ejId}-${periodo}`
-    let existing = null
-    if (realCargasByEjPeriodo.has(key)) {
-      existing = realCargasByEjPeriodo.get(key)
-    }
-    if (existing) {
-      cargaMapping.set(oldId, Number(existing.id))
-      cargasDeduplicadas++
-      cargasReporte.push({
-        periodo: periodo || '—', estado: c.estado || '—',
-        resultado: 'deduplicada',
-      })
-    } else {
-      cargaMapping.set(oldId, null)
-      cargasNuevas++
-      cargasReporte.push({
-        periodo: periodo || '—', estado: c.estado || '—',
-        resultado: 'nueva',
-      })
-    }
-  }
+  const cargasPhase = _analizarMergeCargas(patchCargas, {
+    realCargasByEjPeriodo,
+  })
 
   // FASE 3: Movimientos — validar refs y construir reporte
-  const movimientosReporte = []
-  const conflictos = []
-  let movimientosNuevos = 0
-
-  const rubroNames = new Map(realRubros.map((r) => [Number(r.id), r.nombre_oficial || r.codigo_rubro || `#${r.id}`]))
-  const subrubroNames = new Map(realSubrubros.map((r) => [Number(r.id), r.nombre_subrubro || `#${r.id}`]))
-  const cuentaNames = new Map(realCuentas.map((r) => [Number(r.id), r.nombre_cuenta || `#${r.id}`]))
-  const ejercicioLabels = new Map(realEjercicios.map((r) => [Number(r.id), `${r.anio_inicio || ''}–${r.anio_fin || ''}`]))
-  const patchPersonaNames = new Map(patchPersonas.map((p) => [Number(p.id), _personaLabelFromDoc(p)]))
-
-  for (const m of patchMovimientos) {
-    const refs = {
-      ejercicio_id: m.ejercicio_id != null ? Number(m.ejercicio_id) : null,
-      rubro_id: m.rubro_id != null ? Number(m.rubro_id) : null,
-      subrubro_id: m.subrubro_id != null ? Number(m.subrubro_id) : null,
-      cuenta_id: m.cuenta_id != null ? Number(m.cuenta_id) : null,
-      cuenta_destino_id: m.cuenta_destino_id != null ? Number(m.cuenta_destino_id) : null,
-      socio_id: m.socio_id != null ? Number(m.socio_id) : null,
-      persona_id: m.persona_id != null ? Number(m.persona_id) : null,
-    }
-    const movConflictos = []
-    if (refs.rubro_id != null && !realRubroIds.has(refs.rubro_id))
-      movConflictos.push({ campo: 'rubro_id', valor: refs.rubro_id, razon: `rubro_id ${refs.rubro_id} no existe en el real` })
-    if (refs.subrubro_id != null && !realSubrubroIds.has(refs.subrubro_id))
-      movConflictos.push({ campo: 'subrubro_id', valor: refs.subrubro_id, razon: `subrubro_id ${refs.subrubro_id} no existe en el real` })
-    if (refs.cuenta_id != null && !realCuentaIds.has(refs.cuenta_id))
-      movConflictos.push({ campo: 'cuenta_id', valor: refs.cuenta_id, razon: `cuenta_id ${refs.cuenta_id} no existe en el real` })
-    if (refs.cuenta_destino_id != null && !realCuentaIds.has(refs.cuenta_destino_id))
-      movConflictos.push({ campo: 'cuenta_destino_id', valor: refs.cuenta_destino_id, razon: `cuenta_destino_id ${refs.cuenta_destino_id} no existe en el real` })
-    if (refs.ejercicio_id != null && !realEjercicioIds.has(refs.ejercicio_id))
-      movConflictos.push({ campo: 'ejercicio_id', valor: refs.ejercicio_id, razon: `ejercicio_id ${refs.ejercicio_id} no existe en el real` })
-
-    const personaLabel = refs.persona_id != null
-      ? (patchPersonaNames.get(refs.persona_id) || `#${refs.persona_id}`)
-      : '—'
-
-    if (movConflictos.length > 0) {
-      conflictos.push({
-        tipo: 'ref_rota', tabla: 'movimientos',
-        movimientoDetalle: m.detalle || '(sin detalle)', conflictos: movConflictos,
-      })
-    } else {
-      movimientosNuevos++
-    }
-
-    movimientosReporte.push({
-      fecha: m.fecha || '—', detalle: m.detalle || '—',
-      importe: m.importe != null ? Number(m.importe) : null,
-      tipo: m.tipo_movimiento || '—',
-      rubro: refs.rubro_id != null ? (rubroNames.get(refs.rubro_id) || `#${refs.rubro_id}`) : '—',
-      subrubro: refs.subrubro_id != null ? (subrubroNames.get(refs.subrubro_id) || `#${refs.subrubro_id}`) : '—',
-      cuenta: refs.cuenta_id != null ? (cuentaNames.get(refs.cuenta_id) || `#${refs.cuenta_id}`) : '—',
-      persona: personaLabel,
-      estado: movConflictos.length > 0 ? 'conflicto' : 'nuevo',
-      conflictoRazon: movConflictos.length > 0 ? movConflictos.map((c) => c.razon).join('; ') : undefined,
-    })
-  }
+  const movimientosPhase = _analizarMergeMovimientos(patchMovimientos, patchPersonas, {
+    realRubroIds, realSubrubroIds, realCuentaIds, realEjercicioIds,
+    realRubros, realSubrubros, realCuentas, realEjercicios,
+  })
 
   // Advertencias
   const advertencias = []
@@ -589,17 +457,216 @@ export async function analizarMerge(file) {
     kind: payload.kind, profile: payload.profile, exportedAt: payload.exportedAt,
     source: payload.source, modalidad: payload.modalidad,
     resumen: {
-      movimientosNuevos, personasNuevas, personasDeduplicadas,
-      sociosNuevos, sociosDeduplicados,
-      cargasNuevas, cargasDeduplicadas,
-      conflictos: conflictos.length,
+      movimientosNuevos: movimientosPhase.nuevos,
+      personasNuevas: personasPhase.nuevas,
+      personasDeduplicadas: personasPhase.deduplicadas,
+      sociosNuevos: sociosPhase.nuevos,
+      sociosDeduplicados: sociosPhase.deduplicados,
+      cargasNuevas: cargasPhase.nuevas,
+      cargasDeduplicadas: cargasPhase.deduplicadas,
+      conflictos: movimientosPhase.conflictos.length,
     },
     detalle: {
-      movimientos: movimientosReporte, personas: personasReporte,
-      socios: sociosReporte, cargas: cargasReporte, conflictos,
+      movimientos: movimientosPhase.reporte,
+      personas: personasPhase.reporte,
+      socios: sociosPhase.reporte,
+      cargas: cargasPhase.reporte,
+      conflictos: movimientosPhase.conflictos,
     },
     advertencias, analisisHash,
   }
+}
+
+/**
+ * FASE 1: Dedup de personas por CUIL/DNI contra el real.
+ * @param {object[]} patchPersonas
+ * @param {{ realPersonasByDni: Map, realPersonasByCuil: Map }} real
+ * @returns {{ mapping: Map<number, number|null>, reporte: object[], nuevas: number, deduplicadas: number }}
+ */
+function _analizarMergePersonas(patchPersonas, real) {
+  const mapping = new Map()
+  const reporte = []
+  let nuevas = 0
+  let deduplicadas = 0
+
+  for (const p of patchPersonas) {
+    const oldId = Number(p.id)
+    const dni = parseDni(p.dni)
+    const cuil = p.cuil
+    let existing = null
+    if (cuil && real.realPersonasByCuil.has(cuil)) {
+      existing = real.realPersonasByCuil.get(cuil)
+    } else if (dni && real.realPersonasByDni.has(dni)) {
+      existing = real.realPersonasByDni.get(dni)
+    }
+    if (existing) {
+      mapping.set(oldId, Number(existing.id))
+      deduplicadas++
+      reporte.push({
+        dni: p.dni || '—', apellido: p.apellido || p.razon_social || '—',
+        nombre: p.nombre || '', estado: 'deduplicada', socioExistenteId: Number(existing.id),
+      })
+    } else {
+      mapping.set(oldId, null)
+      nuevas++
+      reporte.push({
+        dni: p.dni || '—', apellido: p.apellido || p.razon_social || '—',
+        nombre: p.nombre || '', estado: 'nueva',
+      })
+    }
+  }
+
+  return { mapping, reporte, nuevas, deduplicadas }
+}
+
+/**
+ * FASE 2: Dedup de socios por persona_id (remapped) contra el real.
+ * @param {object[]} patchSocios
+ * @param {object[]} patchPersonas
+ * @param {{ personaMapping: Map, realSociosByPersona: Map }} ctx
+ * @returns {{ mapping: Map<number, number|null>, reporte: object[], nuevos: number, deduplicados: number }}
+ */
+function _analizarMergeSocios(patchSocios, patchPersonas, ctx) {
+  const mapping = new Map()
+  const reporte = []
+  let nuevos = 0
+  let deduplicados = 0
+
+  for (const s of patchSocios) {
+    const oldId = Number(s.id)
+    const personaIdRemapped = ctx.personaMapping.get(Number(s.persona_id))
+    let existing = null
+    if (personaIdRemapped != null && ctx.realSociosByPersona.has(personaIdRemapped)) {
+      existing = ctx.realSociosByPersona.get(personaIdRemapped)
+    }
+    const personaLabel = _personaLabelFromDoc(patchPersonas.find((p) => Number(p.id) === Number(s.persona_id)))
+    if (existing) {
+      mapping.set(oldId, Number(existing.id))
+      deduplicados++
+      reporte.push({
+        persona: personaLabel,
+        tipoSocio: s.tipo_socio || '—', fechaAlta: s.fecha_alta || '—', estado: 'deduplicado',
+      })
+    } else {
+      mapping.set(oldId, null)
+      nuevos++
+      reporte.push({
+        persona: personaLabel,
+        tipoSocio: s.tipo_socio || '—', fechaAlta: s.fecha_alta || '—', estado: 'nuevo',
+      })
+    }
+  }
+
+  return { mapping, reporte, nuevos, deduplicados }
+}
+
+/**
+ * FASE 2b: Dedup de cargas por ejercicio_id + periodo contra el real.
+ * @param {object[]} patchCargas
+ * @param {{ realCargasByEjPeriodo: Map }} real
+ * @returns {{ mapping: Map<number, number|null>, reporte: object[], nuevas: number, deduplicadas: number }}
+ */
+function _analizarMergeCargas(patchCargas, real) {
+  const mapping = new Map()
+  const reporte = []
+  let nuevas = 0
+  let deduplicadas = 0
+
+  for (const c of patchCargas) {
+    const oldId = Number(c.id)
+    const ejId = Number(c.ejercicio_id)
+    const periodo = c.periodo
+    const key = `${ejId}-${periodo}`
+    let existing = null
+    if (real.realCargasByEjPeriodo.has(key)) {
+      existing = real.realCargasByEjPeriodo.get(key)
+    }
+    if (existing) {
+      mapping.set(oldId, Number(existing.id))
+      deduplicadas++
+      reporte.push({
+        periodo: periodo || '—', estado: c.estado || '—',
+        resultado: 'deduplicada',
+      })
+    } else {
+      mapping.set(oldId, null)
+      nuevas++
+      reporte.push({
+        periodo: periodo || '—', estado: c.estado || '—',
+        resultado: 'nueva',
+      })
+    }
+  }
+
+  return { mapping, reporte, nuevas, deduplicadas }
+}
+
+/**
+ * FASE 3: Validar refs de movimientos contra el real y construir reporte.
+ * @param {object[]} patchMovimientos
+ * @param {object[]} patchPersonas
+ * @param {{ realRubroIds: Set, realSubrubroIds: Set, realCuentaIds: Set, realEjercicioIds: Set, realRubros: object[], realSubrubros: object[], realCuentas: object[], realEjercicios: object[] }} real
+ * @returns {{ reporte: object[], conflictos: object[], nuevos: number }}
+ */
+function _analizarMergeMovimientos(patchMovimientos, patchPersonas, real) {
+  const reporte = []
+  const conflictos = []
+  let nuevos = 0
+
+  const rubroNames = new Map(real.realRubros.map((r) => [Number(r.id), r.nombre_oficial || r.codigo_rubro || `#${r.id}`]))
+  const subrubroNames = new Map(real.realSubrubros.map((r) => [Number(r.id), r.nombre_subrubro || `#${r.id}`]))
+  const cuentaNames = new Map(real.realCuentas.map((r) => [Number(r.id), r.nombre_cuenta || `#${r.id}`]))
+  const patchPersonaNames = new Map(patchPersonas.map((p) => [Number(p.id), _personaLabelFromDoc(p)]))
+
+  for (const m of patchMovimientos) {
+    const refs = {
+      ejercicio_id: m.ejercicio_id != null ? Number(m.ejercicio_id) : null,
+      rubro_id: m.rubro_id != null ? Number(m.rubro_id) : null,
+      subrubro_id: m.subrubro_id != null ? Number(m.subrubro_id) : null,
+      cuenta_id: m.cuenta_id != null ? Number(m.cuenta_id) : null,
+      cuenta_destino_id: m.cuenta_destino_id != null ? Number(m.cuenta_destino_id) : null,
+      socio_id: m.socio_id != null ? Number(m.socio_id) : null,
+      persona_id: m.persona_id != null ? Number(m.persona_id) : null,
+    }
+    const movConflictos = []
+    if (refs.rubro_id != null && !real.realRubroIds.has(refs.rubro_id))
+      movConflictos.push({ campo: 'rubro_id', valor: refs.rubro_id, razon: `rubro_id ${refs.rubro_id} no existe en el real` })
+    if (refs.subrubro_id != null && !real.realSubrubroIds.has(refs.subrubro_id))
+      movConflictos.push({ campo: 'subrubro_id', valor: refs.subrubro_id, razon: `subrubro_id ${refs.subrubro_id} no existe en el real` })
+    if (refs.cuenta_id != null && !real.realCuentaIds.has(refs.cuenta_id))
+      movConflictos.push({ campo: 'cuenta_id', valor: refs.cuenta_id, razon: `cuenta_id ${refs.cuenta_id} no existe en el real` })
+    if (refs.cuenta_destino_id != null && !real.realCuentaIds.has(refs.cuenta_destino_id))
+      movConflictos.push({ campo: 'cuenta_destino_id', valor: refs.cuenta_destino_id, razon: `cuenta_destino_id ${refs.cuenta_destino_id} no existe en el real` })
+    if (refs.ejercicio_id != null && !real.realEjercicioIds.has(refs.ejercicio_id))
+      movConflictos.push({ campo: 'ejercicio_id', valor: refs.ejercicio_id, razon: `ejercicio_id ${refs.ejercicio_id} no existe en el real` })
+
+    const personaLabel = refs.persona_id != null
+      ? (patchPersonaNames.get(refs.persona_id) || `#${refs.persona_id}`)
+      : '—'
+
+    if (movConflictos.length > 0) {
+      conflictos.push({
+        tipo: 'ref_rota', tabla: 'movimientos',
+        movimientoDetalle: m.detalle || '(sin detalle)', conflictos: movConflictos,
+      })
+    } else {
+      nuevos++
+    }
+
+    reporte.push({
+      fecha: m.fecha || '—', detalle: m.detalle || '—',
+      importe: m.importe != null ? Number(m.importe) : null,
+      tipo: m.tipo_movimiento || '—',
+      rubro: refs.rubro_id != null ? (rubroNames.get(refs.rubro_id) || `#${refs.rubro_id}`) : '—',
+      subrubro: refs.subrubro_id != null ? (subrubroNames.get(refs.subrubro_id) || `#${refs.subrubro_id}`) : '—',
+      cuenta: refs.cuenta_id != null ? (cuentaNames.get(refs.cuenta_id) || `#${refs.cuenta_id}`) : '—',
+      persona: personaLabel,
+      estado: movConflictos.length > 0 ? 'conflicto' : 'nuevo',
+      conflictoRazon: movConflictos.length > 0 ? movConflictos.map((c) => c.razon).join('; ') : undefined,
+    })
+  }
+
+  return { reporte, conflictos, nuevos }
 }
 
 // --- Aplicar merge ---

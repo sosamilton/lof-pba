@@ -13,224 +13,26 @@
   import AlertCircleIcon from '@lucide/svelte/icons/circle-alert'
   import FileUpIcon from '@lucide/svelte/icons/file-up'
   import ShareIcon from '@lucide/svelte/icons/share'
-  import {
-    exportParcial,
-    importWorkingSet,
-    analizarMerge,
-    aplicarMerge,
-    validarIntercambio,
-    limpiarDispositivo,
-  } from '$core/data/intercambio.js'
-  import { exportBackup } from '$core/data/backup.js'
-  import { getActiveBackend } from '$core/data/dataRepository'
-  import { loadConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
-  import { notify } from '$core/ui/notify.svelte'
-  import { trackEvent } from '$core/analytics/plausible.js'
   import TrashIcon from '@lucide/svelte/icons/trash-2'
   import HandHeartIcon from '@lucide/svelte/icons/hand-heart'
+  import { getActiveBackend } from '$core/data/dataRepository'
+  import { createIntercambioService } from '../intercambioService.svelte.js'
 
   const isPouchMode = getActiveBackend() === 'pouch'
+  const svc = createIntercambioService()
 
-  // --- Modo colaborador ---
-  let config = $state(null)
-  let isColaborador = $derived(config?.modo_colaborador === true)
-  let cleaning = $state(false)
-  let showCleanupConfirm = $state(false)
-  let patchExported = $state(false)
+  // File inputs (referencias DOM que necesitan vivir en el componente)
+  let wsFileInput = $state(null)
+  let mergeFileInput = $state(null)
 
-  async function loadConfigData() {
-    try { config = await loadConfig() } catch { /* ignore */ }
-  }
-  loadConfigData()
-
-  const handleExportPatchYLimpiar = async () => {
-    cleaning = true
-    try {
-      const profile = config?.modulo_carga_consolidada ? 'patch_consolidada' : 'patch_integral'
-      const res = await exportParcial(profile)
-      patchExported = true
-      notify.success(`Patch exportado: ${res.filename} (${res.docCount} documentos)`)
-      trackEvent('colaborador_patch_exported', { profile, doc_count: res.docCount })
-    } catch (e) {
-      notify.error(e?.message || 'Error al exportar patch')
-      patchExported = false
-    } finally {
-      cleaning = false
-    }
-  }
-
-  const handleLimpiarDispositivo = async () => {
-    cleaning = true
-    try {
-      await limpiarDispositivo()
-      // limpiarDispositivo recarga la página, no llegamos acá
-    } catch (e) {
-      notify.error(e?.message || 'Error al limpiar dispositivo')
-      cleaning = false
-    }
-  }
-
-  // --- Export ---
-  let exportProfile = $state('working_set')
-  let exporting = $state(false)
-  let exportResult = $state(null)
+  // Estado de UI colapsable (puramente presentacional, vive en el componente)
+  let showMovimientos = $state(false)
+  let showPersonas = $state(false)
 
   const PROFILE_LABELS = {
     working_set: 'Set de trabajo (para colaborador)',
     patch_movimientos: 'Solo movimientos nuevos (patch)',
     full: 'Backup completo',
-  }
-
-  const handleExport = async () => {
-    if (exportProfile === 'full') {
-      // Delegar al backup existente
-      exporting = true
-      exportResult = null
-      try {
-        const res = await exportBackup()
-        exportResult = res
-        trackEvent('backup_exported', { backend: 'pouch', profile: 'full', doc_count: res.docCount })
-      } catch (e) {
-        notify.error(e?.message || 'Error al exportar')
-      } finally {
-        exporting = false
-      }
-      return
-    }
-
-    exporting = true
-    exportResult = null
-    try {
-      const res = await exportParcial(exportProfile)
-      exportResult = res
-      trackEvent('intercambio_exported', { backend: 'pouch', profile: exportProfile, doc_count: res.docCount })
-      notify.success(`Exportado: ${res.filename} (${res.docCount} documentos)`)
-    } catch (e) {
-      notify.error(e?.message || 'Error al exportar')
-    } finally {
-      exporting = false
-    }
-  }
-
-  // --- Import working set ---
-  let wsFileInput = $state(null)
-  let importingWs = $state(false)
-
-  const handleWsImport = async (/** @type {Event} */ e) => {
-    const input = /** @type {HTMLInputElement} */ (e.target)
-    const file = input.files?.[0]
-    if (!file) return
-    importingWs = true
-    const id = notify.loading('Importando set de trabajo…')
-    try {
-      const res = await importWorkingSet(file)
-      notify.dismiss(id)
-      trackEvent('intercambio_ws_imported', { backend: 'pouch', inserted: res.inserted, skipped: res.skipped })
-      notify.success(`Set importado: ${res.inserted} documentos insertados, ${res.skipped} ya existían.`)
-    } catch (e) {
-      notify.dismiss(id)
-      notify.error(e?.message || 'Error al importar set de trabajo')
-    } finally {
-      importingWs = false
-      input.value = ''
-    }
-  }
-
-  // --- Merge import (con análisis previo) ---
-  let mergeFileInput = $state(null)
-  let mergeFile = $state(null)
-  let mergeAnalysis = $state(null)
-  let analyzing = $state(false)
-  let applying = $state(false)
-  let mergeResult = $state(null)
-  let doBackupBefore = $state(true)
-  let showMovimientos = $state(false)
-  let showPersonas = $state(false)
-
-  const handleMergeFileSelect = async (/** @type {Event} */ e) => {
-    const input = /** @type {HTMLInputElement} */ (e.target)
-    const file = input.files?.[0]
-    if (!file) return
-    mergeFile = file
-    mergeAnalysis = null
-    mergeResult = null
-    analyzing = true
-    try {
-      const report = await analizarMerge(file)
-      mergeAnalysis = report
-      trackEvent('intercambio_merge_analyzed', { backend: 'pouch', conflictos: report.resumen.conflictos })
-    } catch (e) {
-      notify.error(e?.message || 'Error al analizar el patch')
-      mergeFile = null
-    } finally {
-      analyzing = false
-      input.value = ''
-    }
-  }
-
-  const canApply = $derived(
-    mergeAnalysis != null &&
-    mergeAnalysis.resumen.conflictos === 0 &&
-    mergeAnalysis.detalle.movimientos.length > 0 &&
-    !applying
-  )
-
-  const handleApplyMerge = async () => {
-    if (!mergeFile || !mergeAnalysis) return
-    applying = true
-    mergeResult = null
-
-    // Backup opcional antes del merge
-    if (doBackupBefore) {
-      try {
-        await exportBackup()
-        notify.info('Backup exportado antes del merge.')
-      } catch (e) {
-        notify.error('No se pudo exportar el backup previo. Merge cancelado por seguridad.')
-        applying = false
-        return
-      }
-    }
-
-    const id = notify.loading('Aplicando merge…')
-    try {
-      const res = await aplicarMerge(mergeFile, mergeAnalysis.analisisHash)
-      notify.dismiss(id)
-      mergeResult = res
-      trackEvent('intercambio_merge_applied', {
-        backend: 'pouch',
-        movimientos: res.added.movimientos,
-        personas: res.added.personas,
-        dedup: res.deduped.personas,
-      })
-      notify.success(
-        `Merge completado: ${res.added.movimientos} movimiento(s), ${res.added.personas} persona(s) nueva(s), ${res.deduped.personas} deduplicada(s).`
-      )
-      // Limpiar estado
-      mergeFile = null
-      mergeAnalysis = null
-    } catch (e) {
-      notify.dismiss(id)
-      notify.error(e?.message || 'Error al aplicar el merge')
-    } finally {
-      applying = false
-    }
-  }
-
-  const handleCancelMerge = () => {
-    mergeFile = null
-    mergeAnalysis = null
-    mergeResult = null
-  }
-
-  // --- Validar archivo al seleccionar ---
-  const handleValidate = async (file) => {
-    const res = await validarIntercambio(file)
-    if (!res.valid) {
-      notify.error(`Archivo inválido: ${res.error}`)
-      return false
-    }
-    return true
   }
 </script>
 
@@ -258,9 +60,9 @@
       <Card.Content class="flex flex-col gap-4">
         <div class="flex flex-col gap-2">
           <label class="text-sm font-medium" for="export-profile">Perfil de exportación</label>
-          <Select.Root type="single" bind:value={exportProfile}>
+          <Select.Root type="single" bind:value={svc.exportProfile}>
             <Select.Trigger id="export-profile" class="w-full">
-              {PROFILE_LABELS[exportProfile] ?? 'Seleccionar…'}
+              {PROFILE_LABELS[svc.exportProfile] ?? 'Seleccionar…'}
             </Select.Trigger>
             <Select.Content>
               <Select.Item value="working_set" label="Set de trabajo (para colaborador)">
@@ -274,7 +76,7 @@
           </Select.Root>
         </div>
 
-        {#if exportProfile === 'working_set'}
+        {#if svc.exportProfile === 'working_set'}
           <Alert>
             <CheckCircleIcon data-icon="inline-start" />
             <AlertDescription>
@@ -283,7 +85,7 @@
               usarlo para cargar movimientos desde su dispositivo.
             </AlertDescription>
           </Alert>
-        {:else if exportProfile === 'patch_movimientos'}
+        {:else if svc.exportProfile === 'patch_movimientos'}
           <Alert>
             <CheckCircleIcon data-icon="inline-start" />
             <AlertDescription>
@@ -294,8 +96,8 @@
           </Alert>
         {/if}
 
-        <Button onclick={handleExport} disabled={exporting} class="w-fit">
-          {#if exporting}
+        <Button onclick={svc.handleExport} disabled={svc.exporting} class="w-fit">
+          {#if svc.exporting}
             <CheckCircleIcon data-icon="inline-start" class="animate-spin" />
             Exportando…
           {:else}
@@ -304,9 +106,9 @@
           {/if}
         </Button>
 
-        {#if exportResult}
+        {#if svc.exportResult}
           <p class="text-sm text-muted-foreground">
-            {exportResult.filename} — {exportResult.docCount} documentos
+            {svc.exportResult.filename} — {svc.exportResult.docCount} documentos
           </p>
         {/if}
       </Card.Content>
@@ -332,15 +134,15 @@
           type="file"
           accept=".lof"
           class="hidden"
-          onchange={handleWsImport}
+          onchange={svc.handleWsImport}
         />
         <Button
           variant="outline"
           onclick={() => wsFileInput?.click()}
-          disabled={importingWs}
+          disabled={svc.importingWs}
           class="w-fit"
         >
-          {#if importingWs}
+          {#if svc.importingWs}
             <CheckCircleIcon data-icon="inline-start" class="animate-spin" />
             Importando…
           {:else}
@@ -371,10 +173,10 @@
           type="file"
           accept=".lof"
           class="hidden"
-          onchange={handleMergeFileSelect}
+          onchange={svc.handleMergeFileSelect}
         />
 
-        {#if !mergeAnalysis && !analyzing}
+        {#if !svc.mergeAnalysis && !svc.analyzing}
           <Button
             variant="outline"
             onclick={() => mergeFileInput?.click()}
@@ -385,31 +187,31 @@
           </Button>
         {/if}
 
-        {#if analyzing}
+        {#if svc.analyzing}
           <div class="flex items-center gap-2 text-sm text-muted-foreground">
             <CheckCircleIcon class="size-4 animate-spin" />
             Analizando patch…
           </div>
         {/if}
 
-        {#if mergeAnalysis}
+        {#if svc.mergeAnalysis}
           <div class="flex flex-col gap-4">
             <!-- Resumen -->
             <div class="flex flex-col gap-2">
               <div class="flex items-center gap-2 text-sm">
                 <span class="font-medium">Origen:</span>
                 <span class="text-muted-foreground">
-                  {mergeAnalysis.source?.cooperadora || '—'}
-                  {#if mergeAnalysis.source?.ejercicio}
-                    — Ejercicio {mergeAnalysis.source.ejercicio}
+                  {svc.mergeAnalysis.source?.cooperadora || '—'}
+                  {#if svc.mergeAnalysis.source?.ejercicio}
+                    — Ejercicio {svc.mergeAnalysis.source.ejercicio}
                   {/if}
                 </span>
               </div>
               <div class="flex items-center gap-2 text-sm">
                 <span class="font-medium">Exportado:</span>
                 <span class="text-muted-foreground">
-                  {mergeAnalysis.exportedAt
-                    ? new Date(mergeAnalysis.exportedAt).toLocaleString('es-AR')
+                  {svc.mergeAnalysis.exportedAt
+                    ? new Date(svc.mergeAnalysis.exportedAt).toLocaleString('es-AR')
                     : '—'}
                 </span>
               </div>
@@ -420,36 +222,36 @@
             <!-- Conteos -->
             <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div class="flex flex-col gap-1">
-                <span class="text-2xl font-bold">{mergeAnalysis.resumen.movimientosNuevos}</span>
+                <span class="text-2xl font-bold">{svc.mergeAnalysis.resumen.movimientosNuevos}</span>
                 <span class="text-xs text-muted-foreground">Movimientos nuevos</span>
               </div>
               <div class="flex flex-col gap-1">
-                <span class="text-2xl font-bold">{mergeAnalysis.resumen.personasNuevas}</span>
+                <span class="text-2xl font-bold">{svc.mergeAnalysis.resumen.personasNuevas}</span>
                 <span class="text-xs text-muted-foreground">Personas nuevas</span>
               </div>
               <div class="flex flex-col gap-1">
-                <span class="text-2xl font-bold text-amber-600">{mergeAnalysis.resumen.personasDeduplicadas}</span>
+                <span class="text-2xl font-bold text-amber-600">{svc.mergeAnalysis.resumen.personasDeduplicadas}</span>
                 <span class="text-xs text-muted-foreground">Personas deduplicadas</span>
               </div>
               <div class="flex flex-col gap-1">
-                <span class="text-2xl font-bold">{mergeAnalysis.resumen.sociosNuevos}</span>
+                <span class="text-2xl font-bold">{svc.mergeAnalysis.resumen.sociosNuevos}</span>
                 <span class="text-xs text-muted-foreground">Socios nuevos</span>
               </div>
               <div class="flex flex-col gap-1">
-                <span class="text-2xl font-bold {mergeAnalysis.resumen.conflictos > 0 ? 'text-destructive' : 'text-green-600'}">
-                  {mergeAnalysis.resumen.conflictos}
+                <span class="text-2xl font-bold {svc.mergeAnalysis.resumen.conflictos > 0 ? 'text-destructive' : 'text-green-600'}">
+                  {svc.mergeAnalysis.resumen.conflictos}
                 </span>
                 <span class="text-xs text-muted-foreground">Conflictos</span>
               </div>
             </div>
 
             <!-- Advertencias -->
-            {#if mergeAnalysis.advertencias.length > 0}
+            {#if svc.mergeAnalysis.advertencias.length > 0}
               <Alert variant="default">
                 <AlertCircleIcon data-icon="inline-start" />
                 <AlertDescription>
                   <ul class="list-disc pl-4">
-                    {#each mergeAnalysis.advertencias as adv}
+                    {#each svc.mergeAnalysis.advertencias as adv}
                       <li>{adv}</li>
                     {/each}
                   </ul>
@@ -458,13 +260,13 @@
             {/if}
 
             <!-- Conflictos bloqueantes -->
-            {#if mergeAnalysis.resumen.conflictos > 0}
+            {#if svc.mergeAnalysis.resumen.conflictos > 0}
               <Alert variant="destructive">
                 <AlertCircleIcon data-icon="inline-start" />
                 <AlertDescription>
-                  Hay {mergeAnalysis.resumen.conflictos} conflicto(s) que bloquean el merge.
+                  Hay {svc.mergeAnalysis.resumen.conflictos} conflicto(s) que bloquean el merge.
                   Referencias rotas: el patch usa IDs que no existen en tu base de datos.
-                  {#each mergeAnalysis.detalle.conflictos as c}
+                  {#each svc.mergeAnalysis.detalle.conflictos as c}
                     <div class="mt-1 text-xs">
                       <strong>{c.movimientoDetalle}</strong>: {c.conflictos.map((x) => x.razon).join('; ')}
                     </div>
@@ -474,13 +276,13 @@
             {/if}
 
             <!-- Detalle colapsable: movimientos -->
-            {#if mergeAnalysis.detalle.movimientos.length > 0}
+            {#if svc.mergeAnalysis.detalle.movimientos.length > 0}
               <div class="flex flex-col gap-2">
                 <button
                   class="flex items-center gap-2 text-sm font-medium text-left"
                   onclick={() => (showMovimientos = !showMovimientos)}
                 >
-                  {showMovimientos ? '▾' : '▸'} Ver detalle de movimientos ({mergeAnalysis.detalle.movimientos.length})
+                  {showMovimientos ? '▾' : '▸'} Ver detalle de movimientos ({svc.mergeAnalysis.detalle.movimientos.length})
                 </button>
                 {#if showMovimientos}
                   <div class="overflow-x-auto rounded-md border">
@@ -497,7 +299,7 @@
                         </tr>
                       </thead>
                       <tbody>
-                        {#each mergeAnalysis.detalle.movimientos as m, i (i)}
+                        {#each svc.mergeAnalysis.detalle.movimientos as m, i (i)}
                           <tr class="border-t">
                             <td class="px-2 py-1">{m.fecha}</td>
                             <td class="px-2 py-1">{m.detalle}</td>
@@ -526,13 +328,13 @@
             {/if}
 
             <!-- Detalle colapsable: personas -->
-            {#if mergeAnalysis.detalle.personas.length > 0}
+            {#if svc.mergeAnalysis.detalle.personas.length > 0}
               <div class="flex flex-col gap-2">
                 <button
                   class="flex items-center gap-2 text-sm font-medium text-left"
                   onclick={() => (showPersonas = !showPersonas)}
                 >
-                  {showPersonas ? '▾' : '▸'} Ver personas ({mergeAnalysis.detalle.personas.length})
+                  {showPersonas ? '▾' : '▸'} Ver personas ({svc.mergeAnalysis.detalle.personas.length})
                 </button>
                 {#if showPersonas}
                   <div class="overflow-x-auto rounded-md border">
@@ -545,7 +347,7 @@
                         </tr>
                       </thead>
                       <tbody>
-                        {#each mergeAnalysis.detalle.personas as p, i (i)}
+                        {#each svc.mergeAnalysis.detalle.personas as p, i (i)}
                           <tr class="border-t">
                             <td class="px-2 py-1">{p.dni}</td>
                             <td class="px-2 py-1">{p.apellido}{#if p.nombre}, {p.nombre}{/if}</td>
@@ -569,16 +371,16 @@
 
             <!-- Opción backup + botones -->
             <label class="flex items-center gap-2 text-sm">
-              <Checkbox bind:checked={doBackupBefore} />
+              <Checkbox bind:checked={svc.doBackupBefore} />
               Exportar backup antes de aplicar (recomendado)
             </label>
 
             <div class="flex gap-2">
-              <Button variant="outline" onclick={handleCancelMerge} disabled={applying}>
+              <Button variant="outline" onclick={svc.handleCancelMerge} disabled={svc.applying}>
                 Cancelar
               </Button>
-              <Button onclick={handleApplyMerge} disabled={!canApply}>
-                {#if applying}
+              <Button onclick={svc.handleApplyMerge} disabled={!svc.canApply}>
+                {#if svc.applying}
                   <CheckCircleIcon data-icon="inline-start" class="animate-spin" />
                   Aplicando…
                 {:else}
@@ -588,7 +390,7 @@
               </Button>
             </div>
 
-            {#if !canApply && mergeAnalysis.resumen.conflictos > 0}
+            {#if !svc.canApply && svc.mergeAnalysis.resumen.conflictos > 0}
               <p class="text-xs text-destructive">
                 No se puede aplicar mientras haya conflictos sin resolver.
               </p>
@@ -596,16 +398,16 @@
           </div>
         {/if}
 
-        {#if mergeResult}
+        {#if svc.mergeResult}
           <Alert>
             <CheckCircleIcon data-icon="inline-start" />
             <AlertDescription>
               <p class="font-medium">Merge completado</p>
               <ul class="mt-1 list-disc pl-4 text-sm">
-                <li>{mergeResult.added.movimientos} movimiento(s) agregado(s)</li>
-                <li>{mergeResult.added.personas} persona(s) nueva(s)</li>
-                <li>{mergeResult.deduped.personas} persona(s) deduplicada(s)</li>
-                <li>{mergeResult.added.socios} socio(s) nuevo(s)</li>
+                <li>{svc.mergeResult.added.movimientos} movimiento(s) agregado(s)</li>
+                <li>{svc.mergeResult.added.personas} persona(s) nueva(s)</li>
+                <li>{svc.mergeResult.deduped.personas} persona(s) deduplicada(s)</li>
+                <li>{svc.mergeResult.added.socios} socio(s) nuevo(s)</li>
               </ul>
             </AlertDescription>
           </Alert>
@@ -613,7 +415,7 @@
       </Card.Content>
     </Card.Root>
 
-    {#if isColaborador}
+    {#if svc.isColaborador}
       <Separator />
 
       <!-- Finalizar colaboración -->
@@ -629,9 +431,9 @@
           </Card.Description>
         </Card.Header>
         <Card.Content class="flex flex-col gap-4">
-          {#if !patchExported}
-            <Button onclick={handleExportPatchYLimpiar} disabled={cleaning} class="w-fit">
-              {#if cleaning}
+          {#if !svc.patchExported}
+            <Button onclick={svc.handleExportPatchYLimpiar} disabled={svc.cleaning} class="w-fit">
+              {#if svc.cleaning}
                 <CheckCircleIcon data-icon="inline-start" class="animate-spin" />
                 Exportando…
               {:else}
@@ -647,13 +449,13 @@
               </AlertDescription>
             </Alert>
 
-            <Button variant="outline" onclick={() => (showCleanupConfirm = true)} disabled={cleaning} class="w-fit">
+            <Button variant="outline" onclick={() => (svc.showCleanupConfirm = true)} disabled={svc.cleaning} class="w-fit">
               <TrashIcon data-icon="inline-start" />
               Limpiar dispositivo
             </Button>
           {/if}
 
-          {#if showCleanupConfirm}
+          {#if svc.showCleanupConfirm}
             <Alert variant="destructive">
               <AlertCircleIcon data-icon="inline-start" />
               <AlertDescription>
@@ -663,8 +465,8 @@
                   Esta acción no se puede deshacer. Asegurate de haber exportado el patch.
                 </p>
                 <div class="mt-3 flex gap-2">
-                  <Button variant="destructive" size="sm" onclick={handleLimpiarDispositivo} disabled={cleaning}>
-                    {#if cleaning}
+                  <Button variant="destructive" size="sm" onclick={svc.handleLimpiarDispositivo} disabled={svc.cleaning}>
+                    {#if svc.cleaning}
                       <CheckCircleIcon data-icon="inline-start" class="animate-spin" />
                       Limpiando…
                     {:else}
@@ -672,7 +474,7 @@
                       Sí, limpiar todo
                     {/if}
                   </Button>
-                  <Button variant="outline" size="sm" onclick={() => (showCleanupConfirm = false)}>
+                  <Button variant="outline" size="sm" onclick={() => (svc.showCleanupConfirm = false)}>
                     Cancelar
                   </Button>
                 </div>

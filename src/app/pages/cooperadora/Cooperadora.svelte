@@ -25,6 +25,7 @@
   import DialogReemplazo from '$app/modules/gobierno/autoridades/components/DialogReemplazo.svelte'
   import DialogHistorico from './components/DialogHistorico.svelte'
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
+  import { useConfirmDialog } from '$lib/hooks/useConfirmDialog.svelte.js'
   import EstatutoField from './components/EstatutoField.svelte'
   import FileTextIcon from '@lucide/svelte/icons/file-text'
   import DownloadIcon from '@lucide/svelte/icons/download'
@@ -36,28 +37,8 @@
   let dialogHistoricoAbierto = $state(false)
 
   // Diálogo de confirmación reutilizable.
-  let confirmOpen = $state(false)
-  let confirmTitle = $state('')
-  let confirmDescription = $state('')
-  let confirmLabel = $state('Confirmar')
-  let confirmVariant = $state('destructive')
-  let pendingAction = $state(() => {})
-
-  const openConfirm = (opts) => {
-    confirmTitle = opts.title
-    confirmDescription = opts.description || ''
-    confirmLabel = opts.confirmLabel || 'Confirmar'
-    confirmVariant = opts.variant || 'destructive'
-    pendingAction = opts.onConfirm
-    confirmOpen = true
-  }
-
-  const handleConfirm = async () => {
-    confirmOpen = false
-    const fn = pendingAction
-    pendingAction = () => {}
-    await fn()
-  }
+  const confirm = useConfirmDialog()
+  const openConfirm = (opts) => confirm.openConfirm(opts)
 
   const abrirEditarEjercicio = (e) => {
     store.setEditandoEjercicio(e)
@@ -103,9 +84,9 @@
 
   const confirmarActivarEjercicio = (id) => {
     openConfirm({
-      title: '¿Activar este ejercicio como en curso?',
+      title: '¿Marcar este ejercicio como actual?',
       description: 'El ejercicio actual pasará a inactivo y el seleccionado será el nuevo ejercicio en curso.',
-      confirmLabel: 'Activar',
+      confirmLabel: 'Marcar como actual',
       variant: 'default',
       onConfirm: () => store.setEjercicioEnCurso(id),
     })
@@ -435,11 +416,11 @@
 <DialogHistorico bind:open={dialogHistoricoAbierto} {store} />
 
 <ConfirmDialog
-  bind:open={confirmOpen}
-  title={confirmTitle}
-  description={confirmDescription}
-  confirmLabel={confirmLabel}
-  variant={confirmVariant}
+  bind:open={confirm.open}
+  title={confirm.title}
+  description={confirm.description}
+  confirmLabel={confirm.confirmLabel}
+  variant={confirm.variant}
   busy={store.busy}
-  onConfirm={handleConfirm}
+  onConfirm={confirm.handleConfirm}
 />

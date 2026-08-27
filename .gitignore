@@ -51,6 +51,8 @@ _spec/
 .windsurf/
 lof/
 # PouchDB local database (created at runtime)
+lof-intercambio-test/
+lof-intercambio-test-*/
 
 # Tauri build artifacts
 src-tauri/target/

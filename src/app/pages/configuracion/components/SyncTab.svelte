@@ -19,7 +19,8 @@
   import EyeOffIcon from '@lucide/svelte/icons/eye-off'
   import { syncStore as sync } from '../syncStore.svelte.js'
 
-  let { } = $props()
+  // Componente autocontenido: no recibe props.
+  let _props = $props()
 
   // Estado local de edición
   let url = $state('')
@@ -55,7 +56,7 @@
         sync_enabled: enabled,
         sync_url: url.trim(),
         sync_user: user.trim(),
-        sync_password,
+        sync_password: password,
         sync_auto: autoSync,
       })
       savedMsg = 'Configuración guardada.'
@@ -81,7 +82,7 @@
         sync_enabled: enabled,
         sync_url: url.trim(),
         sync_user: user.trim(),
-        sync_password,
+        sync_password: password,
         sync_auto: autoSync,
       })
       testResult = await sync.testConnection()

@@ -19,6 +19,7 @@
   import CalendarIcon from '@lucide/svelte/icons/calendar'
   import PaletteIcon from '@lucide/svelte/icons/palette'
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
+  import { useConfirmDialog } from '$lib/hooks/useConfirmDialog.svelte.js'
   import { identidad } from '$core/data/identidad'
   import { exportBackup } from '$core/data/backup.js'
   import { getActiveBackend, exportGristDoc, importGristDoc } from '$core/data/dataRepository'
@@ -102,19 +103,16 @@
     { value: 'anual', label: 'Anual' },
   ]
 
-  let confirmOpen = $state(false)
-  let pendingAction = $state(() => {})
+  const confirm = useConfirmDialog()
 
   const confirmarDedup = () => {
-    confirmOpen = true
-    pendingAction = () => store.doDedup()
-  }
-
-  const handleConfirm = async () => {
-    confirmOpen = false
-    const fn = pendingAction
-    pendingAction = () => {}
-    await fn()
+    confirm.openConfirm({
+      title: 'Deduplicar personas',
+      description: 'Se buscarán y fusionarán personas con DNI duplicado. Los registros duplicados se consolidarán en uno solo.',
+      confirmLabel: 'Continuar',
+      variant: 'default',
+      onConfirm: () => store.doDedup(),
+    })
   }
 </script>
 
@@ -394,11 +392,11 @@
 </Card.Root>
 
 <ConfirmDialog
-  bind:open={confirmOpen}
-  title="Deduplicar personas"
-  description="Se buscarán y fusionarán personas con DNI duplicado. Los registros duplicados se consolidarán en uno solo."
-  confirmLabel="Continuar"
-  variant="default"
+  bind:open={confirm.open}
+  title={confirm.title}
+  description={confirm.description}
+  confirmLabel={confirm.confirmLabel}
+  variant={confirm.variant}
   busy={store.migrating}
-  onConfirm={handleConfirm}
+  onConfirm={confirm.handleConfirm}
 />

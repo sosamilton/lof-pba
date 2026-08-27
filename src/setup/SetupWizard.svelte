@@ -12,10 +12,16 @@
   import { identidad } from '$core/data/identidad'
   import { getActiveBackend } from '$core/data/dataRepository'
   import { trackEvent } from '$core/analytics/plausible.js'
+  import { router } from '$core/ui/router.svelte'
 
   const store = new SetupStore()
   const dev = import.meta.env.DEV
   const backend = getActiveBackend()
+  // Si la landing navegó con ?modo=colaborador, pre-seleccionar ese modo
+  const modoInicial = router.query?.modo === 'colaborador' ? 'colaborador' : 'normal'
+  if (modoInicial === 'colaborador') {
+    store.selectedModules.colaborador = true
+  }
 
   onMount(() => {
     trackEvent('setup_started', { backend })
@@ -35,8 +41,14 @@
 {:else}
   <main class="max-w-[680px] mx-auto px-4 py-6">
     <div class="mb-5">
-      <h1 class="text-[22px] font-bold mb-1.5">Configuración inicial de {identidad.nombre}</h1>
-      <p class="text-sm text-muted-foreground leading-relaxed">Elegí qué módulos instalar, configurá los datos de tu escuela y cooperadora, el ejercicio en curso y los cargos del estatuto.</p>
+      <h1 class="text-[22px] font-bold mb-1.5">
+        {modoInicial === 'colaborador' ? 'Ayudar con la carga' : 'Configuración inicial de ' + identidad.nombre}
+      </h1>
+      <p class="text-sm text-muted-foreground leading-relaxed">
+        {modoInicial === 'colaborador'
+          ? 'Importá el archivo que te envió la cooperadora y empezá a cargar movimientos desde tu dispositivo.'
+          : 'Elegí qué módulos instalar, configurá los datos de tu escuela y cooperadora, el ejercicio en curso y los cargos del estatuto.'}
+      </p>
     </div>
 
     <!-- Progress dots -->
@@ -53,7 +65,7 @@
     </div>
 
     {#if store.step === 0}
-      <StepModulos {store} />
+      <StepModulos {store} modo={modoInicial} />
     {:else if store.selectedModules.colaborador}
       <!-- Modo colaborador: saltear pasos intermedios, ir directo a instalar -->
       <StepInstalar {store} />

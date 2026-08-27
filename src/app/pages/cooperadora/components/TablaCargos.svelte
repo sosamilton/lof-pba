@@ -28,6 +28,7 @@
   import CheckIcon from '@lucide/svelte/icons/check'
   import InfoIcon from '@lucide/svelte/icons/info'
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
+  import { useConfirmDialog } from '$lib/hooks/useConfirmDialog.svelte.js'
 
   let {
     store,
@@ -40,28 +41,8 @@
   let mostrarCargosEstatuto = $state(false)
 
   // Diálogo de confirmación reutilizable (reemplaza confirm() nativo).
-  // `pendingAction` guarda la función a ejecutar al confirmar.
-  let confirmOpen = $state(false)
-  let confirmTitle = $state('')
-  let confirmDescription = $state('')
-  let confirmLabel = $state('Confirmar')
-  let confirmVariant = $state('destructive')
-  let pendingAction = $state(() => {})
-
-  const openConfirm = (opts) => {
-    confirmTitle = opts.title
-    confirmDescription = opts.description || ''
-    confirmLabel = opts.confirmLabel || 'Confirmar'
-    confirmVariant = opts.variant || 'destructive'
-    pendingAction = opts.onConfirm
-    confirmOpen = true
-  }
-
-  const handleConfirm = async () => {
-    confirmOpen = false
-    await pendingAction()
-    pendingAction = () => {}
-  }
+  const confirm = useConfirmDialog()
+  const openConfirm = (opts) => confirm.openConfirm(opts)
 
   // Cargos del organismo seleccionado, ordenados por `orden`.
   // A diferencia de `comisionDirectiva` (que filtra activos), acá mostramos
@@ -469,11 +450,11 @@
 </div>
 
 <ConfirmDialog
-  bind:open={confirmOpen}
-  title={confirmTitle}
-  description={confirmDescription}
-  confirmLabel={confirmLabel}
-  variant={confirmVariant}
+  bind:open={confirm.open}
+  title={confirm.title}
+  description={confirm.description}
+  confirmLabel={confirm.confirmLabel}
+  variant={confirm.variant}
   busy={store.busy}
-  onConfirm={handleConfirm}
+  onConfirm={confirm.handleConfirm}
 />

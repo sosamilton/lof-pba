@@ -11,16 +11,16 @@ LOF permite que una cooperadora **delegue carga de movimientos** a colaboradores
 La cooperadora principal exporta un **set de trabajo** (working set) auto-suficiente pero reducido. El colaborador lo importa en su dispositivo, carga movimientos, y devuelve un **patch** que la cooperadora analiza y mergea de forma aditiva y auditable.
 
 ```
-┌─────────────────┐     .lof (working set)     ┌─────────────────┐
-│  Cooperadora     │ ──────────────────────────▶ │  Colaborador    │
-│  (instalación    │                              │  (PWA temporal  │
-│   principal)     │ ◀──────────────────────────  │   en su celu)   │
-└─────────────────┘     .lof (patch)            └─────────────────┘
+┌─────────────────┐     .lof (working set)       ┌─────────────────┐
+│  Cooperadora    │ ───────────────────────────▶ │  Colaborador    │
+│  (instalación   │                              │  (PWA temporal  │
+│   principal)    │ ◀─────────────────────────── │   en su celu)   │
+└─────────────────┘     .lof (patch)             └─────────────────┘
         │                                                  │
-        │  1. Analiza patch (dry-run)                       │
-        │  2. Revisa: altas, dedups, remaps, conflictos     │
-        │  3. Aprueba → merge aditivo                        │
-        └───────────────────────────────────────────────────┘
+        │  1. Analiza patch (dry-run)                      │
+        │  2. Revisa: altas, dedups, remaps, conflictos    │
+        │  3. Aprueba → merge aditivo                      │
+        └──────────────────────────────────────────────────┘
 ```
 
 ### Por qué no sync en vivo

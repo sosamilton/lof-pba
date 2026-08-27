@@ -99,7 +99,6 @@ const openNuevoDraft = (tipoInicial = 'Director', deleganteId = null) => {
     tipo_origen: tipoInicial,
     persona_delegante_id: deleganteId || (tipoInicial === 'Delegacion' ? directorActivo?.persona_id : null),
     fecha_asuncion: hoy,
-    fecha_asuncion: hoy,
     fecha_cese: null,
     motivo_cese: null,
     ejercicio_id: null,

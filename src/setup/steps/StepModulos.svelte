@@ -16,7 +16,7 @@
   import AlertCircleIcon from '@lucide/svelte/icons/circle-alert'
   import HandHeartIcon from '@lucide/svelte/icons/hand-heart'
 
-  let { store } = $props()
+  let { store, modo = 'normal' } = $props()
 
   const isPouchMode = getActiveBackend() === 'pouch'
   const modeKeys = Object.entries(MODULES).filter(([, m]) => !m.optional)
@@ -76,7 +76,9 @@
   }
 </script>
 
-{#if isPouchMode}
+{#if modo === 'colaborador'}
+  <!-- Modo colaborador: solo upload de working set -->
+{:else if isPouchMode}
   <Card.Root class="mb-4 border-primary/30">
     <Card.Content class="pt-6">
       <div class="flex items-center gap-2 mb-1.5">
@@ -144,9 +146,10 @@
   </Card.Root>
 {/if}
 
-<Card.Root class="mb-4">
-  <Card.Content class="pt-6">
-    <h2 class="text-[17px] font-bold mb-1.5">¿Cómo vas a usar {identidad.nombre}?</h2>
+{#if modo !== 'colaborador'}
+  <Card.Root class="mb-4">
+    <Card.Content class="pt-6">
+      <h2 class="text-[17px] font-bold mb-1.5">¿Cómo vas a usar {identidad.nombre}?</h2>
     <p class="text-[13px] text-muted-foreground mb-4">Elegí el tipo de gestión según cuánto quieras registrar en la app. Podés cambiar de modo más adelante desde la configuración.</p>
 
     <div class="flex flex-col gap-2.5">
@@ -193,17 +196,18 @@
     {/if}
   </Card.Content>
 </Card.Root>
+{/if}
 
-{#if isPouchMode}
+{#if modo === 'colaborador' && isPouchMode}
   <Card.Root class="mb-4 border-amber-500/30">
     <Card.Content class="pt-6">
       <div class="flex items-center gap-2 mb-1.5">
         <HandHeartIcon class="size-5 text-amber-600" />
-        <h2 class="text-[17px] font-bold">¿Te pidieron ayudar con la carga?</h2>
+        <h2 class="text-[17px] font-bold">Importar set de trabajo</h2>
       </div>
       <p class="text-[13px] text-muted-foreground mb-4">
-        Si una cooperadora te envió un archivo de set de trabajo (.lof), podés
-        importarlo acá y cargar movimientos desde tu dispositivo. Al terminar,
+        Subí el archivo <span class="font-mono">.lof</span> que te envió la cooperadora
+        para empezar a cargar movimientos desde tu dispositivo. Al terminar,
         exportás los cambios y se los devolvés. No necesitás configurar nada más.
       </p>
 
