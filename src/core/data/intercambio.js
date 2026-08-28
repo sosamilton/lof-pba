@@ -861,7 +861,8 @@ export async function aplicarMerge(file, analisisAprobado) {
 
 /**
  * Destruye la DB PouchDB y limpia localStorage.
- * Solo para modo colaborador — el colaborador termina su tarea.
+ * Usada por el modo colaborador (al terminar su tarea) y por el modo demo
+ * (al salir de la demo para instalar la cooperadora real).
  */
 export async function limpiarDispositivo() {
   if (getActiveBackend() !== 'pouch') {
@@ -871,9 +872,10 @@ export async function limpiarDispositivo() {
   if (db) {
     await db.destroy()
   }
-  // Limpiar localStorage de flags de backend y config cache
+  // Limpiar localStorage de flags de backend, config cache y modo demo
   localStorage.removeItem('lof-backend')
   localStorage.removeItem('lof-config-cache')
+  localStorage.removeItem('lof-demo-mode')
   // Recargar para volver al wizard
   window.location.reload()
 }

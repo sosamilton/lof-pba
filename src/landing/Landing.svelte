@@ -40,6 +40,7 @@
   import { Separator } from '$lib/components/ui/separator'
   import * as Carousel from '$lib/components/ui/carousel'
   import { navigate } from '$core/ui/router.svelte'
+  import { getActiveBackend } from '$core/data/dataRepository'
   import CodeXmlIcon from '@lucide/svelte/icons/code-xml'
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link'
   import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
@@ -54,6 +55,8 @@
   import FileTextIcon from '@lucide/svelte/icons/file-text'
   import WalletIcon from '@lucide/svelte/icons/wallet'
   import GristIcon from '$lib/components/GristIcon.svelte'
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
+  import { useConfirmDialog } from '$lib/hooks/useConfirmDialog.svelte.js'
   import ReleasesDialog from './ReleasesDialog.svelte'
   import HistoryIcon from '@lucide/svelte/icons/history'
   import MonitorIcon from '@lucide/svelte/icons/monitor'
@@ -62,6 +65,7 @@
   import LaptopIcon from '@lucide/svelte/icons/laptop'
   import SaveIcon from '@lucide/svelte/icons/save'
   import UploadIcon from '@lucide/svelte/icons/upload'
+  import SparklesIcon from '@lucide/svelte/icons/sparkles'
   import { identidad } from '$core/data/identidad'
   import data from './landing.json'
 
@@ -70,7 +74,54 @@
   const { problemas, funciones, titulo_seccion, subtitulo_seccion, capturas, roadmap } = data
   const enlaces = identidad.enlaces
   const versionActual = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
+  const isPouchMode = getActiveBackend() === 'pouch'
   let showReleases = $state(false)
+  let demoLoading = $state(false)
+  let demoError = $state('')
+
+  // Si la instalación actual vino de la card "Ver una demo", ofrecer salir
+  // de la demo (limpiar y volver al wizard) desde la propia landing.
+  const isDemo = isPouchMode && typeof localStorage !== 'undefined' && localStorage.getItem('lof-demo-mode') === '1'
+  const confirmSalirDemo = useConfirmDialog()
+  const handleSalirDemo = () => {
+    confirmSalirDemo.openConfirm({
+      title: '¿Terminar la demo?',
+      description: 'Se borrarán todos los datos de ejemplo de este dispositivo y volverás a esta pantalla para instalar tu cooperadora real cuando quieras. Esta acción no se puede deshacer.',
+      confirmLabel: 'Terminar demo',
+      variant: 'destructive',
+      onConfirm: async () => {
+        const { limpiarDispositivo } = await import('$core/data/intercambio.js')
+        await limpiarDispositivo()
+      },
+    })
+  }
+
+  // Carga una base de datos de ejemplo (ejercicios, movimientos, autoridades,
+  // memorias, etc. ya cargados) para que se pueda navegar la app sin configurar
+  // nada. Reutiliza el mismo importador que el restore de backups (.lof).
+  const verDemo = async () => {
+    demoLoading = true
+    demoError = ''
+    try {
+      const res = await fetch('/demo/lof-demo.lof')
+      if (!res.ok) throw new Error('No se pudo descargar la base de ejemplo.')
+      const blob = await res.blob()
+      const { importFromLof } = await import('$core/data/exportImport.js')
+      await importFromLof(blob, { reemplazar: true })
+      // Marcar modo demo (flag client-only, no viaja en el .lof) para que
+      // AppShell pueda avisar y ofrecer "Salir de la demo".
+      localStorage.setItem('lof-demo-mode', '1')
+      // reemplazar=true destruye y recrea la DB local: recargar para que
+      // todas las referencias (router, stores, etc.) tomen los datos nuevos.
+      // Forzamos la ruta 'inicio' para entrar directo a la app en vez de
+      // quedar en esta misma landing (que seguiría en el hash actual).
+      window.location.hash = 'inicio'
+      window.location.reload()
+    } catch (e) {
+      demoError = e?.message || String(e)
+      demoLoading = false
+    }
+  }
   const roadmapGroups = $derived(
     Object.fromEntries(
       Object.entries(ROADMAP_GROUPS).map(([key, group]) => [
@@ -168,13 +219,19 @@
               <ArrowLeftIcon data-icon="inline-start" />
               Abrir la app
             </Button>
+            {#if isDemo}
+              <Button variant="outline" size="lg" class="border-chart-2/40 text-chart-2 hover:bg-chart-2/10" onclick={handleSalirDemo}>
+                <SparklesIcon data-icon="inline-start" />
+                Terminar demo
+              </Button>
+            {/if}
             <Button variant="outline" size="lg" onclick={() => navigate('instalacion')}>
               <DownloadIcon data-icon="inline-start" />
               Cómo instalarlo
             </Button>
           </div>
         {:else}
-          <div class="grid gap-4 sm:grid-cols-2 max-w-2xl">
+          <div class="grid gap-4 sm:grid-cols-2 {isPouchMode ? 'lg:grid-cols-3 max-w-4xl' : 'max-w-2xl'}">
             <!-- Instalar cooperadora -->
             <button
               type="button"
@@ -212,7 +269,36 @@
                 <ArrowRightIcon class="size-4 transition-transform group-hover:translate-x-0.5" />
               </span>
             </button>
+
+            {#if isPouchMode}
+              <!-- Ver una demo -->
+              <button
+                type="button"
+                onclick={verDemo}
+                disabled={demoLoading}
+                class="group flex flex-col gap-2 rounded-xl border-2 border-chart-2/40 bg-chart-2/5 p-5 text-left transition-all hover:border-chart-2 hover:bg-chart-2/10 hover:shadow-md disabled:cursor-wait disabled:opacity-70"
+              >
+                <div class="flex size-10 items-center justify-center rounded-lg bg-chart-2/15 text-chart-2">
+                  <SparklesIcon class="size-5" />
+                </div>
+                <h3 class="text-base font-bold tracking-tight">Ver una demo</h3>
+                <p class="text-sm text-muted-foreground leading-relaxed">
+                  Navegá LOF ya cargado con datos de ejemplo (dos ejercicios, movimientos, autoridades y memorias) sin configurar nada.
+                </p>
+                <span class="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-chart-2">
+                  {#if demoLoading}
+                    Cargando datos de ejemplo…
+                  {:else}
+                    Probar ahora
+                    <ArrowRightIcon class="size-4 transition-transform group-hover:translate-x-0.5" />
+                  {/if}
+                </span>
+              </button>
+            {/if}
           </div>
+          {#if demoError}
+            <p class="text-sm text-destructive max-w-2xl">{demoError}</p>
+          {/if}
           <div class="flex flex-wrap gap-3">
             <Button variant="outline" size="sm" onclick={() => navigate('instalacion')}>
               <DownloadIcon data-icon="inline-start" />
@@ -622,3 +708,12 @@
 </main>
 
 <ReleasesDialog open={showReleases} onClose={() => (showReleases = false)} />
+
+<ConfirmDialog
+  bind:open={confirmSalirDemo.open}
+  title={confirmSalirDemo.title}
+  description={confirmSalirDemo.description}
+  confirmLabel={confirmSalirDemo.confirmLabel}
+  variant={confirmSalirDemo.variant}
+  onConfirm={confirmSalirDemo.handleConfirm}
+/>

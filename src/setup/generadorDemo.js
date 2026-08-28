@@ -384,6 +384,16 @@ export const generarDatosPrueba = async ({
 
   const movimientosData = []
 
+  // Balance acumulado de entradas/salidas por ejercicio. Las cooperadoras
+  // reales no suelen gastar más de lo que ingresan: se usa para acotar la
+  // generación de movimientos de tipo Salida y mantener un saldo realista.
+  /** @type {Map<number, {entradas: number, salidas: number}>} */
+  const balanceEjercicio = new Map()
+  const getBalance = (ejId) => {
+    if (!balanceEjercicio.has(ejId)) balanceEjercicio.set(ejId, { entradas: 0, salidas: 0 })
+    return balanceEjercicio.get(ejId)
+  }
+
   /**
    * Genera movimientos + cargas para un ejercicio en modo consolidada.
    * @param {number} ejId - ID del ejercicio en Grist
@@ -500,8 +510,16 @@ export const generarDatosPrueba = async ({
     // Generar fechas solo dentro del rango del ejercicio (mes_inicio → mes_inicio-1 del año siguiente)
     // y solo hasta el mes actual (sin movimientos futuros)
     const periodos = ejRec ? periodosHastaHoy(generarPeriodosEjercicio(ejRec)) : []
+    const bal = getBalance(ejId)
+    // Techo de gastos del ejercicio: no superar el 80% de lo ingresado
+    // (cuota social + lo que ya se generó como entrada), para que el saldo
+    // quede siempre positivo como en una cooperadora real.
+    const techoSalidas = bal.entradas * 0.8
     for (let i = 0; i < cantidad; i++) {
-      const tipo = pick(TIPOS_MOV)
+      let tipo = pick(TIPOS_MOV)
+      // Si ya se alcanzó el techo de gastos del ejercicio, esta "salida"
+      // se convierte en un ingreso extra (donación, evento, etc.).
+      if (tipo === 'Salida' && bal.salidas >= techoSalidas) tipo = 'Entrada'
       let rubroId = null
       if (tipo === 'Entrada' && rubrosEntrada.length > 0) rubroId = pick(rubrosEntrada)
       else if (tipo === 'Salida' && rubrosSalida.length > 0) rubroId = pick(rubrosSalida)
@@ -535,6 +553,13 @@ export const generarDatosPrueba = async ({
         continue
       }
 
+      let importe = Number((Math.random() * 50000 + 100).toFixed(2))
+      if (tipo === 'Salida') {
+        // No dejar que esta salida sola perfore el techo de gastos.
+        const disponible = Math.max(100, techoSalidas - bal.salidas)
+        importe = Math.min(importe, disponible)
+      }
+
       movimientosData.push({
         fecha,
         ejercicio_id: ejId,
@@ -542,7 +567,7 @@ export const generarDatosPrueba = async ({
         rubro_id: rubroId,
         subrubro_id: null,
         detalle: pick(DETALLES_MOV),
-        importe: Number((Math.random() * 50000 + 100).toFixed(2)),
+        importe,
         cuenta_id: cuentaId,
         destino_bancario: tipo === 'Traspaso' ? 'CuentaCorriente' : null,
         cuenta_destino_id: cuentaDestinoId,
@@ -551,6 +576,9 @@ export const generarDatosPrueba = async ({
         creado_por: 'demo',
         creado_el: new Date().toISOString(),
       })
+
+      if (tipo === 'Entrada') bal.entradas += importe
+      else if (tipo === 'Salida') bal.salidas += importe
     }
   }
 
@@ -599,6 +627,7 @@ export const generarDatosPrueba = async ({
           creado_por: 'demo',
           creado_el: new Date().toISOString(),
         })
+        getBalance(ejId).entradas += cuotaImporte
       }
     }
   }

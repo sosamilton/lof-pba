@@ -21,11 +21,31 @@
   import InfoIcon from '@lucide/svelte/icons/info'
   import ArrowUpCircleIcon from '@lucide/svelte/icons/arrow-up-circle'
   import HandHeartIcon from '@lucide/svelte/icons/hand-heart'
+  import SparklesIcon from '@lucide/svelte/icons/sparkles'
+  import LogOutIcon from '@lucide/svelte/icons/log-out'
   import { identidad } from '$core/data/identidad'
   import { updateCheck } from '$core/utils/updateCheck.svelte'
   import { notify } from '$core/ui/notify.svelte'
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
+  import { useConfirmDialog } from '$lib/hooks/useConfirmDialog.svelte.js'
+  import { limpiarDispositivo } from '$core/data/intercambio.js'
 
   let { title = identidad.nombre, children } = $props()
+
+  // Modo demo: flag client-only (no viaja en el .lof) seteado por la card
+  // "Ver una demo" de la landing. Permite avisar al usuario y ofrecerle
+  // limpiar el dispositivo para instalar su cooperadora real.
+  const isDemo = typeof localStorage !== 'undefined' && localStorage.getItem('lof-demo-mode') === '1'
+  const confirmSalirDemo = useConfirmDialog()
+  const handleSalirDemo = () => {
+    confirmSalirDemo.openConfirm({
+      title: '¿Salir de la demo?',
+      description: 'Se borrarán todos los datos de ejemplo de este dispositivo y volverás a la pantalla inicial para instalar tu cooperadora real. Esta acción no se puede deshacer.',
+      confirmLabel: 'Salir y limpiar',
+      variant: 'destructive',
+      onConfirm: () => limpiarDispositivo(),
+    })
+  }
 
   // Versión del bundle (horneada en build time via Vite define).
   const versionActual = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
@@ -316,6 +336,21 @@
           Modo colaborador
         </span>
       {/if}
+      {#if isDemo}
+        <span class="inline-flex items-center gap-1 rounded-full bg-chart-2/15 px-2 py-0.5 text-[11px] font-semibold text-chart-2">
+          <SparklesIcon class="size-3" />
+          Modo demo
+        </span>
+        <button
+          type="button"
+          onclick={handleSalirDemo}
+          class="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          title="Salir de la demo y limpiar los datos de ejemplo"
+        >
+          <LogOutIcon class="size-3" />
+          Salir de la demo
+        </button>
+      {/if}
       <span class="text-xs text-muted-foreground">
         v{versionActual}
         {#if updateCheck.updateAvailable}
@@ -348,3 +383,12 @@
 <CommandPalette {menuItems} />
 
 <KeyboardHelp />
+
+<ConfirmDialog
+  bind:open={confirmSalirDemo.open}
+  title={confirmSalirDemo.title}
+  description={confirmSalirDemo.description}
+  confirmLabel={confirmSalirDemo.confirmLabel}
+  variant={confirmSalirDemo.variant}
+  onConfirm={confirmSalirDemo.handleConfirm}
+/>
