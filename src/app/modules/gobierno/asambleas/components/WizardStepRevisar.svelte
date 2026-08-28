@@ -2,6 +2,7 @@
   import { Button } from '$lib/components/ui/button'
   import { Separator } from '$lib/components/ui/separator'
   import { dateToInput } from '$core/utils/utils.js'
+  import { formatFecha } from '$core/format/format'
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left'
   import CheckIcon from '@lucide/svelte/icons/check'
   import InfoIcon from '@lucide/svelte/icons/info'
@@ -37,7 +38,7 @@
   <div class="rounded-lg border border-border p-3">
     <span class="text-xs font-bold text-muted-foreground">Datos de la asamblea</span>
     <div class="mt-2 grid gap-2 text-xs sm:grid-cols-2">
-      <div><span class="text-muted-foreground">Fecha:</span> <span class="font-medium">{store.asambleaForm.fecha || '—'}</span></div>
+      <div><span class="text-muted-foreground">Fecha:</span> <span class="font-medium">{formatFecha(store.asambleaForm.fecha) || '—'}</span></div>
       <div><span class="text-muted-foreground">Acta N°:</span> <span class="font-medium">{store.asambleaForm.acta_numero || '—'}</span></div>
       <div><span class="text-muted-foreground">Fojas:</span> <span class="font-medium">{store.asambleaForm.acta_fojas || '—'}</span></div>
       <div><span class="text-muted-foreground">Tipo:</span> <span class="font-medium">{computed.isAgo ? 'Ordinaria' : computed.isAge ? 'Extraordinaria' : 'Reunión CD'}</span></div>

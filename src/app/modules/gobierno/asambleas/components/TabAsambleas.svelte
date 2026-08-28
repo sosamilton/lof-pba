@@ -13,6 +13,7 @@
   import GavelIcon from '@lucide/svelte/icons/gavel'
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
   import CheckIcon from '@lucide/svelte/icons/check'
+  import { formatFecha } from '$core/format/format'
   import AsambleaWizard from './AsambleaWizard.svelte'
   import * as Dialog from '$lib/components/ui/dialog'
   import ControlledDialog from '$lib/components/ControlledDialog.svelte'
@@ -122,7 +123,7 @@
         >
           <div class="flex items-center gap-2">
             <Badge variant={tipoVariant(a.tipo_asamblea)} class="text-[10px]">{a.tipo_asamblea}</Badge>
-            <span class="text-sm font-semibold">{a.fecha || '(sin fecha)'}</span>
+            <span class="text-sm font-semibold">{formatFecha(a.fecha) || '(sin fecha)'}</span>
             {#if a.verificada}
               <Badge variant="secondary" class="text-[10px]">
                 <CheckIcon class="size-2.5" data-icon="inline-start" />
@@ -187,10 +188,10 @@
       </Dialog.Title>
       <Dialog.Description class="text-xs">
         {#if deleteConfirm.step === 1}
-          Esta reunión del {deleteConfirm.fecha} tiene {deleteConfirm.linkedCount} autoridad(es) vinculada(s).
+          Esta reunión del {formatFecha(deleteConfirm.fecha)} tiene {deleteConfirm.linkedCount} autoridad(es) vinculada(s).
           Para eliminar la reunión, primero debés confirmar la eliminación de las autoridades.
         {:else}
-          Se eliminará la reunión del {deleteConfirm.fecha}, sus resoluciones y cualquier autoridad vinculada.
+          Se eliminará la reunión del {formatFecha(deleteConfirm.fecha)}, sus resoluciones y cualquier autoridad vinculada.
           Esta acción no se puede deshacer.
         {/if}
       </Dialog.Description>

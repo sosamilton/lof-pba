@@ -1,6 +1,7 @@
 <script>
   import { useInfiniteScroll } from '$lib/useInfiniteScroll.svelte.js'
   import { formatARS } from '$core/utils/utils'
+  import { formatFecha } from '$core/format/format'
 
   let {
     items = [],
@@ -21,7 +22,7 @@
         onclick={() => onSelect(m)}
         aria-pressed={m.id === selectedId}
       >
-        <div class="text-sm font-medium">{m.fecha} · {m.tipo_movimiento} · {formatARS(m.importe)}</div>
+        <div class="text-sm font-medium">{formatFecha(m.fecha)} · {m.tipo_movimiento} · {formatARS(m.importe)}</div>
         <div class="text-xs text-muted-foreground">
           {#if m.tipo_movimiento === 'Traspaso'}
             {cuentaById.get(Number(m.cuenta_id))?.nombre_cuenta || ''} → {cuentaById.get(Number(m.cuenta_destino_id))?.nombre_cuenta || ''}

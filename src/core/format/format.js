@@ -348,13 +348,60 @@ export const isValidCbuChecksum = (raw) => {
   return verificarBloque(c.slice(0, 8), CBU_PESOS_1) && verificarBloque(c.slice(8), CBU_PESOS_2)
 }
 
-// Formatea una fecha ISO (YYYY-MM-DD o YYYY-MM-DDTHH:MM:SS) a DD/MM/YYYY.
-// Acepta null/undefined/vacío y devuelve ''.
-/** @param {string|Date|null|undefined} raw @returns {string} */
+// Formatea una fecha a DD/MM/YYYY.
+// Acepta:
+// - String ISO (YYYY-MM-DD o YYYY-MM-DDTHH:MM:SS)
+// - Número (timestamp en segundos desde epoch, formato Grist Date/DateTime)
+// - Array encoded de Grist: ["d", timestamp] o ["D", timestamp, timezone]
+// - null/undefined/vacío → ''
+/** @param {string|number|Array|Date|null|undefined} raw @returns {string} */
 export const formatFecha = (raw) => {
-  if (!raw) return ''
+  if (!raw && raw !== 0) return ''
+  // Número: timestamp en segundos desde epoch (formato Grist).
+  if (typeof raw === 'number') {
+    const d = new Date(raw * 1000)
+    if (Number.isNaN(d.getTime())) return ''
+    return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  }
+  // Array encoded de Grist: ["d", timestamp] o ["D", timestamp, timezone].
+  if (Array.isArray(raw) && raw.length >= 2 && typeof raw[1] === 'number') {
+    const d = new Date(raw[1] * 1000)
+    if (Number.isNaN(d.getTime())) return ''
+    return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  }
+  // String ISO o YYYY-MM-DD.
   const s = String(raw).slice(0, 10)
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-  if (!m) return s
+  if (!m) {
+    // String numérico (timestamp en segundos): fallback.
+    const n = Number(s)
+    if (Number.isFinite(n) && n > 0) {
+      const d = new Date(n * 1000)
+      if (Number.isNaN(d.getTime())) return s
+      return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    }
+    return s
+  }
   return `${m[3]}/${m[2]}/${m[1]}`
+}
+
+// Formatea una fecha+hora a DD/MM/YYYY HH:MM.
+// Acepta los mismos formatos que formatFecha (string ISO, timestamp Grist, array encoded).
+/** @param {string|number|Array|Date|null|undefined} raw @returns {string} */
+export const formatFechaHora = (raw) => {
+  if (!raw && raw !== 0) return ''
+  let d
+  if (typeof raw === 'number') {
+    d = new Date(raw * 1000)
+  } else if (Array.isArray(raw) && raw.length >= 2 && typeof raw[1] === 'number') {
+    d = new Date(raw[1] * 1000)
+  } else if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}/.test(raw)) {
+    d = new Date(raw)
+  } else {
+    const n = Number(raw)
+    if (Number.isFinite(n) && n > 0) d = new Date(n * 1000)
+    else d = new Date(raw)
+  }
+  if (Number.isNaN(d.getTime())) return String(raw)
+  return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }

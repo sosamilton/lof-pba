@@ -9,6 +9,7 @@
   import ControlledDialog from '$lib/components/ControlledDialog.svelte'
   import PersonaPicker from '../../components/PersonaPicker.svelte'
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert'
+  import { formatFecha } from '$core/format/format'
 
   let { store } = $props()
 
@@ -127,7 +128,7 @@
                         {#if f.yaExiste}
                           <Badge variant="outline">Vigente</Badge>
                           {#if f.fecha_asuncion_existente}
-                            <span class="text-[10px] text-muted-foreground">desde {f.fecha_asuncion_existente}{#if f.fecha_vencimiento_existente} · hasta {f.fecha_vencimiento_existente}{/if}</span>
+                            <span class="text-[10px] text-muted-foreground">desde {formatFecha(f.fecha_asuncion_existente)}{#if f.fecha_vencimiento_existente} · hasta {formatFecha(f.fecha_vencimiento_existente)}{/if}</span>
                           {/if}
                         {/if}
                       </label>
@@ -171,7 +172,7 @@
                         {#if f.yaExiste}
                           <Badge variant="outline">Vigente</Badge>
                           {#if f.fecha_asuncion_existente}
-                            <span class="text-[10px] text-muted-foreground">desde {f.fecha_asuncion_existente}{#if f.fecha_vencimiento_existente} · hasta {f.fecha_vencimiento_existente}{/if}</span>
+                            <span class="text-[10px] text-muted-foreground">desde {formatFecha(f.fecha_asuncion_existente)}{#if f.fecha_vencimiento_existente} · hasta {formatFecha(f.fecha_vencimiento_existente)}{/if}</span>
                           {/if}
                         {/if}
                       </div>

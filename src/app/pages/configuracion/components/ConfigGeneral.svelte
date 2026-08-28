@@ -21,7 +21,7 @@
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
   import { useConfirmDialog } from '$lib/hooks/useConfirmDialog.svelte.js'
   import { identidad } from '$core/data/identidad'
-  import { exportBackup } from '$core/data/backup.js'
+  import { exportToLof } from '$core/data/exportImport.js'
   import { getActiveBackend, exportGristDoc, importGristDoc } from '$core/data/dataRepository'
   import DownloadIcon from '@lucide/svelte/icons/download'
   import UploadIcon from '@lucide/svelte/icons/upload'
@@ -41,7 +41,7 @@
     exportResult = null
     try {
       const res = isPouchMode
-        ? await exportBackup()
+        ? await exportToLof({ kind: 'full' })
         : await exportGristDoc()
       exportResult = res
       // Analytics: backup exportado (goal "Backup exportado")

@@ -18,11 +18,18 @@ LOF tiene una **capa de datos desacoplada**. Todos los stores y módulos importa
 - `pouchSync.js` maneja la replicación (live + retry + conflict resolution nativo).
 - `syncStore.svelte.js` gestiona la config (URL, credenciales, auto-sync).
 
-### Backup/restore
+### Backup/restore y migración entre backends
 
-- `src/core/data/backup.js` — exportación a `.lof` (gzip) e importación.
-- Exportar: Configuración → General → Backup y restauración.
+- `src/core/data/exportImport.js` — export/import unificado con formato neutral `.lof` (v3).
+  - Funciona desde cualquier backend (PouchDB o Grist) hacia cualquier backend.
+  - `exportToLof(opts)` — exporta al formato neutral, con attachments binarios embebidos.
+  - `importFromLof(file, opts)` — importa detectando automáticamente formato v3 (neutral) o v1/v2 (legacy).
+  - `validateLof(file)` — validación de ambos formatos.
+- `src/core/data/intercambio.js` — intercambio descentralizado (working sets, patches, merge aditivo).
+- Exportar: Configuración → General → Backup, o Configuración → Intercambio → Exportar.
 - Importar: Setup wizard → primera página → "¿Tenés un backup?".
+- Migración Grist → PouchDB: exportar backup `.lof` desde Grist, importar en setup wizard de PWA.
+- Migración PouchDB → Grist: exportar backup `.lof` desde PWA, importar en setup wizard de Grist.
 
 ### Desktop vía Tauri
 

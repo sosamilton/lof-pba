@@ -666,10 +666,28 @@ export const getAttachmentUrl = async (attId) => {
   const db = _getDb()
   const id = Number(attId)
   try {
-    const doc = await db.get(`attachment_${id}`, { attachments: true })
+    // binary: true asegura que PouchDB devuelva los datos como Blob/Uint8Array
+    // en lugar de string base64. Sin esto, new Blob([base64String]) crea un
+    // blob con el texto base64, no con el binario real del archivo.
+    const doc = await db.get(`attachment_${id}`, { attachments: true, binary: true })
     const attachment = doc._attachments?.file
     if (!attachment) throw new Error('Attachment sin archivo')
-    const blob = new Blob([attachment.data], { type: attachment.content_type })
+    let blob
+    if (attachment.data instanceof Blob) {
+      blob = attachment.data
+    } else if (attachment.data instanceof Uint8Array) {
+      blob = new Blob([attachment.data], { type: attachment.content_type })
+    } else if (typeof attachment.data === 'string') {
+      // base64 string — decodificar a binario
+      const binaryString = atob(attachment.data)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+      }
+      blob = new Blob([bytes], { type: attachment.content_type })
+    } else {
+      blob = new Blob([attachment.data], { type: attachment.content_type })
+    }
     return URL.createObjectURL(blob)
   } catch (e) {
     throw new Error(`No se pudo obtener attachment: ${attId}`)

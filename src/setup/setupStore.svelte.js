@@ -313,16 +313,25 @@ export class SetupStore {
   restoreError = $state('')
   restoreResult = $state(null)
 
-  async restoreFromBackup(/** @type {File} */ file) {
+  async restoreFromBackup(/** @type {File|object} */ fileOrPayload) {
     this.restoring = true
     this.restoreError = ''
     this.restoreResult = null
     try {
-      const { importBackup } = await import('$core/data/backup.js')
-      const result = await importBackup(file)
+      // Usar exportImport.js (formato neutral, funciona en cualquier backend).
+      // fileOrPayload puede ser un File o un payload ya parseado por validateLof.
+      const { importFromLof } = await import('$core/data/exportImport.js')
+      const reemplazar = true
+      const result = await importFromLof(fileOrPayload, { reemplazar })
       this.restoreResult = result
-      // Saltar directamente al último paso (instalar)
-      // El backup ya tiene todos los datos, solo falta recargar.
+      if (reemplazar) {
+        // Después de un import con reemplazo, la DB vieja fue destruida.
+        // Hacer un reload para que todas las referencias (router, stores, etc.)
+        // se refresquen con la nueva DB.
+        setTimeout(() => window.location.reload(), 500)
+        return
+      }
+      // Sin reemplazo: saltar al último paso (instalar)
       this.step = this.steps.length - 1
     } catch (e) {
       this.restoreError = e?.message || String(e)

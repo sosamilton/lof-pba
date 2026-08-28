@@ -16,6 +16,7 @@
   import TrashIcon from '@lucide/svelte/icons/trash-2'
   import HandHeartIcon from '@lucide/svelte/icons/hand-heart'
   import { getActiveBackend } from '$core/data/dataRepository'
+  import { formatFecha } from '$core/format/format'
   import { createIntercambioService } from '../intercambioService.svelte.js'
 
   const isPouchMode = getActiveBackend() === 'pouch'
@@ -37,83 +38,101 @@
 </script>
 
 {#if !isPouchMode}
-  <Alert variant="destructive">
-    <AlertCircleIcon data-icon="inline-start" />
+  <Alert>
+    <CheckCircleIcon data-icon="inline-start" />
     <AlertDescription>
-      El intercambio descentralizado solo está disponible en modo standalone (PouchDB).
-      En modo Grist, la app vive dentro del documento y no puede abrirse en otro dispositivo.
+      En modo Grist, podés exportar un backup completo en formato <span class="font-mono">.lof</span>
+      para migrar a una instalación standalone (PouchDB). El intercambio descentralizado
+      (sets de trabajo y patches entre colaboradores) solo está disponible en modo standalone.
     </AlertDescription>
   </Alert>
-{:else}
-  <div class="flex flex-col gap-6">
-    <!-- Exportar -->
-    <Card.Root>
-      <Card.Header>
-        <Card.Title class="flex items-center gap-2">
-          <ShareIcon class="size-5" />
-          Exportar
-        </Card.Title>
-        <Card.Description>
+{/if}
+
+<div class="flex flex-col gap-6">
+  <!-- Exportar (disponible en cualquier backend) -->
+  <Card.Root>
+    <Card.Header>
+      <Card.Title class="flex items-center gap-2">
+        <ShareIcon class="size-5" />
+        Exportar
+      </Card.Title>
+      <Card.Description>
+        {#if isPouchMode}
           Exportá un subset de datos para enviar a un colaborador o para traer de vuelta los cambios.
-        </Card.Description>
-      </Card.Header>
-      <Card.Content class="flex flex-col gap-4">
-        <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium" for="export-profile">Perfil de exportación</label>
-          <Select.Root type="single" bind:value={svc.exportProfile}>
-            <Select.Trigger id="export-profile" class="w-full">
-              {PROFILE_LABELS[svc.exportProfile] ?? 'Seleccionar…'}
-            </Select.Trigger>
-            <Select.Content>
+        {:else}
+          Exportá un backup completo para migrar a otra instalación.
+        {/if}
+      </Card.Description>
+    </Card.Header>
+    <Card.Content class="flex flex-col gap-4">
+      <div class="flex flex-col gap-2">
+        <label class="text-sm font-medium" for="export-profile">Perfil de exportación</label>
+        <Select.Root type="single" bind:value={svc.exportProfile}>
+          <Select.Trigger id="export-profile" class="w-full">
+            {PROFILE_LABELS[svc.exportProfile] ?? 'Seleccionar…'}
+          </Select.Trigger>
+          <Select.Content>
+            {#if isPouchMode}
               <Select.Item value="working_set" label="Set de trabajo (para colaborador)">
                 Set de trabajo (para colaborador)
               </Select.Item>
               <Select.Item value="patch_movimientos" label="Solo movimientos nuevos (patch)">
                 Solo movimientos nuevos (patch)
               </Select.Item>
-              <Select.Item value="full" label="Backup completo">Backup completo</Select.Item>
-            </Select.Content>
-          </Select.Root>
-        </div>
+            {/if}
+            <Select.Item value="full" label="Backup completo">Backup completo</Select.Item>
+          </Select.Content>
+        </Select.Root>
+      </div>
 
-        {#if svc.exportProfile === 'working_set'}
-          <Alert>
-            <CheckCircleIcon data-icon="inline-start" />
-            <AlertDescription>
-              Incluye personas (datos reducidos: sin domicilio, teléfono ni email), socios,
-              cuentas, rubros, subrubros, ejercicios y configuración. Un colaborador puede
-              usarlo para cargar movimientos desde su dispositivo.
-            </AlertDescription>
-          </Alert>
-        {:else if svc.exportProfile === 'patch_movimientos'}
-          <Alert>
-            <CheckCircleIcon data-icon="inline-start" />
-            <AlertDescription>
-              Exporta solo los movimientos, personas y socios que creaste localmente
-              (excluye lo que recibiste de un set de trabajo). Pensado para devolver a la
-              cooperadora y que haga merge.
-            </AlertDescription>
-          </Alert>
+      {#if svc.exportProfile === 'working_set'}
+        <Alert>
+          <CheckCircleIcon data-icon="inline-start" />
+          <AlertDescription>
+            Incluye personas (datos reducidos: sin domicilio, teléfono ni email), socios,
+            cuentas, rubros, subrubros, ejercicios y configuración. Un colaborador puede
+            usarlo para cargar movimientos desde su dispositivo.
+          </AlertDescription>
+        </Alert>
+      {:else if svc.exportProfile === 'patch_movimientos'}
+        <Alert>
+          <CheckCircleIcon data-icon="inline-start" />
+          <AlertDescription>
+            Exporta solo los movimientos, personas y socios que creaste localmente
+            (excluye lo que recibiste de un set de trabajo). Pensado para devolver a la
+            cooperadora y que haga merge.
+          </AlertDescription>
+        </Alert>
+      {:else if svc.exportProfile === 'full'}
+        <Alert>
+          <CheckCircleIcon data-icon="inline-start" />
+          <AlertDescription>
+            Exporta todos los datos (todas las tablas, comprobantes y estatuto) en formato
+            neutral <span class="font-mono">.lof</span>. Podés importarlo en cualquier instalación
+            de LOF, sea standalone (PouchDB) o Grist.
+          </AlertDescription>
+        </Alert>
+      {/if}
+
+      <Button onclick={svc.handleExport} disabled={svc.exporting} class="w-fit">
+        {#if svc.exporting}
+          <CheckCircleIcon data-icon="inline-start" class="animate-spin" />
+          Exportando…
+        {:else}
+          <DownloadIcon data-icon="inline-start" />
+          Exportar .lof
         {/if}
+      </Button>
 
-        <Button onclick={svc.handleExport} disabled={svc.exporting} class="w-fit">
-          {#if svc.exporting}
-            <CheckCircleIcon data-icon="inline-start" class="animate-spin" />
-            Exportando…
-          {:else}
-            <DownloadIcon data-icon="inline-start" />
-            Exportar .lof
-          {/if}
-        </Button>
+      {#if svc.exportResult}
+        <p class="text-sm text-muted-foreground">
+          {svc.exportResult.filename} — {svc.exportResult.docCount} documentos
+        </p>
+      {/if}
+    </Card.Content>
+  </Card.Root>
 
-        {#if svc.exportResult}
-          <p class="text-sm text-muted-foreground">
-            {svc.exportResult.filename} — {svc.exportResult.docCount} documentos
-          </p>
-        {/if}
-      </Card.Content>
-    </Card.Root>
-
+  {#if isPouchMode}
     <Separator />
 
     <!-- Importar set de trabajo (colaborador) -->
@@ -301,7 +320,7 @@
                       <tbody>
                         {#each svc.mergeAnalysis.detalle.movimientos as m, i (i)}
                           <tr class="border-t">
-                            <td class="px-2 py-1">{m.fecha}</td>
+                            <td class="px-2 py-1">{formatFecha(m.fecha)}</td>
                             <td class="px-2 py-1">{m.detalle}</td>
                             <td class="px-2 py-1 text-right">
                               {#if m.importe != null}
@@ -484,5 +503,5 @@
         </Card.Content>
       </Card.Root>
     {/if}
-  </div>
-{/if}
+  {/if}
+</div>

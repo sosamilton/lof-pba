@@ -13,6 +13,7 @@
   import CierreAlertas from './components/CierreAlertas.svelte'
   import TabMemoria from './components/TabMemoria.svelte'
   import { formatFechaGrist } from '../shared/tesoreriaCalc.js'
+  import { formatFechaHora } from '$core/format/format'
   import FileTextIcon from '@lucide/svelte/icons/file-text'
   import BookIcon from '@lucide/svelte/icons/book-open'
   import LockIcon from '@lucide/svelte/icons/lock'
@@ -264,7 +265,7 @@
                         <FileTextIcon class="size-4 text-muted-foreground" />
                         <span class="text-sm font-medium">{p.tipo_planilla}</span>
                         <span class="text-xs text-muted-foreground">
-                          {p.fecha_generacion ? new Date(p.fecha_generacion).toLocaleString('es-AR') : ''}
+                          {p.fecha_generacion ? formatFechaHora(p.fecha_generacion) : ''}
                         </span>
                       </div>
                       <Badge variant="outline">v{p.version_formulario || '?'}</Badge>

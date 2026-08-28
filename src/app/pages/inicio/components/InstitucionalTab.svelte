@@ -8,6 +8,7 @@
   import CalendarIcon from '@lucide/svelte/icons/calendar'
   import PencilIcon from '@lucide/svelte/icons/pencil'
   import { navigate } from '$core/ui/router.svelte'
+  import { formatFecha } from '$core/format/format'
   import InfoField from './InfoField.svelte'
 
   let {
@@ -37,8 +38,8 @@
         <div class="grid gap-3 sm:grid-cols-2">
           <InfoField label="Período" value={`${ejercicioEnCurso.anio_inicio}-${ejercicioEnCurso.anio_fin}`} />
           <InfoField label="Mes de inicio" value={ejercicioEnCurso.mes_inicio} />
-          <InfoField label="Fecha desde" value={ejercicioEnCurso.fecha_inicio} />
-          <InfoField label="Fecha hasta" value={ejercicioEnCurso.fecha_fin} />
+          <InfoField label="Fecha desde" value={formatFecha(ejercicioEnCurso.fecha_inicio)} />
+          <InfoField label="Fecha hasta" value={formatFecha(ejercicioEnCurso.fecha_fin)} />
           {#if ejercicioEnCurso.saldo_inicial_total != null}
             <InfoField label="Saldo inicial total" value={`$${Number(ejercicioEnCurso.saldo_inicial_total).toLocaleString('es-AR')}`} />
           {/if}

@@ -5,9 +5,9 @@
  * (PWA en modo PouchDB) y los devuelva a la cooperadora para integrarlos
  * al real, sin exponer información crítica y sin sincronización en vivo.
  *
- * Formato .lof: mismo magic header "LOFBK1" + gzip(payload JSON) que backup.js.
- * El payload extiende el de backup con metadatos opcionales (kind, profile,
- * source, modalidad) sin romper compatibilidad con importBackup existente.
+ * Formato .lof: mismo magic header "LOFBK1" + gzip(payload JSON).
+ * El payload incluye metadatos opcionales (kind, profile,
+ * source, modalidad) para el flujo de intercambio.
  *
  * Flujos:
  *   1. Cooperadora exporta "set de trabajo" → colaborador lo importa
@@ -903,7 +903,27 @@ export async function validarIntercambio(file) {
 // --- Helpers internos ---
 
 async function _parseLof(file) {
-  const fileBytes = new Uint8Array(await file.arrayBuffer())
+  if (!file) throw new Error('Archivo vacío o no válido.')
+  let arrayBuffer
+  try {
+    if (typeof file.arrayBuffer === 'function') {
+      arrayBuffer = await file.arrayBuffer()
+    } else {
+      throw new Error('arrayBuffer no disponible')
+    }
+  } catch {
+    try {
+      arrayBuffer = await new Response(file).arrayBuffer()
+    } catch {
+      arrayBuffer = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result)
+        reader.onerror = () => reject(new Error('No se pudo leer el archivo.'))
+        reader.readAsArrayBuffer(file)
+      })
+    }
+  }
+  const fileBytes = new Uint8Array(arrayBuffer)
   const magicLen = MAGIC.length
   if (fileBytes.length < magicLen + 10) {
     throw new Error('Archivo demasiado pequeño para ser un backup válido.')

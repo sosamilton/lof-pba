@@ -3,6 +3,7 @@
   import { asesoresStore as store } from '../asesoresStore.svelte.js'
   import { usePersonaSearch } from '$lib/hooks/usePersonaSearch.svelte.js'
   import { personaLabel } from '$app/modules/comunidad/personas/personasApi.js'
+  import { formatFecha } from '$core/format/format'
   import * as Card from '$lib/components/ui/card'
   import * as Dialog from '$lib/components/ui/dialog'
   import { Badge } from '$lib/components/ui/badge'
@@ -120,11 +121,7 @@
   const tipoLabel = (val) => store.TIPOS_ORIGEN.find((t) => t.value === val)?.label || val
   const motivoLabel = (val) => store.MOTIVOS_CESE.find((m) => m.value === val)?.label || val
 
-  const fmtFecha = (f) => {
-    if (!f) return ''
-    const d = new Date(f)
-    return isNaN(d) ? '' : d.toLocaleDateString('es-AR')
-  }
+  const fmtFecha = formatFecha
 </script>
 
 <Card.Root>

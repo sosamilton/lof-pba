@@ -8,7 +8,7 @@
   import { MODULES } from '../setupStore.svelte'
   import { identidad } from '$core/data/identidad'
   import { getActiveBackend } from '$core/data/dataRepository'
-  import { validateBackup } from '$core/data/backup.js'
+  import { validateLof } from '$core/data/exportImport.js'
   import { validarIntercambio, importWorkingSet } from '$core/data/intercambio.js'
   import UploadIcon from '@lucide/svelte/icons/upload'
   import FileIcon from '@lucide/svelte/icons/file-text'
@@ -63,10 +63,12 @@
     validation = null
     validating = true
     try {
-      const result = await validateBackup(file)
+      const result = await validateLof(file)
       validation = result
       if (result.valid) {
-        await store.restoreFromBackup(file)
+        // Pasar el payload ya parseado para evitar re-leer el File
+        // (que ya fue consumido por validateLof y no se puede leer dos veces).
+        await store.restoreFromBackup(result.payload)
       }
     } catch (err) {
       validation = { valid: false, error: err?.message || String(err) }
