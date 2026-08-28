@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /demo/
+Disallow: /seeds/
+Disallow: /grist-api/
+
+Sitemap: https://lof.mdsoluciones.ar/sitemap.xml

@@ -1,7 +1,7 @@
 {
   "name": "LOF — Lazos que Organizan el Futuro",
   "short_name": "LOF",
-  "description": "Gestión integral para cooperadoras escolares de la Provincia de Buenos Aires. Software libre, 100% offline.",
+  "description": "Software libre para gestionar cooperadoras escolares de la Provincia de Buenos Aires: socios, tesorería, asambleas, PIA y nómina. 100% offline.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0a0a0a",

@@ -215,8 +215,11 @@
             {identidad.ubicacion}
           </Badge>
           <h1 class="text-2xl font-bold leading-tight tracking-tight sm:text-3xl md:text-4xl">
-            {identidad.apertura}
+            Software libre para cooperadoras escolares de la Provincia de Buenos Aires
           </h1>
+          <p class="max-w-2xl text-base text-muted-foreground sm:text-lg">
+            {identidad.apertura}
+          </p>
           <p class="max-w-2xl text-base text-muted-foreground sm:text-lg">
             {identidad.descripcion}
           </p>
@@ -653,6 +656,90 @@
           </div>
         {/if}
       {/each}
+    </div>
+  </section>
+
+  <!-- FAQ: preguntas frecuentes sobre cooperadoras escolares y LOF -->
+  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="faq-heading">
+    <div class="flex flex-col gap-2 mb-6">
+      <h2 id="faq-heading" class="text-2xl font-bold tracking-tight">Preguntas frecuentes</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        Lo que más consultan las cooperadoras escolares de la Provincia de Buenos Aires antes de empezar a usar LOF.
+      </p>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <Card.Root>
+        <Card.Header>
+          <Card.Title class="text-base">¿LOF sirve para cooperadoras de la Provincia de Buenos Aires?</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground">
+            Sí. LOF está diseñado específicamente para las cooperadoras escolares de PBA. Está alineado con el
+            estatuto modelo y la Planilla de Ingresos y Aportes (PIA) de la DGCyE, y digitaliza los cuatro libros
+            obligatorios que exige la normativa provincial: Actas, Socios, Tesorería e Inventario.
+          </p>
+        </Card.Content>
+      </Card.Root>
+      <Card.Root>
+        <Card.Header>
+          <Card.Title class="text-base">¿LOF es gratuito?</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground">
+            Sí, LOF es software libre bajo licencia AGPL-3.0. No tiene costo, no requiere cuentas ni servicios
+            en la nube. Funciona en el navegador, con respaldo local o dentro de Grist, y los datos se guardan
+            en el dispositivo del usuario.
+          </p>
+        </Card.Content>
+      </Card.Root>
+      <Card.Root>
+        <Card.Header>
+          <Card.Title class="text-base">¿LOF genera la PIA y la Nómina automáticamente?</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground">
+            Sí. LOF consolida los movimientos cargados durante el ejercicio y arma la PIA y la Nómina de
+            autoridades (CD, CRC y Federación) en PDF, desde los datos registrados mes a mes. No hay que llenar
+            formularios a mano.
+          </p>
+        </Card.Content>
+      </Card.Root>
+      <Card.Root>
+        <Card.Header>
+          <Card.Title class="text-base">¿Necesito internet para usar LOF?</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground">
+            No. LOF funciona 100% offline. Los datos se guardan en el navegador, en una computadora de la escuela
+            o dentro de Grist. No se envía nada a internet. Se puede respaldar a un archivo .lof y migrar a otra
+            computadora cuando haga falta.
+          </p>
+        </Card.Content>
+      </Card.Root>
+      <Card.Root>
+        <Card.Header>
+          <Card.Title class="text-base">¿Qué pasa cuando cambia la comisión directiva?</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground">
+            Los socios, las autoridades, las asambleas y los movimientos quedan registrados permanentemente.
+            La nueva gestión retoma exactamente donde quedó la anterior. Además, el histórico de mandatos
+            permite saber quién ocupó cada cargo en cada ejercicio.
+          </p>
+        </Card.Content>
+      </Card.Root>
+      <Card.Root>
+        <Card.Header>
+          <Card.Title class="text-base">¿LOF sirve para el control de la DIPREGEP?</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground">
+            Sí. Todos los registros son trazables y exportables. La PIA, la Nómina, el padrón de socios y las
+            actas de asambleas se generan en el formato oficial, listos para cualquier control o auditoría
+            de la DIPREGEP.
+          </p>
+        </Card.Content>
+      </Card.Root>
     </div>
   </section>
 
