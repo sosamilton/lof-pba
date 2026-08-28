@@ -41,6 +41,7 @@
   import * as Carousel from '$lib/components/ui/carousel'
   import { navigate } from '$core/ui/router.svelte'
   import { getActiveBackend } from '$core/data/dataRepository'
+  import { trackEvent } from '$core/analytics/plausible.js'
   import CodeXmlIcon from '@lucide/svelte/icons/code-xml'
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link'
   import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
@@ -90,6 +91,12 @@
       confirmLabel: 'Terminar demo',
       variant: 'destructive',
       onConfirm: async () => {
+        // Marcar que vino del demo para trackear la conversión a instalación
+        // real. sessionStorage sobrevive el reload de limpiarDispositivo.
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('lof-from-demo', '1')
+        }
+        trackEvent('demo_terminated')
         const { limpiarDispositivo } = await import('$core/data/intercambio.js')
         await limpiarDispositivo()
       },
@@ -111,6 +118,7 @@
       // Marcar modo demo (flag client-only, no viaja en el .lof) para que
       // AppShell pueda avisar y ofrecer "Salir de la demo".
       localStorage.setItem('lof-demo-mode', '1')
+      trackEvent('demo_started')
       // reemplazar=true destruye y recrea la DB local: recargar para que
       // todas las referencias (router, stores, etc.) tomen los datos nuevos.
       // Forzamos la ruta 'inicio' para entrar directo a la app en vez de

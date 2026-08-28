@@ -164,6 +164,12 @@ export async function doInstall(s) {
         : 'solo_pia'
     trackEvent('setup_completed', { backend: getActiveBackend(), via: 'wizard', cooperadora_tipo: cooperadoraTipo })
 
+    // Goal: usuario que vino del demo y completó la instalación real
+    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('lof-from-demo') === '1') {
+      trackEvent('demo_to_install', { cooperadora_tipo: cooperadoraTipo })
+      sessionStorage.removeItem('lof-from-demo')
+    }
+
     const needsEjercicio = s.selectedModules.gestion_integral || s.selectedModules.carga_consolidada
     const needsCargos = s.selectedModules.gestion_integral || s.selectedModules.carga_consolidada
 

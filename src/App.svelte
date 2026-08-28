@@ -119,6 +119,9 @@
   $effect(() => {
     // deps reactivas: ready, gristStatus, needsSetup, router.current
     if (!ready) return
+    // Esperar a que detectGrist() termine para no trackear pageviews espurias
+    // con props en estado inicial (gristStatus='none'), que generan (none) en Plausible.
+    if (gristStatus === 'none') return
 
     let path
     let section = 'landing'
@@ -145,12 +148,14 @@
       section = 'landing'
     }
 
+    const isDemo = isPouchMode && typeof localStorage !== 'undefined' && localStorage.getItem('lof-demo-mode') === '1'
     trackPageview(path, {
       backend: activeBackend,
       installed: !needsSetup,
       grist_status: gristStatus,
       section,
       modalidad,
+      demo: isDemo,
     })
   })
 </script>
