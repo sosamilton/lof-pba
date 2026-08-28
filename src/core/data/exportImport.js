@@ -50,6 +50,63 @@ const ATTACHMENT_TABLES = {
 }
 
 /**
+ * Mapa de campos Date/DateTime por tabla lógica.
+ * Grist almacena fechas como timestamps en segundos desde epoch.
+ * El formato neutral las guarda como strings YYYY-MM-DD (Date) o
+ * ISO 8601 (DateTime). Esta mapa se usa para convertir al importar/exportar.
+ */
+const DATE_FIELDS = {}
+for (const table of schema.tables) {
+  const fields = {}
+  for (const col of table.columns) {
+    const type = col.fields?.type
+    if (type === 'Date' || type === 'DateTime') {
+      fields[col.id] = type
+    }
+  }
+  if (Object.keys(fields).length > 0) {
+    DATE_FIELDS[table.id] = fields
+  }
+}
+
+/**
+ * Convierte un string de fecha del formato neutral a timestamp de Grist
+ * (segundos desde epoch). Date → medianoche UTC, DateTime → momento exacto.
+ */
+function _dateToGristTimestamp(value, fieldType) {
+  if (value == null || value === '') return null
+  if (typeof value === 'number') return value // ya es timestamp
+  const s = String(value)
+  if (fieldType === 'Date') {
+    // Date: YYYY-MM-DD → medianoche UTC de ese día
+    // Grist Date es días desde epoch en segundos, sin hora
+    const [y, m, d] = s.split('T')[0].split('-').map(Number)
+    const ts = Math.floor(Date.UTC(y, m - 1, d) / 1000)
+    return ts
+  }
+  // DateTime: ISO string → segundos desde epoch
+  const dt = new Date(s)
+  if (isNaN(dt.getTime())) return null
+  return Math.floor(dt.getTime() / 1000)
+}
+
+/**
+ * Convierte un timestamp de Grist (segundos desde epoch) a string del
+ * formato neutral. Date → YYYY-MM-DD, DateTime → ISO 8601.
+ */
+function _gristTimestampToDate(value, fieldType) {
+  if (value == null || value === '') return null
+  if (typeof value !== 'number') return value // ya es string
+  const ms = value * 1000
+  const d = new Date(ms)
+  if (isNaN(d.getTime())) return null
+  if (fieldType === 'Date') {
+    return d.toISOString().slice(0, 10) // YYYY-MM-DD
+  }
+  return d.toISOString() // full ISO para DateTime
+}
+
+/**
  * Lista de todas las tablas del schema (keys lógicas).
  */
 const ALL_TABLES = schema.tables.map((t) => t.id)
@@ -270,6 +327,16 @@ async function _exportGrist(tables, opts) {
 
     for (const rec of records) {
       const { id, ...fields } = rec
+
+      // Convertir timestamps de Grist a strings del formato neutral
+      const dateFields = DATE_FIELDS[logicalTable]
+      if (dateFields) {
+        for (const [fieldName, fieldType] of Object.entries(dateFields)) {
+          if (fields[fieldName] != null && fields[fieldName] !== '') {
+            fields[fieldName] = _gristTimestampToDate(fields[fieldName], fieldType)
+          }
+        }
+      }
 
       // Proyección de campos
       if (opts.personaFields && logicalTable === 'personas') {
@@ -534,6 +601,16 @@ async function _importLofToGrist(payload, opts) {
 
       // Preparar fields para insertar
       const fields = { ...doc.fields }
+
+      // Convertir fechas de strings a timestamps de Grist (segundos desde epoch)
+      const dateFields = DATE_FIELDS[logicalTable]
+      if (dateFields) {
+        for (const [fieldName, fieldType] of Object.entries(dateFields)) {
+          if (fields[fieldName] != null && fields[fieldName] !== '') {
+            fields[fieldName] = _dateToGristTimestamp(fields[fieldName], fieldType)
+          }
+        }
+      }
 
       // Remapear refs usando idMapping de tablas ya insertadas
       _remapRefs(logicalTable, fields, idMapping, _globalIdMappings)
