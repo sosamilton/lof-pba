@@ -11,6 +11,7 @@
   import PlusIcon from '@lucide/svelte/icons/plus'
   import LockIcon from '@lucide/svelte/icons/lock'
   import { MESES } from '$core/utils/utils'
+  import { formatFecha } from '$core/format/format'
 
   let {
     ejercicios = [],
@@ -44,10 +45,10 @@
             <span>· Saldo inicial: <span class="font-semibold text-foreground">${Number(e.saldo_inicial_total).toLocaleString('es-AR')}</span></span>
           {/if}
           {#if e.fecha_inicio}
-            <span>· Inicio: {e.fecha_inicio}</span>
+            <span>· Inicio: {formatFecha(e.fecha_inicio)}</span>
           {/if}
           {#if e.fecha_fin}
-            <span>· Fin: {e.fecha_fin}</span>
+            <span>· Fin: {formatFecha(e.fecha_fin)}</span>
           {/if}
           {#if e.observaciones}
             <span>· {e.observaciones}</span>

@@ -13,6 +13,7 @@
   import MinusIcon from '@lucide/svelte/icons/minus'
   import InfoIcon from '@lucide/svelte/icons/info'
   import SlidersHorizontalIcon from '@lucide/svelte/icons/sliders-horizontal'
+  import { formatFecha } from '$core/format/format'
 
   let {
     store,
@@ -132,7 +133,7 @@
                       {#if f.yaExiste}
                         <Badge variant="outline">Vigente</Badge>
                         {#if f.fecha_asuncion_existente}
-                          <span class="text-[10px] text-muted-foreground">desde {f.fecha_asuncion_existente}{#if f.fecha_vencimiento_existente} · hasta {f.fecha_vencimiento_existente}{/if}</span>
+                          <span class="text-[10px] text-muted-foreground">desde {formatFecha(f.fecha_asuncion_existente)}{#if f.fecha_vencimiento_existente} · hasta {formatFecha(f.fecha_vencimiento_existente)}{/if}</span>
                         {/if}
                       {/if}
                     </label>
@@ -218,7 +219,7 @@
                 {#if f.yaExiste}
                   <Badge variant="outline">Vigente</Badge>
                   {#if f.fecha_asuncion_existente}
-                    <span class="text-[10px] text-muted-foreground">desde {f.fecha_asuncion_existente}{#if f.fecha_vencimiento_existente} · hasta {f.fecha_vencimiento_existente}{/if}</span>
+                    <span class="text-[10px] text-muted-foreground">desde {formatFecha(f.fecha_asuncion_existente)}{#if f.fecha_vencimiento_existente} · hasta {formatFecha(f.fecha_vencimiento_existente)}{/if}</span>
                   {/if}
                 {/if}
               </div>

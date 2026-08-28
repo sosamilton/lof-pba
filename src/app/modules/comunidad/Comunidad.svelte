@@ -3,6 +3,7 @@
   import { comunidadStore as store } from './comunidadStore.svelte'
   import { normalize } from '$core/utils/utils'
   import { daysSince } from '$core/utils/utils'
+  import { formatFecha } from '$core/format/format'
   import { TIPOS_SOCIO, MOTIVOS_BAJA, CATEGORIAS_VINCULO } from '$app/modules/comunidad/constants.js'
   import { filterBySearch, sortByFields } from '$lib/hooks/useListFilter.svelte.js'
   import { useDebounce } from '$lib/hooks/useDebounce.svelte.js'
@@ -330,7 +331,7 @@
                     <Alert.Root variant="destructive">
                       <Alert.Title>Socio dado de baja</Alert.Title>
                       <Alert.Description>
-                        Fecha de baja: {store.form.fecha_baja}{#if store.form.motivo_baja} · Motivo: {store.form.motivo_baja === 'CambioEscuela' ? 'Cambio de escuela' : store.form.motivo_baja}{/if}
+                        Fecha de baja: {formatFecha(store.form.fecha_baja)}{#if store.form.motivo_baja} · Motivo: {store.form.motivo_baja === 'CambioEscuela' ? 'Cambio de escuela' : store.form.motivo_baja}{/if}
                         <br />
                         <Button variant="outline" size="sm" class="mt-2" onclick={store.toggleBaja}>Editar baja</Button>
                         <Button variant="outline" size="sm" class="mt-2 ml-2" onclick={store.reactivar}>Reactivar socio</Button>

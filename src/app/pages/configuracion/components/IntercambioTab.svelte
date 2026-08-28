@@ -16,6 +16,7 @@
   import TrashIcon from '@lucide/svelte/icons/trash-2'
   import HandHeartIcon from '@lucide/svelte/icons/hand-heart'
   import { getActiveBackend } from '$core/data/dataRepository'
+  import { formatFecha } from '$core/format/format'
   import { createIntercambioService } from '../intercambioService.svelte.js'
 
   const isPouchMode = getActiveBackend() === 'pouch'
@@ -319,7 +320,7 @@
                       <tbody>
                         {#each svc.mergeAnalysis.detalle.movimientos as m, i (i)}
                           <tr class="border-t">
-                            <td class="px-2 py-1">{m.fecha}</td>
+                            <td class="px-2 py-1">{formatFecha(m.fecha)}</td>
                             <td class="px-2 py-1">{m.detalle}</td>
                             <td class="px-2 py-1 text-right">
                               {#if m.importe != null}
