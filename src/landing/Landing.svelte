@@ -789,12 +789,13 @@
             <CodeXmlIcon data-icon="inline-start" />
             Contribuir
           </Button>
-          <Button variant="ghost" size="sm" href={enlaces.licencia} target="_blank" rel="noopener noreferrer">
-            Licencia
+          <Button variant="ghost" size="sm" href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer">
+            <ExternalLinkIcon data-icon="inline-start" />
+            Licencia AGPL
           </Button>
-          <Button variant="ghost" size="sm" href={enlaces.grist_docs} target="_blank" rel="noopener noreferrer">
+          <Button variant="ghost" size="sm" href="https://www.getgrist.com/" target="_blank" rel="noopener noreferrer">
             <GristIcon class="size-4" data-icon="inline-start" />
-            Documentación oficial de widgets
+            Grist
           </Button>
         </div>
       </div>
