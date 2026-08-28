@@ -5,7 +5,7 @@ import {
   aplicarMerge,
   limpiarDispositivo,
 } from '$core/data/intercambio.js'
-import { exportBackup } from '$core/data/backup.js'
+import { exportToLof } from '$core/data/exportImport.js'
 import { loadConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
 import { notify } from '$core/ui/notify.svelte'
 import { trackEvent } from '$core/analytics/plausible.js'
@@ -71,13 +71,14 @@ export function createIntercambioService() {
 
   const handleExport = async () => {
     if (exportProfile === 'full') {
-      // Delegar al backup existente
+      // Export completo en formato neutral (funciona en cualquier backend)
       exporting = true
       exportResult = null
       try {
-        const res = await exportBackup()
+        const res = await exportToLof({ kind: 'full' })
         exportResult = res
         trackEvent('backup_exported', { backend: 'pouch', profile: 'full', doc_count: res.docCount })
+        notify.success(`Backup exportado: ${res.filename} (${res.docCount} documentos)`)
       } catch (e) {
         notify.error(e?.message || 'Error al exportar')
       } finally {
@@ -167,7 +168,7 @@ export function createIntercambioService() {
     // Backup opcional antes del merge
     if (doBackupBefore) {
       try {
-        await exportBackup()
+        await exportToLof({ kind: 'full' })
         notify.info('Backup exportado antes del merge.')
       } catch (e) {
         notify.error('No se pudo exportar el backup previo. Merge cancelado por seguridad.')
