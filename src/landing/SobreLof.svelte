@@ -3,7 +3,6 @@
   import { Badge } from '$lib/components/ui/badge'
   import * as Card from '$lib/components/ui/card'
   import { Separator } from '$lib/components/ui/separator'
-  import { navigate } from '$core/ui/router.svelte'
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left'
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link'
   import CodeXmlIcon from '@lucide/svelte/icons/code-xml'
@@ -46,7 +45,7 @@
         <span class="text-lg font-bold tracking-tight">{identidad.nombre}</span>
         <Badge variant="secondary" class="hidden sm:inline-flex">{identidad.ubicacion}</Badge>
       </div>
-      <Button variant="ghost" size="sm" onclick={() => navigate('landing')}>
+      <Button variant="ghost" size="sm" href="#landing">
         <ArrowLeftIcon data-icon="inline-start" />
         Volver
       </Button>
@@ -241,7 +240,7 @@
         <HeartHandshakeIcon class="size-6 text-primary" />
         <span class="text-sm font-medium">{identidad.nombre} · {identidad.lema}</span>
       </div>
-      <Button variant="outline" size="sm" onclick={() => navigate('inicio')}>
+      <Button variant="outline" size="sm" href="#inicio">
         <ArrowLeftIcon data-icon="inline-start" />
         Volver al inicio
       </Button>

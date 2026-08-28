@@ -39,7 +39,6 @@
   import { Badge } from '$lib/components/ui/badge'
   import { Separator } from '$lib/components/ui/separator'
   import * as Carousel from '$lib/components/ui/carousel'
-  import { navigate } from '$core/ui/router.svelte'
   import { getActiveBackend } from '$core/data/dataRepository'
   import { trackEvent } from '$core/analytics/plausible.js'
   import CodeXmlIcon from '@lucide/svelte/icons/code-xml'
@@ -159,7 +158,7 @@
       </div>
       <div class="flex items-center gap-2">
         {#if installed}
-          <Button variant="default" size="sm" onclick={() => navigate('inicio')}>
+          <Button variant="default" size="sm" href="#inicio">
             <ArrowLeftIcon data-icon="inline-start" />
             <span class="hidden sm:inline">Volver a la app</span>
             <span class="sm:hidden">App</span>
@@ -180,7 +179,7 @@
           <HistoryIcon data-icon="inline-start" />
           <span class="hidden sm:inline">Novedades</span>
         </Button>
-        <Button variant="ghost" size="sm" onclick={() => navigate('sobre-lof')}>
+        <Button variant="ghost" size="sm" href="#sobre-lof">
           Sobre LOF
         </Button>
         <Button variant="ghost" size="sm" href={enlaces.repo} target="_blank" rel="noopener noreferrer" aria-label="Ver repositorio en GitHub">
@@ -226,7 +225,7 @@
         </div>
         {#if installed}
           <div class="flex flex-wrap gap-3">
-            <Button variant="secondary" size="lg" onclick={() => navigate('inicio')}>
+            <Button variant="secondary" size="lg" href="#inicio">
               <ArrowLeftIcon data-icon="inline-start" />
               Abrir la app
             </Button>
@@ -236,7 +235,7 @@
                 Terminar demo
               </Button>
             {/if}
-            <Button variant="outline" size="lg" onclick={() => navigate('instalacion')}>
+            <Button variant="outline" size="lg" href="#instalacion">
               <DownloadIcon data-icon="inline-start" />
               Cómo instalarlo
             </Button>
@@ -244,9 +243,8 @@
         {:else}
           <div class="grid gap-4 sm:grid-cols-2 {isPouchMode ? 'lg:grid-cols-3 max-w-4xl' : 'max-w-2xl'}">
             <!-- Instalar cooperadora -->
-            <button
-              type="button"
-              onclick={() => navigate('inicio')}
+            <a
+              href="#inicio"
               class="group flex flex-col gap-2 rounded-xl border-2 border-primary/40 bg-primary/5 p-5 text-left transition-all hover:border-primary hover:bg-primary/10 hover:shadow-md"
             >
               <div class="flex size-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
@@ -260,12 +258,11 @@
                 Empezar
                 <ArrowRightIcon class="size-4 transition-transform group-hover:translate-x-0.5" />
               </span>
-            </button>
+            </a>
 
             <!-- Colaborar -->
-            <button
-              type="button"
-              onclick={() => navigate('inicio?modo=colaborador')}
+            <a
+              href="#inicio?modo=colaborador"
               class="group flex flex-col gap-2 rounded-xl border-2 border-amber-500/40 bg-amber-500/5 p-5 text-left transition-all hover:border-amber-500 hover:bg-amber-500/10 hover:shadow-md"
             >
               <div class="flex size-10 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600">
@@ -279,7 +276,7 @@
                 Importar archivo
                 <ArrowRightIcon class="size-4 transition-transform group-hover:translate-x-0.5" />
               </span>
-            </button>
+            </a>
 
             {#if isPouchMode}
               <!-- Ver una demo -->
@@ -311,7 +308,7 @@
             <p class="text-sm text-destructive max-w-2xl">{demoError}</p>
           {/if}
           <div class="flex flex-wrap gap-3">
-            <Button variant="outline" size="sm" onclick={() => navigate('instalacion')}>
+            <Button variant="outline" size="sm" href="#instalacion">
               <DownloadIcon data-icon="inline-start" />
               Cómo instalarlo
             </Button>
@@ -600,7 +597,7 @@
               <div class="flex flex-col gap-3 p-1">
                 <div class="rounded-xl border border-border overflow-hidden bg-muted">
                   {#if captura.imagen}
-                    <img src={'./' + captura.imagen} alt={captura.titulo} class="w-full h-auto object-contain" loading="lazy" />
+                    <img src={'./' + captura.imagen} alt={captura.titulo} width="1918" height="1067" class="w-full h-auto object-contain" loading="lazy" />
                   {:else}
                     <div class="aspect-video flex items-center justify-center">
                       <ImageIcon class="size-12 text-muted-foreground/40" />
@@ -749,7 +746,7 @@
       <p class="text-base text-muted-foreground max-w-prose">
         ¿Te gustó la solución y querés saber <strong class="text-foreground">por qué existe LOF</strong>, qué significa el nombre y qué nos motiva?
       </p>
-      <Button variant="outline" onclick={() => navigate('sobre-lof')}>
+      <Button variant="outline" href="#sobre-lof">
         Conocer la historia
         <ArrowRightIcon data-icon="inline-end" />
       </Button>
@@ -782,7 +779,7 @@
           </p>
         </div>
         <div class="flex flex-wrap gap-3">
-          <Button variant="ghost" size="sm" onclick={() => navigate('sobre-lof')}>
+          <Button variant="ghost" size="sm" href="#sobre-lof">
             Sobre LOF
           </Button>
           <Button variant="ghost" size="sm" href={enlaces.repo} target="_blank" rel="noopener noreferrer">

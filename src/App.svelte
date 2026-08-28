@@ -17,13 +17,6 @@
   import InstallGuide from '$landing/InstallGuide.svelte'
   import SobreLof from '$landing/SobreLof.svelte'
   import NeedsAccess from '$setup/NeedsAccess.svelte'
-  import SetupWizard from '$setup/SetupWizard.svelte'
-  import Cooperadora from '$app/pages/cooperadora/Cooperadora.svelte'
-  import Comunidad from '$app/modules/comunidad/Comunidad.svelte'
-  import Movimientos from '$app/modules/tesoreria/movimientos/Movimientos.svelte'
-  import CargaPIAMatrix from '$app/modules/tesoreria/cargaPia/CargaPIAMatrix.svelte'
-  import Gobierno from '$app/modules/gobierno/AsambleasAutoridades.svelte'
-  import Configuracion from '$app/pages/configuracion/Configuracion.svelte'
   import { cierreStore } from '$app/modules/tesoreria/cierre/cierreStore.svelte'
   import { cooperadoraStore } from '$app/pages/cooperadora/cooperadoraStore.svelte'
   import { movimientosStore } from '$app/modules/tesoreria/movimientos/movimientosStore.svelte'
@@ -174,15 +167,47 @@
 {:else if router.current === 'instalacion'}
   <InstallGuide />
 {:else if gristStatus === 'ready' && needsSetup}
-  <SetupWizard />
+  {#await import('$setup/SetupWizard.svelte')}
+    <div class="flex items-center justify-center min-h-screen" role="status">
+      <div class="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+    </div>
+  {:then mod}
+    <mod.default />
+  {:catch}
+    <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
+  {/await}
 {:else if gristStatus === 'ready'}
   <AppShell title={identidad.nombre}>
     {#if router.current === 'cooperadora'}
-      <Cooperadora />
+      {#await import('$app/pages/cooperadora/Cooperadora.svelte')}
+        <div class="flex items-center justify-center py-12" role="status">
+          <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+        </div>
+      {:then mod}
+        <mod.default />
+      {:catch}
+        <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
+      {/await}
     {:else if router.current === 'comunidad'}
-      <Comunidad />
+      {#await import('$app/modules/comunidad/Comunidad.svelte')}
+        <div class="flex items-center justify-center py-12" role="status">
+          <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+        </div>
+      {:then mod}
+        <mod.default />
+      {:catch}
+        <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
+      {/await}
     {:else if router.current === 'movimientos'}
-      <Movimientos />
+      {#await import('$app/modules/tesoreria/movimientos/Movimientos.svelte')}
+        <div class="flex items-center justify-center py-12" role="status">
+          <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+        </div>
+      {:then mod}
+        <mod.default />
+      {:catch}
+        <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
+      {/await}
     {:else if router.current === 'resumen'}
       {#await import('$app/modules/tesoreria/resumen/ResumenMensual.svelte')}
         <div class="flex items-center justify-center py-12" role="status">
@@ -194,7 +219,15 @@
         <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
       {/await}
     {:else if router.current.startsWith('carga-pia')}
-      <CargaPIAMatrix />
+      {#await import('$app/modules/tesoreria/cargaPia/CargaPIAMatrix.svelte')}
+        <div class="flex items-center justify-center py-12" role="status">
+          <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+        </div>
+      {:then mod}
+        <mod.default />
+      {:catch}
+        <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
+      {/await}
     {:else if router.current === 'cierre'}
       {#await import('$app/modules/tesoreria/cierre/Cierre.svelte')}
         <div class="flex items-center justify-center py-12" role="status">
@@ -206,9 +239,25 @@
         <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
       {/await}
     {:else if router.current === 'gobierno'}
-      <Gobierno />
+      {#await import('$app/modules/gobierno/AsambleasAutoridades.svelte')}
+        <div class="flex items-center justify-center py-12" role="status">
+          <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+        </div>
+      {:then mod}
+        <mod.default />
+      {:catch}
+        <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
+      {/await}
     {:else if router.current === 'configuracion'}
-      <Configuracion />
+      {#await import('$app/pages/configuracion/Configuracion.svelte')}
+        <div class="flex items-center justify-center py-12" role="status">
+          <div class="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+        </div>
+      {:then mod}
+        <mod.default />
+      {:catch}
+        <p class="p-4 text-sm text-destructive">Error al cargar el módulo. Reintentá.</p>
+      {/await}
     {:else}
       <Inicio />
     {/if}
