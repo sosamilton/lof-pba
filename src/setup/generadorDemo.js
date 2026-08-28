@@ -73,6 +73,18 @@ const pickN = (arr, n) => {
 const genFecha = (year, month, day) =>
   `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 
+/**
+ * Filtra períodos (formato 'YYYY-MM') para excluir los futuros al mes actual.
+ * El período actual se incluye aunque no esté completo (para pruebas).
+ * @param {string[]} periodos
+ * @returns {string[]}
+ */
+const periodosHastaHoy = (periodos) => {
+  const hoy = new Date()
+  const hoyPeriodo = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`
+  return periodos.filter((p) => p <= hoyPeriodo)
+}
+
 /** Inserta registros en lotes para no exceder el límite de Grist */
 const chunkAndInsert = async (tableId, data, batchSize) => {
   for (let i = 0; i < data.length; i += batchSize) {
@@ -380,7 +392,7 @@ export const generarDatosPrueba = async ({
    * @returns {Promise<{cargas: number, cargasFirmadas: number}>}
    */
   const generarMovimientosConsolidada = async (ejId, ejRec, esUltimoEjercicio) => {
-    const periodos = generarPeriodosEjercicio(ejRec)
+    const periodos = periodosHastaHoy(generarPeriodosEjercicio(ejRec))
     const todosRubros = rubrosRecs.filter((r) => r.tipo_rubro === 'Entrada' || r.tipo_rubro === 'Salida')
     log(`Generando cargas y movimientos: ${todosRubros.length} rubros × ${cuentaIds.length} cuentas × ${periodos.length} períodos...`)
 
@@ -486,7 +498,8 @@ export const generarDatosPrueba = async ({
    */
   const generarMovimientosIntegral = (ejId, anioEj, cantidad, ejRec) => {
     // Generar fechas solo dentro del rango del ejercicio (mes_inicio → mes_inicio-1 del año siguiente)
-    const periodos = ejRec ? generarPeriodosEjercicio(ejRec) : []
+    // y solo hasta el mes actual (sin movimientos futuros)
+    const periodos = ejRec ? periodosHastaHoy(generarPeriodosEjercicio(ejRec)) : []
     for (let i = 0; i < cantidad; i++) {
       const tipo = pick(TIPOS_MOV)
       let rubroId = null
@@ -518,7 +531,8 @@ export const generarDatosPrueba = async ({
         const [y, m] = p.split('-').map(Number)
         fecha = genFecha(y, m, rand(1, 28))
       } else {
-        fecha = genFecha(anioEj, rand(1, 12), rand(1, 28))
+        // Sin períodos válidos (ejercicio futuro) — saltear este movimiento
+        continue
       }
 
       movimientosData.push({
@@ -549,7 +563,7 @@ export const generarDatosPrueba = async ({
    */
   const generarCuotaSocialMensual = (ejId, ejRec, cuotaImporte) => {
     if (!rubroCuotaSocialId || cuentaIds.length === 0) return
-    const periodos = generarPeriodosEjercicio(ejRec)
+    const periodos = periodosHastaHoy(generarPeriodosEjercicio(ejRec))
 
     // Solo socios activos (sin fecha_baja) pagan cuota social
     const sociosActivosData = sociosData.filter((s) => !s.fecha_baja)
