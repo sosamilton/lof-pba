@@ -4,6 +4,7 @@
   import * as Card from '$lib/components/ui/card'
   import { Separator } from '$lib/components/ui/separator'
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left'
+  import ArrowRightIcon from '@lucide/svelte/icons/arrow-right'
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link'
   import CodeXmlIcon from '@lucide/svelte/icons/code-xml'
   import LanguagesIcon from '@lucide/svelte/icons/languages'
@@ -37,6 +38,12 @@
 </script>
 
 <main class="min-h-screen bg-background text-foreground">
+  <a
+    href="#contenido"
+    class="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:shadow-md"
+  >
+    Saltar al contenido
+  </a>
   <!-- NAVBAR -->
   <nav class="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
     <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
@@ -53,7 +60,7 @@
   </nav>
 
   <!-- HEADER -->
-  <section class="border-b border-border bg-gradient-to-br from-primary/10 via-transparent to-chart-2/5">
+  <section id="contenido" class="border-b border-border bg-gradient-to-br from-primary/10 via-transparent to-chart-2/5">
     <div class="mx-auto max-w-5xl px-4 py-12">
       <div class="flex flex-col gap-3">
         <div class="flex items-center gap-3">
@@ -230,6 +237,28 @@
           </Card.Content>
         </Card.Root>
       {/each}
+    </div>
+  </section>
+
+  <!-- CTA DE CONVERSIÓN -->
+  <section class="mx-auto max-w-5xl px-4 py-10">
+    <div class="flex flex-col items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-6 py-8 text-center">
+      <p class="text-base text-foreground max-w-prose">
+        ¿Listo para ordenar la información de tu cooperadora?
+      </p>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        Empezá a usar LOF en el navegador, sin instalar nada. Tus datos quedan en tu dispositivo.
+      </p>
+      <div class="flex flex-wrap gap-3 justify-center">
+        <Button variant="default" href="#inicio">
+          <SparklesIcon data-icon="inline-start" />
+          Empezar a usar LOF
+        </Button>
+        <Button variant="outline" href="#landing">
+          Ver qué podés hacer
+          <ArrowRightIcon data-icon="inline-end" />
+        </Button>
+      </div>
     </div>
   </section>
 

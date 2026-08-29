@@ -7,6 +7,7 @@
   import { trackPageview } from '$core/analytics/plausible.js'
   import { isInstalled, loadConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
   import { identidad } from '$core/data/identidad'
+  import { updateRouteMeta } from '$core/seo'
   import { syncStore as sync } from '$app/pages/configuracion/syncStore.svelte.js'
 
   const activeBackend = getActiveBackend()
@@ -16,6 +17,8 @@
   import Landing from '$landing/Landing.svelte'
   import InstallGuide from '$landing/InstallGuide.svelte'
   import SobreLof from '$landing/SobreLof.svelte'
+  import Seguridad from '$landing/Seguridad.svelte'
+  import AyudaComunidad from '$landing/AyudaComunidad.svelte'
   import NeedsAccess from '$setup/NeedsAccess.svelte'
   import { cierreStore } from '$app/modules/tesoreria/cierre/cierreStore.svelte'
   import { cooperadoraStore } from '$app/pages/cooperadora/cooperadoraStore.svelte'
@@ -105,6 +108,22 @@
     }
   })
 
+  // SEO: actualiza title/meta del documento según la ruta pública.
+  $effect(() => {
+    if (!ready) return
+    updateRouteMeta(router.current)
+  })
+
+  // Scroll al top al cambiar a una página pública completa (no landing).
+  // El landing tiene secciones con anclas, así que no se le fuerza scroll.
+  $effect(() => {
+    if (!ready) return
+    const fullPages = ['sobre-lof', 'instalacion', 'seguridad', 'ayuda-comunidad']
+    if (fullPages.includes(router.current)) {
+      window.scrollTo(0, 0)
+    }
+  })
+
   // Trackea pageviews en Plausible distinguiendo landing vs app por URL.
   // Landing  → "/"  "/instalacion"  "/sobre-lof"  "/needs-access"
   // App      → "/app/{route}"  o  "/app/setup"
@@ -136,6 +155,12 @@
     } else if (router.current === 'sobre-lof') {
       path = '/sobre-lof'
       section = 'landing'
+    } else if (router.current === 'seguridad') {
+      path = '/seguridad'
+      section = 'landing'
+    } else if (router.current === 'ayuda-comunidad') {
+      path = '/ayuda-comunidad'
+      section = 'landing'
     } else {
       path = '/'
       section = 'landing'
@@ -166,6 +191,10 @@
   <SobreLof />
 {:else if router.current === 'instalacion'}
   <InstallGuide />
+{:else if router.current === 'seguridad'}
+  <Seguridad />
+{:else if router.current === 'ayuda-comunidad'}
+  <AyudaComunidad />
 {:else if gristStatus === 'ready' && needsSetup}
   {#await import('$setup/SetupWizard.svelte')}
     <div class="flex items-center justify-center min-h-screen" role="status">

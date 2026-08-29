@@ -38,13 +38,11 @@
   import * as Card from '$lib/components/ui/card'
   import { Badge } from '$lib/components/ui/badge'
   import { Separator } from '$lib/components/ui/separator'
-  import * as Carousel from '$lib/components/ui/carousel'
   import { getActiveBackend } from '$core/data/dataRepository'
   import { trackEvent } from '$core/analytics/plausible.js'
   import CodeXmlIcon from '@lucide/svelte/icons/code-xml'
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link'
   import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
-  import ImageIcon from '@lucide/svelte/icons/image'
   import MapPinIcon from '@lucide/svelte/icons/map-pin'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
   import DownloadIcon from '@lucide/svelte/icons/download'
@@ -66,12 +64,18 @@
   import SaveIcon from '@lucide/svelte/icons/save'
   import UploadIcon from '@lucide/svelte/icons/upload'
   import SparklesIcon from '@lucide/svelte/icons/sparkles'
+  import UserCogIcon from '@lucide/svelte/icons/user-cog'
+  import GraduationCapIcon from '@lucide/svelte/icons/graduation-cap'
+  import ScaleIcon from '@lucide/svelte/icons/scale'
+  import LockIcon from '@lucide/svelte/icons/lock'
+  import MailIcon from '@lucide/svelte/icons/mail'
+  import CodeIcon from '@lucide/svelte/icons/code'
   import { identidad } from '$core/data/identidad'
   import data from './landing.json'
 
   let { installed = false } = $props()
 
-  const { problemas, funciones, titulo_seccion, subtitulo_seccion, capturas, roadmap } = data
+  const { problemas, funciones, titulo_seccion, subtitulo_seccion, roadmap } = data
   const enlaces = identidad.enlaces
   const versionActual = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
   const isPouchMode = getActiveBackend() === 'pouch'
@@ -140,6 +144,12 @@
 </script>
 
 <main class="min-h-screen bg-background text-foreground">
+  <a
+    href="#hero"
+    class="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:shadow-md"
+  >
+    Saltar al contenido
+  </a>
   {#snippet iconBadge(/** @type {any} */ Icon)}
     <div class="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
       {#if Icon}
@@ -172,7 +182,7 @@
             title="Ver historial de versiones"
             aria-label="Ver historial de versiones"
           >
-            <Badge variant="secondary" class="font-mono text-[10px]">v{versionActual}</Badge>
+            <Badge variant="secondary" class="font-mono text-[12px]">v{versionActual}</Badge>
           </button>
         {/if}
         <Button variant="ghost" size="sm" onclick={() => (showReleases = true)}>
@@ -182,22 +192,24 @@
         <Button variant="ghost" size="sm" href="#sobre-lof">
           Sobre LOF
         </Button>
+        <Button variant="ghost" size="sm" href="#ayuda-comunidad">
+          Ayuda
+        </Button>
         <Button variant="ghost" size="sm" href={enlaces.repo} target="_blank" rel="noopener noreferrer" aria-label="Ver repositorio en GitHub">
           <CodeXmlIcon data-icon="inline-start" />
           <span class="hidden sm:inline">GitHub</span>
         </Button>
-        {#if !installed}
-          <Button variant="outline" size="sm" href={enlaces.grist} target="_blank" rel="noopener noreferrer" aria-label="Abrir Grist">
-            <span class="hidden sm:inline">Grist</span>
-            <ExternalLinkIcon data-icon="inline-end" />
-          </Button>
-        {/if}
+        <Button variant="outline" size="sm" href="#instalacion">
+          <DownloadIcon data-icon="inline-start" />
+          <span class="hidden sm:inline">Cómo empezar</span>
+          <span class="sm:hidden">Empezar</span>
+        </Button>
       </div>
     </div>
   </nav>
 
   <!-- HERO -->
-  <section class="relative overflow-hidden border-b border-border">
+  <section id="hero" class="relative overflow-hidden border-b border-border">
     <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-chart-2/5"></div>
     <div class="relative mx-auto max-w-5xl px-4 py-12 sm:py-16">
       <div class="flex flex-col gap-6">
@@ -219,7 +231,7 @@
           <p class="max-w-2xl text-base text-muted-foreground sm:text-lg">
             {identidad.apertura}
           </p>
-          <p class="max-w-2xl text-base text-muted-foreground sm:text-lg">
+          <p class="hidden max-w-2xl text-base text-muted-foreground sm:block sm:text-lg">
             {identidad.descripcion}
           </p>
         </div>
@@ -252,7 +264,7 @@
               </div>
               <h3 class="text-base font-bold tracking-tight">Instalar mi cooperadora</h3>
               <p class="text-sm text-muted-foreground leading-relaxed">
-                Configurá LOF para tu escuela por primera vez. Wizard guiado paso a paso, en 5 minutos.
+                Configurá LOF para tu escuela por primera vez. Guía paso a paso, en 5 minutos.
               </p>
               <span class="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-primary">
                 Empezar
@@ -398,6 +410,155 @@
 
   <Separator />
 
+  <!-- PARA QUIÉN ES -->
+  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="para-quien-heading">
+    <div class="flex flex-col gap-2 mb-6">
+      <h2 id="para-quien-heading" class="text-2xl font-bold tracking-tight">¿Para quién es?</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        LOF está pensado para las personas que sostienen la cooperadora de su escuela, sin importar cuánto saben de computadoras.
+      </p>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            {@render iconBadge(UserCogIcon)}
+            <Card.Title class="text-base">Presidente/a</Card.Title>
+          </div>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground">Ordená la información de la cooperadora y conservala cuando cambie la comisión.</p>
+        </Card.Content>
+      </Card.Root>
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            {@render iconBadge(WalletIcon)}
+            <Card.Title class="text-base">Tesorero/a</Card.Title>
+          </div>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground">Llevá la caja al día, rendí la PIA sin armarla a mano y evitá errores.</p>
+        </Card.Content>
+      </Card.Root>
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            {@render iconBadge(UsersIcon)}
+            <Card.Title class="text-base">Comisión Directiva</Card.Title>
+          </div>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground">Gestionen socios, autoridades y asambleas en un solo lugar, entre varias personas.</p>
+        </Card.Content>
+      </Card.Root>
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            {@render iconBadge(GraduationCapIcon)}
+            <Card.Title class="text-base">Docente o directivo</Card.Title>
+          </div>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground">Entendé cómo se organiza la cooperadora que acompaña a tu escuela.</p>
+        </Card.Content>
+      </Card.Root>
+    </div>
+  </section>
+
+  <Separator />
+
+  <!-- SOFTWARE LIBRE Y SOBERANÍA -->
+  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="software-libre-heading">
+    <div class="flex flex-col gap-2 mb-6">
+      <h2 id="software-libre-heading" class="text-2xl font-bold tracking-tight">Software libre, sin ataduras</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        LOF es tuyo: lo podés usar, auditar, modificar y compartir. Nadie te puede cobrar por lo que ya tenés.
+      </p>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-3">
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            {@render iconBadge(ScaleIcon)}
+            <Card.Title class="text-base">Licencia AGPL-3.0</Card.Title>
+          </div>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground">Software libre: el código es público, auditable y modificable. Siempre gratis, sin suscripciones ni versiones pagas.</p>
+        </Card.Content>
+      </Card.Root>
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            {@render iconBadge(ShieldIcon)}
+            <Card.Title class="text-base">Sin telemetría ni publicidad</Card.Title>
+          </div>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground">LOF no rastrea lo que hacés ni te muestra publicidad. No hay cuentas, no hay perfiles, no hay seguimiento.</p>
+        </Card.Content>
+      </Card.Root>
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            {@render iconBadge(FlagIcon)}
+            <Card.Title class="text-base">Soberanía tecnológica</Card.Title>
+          </div>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground">Lo podés instalar en tu propia computadora o servidor. No dependés de ninguna empresa ni de internet para funcionar.</p>
+        </Card.Content>
+      </Card.Root>
+    </div>
+  </section>
+
+  <Separator />
+
+  <!-- QUIÉN ESTÁ DETRÁS -->
+  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="quien-heading">
+    <div class="flex flex-col gap-2 mb-6">
+      <h2 id="quien-heading" class="text-2xl font-bold tracking-tight">Quién está detrás de LOF</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        Un proyecto independiente, creado por y para la comunidad educativa.
+      </p>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            {@render iconBadge(HeartHandshakeIcon)}
+            <Card.Title class="text-base">Quién lo crea</Card.Title>
+          </div>
+        </Card.Header>
+        <Card.Content class="flex flex-col gap-2">
+          <p class="text-sm text-muted-foreground">
+            LOF es desarrollado por <strong class="text-foreground">Milton Sosa</strong> y abierto a la comunidad: docentes, directivos y familias que aportan tiempo, ideas y pruebas desde el territorio.
+          </p>
+          <Button variant="outline" size="sm" class="w-fit" href="#sobre-lof">
+            Conocer la historia
+            <ArrowRightIcon data-icon="inline-end" />
+          </Button>
+        </Card.Content>
+      </Card.Root>
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            {@render iconBadge(BuildingIcon)}
+            <Card.Title class="text-base">¿Es oficial?</Card.Title>
+          </div>
+        </Card.Header>
+        <Card.Content class="flex flex-col gap-2">
+          <p class="text-sm text-muted-foreground">
+            <strong class="text-foreground">LOF es un proyecto independiente</strong>, no es una herramienta oficial de la DGCyE ni de la DIPREGEP. Está diseñado para facilitar el cumplimiento del estatuto modelo, la PIA y los libros obligatorios que exige la normativa de la Provincia de Buenos Aires.
+          </p>
+        </Card.Content>
+      </Card.Root>
+    </div>
+  </section>
+
+  <Separator />
+
   <!-- FORMAS DE USO: múltiples formas de usar LOF, sin jerga técnica -->
   <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="formas-heading">
     <div class="flex flex-col gap-2 mb-6">
@@ -417,7 +578,7 @@
             </div>
             <div class="flex flex-col">
               <Card.Title class="text-base">Probar en el navegador</Card.Title>
-              <Badge variant="default" class="w-fit mt-1">Sin instalar nada</Badge>
+              <Badge variant="default" class="w-fit mt-1">Recomendado para empezar</Badge>
             </div>
           </div>
         </Card.Header>
@@ -452,7 +613,7 @@
             </div>
             <div class="flex flex-col">
               <Card.Title class="text-base">Con respaldo en tu compu</Card.Title>
-              <Badge variant="secondary" class="w-fit mt-1">Recomendado</Badge>
+              <Badge variant="secondary" class="w-fit mt-1">Para escuelas con varios dispositivos</Badge>
             </div>
           </div>
         </Card.Header>
@@ -583,40 +744,34 @@
 
   <Separator />
 
-  <!-- CAPTURAS -->
-  {#if capturas?.items?.length > 0}
-    <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="capturas-heading">
+  <!-- VELO EN ACCIÓN: la demo real reemplaza al carrusel de capturas estáticas -->
+  {#if !installed && isPouchMode}
+    <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="velo-heading">
       <div class="flex flex-col gap-2 mb-6">
-        <h2 id="capturas-heading" class="text-2xl font-bold tracking-tight">{capturas.titulo}</h2>
-        <p class="text-sm text-muted-foreground max-w-prose">{capturas.subtitulo}</p>
+        <h2 id="velo-heading" class="text-2xl font-bold tracking-tight">Miralo en acción</h2>
+        <p class="text-sm text-muted-foreground max-w-prose">
+          Nada de imágenes estáticas: probá LOF ya cargado con datos de ejemplo y navegá la app real en segundos.
+        </p>
       </div>
-      <Carousel.Root class="w-full" aria-labelledby="capturas-heading">
-        <Carousel.Content>
-          {#each capturas.items as captura}
-            <Carousel.Item>
-              <div class="flex flex-col gap-3 p-1">
-                <div class="rounded-xl border border-border overflow-hidden bg-muted">
-                  {#if captura.imagen}
-                    <img src={'./' + captura.imagen} alt={captura.titulo} width="1918" height="1067" class="w-full h-auto object-contain" loading="lazy" />
-                  {:else}
-                    <div class="aspect-video flex items-center justify-center">
-                      <ImageIcon class="size-12 text-muted-foreground/40" />
-                    </div>
-                  {/if}
-                </div>
-                <div class="flex flex-col gap-1 px-1">
-                  <h3 class="text-base font-semibold tracking-tight">{captura.titulo}</h3>
-                  {#if captura.descripcion}
-                    <p class="text-sm text-muted-foreground">{captura.descripcion}</p>
-                  {/if}
-                </div>
-              </div>
-            </Carousel.Item>
-          {/each}
-        </Carousel.Content>
-        <Carousel.Previous />
-        <Carousel.Next />
-      </Carousel.Root>
+      <div class="rounded-xl border-2 border-chart-2/40 bg-chart-2/5 p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-col gap-1">
+          <span class="text-base font-bold tracking-tight">Demo con datos de ejemplo</span>
+          <span class="text-sm text-muted-foreground">Dos ejercicios, movimientos, autoridades y memorias — sin configurar nada.</span>
+        </div>
+        <button
+          type="button"
+          onclick={verDemo}
+          disabled={demoLoading}
+          class="inline-flex items-center justify-center gap-2 rounded-md bg-chart-2 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-chart-2/90 disabled:cursor-wait disabled:opacity-70 shrink-0"
+        >
+          <SparklesIcon data-icon="inline-start" />
+          {#if demoLoading}
+            Cargando…
+          {:else}
+            Probar la demo
+          {/if}
+        </button>
+      </div>
     </section>
 
     <Separator />
@@ -737,19 +892,88 @@
           </p>
         </Card.Content>
       </Card.Root>
+      <Card.Root>
+        <Card.Header>
+          <Card.Title class="text-base">¿Puedo usarlo sin saber informática?</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground">
+            Sí. LOF está pensado para personas que administran la cooperadora de su escuela, sin importar cuánto saben de computadoras. Si sabés usar una planilla, sabés usar LOF. Y si necesitás ayuda, podés escribirnos.
+          </p>
+        </Card.Content>
+      </Card.Root>
+      <Card.Root>
+        <Card.Header>
+          <Card.Title class="text-base">¿Qué pasa si dejo de usar LOF con mis datos?</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <p class="text-sm text-muted-foreground">
+            Tus datos son tuyos. Podés exportarlos a un archivo .lof en cualquier momento y guardarlos donde quieras. Si dejás de usar LOF, la información queda en tu dispositivo o en tu backup. Nadie la puede borrar ni retener.
+          </p>
+        </Card.Content>
+      </Card.Root>
     </div>
   </section>
 
-  <!-- INVITACIÓN A "SOBRE LOF" -->
-  <section class="mx-auto max-w-5xl px-4 py-10">
-    <div class="flex flex-col items-center gap-3 rounded-lg border border-border bg-card/50 px-6 py-8 text-center">
-      <p class="text-base text-muted-foreground max-w-prose">
-        ¿Te gustó la solución y querés saber <strong class="text-foreground">por qué existe LOF</strong>, qué significa el nombre y qué nos motiva?
+  <Separator />
+
+  <!-- CONVERSEMOS: canales de comunicación -->
+  <section class="mx-auto max-w-5xl px-4 py-12" aria-labelledby="conversemos-heading">
+    <div class="flex flex-col gap-2 mb-6">
+      <h2 id="conversemos-heading" class="text-2xl font-bold tracking-tight">Conversemos</h2>
+      <p class="text-sm text-muted-foreground max-w-prose">
+        Para mejorar LOF, conversar con el proyecto o reportar un problema de seguridad.
       </p>
-      <Button variant="outline" href="#sobre-lof">
-        Conocer la historia
-        <ArrowRightIcon data-icon="inline-end" />
-      </Button>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-3">
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            {@render iconBadge(HeartHandshakeIcon)}
+            <Card.Title class="text-base">Ayuda y comunidad</Card.Title>
+          </div>
+        </Card.Header>
+        <Card.Content class="flex flex-col gap-3">
+          <p class="text-sm text-muted-foreground">
+            Sugerí mejoras, reportá problemas, pedí ayuda y votá las ideas de otras cooperadoras.
+          </p>
+          <Button variant="default" size="sm" class="w-fit" href="#ayuda-comunidad">
+            Ir a ayuda y comunidad
+            <ArrowRightIcon data-icon="inline-end" />
+          </Button>
+        </Card.Content>
+      </Card.Root>
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            {@render iconBadge(MailIcon)}
+            <Card.Title class="text-base">Hablemos</Card.Title>
+          </div>
+        </Card.Header>
+        <Card.Content class="flex flex-col gap-2">
+          <p class="text-sm text-muted-foreground">
+            Para articulaciones institucionales: escuelas, federaciones, municipios u organizaciones.
+          </p>
+          <a href="mailto:hola@lof.mdsoluciones.ar" class="text-sm font-semibold text-primary hover:underline">hola@lof.mdsoluciones.ar</a>
+        </Card.Content>
+      </Card.Root>
+      <Card.Root>
+        <Card.Header>
+          <div class="flex items-center gap-3">
+            {@render iconBadge(LockIcon)}
+            <Card.Title class="text-base">Seguridad</Card.Title>
+          </div>
+        </Card.Header>
+        <Card.Content class="flex flex-col gap-2">
+          <p class="text-sm text-muted-foreground">
+            Si encontraste una vulnerabilidad, reportala en privado.
+          </p>
+          <Button variant="outline" size="sm" class="w-fit" href="#seguridad">
+            Ver cómo reportar
+            <ArrowRightIcon data-icon="inline-end" />
+          </Button>
+        </Card.Content>
+      </Card.Root>
     </div>
   </section>
 
@@ -769,13 +993,16 @@
                 title="Ver historial de versiones"
                 aria-label="Ver historial de versiones"
               >
-                <Badge variant="secondary" class="font-mono text-[10px]">v{versionActual}</Badge>
+                <Badge variant="secondary" class="font-mono text-[12px]">v{versionActual}</Badge>
               </button>
             {/if}
           </div>
           <p class="text-sm text-muted-foreground max-w-prose">
             {identidad.lema}. Software libre bajo {identidad.licencia}.
             Funciona en el navegador, con respaldo local o dentro de Grist.
+          </p>
+          <p class="text-xs text-muted-foreground/80 max-w-prose mt-1">
+            Proyecto independiente, no oficial. Alineado con la normativa de cooperadoras escolares de PBA.
           </p>
         </div>
         <div class="flex flex-wrap gap-3">
