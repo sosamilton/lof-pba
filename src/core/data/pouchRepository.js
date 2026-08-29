@@ -742,8 +742,14 @@ const _buildComputedContext = async (tableKey) => {
   // Solo socios, autoridades y asesores necesitan lookup de personas
   if (!['socios', 'autoridades', 'asesores'].includes(tableKey)) return {}
 
+  // Resolver el tableId real de personas (ej: 'Personas' en PouchDB,
+  // ya que resolveTableId devuelve el primer preferred ID, que está
+  // capitalizado). Usar hardcode 'personas' no encuentra los docs.
+  const { TABLE_PREFERRED_IDS } = await import('$core/utils/utils')
+  const personasTableId = (await resolveTableId(TABLE_PREFERRED_IDS.personas)) || 'Personas'
+
   const db = _getDb()
-  const result = await db.find({ selector: { type: 'personas' }, limit: 100000 })
+  const result = await db.find({ selector: { type: personasTableId }, limit: 100000 })
   const personas = new Map()
   for (const doc of result.docs) {
     personas.set(Number(doc.id), _docToRecord(doc))
