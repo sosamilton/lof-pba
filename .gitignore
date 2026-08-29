@@ -49,10 +49,14 @@ _spec/
 .claude/
 .vscode/
 .windsurf/
+.devin/
+.nexus/
+.ai-memory.toml
+CLAUDE.md
 lof/
 # PouchDB local database (created at runtime)
-lof-intercambio-test/
-lof-intercambio-test-*/
+lof-*-test/
+lof-*-test-*/
 
 # Tauri build artifacts
 src-tauri/target/
