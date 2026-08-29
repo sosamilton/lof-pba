@@ -178,7 +178,7 @@ export const TABLE_PREFERRED_IDS = {
 
 export const MODULES = {
   carga_consolidada: {
-    label: 'Carga consolidada',
+    label: 'Carga para rendir',
     description: 'Cargá los rubros PIA por período (mensual o anual). Ideal para cooperadoras que no registran cada movimiento individual.',
     tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asesores', 'asambleas', 'resoluciones', 'rubros_pia', 'planillas_generadas', 'configuracion', 'movimientos', 'cargas', 'cuentas', 'cierres_mensuales', 'estatutos'],
     menuItems: [
@@ -186,12 +186,12 @@ export const MODULES = {
       { route: 'comunidad', label: 'Comunidad' },
       { route: 'movimientos', label: 'Movimientos' },
       { route: 'gobierno', label: 'Asambleas y Memorias' },
-      { route: 'resumen', label: 'Resumen' }
+      { route: 'resumen', label: 'Análisis de tesorería' }
     ],
     implemented: true
   },
   gestion_integral: {
-    label: 'Gestión integral',
+    label: 'Gestión completa',
     description: 'Registrá gastos, movimientos, socios, asambleas y memorias. Generá reportes PIA y nómina automáticamente.',
     tables: ['escuela', 'ejercicios', 'personas', 'socios', 'cargos', 'autoridades', 'asesores', 'asambleas', 'resoluciones', 'cuentas', 'rubros_pia', 'subrubros', 'movimientos', 'cargas', 'configuracion', 'planillas_generadas', 'cierres_mensuales', 'estatutos'],
     menuItems: [
@@ -200,7 +200,7 @@ export const MODULES = {
       { route: 'comunidad', label: 'Comunidad' },
       { route: 'movimientos', label: 'Movimientos' },
       { route: 'gobierno', label: 'Asambleas y Memorias' },
-      { route: 'resumen', label: 'Resumen' }
+      { route: 'resumen', label: 'Análisis de tesorería' }
     ],
     implemented: true
   },
@@ -243,14 +243,14 @@ export const getActiveMenuItems = (config) => {
     items.push({ route: 'movimientos', label: 'Movimientos' })
     items.push({ route: 'gobierno', label: 'Asambleas y Memorias' })
     items.push({ route: 'comunidad', label: 'Comunidad' })
-    items.push({ route: 'resumen', label: 'Resumen' })
-    items.push({ route: 'cierre', label: 'Cierre / Presentación' })
+    items.push({ route: 'resumen', label: 'Análisis de tesorería' })
+    items.push({ route: 'cierre', label: 'Cierre de ejercicio' })
   } else if (isCargaConsolidada(config)) {
     items.push({ route: 'comunidad', label: 'Comunidad' })
     items.push({ route: 'movimientos', label: 'Movimientos' })
     items.push({ route: 'gobierno', label: 'Asambleas y Memorias' })
-    items.push({ route: 'resumen', label: 'Resumen' })
-    items.push({ route: 'cierre', label: 'Cierre / Presentación' })
+    items.push({ route: 'resumen', label: 'Análisis de tesorería' })
+    items.push({ route: 'cierre', label: 'Cierre de ejercicio' })
   }
 
   // Configuración siempre visible (modalidad, versiones, categorías/subrubros)

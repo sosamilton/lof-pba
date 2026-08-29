@@ -57,7 +57,7 @@
 <div class="flex flex-col gap-4">
   <div class="flex items-center gap-2">
     <DatabaseIcon class="size-5 text-primary" />
-    <h1 class="text-lg font-bold">{identidad.nombre}</h1>
+    <h1 class="text-lg font-bold">Inicio — {identidad.nombre}</h1>
   </div>
 
   {#if gristReady}
@@ -170,15 +170,15 @@
   {:else}
     <Card.Root>
       <Card.Content class="flex flex-col gap-3 pt-6">
-        <p class="text-sm text-muted-foreground">Esta app está pensada para ejecutarse dentro de Grist como Custom Widget.</p>
-        <p class="text-sm text-muted-foreground">Al abrirla desde un navegador, no tiene acceso a los datos del documento.</p>
+        <p class="text-sm text-muted-foreground">Esta aplicación funciona dentro de Grist, una planilla inteligente gratuita.</p>
+        <p class="text-sm text-muted-foreground">Si la abrís sola en el navegador, no tiene acceso a los datos de tu cooperadora. Necesitás agregarla a tu documento de Grist.</p>
         <Separator />
-        <p class="text-sm font-semibold">Cómo instalarla en un documento Grist</p>
+        <p class="text-sm font-semibold">Cómo instalarla en tu documento de Grist</p>
         <ol class="ml-5 list-decimal text-sm text-muted-foreground">
-          <li>Abrí tu documento</li>
-          <li><span class="font-mono">Add New</span> → <span class="font-mono">Add Widget to Page</span> → <span class="font-mono">Custom</span></li>
-          <li>Pegá la URL publicada (GitHub Pages)</li>
-          <li>Elegí <span class="font-mono">Access level</span>: <strong>Full document access</strong></li>
+          <li>Abrí tu documento de Grist</li>
+          <li>Agregá una página nueva y elegí "Personalizado" (Custom)</li>
+          <li>Pegá la URL publicada de LOF</li>
+          <li>Elegí el nivel de acceso: <strong>Acceso completo al documento</strong></li>
         </ol>
       </Card.Content>
     </Card.Root>

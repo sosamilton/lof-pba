@@ -227,9 +227,9 @@
         Este ejercicio aún no está cerrado. Para cerrarlo y generar las planillas
         (PIA y Nómina) para presentación, andá a
         <button class="underline font-semibold text-primary" onclick={() => navigate('cierre')}>
-          Cierre / Presentación
+          Cierre de ejercicio
         </button>
-        o usá el botón "Cerrar ejercicio" en Resumen.
+        o usá el botón "Cerrar ejercicio" en Análisis de tesorería.
         {#if periodosPendientes.length > 0}
           <div class="mt-2 border-t border-yellow-500/30 pt-2">
             <span class="font-semibold">Períodos pendientes de carga ({periodosPendientes.length}):</span>

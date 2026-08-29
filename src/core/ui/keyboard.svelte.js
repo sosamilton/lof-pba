@@ -77,7 +77,7 @@ export const NAV_SHORTCUTS = {
   i: { route: 'inicio', label: 'Inicio' },
   c: { route: 'comunidad', label: 'Comunidad' },
   m: { route: 'movimientos', label: 'Movimientos' },
-  r: { route: 'resumen', label: 'Resumen' },
+  r: { route: 'resumen', label: 'Análisis de tesorería' },
   a: { route: 'gobierno', label: 'Asambleas y Memorias' },
 }
 

@@ -32,7 +32,7 @@
   })
 </script>
 
-<PageScaffold title="Resumen">
+<PageScaffold title="Análisis de tesorería">
   <div class="flex items-center gap-2 mb-4">
     <BarChartIcon class="size-5 text-primary" />
     <h1 class="text-lg font-bold">Resumen de tesorería</h1>
