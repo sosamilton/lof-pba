@@ -144,7 +144,7 @@
         "Navegación completa por teclado con atajos (Ctrl+K, Ctrl+1, ?)",
         "Paleta de comandos para buscar y ejecutar acciones sin mouse",
         "Soporte para lectores de pantalla y ARIA labels",
-        "100% offline: sin nube, sin telemetría, sin publicidades",
+        "100% offline: sin nube, telemetría respetuosa de tu privacidad, sin publicidades",
         "Responsive: funciona en desktop y mobile",
         "Software libre AGPL-3.0 sobre Grist, sin lock-in"
       ]

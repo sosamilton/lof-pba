@@ -143,7 +143,7 @@ LOF es una SPA construida con **Svelte 5** para gestionar cooperadoras escolares
 - **Sidebar dinámico colapsable**: el menú se genera según módulos activos, con atajos de teclado por item.
 - **Combobox con búsqueda** y modo "large" para listas grandes (> 50 items, requiere 3 caracteres).
 - **Tema dinámico**: la app toma el color de marca de cada cooperadora como tema primario (OKLCH para light/dark). Título de pestaña dinámico con el nombre de la institución.
-- **100% offline** — sin dependencias externas, sin CDNs, sin telemetría. Todos los recursos bundleados localmente.
+- **100% offline** — sin dependencias externas, sin CDNs, telemetría respetuosa de tu privacidad. Todos los recursos bundleados localmente.
 
 </details>
 

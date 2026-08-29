@@ -573,7 +573,7 @@
     <div class="mt-4 flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 max-w-2xl">
       <ShieldIcon class="size-5 shrink-0 text-primary mt-0.5" />
       <p class="text-sm text-muted-foreground">
-        <strong class="text-foreground">Sin cuentas, sin nube, sin telemetría.</strong>
+        <strong class="text-foreground">Sin cuentas, sin nube, telemetría respetuosa de tu privacidad.</strong>
         LOF no te pide que crees una cuenta ni que subas tus datos a ningún servidor.
         Todo queda en tu dispositivo o en tu servidor, bajo tu control. Si mañana dejás de usar LOF,
         los datos siguen siendo tuyos y los podés exportar cuando quieras.

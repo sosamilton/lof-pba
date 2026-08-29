@@ -6,7 +6,7 @@ LOF está diseñado para funcionar **100% sin conexión a internet**. Esta guía
 
 ## Por qué LOF funciona offline
 
-El análisis del código confirma que **no hay ninguna dependencia de red externa**:
+El análisis del código confirma que **no hay ninguna dependencia de red externa para funcionar** (las únicas llamadas externas son opcionales y best-effort: ver más abajo):
 
 | Componente | Origen | ¿Requiere internet? |
 | --- | --- | --- |
@@ -18,7 +18,12 @@ El análisis del código confirma que **no hay ninguna dependencia de red extern
 | Comunicación SPA ↔ Grist | `postMessage` del iframe | No — comunicación local entre iframe y parent |
 | Datos (tablas Grist) | Documento SQLite local | No — persiste en disco |
 
-**No hay llamadas a APIs externas, CDNs, fuentes remotas ni servicios de terceros.**
+**No hay llamadas a APIs externas, CDNs, fuentes remotas ni servicios de terceros para el funcionamiento core.**
+
+> **Excepciones (opcionales, best-effort, no bloquean la app):**
+> - `updateCheck.svelte.js` consulta la API de GitHub Releases para detectar versiones nuevas (solo en producción, cache 6h, silencioso si falla).
+> - `plausible.js` envía eventos de analytics (solo en producción, no afecta funcionalidad si se bloquea).
+> - Ambas son no-bloqueantes: si no hay internet, la app funciona igual. Ver [`OFFLINE-UPDATES.md`](OFFLINE-UPDATES.md) para detalles.
 
 ---
 
@@ -171,7 +176,7 @@ Si todos los pasos funcionan sin internet, la instalación es 100% offline.
 
 ## Telemetría y privacidad
 
-El `docker/grist/docker-compose.grist.yml` configura `GRIST_TELEMETRY_LEVEL=off` para desactivar cualquier telemetría de Grist. LOF no envía datos a ningún servicio externo.
+El `docker/grist/docker-compose.grist.yml` configura `GRIST_TELEMETRY_LEVEL=off` para desactivar cualquier telemetría de Grist. LOF envía eventos de analytics a Plausible (solo en producción) y consulta la API de GitHub para detectar versiones nuevas — ambas son opcionales, best-effort y no bloquean el funcionamiento offline. Ver [`OFFLINE-UPDATES.md`](OFFLINE-UPDATES.md) para detalles de las métricas.
 
 ---
 
