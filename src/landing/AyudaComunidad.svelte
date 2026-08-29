@@ -21,9 +21,9 @@
   const fiderProblema = FIDER_URL + '/?tags=problema'
   const fiderAyuda = FIDER_URL + '/?tags=ayuda'
 
-  let copiedMail = $state<string | null>(null)
+  let copiedMail = $state(null)
 
-  async function copiarEmail(email: string) {
+  async function copiarEmail(email) {
     try {
       await navigator.clipboard.writeText(email)
       copiedMail = email

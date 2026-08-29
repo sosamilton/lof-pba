@@ -89,6 +89,34 @@ Cuando se solicite una modificación, un fix, una mejora o una nueva funcionalid
 - Si una tarea no toca UI ni Grist, igualmente cargar `svelte-core-bestpractices` para mantener la calidad del código Svelte.
 - Si el usuario pide explícitamente no usar skills, omitir esta regla para esa tarea.
 
+## Pre-render de páginas públicas (SEO/SSG)
+
+Las páginas públicas (`/`, `/sobre-lof`, `/instalacion`, `/seguridad`, `/ayuda-comunidad`) tienen **HTML estático pre-renderizado** además del SPA. Esto permite que crawlers y previews (WhatsApp/OG) vean contenido real y meta tags correctos sin ejecutar JS.
+
+### Cómo funciona
+
+- `scripts/prerender.mjs` se ejecuta después de `vite build` y antes de `workbox generateSW`.
+- Usa `vite build --ssr` para compilar `src/prerender/entry-server.js` (que importa los componentes Svelte y usa `render` de `svelte/server`).
+- Para cada ruta, genera un `.html` en `dist/` con: meta tags correctos (title, description, canonical, OG), JSON-LD, contenido pre-renderizado, y los tags `<link>`/`<script>` del SPA para hidratar.
+- `src/prerender/mock-dataRepository.js` mockea el dataRepository en SSR para evitar importar PouchDB/IndexedDB en Node.
+
+### nginx
+
+`docker/nginx.conf` usa `try_files $uri $uri.html $uri/ /index.html` para servir páginas pre-renderizadas con extensión oculta, y caer al SPA solo si no hay `.html` correspondiente.
+
+### Hidratación
+
+`src/main.js` mapea URLs reales a hash routes: si el usuario llega a `/sobre-lof` directamente, `main.js` redirige a `#sobre-lof` sin recargar para que el router del SPA tome el control.
+
+### Agregar una página pública nueva
+
+1. Crear el componente en `src/landing/`.
+2. Agregarlo a `PAGES` en `src/prerender/entry-server.js`.
+3. Agregar su meta en `PAGE_META` en `scripts/prerender.mjs`.
+4. Agregar la ruta a `PUBLIC_ROUTES` en `src/main.js`.
+5. Agregar la URL a `public/sitemap.xml`.
+6. Conectar la ruta en `src/App.svelte` y `src/core/seo.js`.
+
 ## Datos de prueba (dev only)
 
 `src/setup/generadorDemo.js` genera datos de prueba (personas → socios → movimientos → asamblea AGO + autoridades de CD/CRC, todas con Refs resueltas) para probar performance de listados/filtros. Se invoca desde el primer paso del setup wizard con un switch visible solo cuando `import.meta.env.DEV` es true. El módulo se carga via `import()` dinámico dentro de un guard DEV, así que **no viaja en el bundle de producción** (verificado: `grep -l generarDatosPrueba dist/assets/*.js` no encuentra nada tras `npm run build`).

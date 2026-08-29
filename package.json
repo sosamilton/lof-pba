@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build && workbox generateSW workbox-config.cjs",
+    "build": "vite build && node scripts/prerender.mjs && workbox generateSW workbox-config.cjs",
     "preview": "vite preview",
     "test": "vitest run",
     "lint": "eslint .",
