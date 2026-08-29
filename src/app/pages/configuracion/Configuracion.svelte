@@ -40,7 +40,7 @@
   {/snippet}
 
   <div class="flex flex-col gap-4 w-full">
-    <Tabs.Root bind:value={tab}>
+    <Tabs.Root bind:value={tab} class="min-w-0">
       <Tabs.List class="mb-4">
         <Tabs.Trigger value="general" class="px-3">
           <SettingsIcon data-icon="inline-start" />

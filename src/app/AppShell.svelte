@@ -30,6 +30,8 @@
   import { swUpdate } from '$core/utils/swUpdate.svelte'
   import { notify } from '$core/ui/notify.svelte'
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
+  import InstallBanner from '$lib/components/InstallBanner.svelte'
+  import MobileSidebarAutoClose from '$lib/components/MobileSidebarAutoClose.svelte'
   import { useConfirmDialog } from '$lib/hooks/useConfirmDialog.svelte.js'
   import { limpiarDispositivo } from '$core/data/intercambio.js'
 
@@ -257,6 +259,7 @@
 </script>
 
 <Sidebar.Provider>
+  <MobileSidebarAutoClose />
   <a
     href="#main-content"
     onclick={skipToContent}
@@ -343,51 +346,51 @@
   </Sidebar.Root>
 
   <Sidebar.Inset>
-    <header class="flex h-12 shrink-0 items-center gap-2 px-4">
-      <Sidebar.Trigger />
-      <span class="flex-1 text-center text-sm font-semibold truncate">{brandTitle}</span>
+    <header class="flex h-12 shrink-0 items-center gap-2 px-4 min-w-0 overflow-hidden">
+      <Sidebar.Trigger class="shrink-0" />
+      <span class="flex-1 min-w-0 text-center text-sm font-semibold truncate">{brandTitle}</span>
       <button
         type="button"
         onclick={() => keyboard.toggle()}
-        class="inline-flex items-center justify-center rounded-md border border-input bg-background p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        class="inline-flex shrink-0 items-center justify-center rounded-md border border-input bg-background p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         aria-label="Abrir paleta de comandos (Ctrl+K)"
         title="Paleta de comandos (Ctrl+K)"
       >
         <CommandIcon class="size-4" />
       </button>
       {#if isColaborador}
-        <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[12px] font-semibold text-amber-700 dark:text-amber-400">
+        <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[12px] font-semibold text-amber-700 dark:text-amber-400">
           <HandHeartIcon class="size-3" />
-          Modo colaborador
+          <span class="hidden sm:inline">Modo colaborador</span>
         </span>
       {/if}
       {#if isDemo}
-        <span class="inline-flex items-center gap-1 rounded-full bg-chart-2/15 px-2 py-0.5 text-[12px] font-semibold text-chart-2">
+        <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-chart-2/15 px-2 py-0.5 text-[12px] font-semibold text-chart-2">
           <SparklesIcon class="size-3" />
-          Modo demo
+          <span class="hidden sm:inline">Modo demo</span>
         </span>
         <button
           type="button"
           onclick={handleSalirDemo}
-          class="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          class="inline-flex shrink-0 items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           title="Salir de la demo y limpiar los datos de ejemplo"
         >
           <LogOutIcon class="size-3" />
-          Salir de la demo
+          <span class="hidden sm:inline">Salir de la demo</span>
         </button>
       {/if}
       {#if pwaInstall.canInstall}
         <button
           type="button"
           onclick={() => pwaInstall.promptInstall()}
-          class="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[12px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          class="inline-flex shrink-0 items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[12px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           title="Instalar LOF en este dispositivo para usarlo sin conexión"
         >
           <DownloadIcon class="size-3" />
-          Instalar
+          <span class="hidden sm:inline">Instalar</span>
         </button>
       {/if}
-      <span class="text-xs text-muted-foreground">
+      <span class="hidden sm:inline text-xs text-muted-foreground shrink-0">
         v{versionActual}
         {#if updateCheck.updateAvailable}
           <a
@@ -402,6 +405,11 @@
         {/if}
       </span>
     </header>
+    {#if pwaInstall.needsManualInstructions}
+      <div class="px-4 pt-2 sm:px-6">
+        <InstallBanner />
+      </div>
+    {/if}
     <main
       bind:this={mainEl}
       id="main-content"

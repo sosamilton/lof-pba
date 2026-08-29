@@ -178,6 +178,7 @@
       <Card.Title class="text-sm">Detalle mensual comparativo</Card.Title>
     </Card.Header>
     <Card.Content class="pt-4">
+      <div class="overflow-x-auto rounded-lg border">
       <Table.Root>
         <Table.Header>
           <Table.Row>
@@ -210,6 +211,7 @@
           {/each}
         </Table.Body>
       </Table.Root>
+      </div>
     </Card.Content>
   </Card.Root>
 {/if}

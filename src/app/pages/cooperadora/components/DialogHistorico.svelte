@@ -7,6 +7,7 @@
   import * as Tabs from '$lib/components/ui/tabs'
   import EmptyState from '$lib/components/EmptyState.svelte'
   import ControlledDialog from '$lib/components/ControlledDialog.svelte'
+  import OrganismoTabs from '$app/modules/gobierno/autoridades/components/OrganismoTabs.svelte'
   import { ORGANISMOS, ORGANISMO_LABELS } from '$app/modules/gobierno/constants.js'
   import { formatFecha } from '$core/format/format'
   import { dateToInput } from '$core/utils/utils'
@@ -129,7 +130,7 @@
   </Dialog.Header>
 
   <!-- Controles: selector de ejercicio + tabs de organismo -->
-  <div class="flex flex-wrap items-center justify-between gap-3">
+  <div class="flex flex-col gap-3 min-w-0 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
     {#if ejerciciosOpciones.length > 0}
       <div class="flex items-center gap-2">
         <span class="text-xs text-muted-foreground">Ejercicio:</span>
@@ -138,7 +139,7 @@
           value={ejercicioSeleccionado ?? ''}
           onValueChange={(v) => { ejercicioSeleccionado = v || null }}
         >
-          <Select.Trigger class="h-8 w-[140px] text-xs">
+          <Select.Trigger class="h-8 w-full sm:w-[140px] text-xs">
             <Select.Value placeholder="Ejercicio…" />
           </Select.Trigger>
           <Select.Content>
@@ -152,13 +153,7 @@
       <span class="text-xs text-muted-foreground">No hay ejercicios cargados.</span>
     {/if}
 
-    <Tabs.Root bind:value={organismoSeleccionado}>
-      <Tabs.List>
-        {#each ORGANISMOS as org}
-          <Tabs.Trigger value={org}>{ORGANISMO_LABELS[org]}</Tabs.Trigger>
-        {/each}
-      </Tabs.List>
-    </Tabs.Root>
+    <OrganismoTabs bind:value={organismoSeleccionado} class="min-w-0 w-full" />
   </div>
 
   <!-- Tabla de autoridades del ejercicio seleccionado -->
@@ -172,7 +167,7 @@
       {/snippet}
     </EmptyState>
   {:else}
-    <div class="max-h-[50vh] overflow-auto rounded-lg border border-border">
+    <div class="max-h-[60dvh] overflow-auto rounded-lg border border-border">
       <Table.Root>
         <Table.Header>
           <Table.Row>

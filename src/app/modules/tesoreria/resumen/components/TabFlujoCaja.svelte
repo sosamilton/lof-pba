@@ -29,7 +29,7 @@
         Saldo total
       </div>
       <div class="text-xl font-bold">{formatARS(store.saldoTotal)}</div>
-      <div class="mt-2 grid grid-cols-3 gap-1 text-xs">
+      <div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-1 text-xs">
         {#each cuentasConSaldo as c (c.id)}
           <div>
             <div class="text-muted-foreground">{c.nombre_cuenta}</div>
@@ -104,6 +104,7 @@
 {:else}
 <Card.Root>
   <Card.Content class="pt-6">
+    <div class="overflow-x-auto rounded-lg border">
     <Table.Root>
       <Table.Header>
         <Table.Row>
@@ -149,6 +150,7 @@
         </Table.Row>
       </Table.Footer>
     </Table.Root>
+    </div>
   </Card.Content>
 </Card.Root>
 {/if}

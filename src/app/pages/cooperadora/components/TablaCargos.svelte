@@ -10,6 +10,7 @@
   import * as Field from '$lib/components/ui/field'
   import { Badge } from '$lib/components/ui/badge'
   import { Separator } from '$lib/components/ui/separator'
+  import OrganismoTabs from '$app/modules/gobierno/autoridades/components/OrganismoTabs.svelte'
   import { ORGANISMOS, ORGANISMO_LABELS, NIVELES_CARGO } from '$app/modules/gobierno/constants.js'
   import { formatFecha } from '$core/format/format'
   import { navigate } from '$core/ui/router.svelte'
@@ -97,12 +98,7 @@
 
 <div class="flex flex-col gap-4">
   <!-- Selector de organismo -->
-  <Tabs.Root value={store.organismo} onValueChange={store.setOrganismo}>
-    <Tabs.List>
-      {#each ORGANISMOS as org}<Tabs.Trigger value={org}>{ORGANISMO_LABELS[org]}</Tabs.Trigger>{/each}
-    </Tabs.List>
-  </Tabs.Root>
-
+  <OrganismoTabs bind:value={store.organismo} class="min-w-0 w-full" />
   {#if esFederacion}
     <!-- Toggle de adhesión a la Federación -->
     <div class="flex items-center gap-2.5 p-3 rounded-xl border transition-colors {store.federacion_adherida ? 'border-primary/40 bg-primary/5' : 'border-border'}">

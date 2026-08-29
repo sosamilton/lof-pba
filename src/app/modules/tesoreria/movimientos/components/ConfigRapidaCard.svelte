@@ -76,7 +76,7 @@
 </script>
 
 <Card.Root class="mb-4">
-  <Card.Content class="pt-5">
+  <Card.Content class="py-4">
     <button
       type="button"
       class="flex w-full items-center justify-between text-left"

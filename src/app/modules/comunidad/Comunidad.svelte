@@ -18,6 +18,7 @@
   import * as Alert from '$lib/components/ui/alert'
   import { Switch } from '$lib/components/ui/switch'
   import Combobox from '$lib/components/Combobox.svelte'
+  import ListFormLayout from '$lib/components/ListFormLayout.svelte'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
   import UserPlusIcon from '@lucide/svelte/icons/user-plus'
   import LinkIcon from '@lucide/svelte/icons/link'
@@ -168,9 +169,14 @@
     {/snippet}
   </FilterBar>
 
-  <div class="grid gap-4 items-start" style="grid-template-columns: {filtered.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
-    {#if filtered.length > 0}
-      <div class="relative min-h-0 self-stretch min-h-[75vh]">
+  <ListFormLayout
+    showForm={Boolean(store.form)}
+    hasItems={filtered.length > 0}
+    onBack={() => store.cancelar()}
+    backLabel="Volver a comunidad"
+  >
+    {#snippet list()}
+      <div class="min-w-0">
         <RecordList
           items={filtered}
           selectedId={store.form?.id}
@@ -191,9 +197,8 @@
           }}
         />
       </div>
-    {/if}
-
-    <div>
+    {/snippet}
+    {#snippet detail()}
       {#if store.form}
         <Card.Root>
           <Card.Header>
@@ -412,7 +417,7 @@
           {/snippet}
         </EmptyStates>
       {/if}
-    </div>
-  </div>
+    {/snippet}
+  </ListFormLayout>
 
 </PageScaffold>

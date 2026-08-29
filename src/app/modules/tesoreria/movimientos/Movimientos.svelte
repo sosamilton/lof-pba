@@ -14,6 +14,10 @@
   import ListSkeleton from '$lib/components/ListSkeleton.svelte'
   import Combobox from '$lib/components/Combobox.svelte'
   import EjercicioSelector from '$lib/components/EjercicioSelector.svelte'
+  import ListFormLayout from '$lib/components/ListFormLayout.svelte'
+  import FilterIcon from '@lucide/svelte/icons/funnel'
+  import ChevronDownIcon from '@lucide/svelte/icons/chevron-down'
+  import ChevronRightIcon from '@lucide/svelte/icons/chevron-right'
   import { keyboard } from '$core/ui/keyboard.svelte'
   import { navigate } from '$core/ui/router.svelte'
   import { personaLabel } from '$app/modules/comunidad/personas/personasApi.js'
@@ -29,6 +33,8 @@
 
   let q = $state('')
   const qd = useDebounce(() => q)
+  let filtrosOpen = $state(false)
+  let ejercicioAlertOpen = $state(false)
   let tipo = $state('')
   let rubroFiltro = $state('')         // filtro por rubro_id (categoría PIA)
   let ejercicioFiltro = $state('')     // filtro por ejercicio_id
@@ -207,7 +213,7 @@
         value={ejercicioFiltro}
         onValueChange={(v) => { ejercicioFiltro = v || '' }}
         placeholder="Ejercicio"
-        class="h-8 w-[160px] text-xs"
+        class="h-8 w-full sm:w-[160px] text-xs"
         showMesInicio={true}
       />
     </div>
@@ -222,23 +228,42 @@
   {#if ejercicioSeleccionado && ejercicioSeleccionado.cerrado !== true}
     <Alert.Root class="mb-4">
       <AlertTriangleIcon data-icon="inline-start" />
-      <Alert.Title>Ejercicio sin cerrar</Alert.Title>
-      <Alert.Description>
-        Este ejercicio aún no está cerrado. Para cerrarlo y generar las planillas
-        (PIA y Nómina) para presentación, andá a
-        <button class="underline font-semibold text-primary" onclick={() => navigate('cierre')}>
-          Cierre de ejercicio
+      <Alert.Title>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1 text-left"
+          onclick={() => (ejercicioAlertOpen = !ejercicioAlertOpen)}
+          aria-expanded={ejercicioAlertOpen}
+        >
+          {#if ejercicioAlertOpen}
+            <ChevronDownIcon class="size-4 shrink-0" />
+          {:else}
+            <ChevronRightIcon class="size-4 shrink-0" />
+          {/if}
+          Ejercicio sin cerrar
+          {#if !ejercicioAlertOpen && periodosPendientes.length > 0}
+            <span class="ml-1 text-xs font-normal text-muted-foreground">· {periodosPendientes.length} período(s) pendiente(s)</span>
+          {/if}
         </button>
-        o usá el botón "Cerrar ejercicio" en Análisis de tesorería.
-        {#if periodosPendientes.length > 0}
-          <div class="mt-2 border-t border-yellow-500/30 pt-2">
-            <span class="font-semibold">Períodos pendientes de carga ({periodosPendientes.length}):</span>
-            <span class="ml-1 text-muted-foreground">
-              {periodosPendientes.map((p) => labelPeriodo(p, store.periodicidad || 'mensual', ejercicioSeleccionado)).join(', ')}
-            </span>
-          </div>
-        {/if}
-      </Alert.Description>
+      </Alert.Title>
+      {#if ejercicioAlertOpen}
+        <Alert.Description>
+          Este ejercicio aún no está cerrado. Para cerrarlo y generar las planillas
+          (PIA y Nómina) para presentación, andá a
+          <button class="underline font-semibold text-primary" onclick={() => navigate('cierre')}>
+            Cierre de ejercicio
+          </button>
+          o usá el botón "Cerrar ejercicio" en Análisis de tesorería.
+          {#if periodosPendientes.length > 0}
+            <div class="mt-2 border-t border-yellow-500/30 pt-2">
+              <span class="font-semibold">Períodos pendientes de carga ({periodosPendientes.length}):</span>
+              <span class="ml-1 text-muted-foreground">
+                {periodosPendientes.map((p) => labelPeriodo(p, store.periodicidad || 'mensual', ejercicioSeleccionado)).join(', ')}
+              </span>
+            </div>
+          {/if}
+        </Alert.Description>
+      {/if}
     </Alert.Root>
   {/if}
   {#snippet skeleton()}
@@ -259,8 +284,32 @@
     />
     <div class="mb-4 flex flex-wrap items-center gap-3">
       <SearchInput bind:value={q} placeholder="Buscar en detalle" ariaLabel="Buscar movimientos" />
+      {#if !ejercicioCerrado}
+        <Button data-shortcut="new" onclick={() => store.nuevo()}>
+          <PlusIcon data-icon="inline-start" />
+          Nuevo movimiento
+        </Button>
+      {/if}
+      {#if !ejercicioCerrado}
+        <button data-shortcut="cuota" onclick={store.nuevoCuotaSocietaria} class="hidden" aria-hidden="true" tabindex="-1"></button>
+      {/if}
+      <span class="text-sm text-muted-foreground">{filtered.length} movimientos</span>
+      <Button
+        variant="outline"
+        size="sm"
+        class="md:hidden"
+        onclick={() => (filtrosOpen = !filtrosOpen)}
+        aria-expanded={filtrosOpen}
+      >
+        <FilterIcon data-icon="inline-start" />
+        Filtros
+      </Button>
+    </div>
+
+    <!-- Filtros colapsables en mobile, siempre visibles en desktop -->
+    <div class="mb-4 flex flex-wrap items-center gap-3 {filtrosOpen ? 'flex' : 'hidden'} md:flex">
       <Select.Root type="single" bind:value={tipo} allowDeselect={true}>
-        <Select.Trigger class="w-[120px]" aria-label="Filtrar por tipo de movimiento">
+        <Select.Trigger class="w-full sm:w-[120px]" aria-label="Filtrar por tipo de movimiento">
           <Select.Value placeholder="Tipo" />
         </Select.Trigger>
         <Select.Content>
@@ -270,7 +319,7 @@
         </Select.Content>
       </Select.Root>
       <Select.Root type="single" bind:value={rubroFiltro} allowDeselect={true}>
-        <Select.Trigger class="w-[180px]" aria-label="Filtrar por rubro">
+        <Select.Trigger class="w-full sm:w-[180px]" aria-label="Filtrar por rubro">
           <Select.Value placeholder="Rubro" />
         </Select.Trigger>
         <Select.Content>
@@ -280,7 +329,7 @@
         </Select.Content>
       </Select.Root>
       <Select.Root type="single" bind:value={periodoFiltro} allowDeselect={true}>
-        <Select.Trigger class="w-[120px]" aria-label="Filtrar por período" disabled={!ejercicioFiltro}>
+        <Select.Trigger class="w-full sm:w-[120px]" aria-label="Filtrar por período" disabled={!ejercicioFiltro}>
           <Select.Value placeholder={ejercicioFiltro ? 'Período' : 'Elegí ejercicio'} />
         </Select.Trigger>
         <Select.Content>
@@ -291,7 +340,7 @@
       </Select.Root>
       {#if esIntegral}
         <div class="flex items-center gap-1">
-          <div class="w-[200px]">
+          <div class="w-full sm:w-[200px]">
             <Combobox
               bind:value={personaFiltro}
               items={personaItems}
@@ -306,16 +355,6 @@
           {/if}
         </div>
       {/if}
-      {#if !ejercicioCerrado}
-        <Button data-shortcut="new" onclick={() => store.nuevo()}>
-          <PlusIcon data-icon="inline-start" />
-          Nuevo movimiento
-        </Button>
-      {/if}
-      {#if !ejercicioCerrado}
-        <button data-shortcut="cuota" onclick={store.nuevoCuotaSocietaria} class="hidden" aria-hidden="true" tabindex="-1"></button>
-      {/if}
-      <span class="text-sm text-muted-foreground">{filtered.length} movimientos</span>
     </div>
 
     {#if !store.ejercicio}
@@ -324,16 +363,22 @@
         sub="Activá un ejercicio en Inicio → Información institucional para registrar movimientos."
       />
     {:else}
-      <div class="grid gap-4" style="grid-template-columns: {filtered.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
-        <MovimientosList
-          items={filtered}
-          selectedId={store.selectedId}
-          onSelect={(m) => store.select(m)}
-          {rubroById}
-          {cuentaById}
-        />
-
-        <div>
+      <ListFormLayout
+        showForm={Boolean(store.form)}
+        hasItems={filtered.length > 0}
+        onBack={() => store.cancelar()}
+        backLabel="Volver a movimientos"
+      >
+        {#snippet list()}
+          <MovimientosList
+            items={filtered}
+            selectedId={store.selectedId}
+            onSelect={(m) => store.select(m)}
+            {rubroById}
+            {cuentaById}
+          />
+        {/snippet}
+        {#snippet detail()}
           {#if store.form}
             <MovimientoForm {store} {filteredRubros} {subrubrosByRubro} {cuentaById} readonly={formEjercicioCerrado} />
           {:else if filtered.length === 0}
@@ -366,8 +411,8 @@
               </p>
             </div>
           {/if}
-        </div>
-      </div>
+        {/snippet}
+      </ListFormLayout>
     {/if}
   {/if}
 

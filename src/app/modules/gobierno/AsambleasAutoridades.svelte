@@ -51,7 +51,7 @@
           ejercicios={store.ejercicios}
           value={store.ejercicioSeleccionado}
           onValueChange={(v) => { if (v) store.ejercicioSeleccionado = Number(v) }}
-          class="h-8 w-[180px] text-xs"
+          class="h-8 w-full sm:w-[180px] text-xs"
           showMesInicio={true}
         />
       </div>
@@ -59,7 +59,7 @@
   </div>
 
   {#if store.ejercicio}
-    <Tabs.Root bind:value={store.tab}>
+    <Tabs.Root bind:value={store.tab} class="min-w-0">
       <Tabs.List class="mb-4 mx-auto h-10">
         <Tabs.Trigger value="asambleas" class="px-3">
           <GavelIcon data-icon="inline-start" />

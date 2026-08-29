@@ -15,6 +15,7 @@
   import CheckIcon from '@lucide/svelte/icons/check'
   import { formatFecha } from '$core/format/format'
   import AsambleaWizard from './AsambleaWizard.svelte'
+  import ListFormLayout from '$lib/components/ListFormLayout.svelte'
   import * as Dialog from '$lib/components/ui/dialog'
   import ControlledDialog from '$lib/components/ControlledDialog.svelte'
 
@@ -112,9 +113,14 @@
   </p>
 {/if}
 
-<div class="grid gap-4" style="grid-template-columns: {filtered.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
-  {#if filtered.length > 0}
-    <div class="max-h-[calc(100vh-220px)] overflow-y-auto rounded-lg border border-border bg-card">
+<ListFormLayout
+  showForm={wizardOpen}
+  hasItems={filtered.length > 0}
+  onBack={() => { wizardOpen = false }}
+  backLabel="Volver a asambleas"
+>
+  {#snippet list()}
+    <div class="max-h-[calc(100dvh-180px)] overflow-y-auto rounded-lg border border-border bg-card">
       {#each filtered as a (a.id)}
         <button
           type="button"
@@ -139,9 +145,8 @@
         </button>
       {/each}
     </div>
-  {/if}
-
-  <div>
+  {/snippet}
+  {#snippet detail()}
     {#if wizardOpen}
       <AsambleaWizard {store} bind:wizardOpen {askDelete} />
     {:else if filtered.length > 0}
@@ -172,8 +177,8 @@
         {/snippet}
       </EmptyState>
     {/if}
-  </div>
-</div>
+  {/snippet}
+</ListFormLayout>
 
 {#if deleteConfirm}
   <ControlledDialog open={true} onClose={cancelDelete} class="sm:max-w-md">

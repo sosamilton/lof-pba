@@ -14,6 +14,7 @@
   import * as Select from '$lib/components/ui/select'
   import EjercicioSelector from '$lib/components/EjercicioSelector.svelte'
   import ArsInput from '$lib/components/ArsInput.svelte'
+  import ListFormLayout from '$lib/components/ListFormLayout.svelte'
   import PageScaff from '$lib/components/PageScaffold.svelte'
   import SearchInput from '$lib/components/SearchInput.svelte'
   import EmptyState from '$lib/components/EmptyState.svelte'
@@ -580,7 +581,7 @@
         ejercicios={store.ejercicios}
         value={ejercicioSel}
         onValueChange={(v) => { if (v) ejercicioSel = v }}
-        class="w-[200px] h-9 text-sm"
+        class="w-full sm:w-[200px] h-9 text-sm"
         showEnCurso={false}
         showMesInicio={true}
       />
@@ -606,10 +607,15 @@
   {/if}
 
   <!-- Grid lista + panel derecho (igual que Comunidad) -->
-  <div class="grid gap-4 items-start" style="grid-template-columns: {periodosAgrupados.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
-    {#if periodosAgrupados.length > 0}
+  <ListFormLayout
+    showForm={Boolean(cargaSeleccionadaId)}
+    hasItems={periodosAgrupados.length > 0}
+    onBack={() => { cargaSeleccionadaId = null }}
+    backLabel="Volver a períodos"
+  >
+    {#snippet list()}
       <!-- Lista de períodos (estilo RecordList) -->
-      <div class="relative min-h-0 self-stretch min-h-[75vh]">
+      <div class="relative min-h-0 self-stretch">
         <div class="absolute inset-0 overflow-y-auto rounded-lg border border-border bg-card">
           {#each periodosAgrupados as pg (pg.periodo)}
             <div
@@ -646,10 +652,10 @@
           {/each}
         </div>
       </div>
-    {/if}
+    {/snippet}
 
     <!-- Panel derecho: matriz de la carga seleccionada -->
-    <div>
+    {#snippet detail()}
       {#if cargaSeleccionadaId}
         <!-- Header del período seleccionado -->
         <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -706,7 +712,7 @@
         {/if}
 
         <!-- Matriz por grupo -->
-        <div class="border rounded-lg overflow-hidden">
+        <div class="border rounded-lg overflow-x-auto">
           <Table.Root>
             <Table.Header>
               <Table.Row>
@@ -838,8 +844,8 @@
           <p class="text-sm text-muted-foreground">Seleccioná un período de la lista o creá una nueva carga.</p>
         </div>
       {/if}
-    </div>
-  </div>
+    {/snippet}
+  </ListFormLayout>
 {/snippet}
 
 {#if embedded}

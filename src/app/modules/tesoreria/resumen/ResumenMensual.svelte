@@ -92,7 +92,7 @@
         </Card.Content>
       </Card.Root>
     {:else}
-      <Tabs.Root value={tab} onValueChange={(v) => (tab = v)}>
+      <Tabs.Root value={tab} onValueChange={(v) => (tab = v)} class="min-w-0">
         <Tabs.List class="mb-4">
           <Tabs.Trigger value="flujo" class="px-3">
             <BarChartIcon class="size-3.5" />
@@ -118,7 +118,7 @@
 
         <Tabs.Content value="flujo">
           <!-- Sub-tabs: vista periódica (según config) + semanal -->
-          <Tabs.Root value={store.vista} onValueChange={(v) => store.setVista(v)} class="mb-4">
+          <Tabs.Root value={store.vista} onValueChange={(v) => store.setVista(v)} class="mb-4 min-w-0">
             <Tabs.List class="h-8">
               <Tabs.Trigger value="mensual" class="px-3 text-xs capitalize">
                 {store.periodicidad === 'trimestral' ? 'Trimestral'
