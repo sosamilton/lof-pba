@@ -162,22 +162,25 @@ Todos los eventos se reportan via `trackEvent()` de `src/core/analytics/plausibl
 
 ---
 
-## 4. Auto-update de Desktop (Tauri) — Pendiente de implementación
+## 4. Auto-update de Desktop (Tauri)
 
 ### Estado actual
 
-El plugin `tauri-plugin-updater` ya está instalado y configurado parcialmente:
+El plugin `tauri-plugin-updater` está instalado y configurado:
 
 | Componente | Estado |
 |------------|--------|
 | `tauri-plugin-updater` en `Cargo.toml` | ✅ Instalado |
 | Plugin inicializado en `lib.rs` | ✅ `tauri_plugin_updater::Builder::new().build()` |
-| `plugins.updater` en `tauri.conf.json` | ⚠️ Endpoint configurado, **pubkey vacío**, `createUpdaterArtifacts: false` |
+| `plugins.updater` en `tauri.conf.json` | ✅ Endpoint + pubkey configurados |
+| `createUpdaterArtifacts` | ✅ `true` (genera `.sig` en cada build) |
 | `updater.dialog: true` | ✅ Diálogo nativo activado (no requiere UI custom) |
-| Capability `updater:default` | ❌ Falta en `src-tauri/capabilities/default.json` |
-| Claves de firma | ❌ No generadas |
-| `latest.json` en releases | ❌ No generado |
-| CI con `tauri-apps/tauri-action` | ❌ No configurado |
+| Capability `updater:default` | ✅ En `src-tauri/capabilities/default.json` |
+| Claves de firma | ✅ Generadas (`~/.tauri/lof.key` + `.pub`) |
+| `TAURI_SIGNING_PRIVATE_KEY` en GitHub Secrets | ✅ Subido |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` en GitHub Secrets | ✅ Subido |
+| `latest.json` en releases | ❌ Pendiente — se genera al publicar el primer release firmado |
+| CI con `tauri-apps/tauri-action` | ❌ Pendiente — automatizar build + firma + upload |
 
 ### Firma criptográfica (minisign / Ed25519)
 
@@ -225,63 +228,54 @@ CLIENTE (app instalada)
 
 > ⚠️ **Si perdés la private key, no podés publicar updates para los usuarios que ya tienen la app instalada.** La pubkey embebida en su binario no matcheará con una key nueva. La única recuperación es que reinstalen manualmente.
 
-### Lo que falta implementar
+### Lo que ya está configurado
 
-#### Paso 1: Generar claves (one-time, manual)
+#### Claves de firma (✅ generado)
 
 ```bash
 npm run tauri signer generate -- -w ~/.tauri/lof.key
-# Te pide un password (recomendado). Genera:
+# Generó:
 #   ~/.tauri/lof.key       → private key (SECRETO)
-#   ~/.tauri/lof.key.pub   → public key (pública)
+#   ~/.tauri/lof.key.pub   → public key (compilada en tauri.conf.json)
 ```
 
-#### Paso 2: Configurar `tauri.conf.json`
+#### `tauri.conf.json` (✅ configurado)
 
-```jsonc
-{
-  "bundle": {
-    "createUpdaterArtifacts": true   // era false
-  },
-  "plugins": {
-    "updater": {
-      "pubkey": "contenido completo de lof.key.pub"  // era ""
-    }
-  }
-}
-```
+- `bundle.createUpdaterArtifacts: true` — genera `.sig` en cada build.
+- `plugins.updater.pubkey` — contenido de `lof.key.pub` (compilado en el binario).
 
-La pubkey **no es un file path** — es el contenido del archivo `.key.pub` (string base64 con header `untrusted comment:`).
+#### Capability (✅ configurado)
 
-#### Paso 3: Agregar capability
+`src-tauri/capabilities/default.json` incluye `"updater:default"`.
 
-`src-tauri/capabilities/default.json` → agregar `"updater:default"` al array de permissions:
+#### GitHub Secrets (✅ subidos)
 
-```json
-"permissions": [
-  "core:default",
-  "shell:allow-open",
-  "updater:default"
-]
-```
+- `TAURI_SIGNING_PRIVATE_KEY` — contenido de `~/.tauri/lof.key`.
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — password de la private key.
 
-#### Paso 4: Guardar private key en GitHub Secrets
+Ambos subidos via `gh secret set` al repo `sosamilton/lof-pba`.
 
-Repo → Settings → Secrets and variables → Actions:
-- `TAURI_SIGNING_PRIVATE_KEY` = contenido de `~/.tauri/lof.key`
-- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` = el password elegido
+### Lo que falta (al publicar el próximo release desktop)
 
-#### Paso 5: Build con firma
+#### Build con firma
 
 ```bash
+# tauri build requiere el CONTENIDO de la key, no el path.
 export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/lof.key)"
 export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="tu-password"
 npm run tauri:build
 ```
 
-Genera además del `.deb`/`.rpm`/`.AppImage` un `.sig` por cada plataforma.
+Genera además del `.deb`/`.rpm`/`.AppImage` un `.sig` por cada plataforma. El `.sig` es la firma Ed25519 que el updater verifica con la pubkey embebida en el binario.
 
-#### Paso 6: Generar y subir `latest.json` al release
+> **Alternativa con Docker** (recomendada para releases reproducibles): `scripts/tauri-docker-build.sh` lee `TAURI_SIGNING_PRIVATE_KEY_PATH` del entorno, extrae el contenido de la key y lo pasa como `TAURI_SIGNING_PRIVATE_KEY` al container.
+> ```bash
+> export TAURI_SIGNING_PRIVATE_KEY_PATH="$HOME/.tauri/lof.key"
+> export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="tu-password"
+> ./scripts/tauri-docker-build.sh
+> ```
+
+#### Generar y subir `latest.json` al release
 
 Formato del JSON que sirve el endpoint (`releases/latest/download/latest.json`):
 
@@ -301,9 +295,39 @@ Formato del JSON que sirve el endpoint (`releases/latest/download/latest.json`):
 
 Subir al GitHub Release (tag `vX.Y.Z`): binarios + `.sig` + `latest.json` como assets.
 
-#### Paso 7 (opcional, recomendado): GitHub Action
+#### GitHub Action con `tauri-apps/tauri-action` (recomendado)
 
-`tauri-apps/tauri-action` automatiza build + firma + `latest.json` + upload al release. Solo necesita los secrets del paso 4. Esto se integra al flujo de release existente (ver [`RELEASE_FLOW.md`](RELEASE_FLOW.md)).
+`tauri-apps/tauri-action` automatiza build + firma + `latest.json` + upload al release. Solo necesita los secrets ya configurados. Esto se integra al flujo de release existente (ver [`RELEASE_FLOW.md`](RELEASE_FLOW.md)).
+
+Workflow sugerido (`.github/workflows/release-desktop.yml`):
+
+```yaml
+on:
+  push:
+    tags: ['v*']
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'LOF ${{ github.ref_name }}'
+          releaseBody: 'Ver las notas del release.'
+          releaseDraft: true
+          prerelease: false
+          includeUpdaterJson: true
+```
+
+`includeUpdaterJson: true` hace que la action genere y suba `latest.json` automáticamente al release.
 
 ### Costos
 
