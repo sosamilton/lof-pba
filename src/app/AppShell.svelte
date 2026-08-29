@@ -23,8 +23,11 @@
   import HandHeartIcon from '@lucide/svelte/icons/hand-heart'
   import SparklesIcon from '@lucide/svelte/icons/sparkles'
   import LogOutIcon from '@lucide/svelte/icons/log-out'
+  import DownloadIcon from '@lucide/svelte/icons/download'
   import { identidad } from '$core/data/identidad'
   import { updateCheck } from '$core/utils/updateCheck.svelte'
+  import { pwaInstall } from '$core/utils/pwaInstall.svelte'
+  import { swUpdate } from '$core/utils/swUpdate.svelte'
   import { notify } from '$core/ui/notify.svelte'
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
   import { useConfirmDialog } from '$lib/hooks/useConfirmDialog.svelte.js'
@@ -192,6 +195,10 @@
     // Verificar si hay una versión más reciente publicada (best-effort).
     // No molesta si no hay internet o el fetch falla.
     updateCheck.init()
+
+    // Capturar beforeinstallprompt para ofrecer instalación PWA con un
+    // botón propio (más visible y medible que el banner nativo).
+    pwaInstall.init()
   })
 
   // Mostrar toast cuando se detecta una actualización disponible.
@@ -215,6 +222,24 @@
           },
         },
       )
+    }
+  })
+
+  // Toast cuando el service worker detectó una nueva versión ya descargada.
+  // El botón "Actualizar" envía SKIP_WAITING al SW y recarga la página
+  // (la recarga la maneja el listener de controllerchange en swUpdate).
+  let _notifiedSwUpdate = false
+  $effect(() => {
+    if (swUpdate.updateReady && !_notifiedSwUpdate) {
+      _notifiedSwUpdate = true
+      notify.info('Nueva versión de LOF disponible', {
+        duration: Infinity,
+        description: 'Ya se descargó en segundo plano. Actualizá para usarla.',
+        action: {
+          label: 'Actualizar',
+          onClick: () => swUpdate.applyUpdate(),
+        },
+      })
     }
   })
 
@@ -349,6 +374,17 @@
         >
           <LogOutIcon class="size-3" />
           Salir de la demo
+        </button>
+      {/if}
+      {#if pwaInstall.canInstall}
+        <button
+          type="button"
+          onclick={() => pwaInstall.promptInstall()}
+          class="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          title="Instalar LOF en este dispositivo para usarlo sin conexión"
+        >
+          <DownloadIcon class="size-3" />
+          Instalar
         </button>
       {/if}
       <span class="text-xs text-muted-foreground">
