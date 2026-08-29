@@ -54,6 +54,11 @@ La misma SPA se empaqueta como app de escritorio nativa para **Windows, Linux y 
 - **Mismo código**: la SPA servida por Tauri es la misma que corre en el navegador.
 - **Sin Electron**: Tauri usa el webview nativo del sistema (WebKitGTK en Linux, WebView2 en Windows, WKWebView en macOS). Binario pequeño (~10MB vs ~150MB de Electron).
 - **Build Dockerizado**: `scripts/tauri-docker-build.sh` compila dentro de un container con todas las dependencias nativas.
+- **Auto-update**: `tauri-plugin-updater` con firma minisign/Ed25519 (gratis, sin CA). Pendiente de configuración completa. Ver [`OFFLINE-UPDATES.md`](OFFLINE-UPDATES.md) §4.
+
+### Workbox CLI (service worker PWA)
+
+Genera `dist/sw.js` automáticamente en cada build para offline-first de assets (JS/CSS/imágenes/fuentes). Precachea todos los chunks lazy para que cualquier ruta funcione sin red. Update flow con toast "Actualizar" + `SKIP_WAITING`. Ver [`OFFLINE-UPDATES.md`](OFFLINE-UPDATES.md) §1.
 
 ### Hash routing propio
 

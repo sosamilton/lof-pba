@@ -548,7 +548,7 @@
               {#if metodo.recomendado}
                 <Badge variant="default" class="gap-1">
                   <StarIcon class="size-3" />
-                  Recomendado
+                  Para escuelas
                 </Badge>
               {/if}
               {#if metodo.modo && modoConfig[metodo.modo]}
@@ -651,13 +651,13 @@
     <div class="flex flex-col gap-2 mb-6">
       <h2 class="text-2xl font-bold tracking-tight">Paso a paso con imágenes</h2>
       <p class="text-sm text-muted-foreground max-w-prose">
-        Así se ve el proceso dentro de Grist. Navegá con las flechas para ver cada paso.
+        Así se ve el proceso de instalar LOF dentro de Grist. Una vez instalado, un asistente guiado te ayuda a configurar tu cooperadora. Navegá con las flechas para ver cada paso.
       </p>
     </div>
 
     <Carousel.Root class="w-full">
       <Carousel.Content>
-        {#each guia_instalacion.pasos as paso, i}
+        {#each guia_instalacion.pasos.slice(0, 7) as paso, i}
           <Carousel.Item>
             <div class="flex flex-col gap-4 p-1">
               <div class="flex items-start gap-3">

@@ -23,8 +23,11 @@
   import HandHeartIcon from '@lucide/svelte/icons/hand-heart'
   import SparklesIcon from '@lucide/svelte/icons/sparkles'
   import LogOutIcon from '@lucide/svelte/icons/log-out'
+  import DownloadIcon from '@lucide/svelte/icons/download'
   import { identidad } from '$core/data/identidad'
   import { updateCheck } from '$core/utils/updateCheck.svelte'
+  import { pwaInstall } from '$core/utils/pwaInstall.svelte'
+  import { swUpdate } from '$core/utils/swUpdate.svelte'
   import { notify } from '$core/ui/notify.svelte'
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
   import { useConfirmDialog } from '$lib/hooks/useConfirmDialog.svelte.js'
@@ -192,6 +195,10 @@
     // Verificar si hay una versión más reciente publicada (best-effort).
     // No molesta si no hay internet o el fetch falla.
     updateCheck.init()
+
+    // Capturar beforeinstallprompt para ofrecer instalación PWA con un
+    // botón propio (más visible y medible que el banner nativo).
+    pwaInstall.init()
   })
 
   // Mostrar toast cuando se detecta una actualización disponible.
@@ -215,6 +222,24 @@
           },
         },
       )
+    }
+  })
+
+  // Toast cuando el service worker detectó una nueva versión ya descargada.
+  // El botón "Actualizar" envía SKIP_WAITING al SW y recarga la página
+  // (la recarga la maneja el listener de controllerchange en swUpdate).
+  let _notifiedSwUpdate = false
+  $effect(() => {
+    if (swUpdate.updateReady && !_notifiedSwUpdate) {
+      _notifiedSwUpdate = true
+      notify.info('Nueva versión de LOF disponible', {
+        duration: Infinity,
+        description: 'Ya se descargó en segundo plano. Actualizá para usarla.',
+        action: {
+          label: 'Actualizar',
+          onClick: () => swUpdate.applyUpdate(),
+        },
+      })
     }
   })
 
@@ -277,7 +302,7 @@
                   {/if}
                   <span class="flex-1 leading-tight">{item.label}</span>
                   {#if sc}
-                    <kbd class="ml-auto shrink-0 text-[10px] font-mono text-muted-foreground/70 group-data-[collapsible=icon]:hidden">{sc}</kbd>
+                    <kbd class="ml-auto shrink-0 text-[12px] font-mono text-muted-foreground/70 group-data-[collapsible=icon]:hidden">{sc}</kbd>
                   {/if}
                 </Sidebar.MenuButton>
               </Sidebar.MenuItem>
@@ -290,15 +315,15 @@
     <Sidebar.Footer>
       <Sidebar.Menu>
         <Sidebar.MenuItem>
-          <Sidebar.MenuButton onclick={() => go('landing')} tooltipContent="Ver landing" class="h-auto min-h-8">
+          <Sidebar.MenuButton onclick={() => go('landing')} tooltipContent="Acerca de LOF" class="h-auto min-h-8">
             <InfoIcon class="shrink-0" />
-            <span class="flex-1 leading-tight">Ver landing</span>
+            <span class="flex-1 leading-tight">Acerca de LOF</span>
           </Sidebar.MenuButton>
         </Sidebar.MenuItem>
       </Sidebar.Menu>
       <div class="flex items-center gap-2 px-2 py-1 select-none">
         <HeartHandshakeIcon class="size-6 shrink-0 text-primary" />
-        <div class="text-[11px] text-muted-foreground/80 leading-tight group-data-[collapsible=icon]:hidden">
+        <div class="text-[12px] text-muted-foreground/80 leading-tight group-data-[collapsible=icon]:hidden">
           {identidad.nombre} v{versionActual}{#if shaActual && shaActual !== 'dev'} · {shaActual}{/if}
           {#if updateCheck.updateAvailable}
             <a
@@ -331,24 +356,35 @@
         <CommandIcon class="size-4" />
       </button>
       {#if isColaborador}
-        <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+        <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[12px] font-semibold text-amber-700 dark:text-amber-400">
           <HandHeartIcon class="size-3" />
           Modo colaborador
         </span>
       {/if}
       {#if isDemo}
-        <span class="inline-flex items-center gap-1 rounded-full bg-chart-2/15 px-2 py-0.5 text-[11px] font-semibold text-chart-2">
+        <span class="inline-flex items-center gap-1 rounded-full bg-chart-2/15 px-2 py-0.5 text-[12px] font-semibold text-chart-2">
           <SparklesIcon class="size-3" />
           Modo demo
         </span>
         <button
           type="button"
           onclick={handleSalirDemo}
-          class="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          class="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           title="Salir de la demo y limpiar los datos de ejemplo"
         >
           <LogOutIcon class="size-3" />
           Salir de la demo
+        </button>
+      {/if}
+      {#if pwaInstall.canInstall}
+        <button
+          type="button"
+          onclick={() => pwaInstall.promptInstall()}
+          class="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[12px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          title="Instalar LOF en este dispositivo para usarlo sin conexión"
+        >
+          <DownloadIcon class="size-3" />
+          Instalar
         </button>
       {/if}
       <span class="text-xs text-muted-foreground">

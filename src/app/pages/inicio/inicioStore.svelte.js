@@ -190,7 +190,7 @@ const onModalidadChange = async (nuevaModalidad) => {
     }
     await saveConfig({ ...config, ...updates })
     // Actualizar el estado del dashboard sin recargar todo
-    dash.modalidadGestion = nuevaModalidad === 'carga_consolidada' ? 'Carga consolidada' : 'Gestión integral'
+    dash.modalidadGestion = nuevaModalidad === 'carga_consolidada' ? 'Carga para rendir' : 'Gestión completa'
     dash.moduloGestionIntegral = nuevaModalidad === 'gestion_integral'
     if (nuevaModalidad === 'carga_consolidada') {
       await checkMovimientosSinCarga()

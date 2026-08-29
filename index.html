@@ -12,7 +12,6 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="author" content="Milton Sosa" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-    <meta name="keywords" content="cooperadoras escolares, cooperadora escolar PBA, Provincia de Buenos Aires, software cooperadora, gestión cooperadora, LOF, asociación cooperadora, PIA cooperadora, libros cooperadora, DIPREGEP, software libre cooperadora, tesorería cooperadora, socios cooperadora, asambleas cooperadora" />
     <link rel="canonical" href="https://lof.mdsoluciones.ar/" />
     <link rel="alternate" hreflang="es-ar" href="https://lof.mdsoluciones.ar/" />
     <link rel="alternate" hreflang="x-default" href="https://lof.mdsoluciones.ar/" />
@@ -63,7 +62,7 @@
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web, Windows, Linux, macOS",
         "browserRequirements": "Requires JavaScript",
-        "softwareVersion": "1.0.0",
+        "softwareVersion": "2.3.0",
         "license": "https://www.gnu.org/licenses/agpl-3.0.html",
         "keywords": "cooperadoras escolares, cooperadora escolar PBA, Provincia de Buenos Aires, software cooperadora, gestión cooperadora, PIA, DIPREGEP, tesorería cooperadora, socios cooperadora, asambleas cooperadora",
         "offers": {
@@ -87,7 +86,7 @@
         "@type": "Organization",
         "name": "LOF — Lazos que Organizan el Futuro",
         "url": "https://lof.mdsoluciones.ar/",
-        "logo": "https://lof.mdsoluciones.ar/og-image.png",
+        "logo": "https://lof.mdsoluciones.ar/icon-192.png",
         "description": "Software libre para cooperadoras escolares de la Provincia de Buenos Aires.",
         "founder": {
           "@type": "Person",
@@ -138,7 +137,7 @@
             "name": "¿Necesito internet para usar LOF?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "No. LOF funciona 100% offline. Los datos se guardan en el navegador, en una computadora de la escuela o dentro de Grist. No se envía nada a internet ni se requiere crear una cuenta. Se puede respaldar a un archivo .lof y migrar a otra computadora cuando haga falta."
+              "text": "No. LOF funciona 100% offline. Los datos se guardan en el navegador, en una computadora de la escuela o dentro de Grist. Los datos de la cooperadora no se suben a internet ni se requiere crear una cuenta. Se puede respaldar a un archivo .lof y migrar a otra computadora cuando haga falta."
             }
           },
           {
@@ -147,6 +146,22 @@
             "acceptedAnswer": {
               "@type": "Answer",
               "text": "LOF digitaliza los cuatro libros que exige la normativa de la Provincia de Buenos Aires: Libro de Actas, Libro de Socios, Libro de Tesorería y Libro de Inventario. Todo queda registrado, trazable y listo para cualquier control de la DIPREGEP."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Puedo usarlo sin saber informática?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Sí. LOF está pensado para personas que administran la cooperadora de su escuela, sin importar cuánto saben de computadoras. Si sabés usar una planilla, sabés usar LOF. Y si necesitás ayuda, podés escribirnos."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Qué pasa si dejo de usar LOF con mis datos?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Tus datos son tuyos. Podés exportarlos a un archivo .lof en cualquier momento y guardarlos donde quieras. Si dejás de usar LOF, la información queda en tu dispositivo o en tu backup. Nadie la puede borrar ni retener."
             }
           }
         ]
@@ -176,7 +191,7 @@
       </ul>
       <h2 id="funciones">Características principales</h2>
       <ul>
-        <li>Software libre bajo <a href="https://www.gnu.org/licenses/agpl-3.0.html" rel="nofollow">AGPL-3.0</a> — sin costos, sin cuentas, sin telemetría</li>
+        <li>Software libre bajo <a href="https://www.gnu.org/licenses/agpl-3.0.html" rel="nofollow">AGPL-3.0</a> — sin costos, sin cuentas, telemetría respetuosa de tu privacidad</li>
         <li>100% offline: funciona sin internet, los datos se guardan en el dispositivo</li>
         <li>Alineado con el estatuto modelo y la PIA de la Provincia de Buenos Aires</li>
         <li>Tres formas de uso: navegador, respaldo local (Docker) o dentro de <a href="https://www.getgrist.com/" rel="nofollow">Grist</a></li>
@@ -192,7 +207,7 @@
         <li><strong>Grist:</strong> como widget personalizado dentro de <a href="https://www.getgrist.com/" rel="nofollow">Grist</a>, aprovechando la base de datos colaborativa.</li>
       </ul>
       <h2 id="datos">Cómo se guardan tus datos</h2>
-      <p>Los datos de la cooperadora se guardan localmente en el navegador (IndexedDB) o en el servidor Grist de la escuela. Nada se envía a internet. Se puede exportar todo a un archivo .lof y migrar a otra computadora cuando haga falta. LOF no tiene acceso a los datos de ninguna cooperadora.</p>
+      <p>Los datos de la cooperadora se guardan localmente en el navegador (IndexedDB) o en el servidor Grist de la escuela. Los datos no se suben a internet. Se puede exportar todo a un archivo .lof y migrar a otra computadora cuando haga falta. LOF no tiene acceso a los datos de ninguna cooperadora.</p>
       <h2 id="faq">Preguntas frecuentes sobre cooperadoras escolares y LOF</h2>
       <h3>¿LOF sirve para cooperadoras de la Provincia de Buenos Aires?</h3>
       <p>Sí, LOF está diseñado específicamente para las cooperadoras escolares de la Provincia de Buenos Aires. Está alineado con el estatuto modelo y la PIA de la DGCyE, y digitaliza los cuatro libros obligatorios que exige la <a href="https://www.buenosaires.gob.ar/educacion" rel="nofollow">Dirección General de Cultura y Educación de PBA</a>.</p>
@@ -211,6 +226,7 @@
         <li><a href="https://lof.mdsoluciones.ar/#instalacion">Guía de instalación</a> — cómo empezar a usar LOF</li>
       </ul>
       <p>Para usar LOF, habilitá JavaScript en tu navegador. Más información en el <a href="https://github.com/sosamilton/lof-pba">repositorio de GitHub</a>.</p>
+      <p><small>LOF es un proyecto independiente de software libre. No es una herramienta oficial de la DGCyE ni de la DIPREGEP, pero está alineado con el estatuto modelo y la normativa provincial.</small></p>
     </noscript>
     <script type="module" src="/src/main.js"></script>
   </body>

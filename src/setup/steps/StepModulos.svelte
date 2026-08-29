@@ -315,9 +315,9 @@
             <div class="font-extrabold text-[13px] mb-1">Cantidades a generar</div>
             <p class="text-[11px] text-muted-foreground mb-3">
               {#if store.selectedModules.gestion_integral}
-                <strong>Gestión integral:</strong> incluye cuota social mensual por socio activo.
+                <strong>Gestión completa:</strong> incluye cuota social mensual por socio activo.
               {:else if store.selectedModules.carga_consolidada}
-                <strong>Carga consolidada:</strong> movimientos PIA por rubro/cuenta/período.
+                <strong>Carga para rendir:</strong> movimientos PIA por rubro/cuenta/período.
               {/if}
             </p>
 

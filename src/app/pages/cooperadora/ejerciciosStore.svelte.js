@@ -54,7 +54,7 @@ export function createEjerciciosStore({ bs, getTEjercicios, getTMovimientos }) {
       // Regla: no se puede crear un nuevo ejercicio si existe al menos uno
       // previo que NO esté cerrado. Excepción: si no hay ejercicios previos
       // (es el primer ejercicio), se permite crear libremente.
-      // El cierre de ejercicio se hace desde Cierre / Presentación.
+      // El cierre de ejercicio se hace desde Cierre de ejercicio.
       const previosNoCerrados = ejercicios.filter((e) => e.cerrado !== true)
       if (previosNoCerrados.length > 0) {
         const nombres = previosNoCerrados
@@ -62,7 +62,7 @@ export function createEjerciciosStore({ bs, getTEjercicios, getTMovimientos }) {
           .join(', ')
         bs.setError(
           `No se puede crear un nuevo ejercicio hasta que los anteriores estén cerrados. ` +
-          `Pendientes de cierre: ${nombres}. Cerrá primero esos ejercicios desde Cierre / Presentación.`
+          `Pendientes de cierre: ${nombres}. Cerrá primero esos ejercicios desde Cierre de ejercicio.`
         )
         notify.error(bs.error)
         return

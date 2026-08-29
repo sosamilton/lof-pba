@@ -1,5 +1,20 @@
 # Project Rules
 
+## Flujo de release (importante)
+
+El flujo de release está normalizado en `docs/RELEASE_FLOW.md` y ejecutable vía el skill `release-flow` (`.devin/skills/release-flow/SKILL.md`). Resumen:
+
+- **Rama de trabajo: `develop`.** Todo commit nuevo va a `develop`. `main` solo recibe merges vía PR al release.
+- **PR técnico** (develop → main): arquitectura, problemas resueltos, mejoras. Sin código.
+- **Tag semver** por tipo de cambio (major/minor/patch). Proponer y confirmar antes de taggear.
+- **Release PWA** con texto para usuarias finales (no técnico).
+- **Release Desktop** solo si hubo cambios en `src-tauri/` o build desktop.
+- **Hotfix en main**: bump patch nuevo, nunca reusar ni sobreescribir tags. Luego sincronizar develop.
+- **Propagar versión** a `package.json` + `src-tauri/tauri.conf.json` + otros. Verificar con grep.
+- Al iniciar un release, **verificar estar en `develop`** con working tree limpio y `develop`/`main` actualizados.
+
+Estado conocido: `tauri.conf.json` (2.0.1) está desincronizado vs `package.json` (2.2.1). Próximo release debe alinear.
+
 ## Arquitectura de datos (importante)
 
 LOF tiene una **capa de datos desacoplada**. Todos los stores y módulos importan de `dataRepository.js` (facade unificado), nunca del backend directo.

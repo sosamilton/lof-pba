@@ -107,8 +107,8 @@
 
   const confirmarDedup = () => {
     confirm.openConfirm({
-      title: 'Deduplicar personas',
-      description: 'Se buscarán y fusionarán personas con DNI duplicado. Los registros duplicados se consolidarán en uno solo.',
+      title: 'Unificar personas repetidas',
+      description: 'Se buscarán y fusionarán personas con DNI duplicado. Los registros repetidos se consolidarán en uno solo.',
       confirmLabel: 'Continuar',
       variant: 'default',
       onConfirm: () => store.doDedup(),
@@ -259,36 +259,38 @@
         <span class="text-muted-foreground font-mono">({store.shaActual})</span>
       {/if}
     </div>
-    {#if store.versionInstalada}
-      <div class="flex flex-wrap items-center gap-2 text-xs">
-        <span class="text-muted-foreground">Instalada en este documento:</span>
-        <Badge variant="secondary" class="font-mono">v{store.versionInstalada}</Badge>
-        {#if store.shaInstalado && store.shaInstalado !== 'dev'}
-          <span class="text-muted-foreground font-mono">({store.shaInstalado})</span>
-        {/if}
-        {#if store.versionActualizada}
-          <Badge variant="default" class="ml-1"><CheckCircleIcon class="size-3" /> Actualizada</Badge>
-        {:else}
-          <Badge variant="destructive" class="ml-1"><ArrowUpCircleIcon class="size-3" /> Desactualizada</Badge>
-          <span class="text-muted-foreground">Refrescá o reinstalá para actualizar a v{store.versionActual}</span>
-        {/if}
-      </div>
-    {:else}
-      <div class="text-xs text-muted-foreground">Sin versión instalada registrada (instalación previa al versionado).</div>
+    {#if isGristMode}
+      {#if store.versionInstalada}
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <span class="text-muted-foreground">Instalada en este documento:</span>
+          <Badge variant="secondary" class="font-mono">v{store.versionInstalada}</Badge>
+          {#if store.shaInstalado && store.shaInstalado !== 'dev'}
+            <span class="text-muted-foreground font-mono">({store.shaInstalado})</span>
+          {/if}
+          {#if store.versionActualizada}
+            <Badge variant="default" class="ml-1"><CheckCircleIcon class="size-3" /> Actualizada</Badge>
+          {:else}
+            <Badge variant="destructive" class="ml-1"><ArrowUpCircleIcon class="size-3" /> Desactualizada</Badge>
+            <span class="text-muted-foreground">Refrescá o reinstalá para actualizar a v{store.versionActual}</span>
+          {/if}
+        </div>
+      {:else}
+        <div class="text-xs text-muted-foreground">Sin versión instalada registrada (instalación previa al versionado).</div>
+      {/if}
     {/if}
 
     <div class="flex flex-wrap gap-2">
       <Button variant="outline" size="sm" onclick={store.check} disabled={store.creating}>
         <RefreshIcon data-icon="inline-start" />
-        Revalidar
+        Verificar estructura
       </Button>
       <Button variant="outline" size="sm" onclick={store.repairSchema} disabled={store.creating}>
         <WrenchIcon data-icon="inline-start" />
-        Reparar Refs
+        Reparar vínculos
       </Button>
       <Button variant="outline" size="sm" onclick={confirmarDedup} disabled={store.migrating || store.creating}>
         <CopyCheckIcon data-icon="inline-start" />
-        {store.migrating ? 'Procesando…' : 'Deduplicar personas'}
+        {store.migrating ? 'Procesando…' : 'Unificar personas repetidas'}
       </Button>
     </div>
 
@@ -379,11 +381,11 @@
     {#if store.repairResult}
       <Separator />
       <div class="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
-        <div class="text-sm font-semibold">Schema reparado</div>
+        <div class="text-sm font-semibold">Estructura reparada</div>
         <ul class="mt-2 ml-4 list-disc text-sm text-muted-foreground">
           <li>Tablas creadas: <strong>{store.repairResult.created}</strong></li>
           <li>Columnas agregadas: <strong>{store.repairResult.addedColumns}</strong></li>
-          <li>Refs corregidas: <strong>{store.repairResult.repairedRefs}</strong></li>
+          <li>Vínculos corregidos: <strong>{store.repairResult.repairedRefs}</strong></li>
           <li>Columnas migradas a fórmula: <strong>{store.repairResult.migratedFormulas}</strong></li>
         </ul>
       </div>

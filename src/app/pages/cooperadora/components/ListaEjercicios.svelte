@@ -121,7 +121,7 @@
         <div class="text-xs text-muted-foreground rounded-lg border border-border bg-muted/40 px-3 py-2">
           <LockIcon data-icon="inline-start" />
           No se puede crear un nuevo ejercicio hasta que los anteriores estén cerrados.
-          Cerrá primero los ejercicios pendientes desde <strong>Cierre / Presentación</strong>.
+          Cerrá primero los ejercicios pendientes desde <strong>Cierre de ejercicio</strong>.
         </div>
       {/if}
       <Button variant="outline" size="sm" class="w-fit" onclick={toggleForm} disabled={busy || creating || !puedeCrear}>

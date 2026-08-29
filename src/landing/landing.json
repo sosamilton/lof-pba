@@ -144,58 +144,12 @@
         "Navegación completa por teclado con atajos (Ctrl+K, Ctrl+1, ?)",
         "Paleta de comandos para buscar y ejecutar acciones sin mouse",
         "Soporte para lectores de pantalla y ARIA labels",
-        "100% offline: sin nube, sin telemetría, sin publicidades",
+        "100% offline: sin nube, telemetría respetuosa de tu privacidad, sin publicidades",
         "Responsive: funciona en desktop y mobile",
         "Software libre AGPL-3.0 sobre Grist, sin lock-in"
       ]
     }
   ],
-  "capturas": {
-    "titulo": "Capturas y demos",
-    "subtitulo": "Una mirada rápida a la app en acción.",
-    "items": [
-      {
-        "titulo": "Inicio",
-        "descripcion": "Dashboard con saldos por cuenta, indicadores del ejercicio en curso y alertas accionables.",
-        "imagen": "img/screenshot/inicio.png"
-      },
-      {
-        "titulo": "Institucional",
-        "descripcion": "Datos formales, cargos del estatuto, autoridades vigentes con cese y reemplazo, histórico de mandatos, asesor institucional y ejercicios fiscales.",
-        "imagen": "img/screenshot/institucional.png"
-      },
-      {
-        "titulo": "Comunidad",
-        "descripcion": "Padrón unificado de personas y socios con búsqueda, filtros y altas.",
-        "imagen": "img/screenshot/comunidad.png"
-      },
-      {
-        "titulo": "Movimientos",
-        "descripcion": "Registro de entradas, salidas y traspasos con trazabilidad por período.",
-        "imagen": "img/screenshot/movimiento.png"
-      },
-      {
-        "titulo": "Resumen analítico",
-        "descripcion": "Flujo de caja, distribución de gastos e ingresos, comparativa interanual y morosidad.",
-        "imagen": "img/screenshot/resumen.png"
-      },
-      {
-        "titulo": "Asambleas y Memorias",
-        "descripcion": "Asambleas, reuniones de CD, hechos relevantes y Memoria anual.",
-        "imagen": "img/screenshot/asamblea.png"
-      },
-      {
-        "titulo": "Cierre de ciclo",
-        "descripcion": "Cierre del ejercicio con cálculo de saldos, generación de PIA y Nómina en PDF, Memoria anual exportable, datos en solo lectura y creación automática del próximo ejercicio.",
-        "imagen": "img/screenshot/cierre.png"
-      },
-      {
-        "titulo": "Configuración",
-        "descripcion": "Preferencias de la cooperadora, modalidad de gestión, categorías y subcategorías con activar/desactivar, revalidación de schema y mantenimiento.",
-        "imagen": "img/screenshot/configuracion.png"
-      }
-    ]
-  },
   "instalacion": {
     "titulo": "Cómo se instala",
     "subtitulo": "En menos de 5 minutos, siguiendo estos pasos simples. No necesitás saber programar.",
@@ -243,10 +197,16 @@
       },
       {
         "titulo": "Elegir LOF de la lista o pegar la URL",
-        "descripcion": "Si usás Docker, LOF aparece directamente en la lista de widgets (gracias a la galería automática). Si usás Grist en la nube o Desktop, pegá la URL: https://sosamilton.github.io/spa-cooperadora/ — En modo offline (Docker) usá: http://localhost:8088",
+        "descripcion": "Si usás Docker, LOF aparece directamente en la lista de widgets (gracias a la galería automática). Si usás Grist en la nube o Desktop, pegá la URL: https://lof.mdsoluciones.ar/ — En modo offline (Docker) usá: http://localhost:8088",
         "imagenes": [
-          { "src": "img/install/4-pego-url-docker.png", "caption": "Modo Docker: LOF aparece en la lista automáticamente" },
-          { "src": "img/install/4-pego-url-cloud.png", "caption": "Modo nube / Desktop: pegar la URL manualmente" }
+          {
+            "src": "img/install/4-pego-url-docker.png",
+            "caption": "Modo Docker: LOF aparece en la lista automáticamente"
+          },
+          {
+            "src": "img/install/4-pego-url-cloud.png",
+            "caption": "Modo nube / Desktop: pegar la URL manualmente"
+          }
         ]
       },
       {
@@ -258,39 +218,45 @@
         "titulo": "Dar acceso completo",
         "descripcion": "Te va a pedir que elijas el nivel de acceso. Seleccioná 'Full Access' (acceso completo). Esto es necesario para que LOF pueda crear todas las tablas donde se van a guardar los datos de tu cooperadora.",
         "imagenes": [
-          { "src": "img/install/6-acceso-panel.png", "caption": "Abrir el panel de acceso" },
-          { "src": "img/install/6-doy-permisos.png", "caption": "Seleccionar 'Full document access'" }
+          {
+            "src": "img/install/6-acceso-panel.png",
+            "caption": "Abrir el panel de acceso"
+          },
+          {
+            "src": "img/install/6-doy-permisos.png",
+            "caption": "Seleccionar 'Full document access'"
+          }
         ]
       },
       {
         "titulo": "¡Listo! Se abre la configuración inicial",
         "descripcion": "Automáticamente se abre una guía paso a paso que te pregunta los datos básicos: tu escuela, los cargos de la comisión, los datos del banco, etc. Lo vas completando de a uno. Cuando terminás, la app queda lista para usar.",
-        "imagen": "img/setup/1-modo.png"
+        "imagen": ""
       },
       {
         "titulo": "Elegir modalidad",
         "descripcion": "La primera pantalla del wizard te pregunta si vas a usar la app online u offline. Elegí la opción que corresponda a tu situación.",
-        "imagen": "img/setup/1-modo.png"
+        "imagen": ""
       },
       {
         "titulo": "Datos de la escuela y cooperadora",
         "descripcion": "Cargá los datos formales: nombre de la escuela, número, distrito, dirección y los datos de la cooperadora.",
-        "imagen": "img/setup/2-escuela-cooperadora.png"
+        "imagen": ""
       },
       {
         "titulo": "Datos bancarios",
         "descripcion": "Ingresá los datos de la cuenta bancaria de la cooperadora: banco, tipo de cuenta, número y CBU.",
-        "imagen": "img/setup/3-banco.png"
+        "imagen": ""
       },
       {
         "titulo": "Ejercicios y cargos",
         "descripcion": "Configurá el ejercicio actual y los cargos de la comisión directiva según tu estatuto.",
-        "imagen": "img/setup/4-ejercicios-cargos.png"
+        "imagen": ""
       },
       {
         "titulo": "Instalación completa",
         "descripcion": "El wizard confirma que todo está configurado. La app queda lista para usar con todas las tablas creadas y los datos iniciales cargados.",
-        "imagen": "img/setup/5-instalacion.png"
+        "imagen": ""
       }
     ],
     "metodos_instalacion": [
@@ -317,10 +283,10 @@
         "modo": "offline",
         "nota": "Necesitás instalar Docker primero (es un programa gratuito). Después descargás un solo archivo y ejecutás un comando. No hace falta clonar el repositorio ni construir nada: todo viene en imágenes listas para usar. Grist queda en el puerto 8089 y la app en el 8088.",
         "comandos": [
-          "curl -O https://raw.githubusercontent.com/sosamilton/spa-cooperadora/refs/heads/main/docker/docker-compose.standalone.yml",
+          "curl -O https://raw.githubusercontent.com/sosamilton/lof-pba/refs/heads/main/docker/docker-compose.standalone.yml",
           "docker compose -f docker-compose.standalone.yml up -d"
         ],
-        "enlace": "https://raw.githubusercontent.com/sosamilton/spa-cooperadora/refs/heads/main/docker/docker-compose.standalone.yml",
+        "enlace": "https://raw.githubusercontent.com/sosamilton/lof-pba/refs/heads/main/docker/docker-compose.standalone.yml",
         "enlace_texto": "Ver archivo de configuración",
         "requisitos": [
           {

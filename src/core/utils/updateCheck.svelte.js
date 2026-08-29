@@ -172,6 +172,11 @@ async function check(opts = {}) {
  * del AppShell.
  */
 function init() {
+  // En dev no tiene sentido avisar de versión nueva: el bundle local casi
+  // siempre está detrás del último release de GitHub, y el toast molesta.
+  // Solo verificar en builds de producción (PWA pública, Grist widget, Tauri).
+  if (!import.meta.env.PROD) return
+
   // Aplicar cache síncrono para mostrar el badge inmediatamente si ya
   // sabíamos que había un update (sin esperar al fetch).
   const cached = readCache()
