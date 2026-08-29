@@ -13,12 +13,16 @@ name: Build & Release Tauri desktop apps
 #
 # Code signing (opcional, via secrets):
 #   macOS:  APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY
-#   Windows: TAURI_PRIVATE_KEY, TAURI_KEY_PASSWORD (updater signature)
-#           Para code signing real de Windows hace falta un certificado EV
-#           y variables adicionales (ver docs Tauri). Sin eso, los binarios
-#           funcionan pero SmartScreen advierte al usuario.
+#   Updater: TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+#            (firma minisign/Ed25519 del updater — sin esto, el build falla
+#            porque tauri.conf.json tiene pubkey configurada)
+#   Windows: Para code signing real de Windows hace falta un certificado EV
+#            y variables adicionales (ver docs Tauri). Sin eso, los binarios
+#            funcionan pero SmartScreen advierte al usuario.
 #
-# Si no se configuran los secrets, el build igual funciona (binarios sin firma).
+# macOS usa --no-sign para skippear Apple code signing (no tenemos certificado),
+# pero el updater signature (.sig) sí se genera si TAURI_SIGNING_PRIVATE_KEY
+# está configurada.
 
 on:
   push:
@@ -137,9 +141,9 @@ jobs:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          # Updater signature (opcional — para auto-update firmado)
-          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+          # Updater signature (minisign/Ed25519 — para auto-update firmado)
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ steps.ver.outputs.tag }}
           releaseName: "LOF Desktop v${{ steps.ver.outputs.version }}"
@@ -164,53 +168,10 @@ jobs:
           # Forzar npm en vez de bun (bun no está en Windows y crashea en macOS)
           tauriScript: npx tauri
 
-  # --- latest.json para verificación de versión desde el SPA -----------------
-  # Genera un manifest simple con la versión + URLs de descarga y lo sube al
-  # release. El Tauri updater (desktop) lo fetcha desde:
+  # --- latest.json -----------------------------------------------------------
+  # tauri-action con `includeUpdaterJson: true` genera y sube latest.json
+  # automáticamente al release con el formato correcto del updater de Tauri
+  # (version + platforms con signature y url por plataforma).
+  # El Tauri updater (desktop) lo fetcha desde:
   #   https://github.com/sosamilton/lof-pba/releases/latest/download/latest.json
   # GitHub redirige automáticamente al asset del release más reciente.
-  # Nota: el SPA web usa la API de GitHub (api.github.com) que sí envía CORS,
-  # pero el Tauri updater (Rust, sin restricciones CORS) usa este asset directo.
-  # No depende de Tauri signing — siempre se genera, haya o no clave privada.
-  publish-latest-json:
-    needs: publish-tauri
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Compute version
-        id: ver
-        shell: bash
-        run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
-          else
-            echo "version=dev-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-            echo "tag=dev-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Generate latest.json
-        shell: bash
-        run: |
-          cat > latest.json <<EOF
-          {
-            "version": "${{ steps.ver.outputs.version }}",
-            "tag": "${{ steps.ver.outputs.tag }}",
-            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "release_url": "https://github.com/sosamilton/lof-pba/releases/tag/${{ steps.ver.outputs.tag }}",
-            "download_url": "https://github.com/sosamilton/lof-pba/releases/latest",
-            "notes": "LOF Desktop v${{ steps.ver.outputs.version }}"
-          }
-          EOF
-          cat latest.json
-
-      - name: Upload latest.json to release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.ver.outputs.tag }}
-          files: latest.json
-          fail_on_unmatched_files: true
