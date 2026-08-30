@@ -96,7 +96,7 @@ async function main() {
 
   // Extraer los tags <link rel="stylesheet"> y <script type="module"> del index.html
   const cssLinks = [...indexHtml.matchAll(/<link[^>]*rel="stylesheet"[^>]*>/g)].map((m) => m[0])
-  const jsScripts = [...indexHtml.matchAll(/<script[^>]*type="module"[^>]*src="[^"]*"[^>]*>/g)].map((m) => m[0])
+  const jsScripts = [...indexHtml.matchAll(/<script[^>]*type="module"[^>]*src="[^"]*"[^>]*>\s*<\/script>/g)].map((m) => m[0])
   const modulePreloads = [...indexHtml.matchAll(/<link[^>]*rel="modulepreload"[^>]*>/g)].map((m) => m[0])
 
   // Extraer el JSON-LD del index.html (para reusarlo en cada página)
