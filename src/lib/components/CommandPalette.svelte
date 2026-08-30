@@ -1,10 +1,10 @@
 <script>
   import * as Command from '$lib/components/ui/command'
-  import { keyboard, triggerContextAction } from '$core/ui/keyboard.svelte'
+  import { keyboard } from '$core/ui/keyboard.svelte'
   import { navigate } from '$core/ui/router.svelte'
+  import { shortcuts, displayBinding } from '$core/ui/shortcuts.svelte'
   import HomeIcon from '@lucide/svelte/icons/home'
   import UsersIcon from '@lucide/svelte/icons/users'
-  import ContactIcon from '@lucide/svelte/icons/contact'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import GavelIcon from '@lucide/svelte/icons/gavel'
   import SettingsIcon from '@lucide/svelte/icons/settings'
@@ -15,19 +15,10 @@
 
   const iconMap = {
     inicio: HomeIcon,
-    socios: UsersIcon,
-    personas: ContactIcon,
+    comunidad: UsersIcon,
     movimientos: ArrowLeftRightIcon,
     gobierno: GavelIcon,
     configuracion: SettingsIcon,
-  }
-
-  const shortcutMap = {
-    inicio: 'Ctrl+I',
-    socios: 'Ctrl+S',
-    personas: 'Ctrl+P',
-    movimientos: 'Ctrl+M',
-    gobierno: 'Ctrl+A',
   }
 
   let value = $state('')
@@ -39,6 +30,18 @@
   const run = (fn) => {
     fn()
     keyboard.close()
+  }
+
+  // Atajos rápidos (no de navegación) para el grupo "Acciones rápidas".
+  const quickActions = $derived(
+    shortcuts.actions.filter(
+      (a) => a.id === 'action.new' || a.id === 'action.cuota' || a.id === 'action.quickSearch'
+    )
+  )
+  const quickIcons = {
+    'action.new': PlusIcon,
+    'action.cuota': ArrowLeftRightIcon,
+    'action.quickSearch': SearchIcon,
   }
 </script>
 
@@ -70,53 +73,30 @@
     <Command.Group heading="Navegación">
       {#each menuItems as item (item.route)}
         {@const Icon = iconMap[item.route]}
+        {@const sc = displayBinding(shortcuts.keysFor('nav.' + item.route))}
         <Command.Item value={item.label} onSelect={() => run(() => navigate(item.route))}>
           {#if Icon}
             <Icon />
           {/if}
           {item.label}
-          {#if shortcutMap[item.route]}
-            <Command.Shortcut>{shortcutMap[item.route]}</Command.Shortcut>
+          {#if sc}
+            <Command.Shortcut>{sc}</Command.Shortcut>
           {/if}
         </Command.Item>
       {/each}
     </Command.Group>
 
     <Command.Group heading="Acciones rápidas">
-      <Command.Item
-        value="buscar en la página actual"
-        onSelect={() => run(() => triggerContextAction('search'))}
-      >
-        <SearchIcon />
-        Buscar en la página actual
-        <Command.Shortcut>Ctrl+F</Command.Shortcut>
-      </Command.Item>
-      <Command.Item
-        value="crear nuevo registro"
-        onSelect={() => run(() => triggerContextAction('new'))}
-      >
-        <PlusIcon />
-        Crear nuevo registro
-        <Command.Shortcut>Ctrl+N</Command.Shortcut>
-      </Command.Item>
-      <Command.Item
-        value="cuota societaria rápida"
-        onSelect={() => run(() => {
-          if (window.location.hash.replace('#', '') === 'movimientos') {
-            triggerContextAction('cuota')
-          } else {
-            keyboard.setPendingAction({
-              id: 'cuota-societaria',
-              action: () => triggerContextAction('cuota'),
-            })
-            navigate('movimientos')
-          }
-        })}
-      >
-        <ArrowLeftRightIcon />
-        Cargar cuota societaria
-        <Command.Shortcut>Ctrl+1</Command.Shortcut>
-      </Command.Item>
+      {#each quickActions as action (action.id)}
+        {@const Icon = quickIcons[action.id]}
+        <Command.Item value={action.label} onSelect={() => run(action.run)}>
+          {#if Icon}
+            <Icon />
+          {/if}
+          {action.label}
+          <Command.Shortcut>{displayBinding(shortcuts.keysFor(action.id))}</Command.Shortcut>
+        </Command.Item>
+      {/each}
     </Command.Group>
   </Command.List>
 </Command.Dialog>

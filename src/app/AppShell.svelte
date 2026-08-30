@@ -4,7 +4,8 @@
   import { configStore } from '$core/grist/stores/configStore.svelte'
   import { getActiveMenuItems } from '$core/utils/utils'
   import { applyBrandTheme } from '$core/ui/theme'
-  import { keyboard, NAV_SHORTCUTS, triggerContextAction } from '$core/ui/keyboard.svelte'
+  import { keyboard } from '$core/ui/keyboard.svelte'
+  import { shortcuts, matchShortcut, matchCustomAction, displayBinding } from '$core/ui/shortcuts.svelte'
   import * as Sidebar from '$lib/components/ui/sidebar'
   import CommandPalette from '$lib/components/CommandPalette.svelte'
   import KeyboardHelp from '$lib/components/KeyboardHelp.svelte'
@@ -72,13 +73,13 @@
     configuracion: SettingsIcon,
   }
 
-  const shortcutLabels = {
-    inicio: 'Ctrl+I',
-    comunidad: 'Ctrl+S',
-    movimientos: 'Ctrl+M',
-    resumen: 'Ctrl+R',
-    gobierno: 'Ctrl+A',
-  }
+  const shortcutLabels = $derived(
+    Object.fromEntries(
+      shortcuts.actions
+        .filter((a) => a.id.startsWith('nav.'))
+        .map((a) => [a.id.replace('nav.', ''), displayBinding(shortcuts.keysFor(a.id))])
+    )
+  )
 
   const go = (r) => navigate(r)
 
@@ -87,76 +88,42 @@
     mainEl?.focus()
   }
 
-  // Atajos de teclado globales
+  const isTypingTarget = (el) => {
+    if (!el) return false
+    const tag = el.tagName
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
+  }
+
+  // Atajos de teclado globales — basados en shortcutStore (single source of truth).
   const onKeyDown = (/** @type {KeyboardEvent} */ e) => {
-    // Ctrl+K → abrir/cerrar paleta de comandos
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    // Si la UI de Configuración está capturando una tecla, no interferir.
+    if (shortcuts.capturing || keyboard.capturing) return
+
+    // Paleta de comandos: siempre funciona (incluso abierta, para cerrarla).
+    if (matchShortcut(e, shortcuts.keysFor('action.palette'))) {
       e.preventDefault()
       keyboard.toggle()
       return
     }
 
-    // Si la paleta está abierta, no procesar más atajos (ella maneja su propio teclado)
+    // Si la paleta está abierta, ella maneja su propio teclado.
     if (keyboard.open) return
 
-    // Ctrl+N → nuevo registro (context-aware)
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
-      e.preventDefault()
-      triggerContextAction('new')
-      return
-    }
-
-    // Ctrl+F → buscar en la página actual (context-aware)
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
-      e.preventDefault()
-      triggerContextAction('search')
-      return
-    }
-
-    // Ctrl+1 → cuota societaria rápida (navega a movimientos y abre form pre-cargado)
-    if ((e.ctrlKey || e.metaKey) && e.key === '1') {
-      e.preventDefault()
-      if (router.current === 'movimientos') {
-        triggerContextAction('cuota')
-      } else {
-        keyboard.setPendingAction({
-          id: 'cuota-societaria',
-          action: () => triggerContextAction('cuota'),
-        })
-        navigate('movimientos')
-      }
-      return
-    }
-
-    // Atajos de navegación: Ctrl+Letra
-    if (e.ctrlKey || e.metaKey) {
-      const key = e.key.toLowerCase()
-      const nav = NAV_SHORTCUTS[key]
-      if (nav) {
+    // Resto de las acciones: primera que matchee gana.
+    for (const a of shortcuts.actions) {
+      if (a.id === 'action.palette') continue
+      const keys = shortcuts.keysFor(a.id)
+      if (keys && matchShortcut(e, keys)) {
+        // Atajos sin modificador (?, /) no disparan dentro de inputs.
+        if (a.guardInput && isTypingTarget(e.target)) continue
         e.preventDefault()
-        navigate(nav.route)
+        a.run()
         return
       }
     }
 
-    // '?' → mostrar ayuda de atajos (solo si no se está escribiendo en un input)
-    if (e.key === '?' && !isTypingTarget(e.target)) {
-      e.preventDefault()
-      keyboard.toggleHelp()
-      return
-    }
-
-    // '/' → enfocar búsqueda (solo si no se está escribiendo en un input)
-    if (e.key === '/' && !isTypingTarget(e.target)) {
-      e.preventDefault()
-      triggerContextAction('search')
-    }
-  }
-
-  const isTypingTarget = (el) => {
-    if (!el) return false
-    const tag = el.tagName
-    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
+    // Acciones personalizadas del usuario (presets de form).
+    if (matchCustomAction(e)) return
   }
 
   // Etiqueta accesible de la ruta actual (para título y anuncio de navegación)
@@ -353,8 +320,8 @@
         type="button"
         onclick={() => keyboard.toggle()}
         class="inline-flex shrink-0 items-center justify-center rounded-md border border-input bg-background p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        aria-label="Abrir paleta de comandos (Ctrl+K)"
-        title="Paleta de comandos (Ctrl+K)"
+        aria-label="Abrir paleta de comandos ({displayBinding(shortcuts.keysFor('action.palette'))})"
+        title="Paleta de comandos ({displayBinding(shortcuts.keysFor('action.palette'))})"
       >
         <CommandIcon class="size-4" />
       </button>
