@@ -106,6 +106,31 @@ function applyUpdate() {
   waitingWorker.postMessage({ type: 'SKIP_WAITING' })
 }
 
+/**
+ * Fuerza la verificación de updates del SW.
+ * Útil para llamar al montar la app o desde un botón "Buscar actualizaciones".
+ * El navegador cachea sw.js por max-age=3600 (GitHub Pages), pero
+ * update() hace un fetch bypassando el cache HTTP del navegador.
+ */
+async function checkForUpdate() {
+  if (!import.meta.env.PROD) return
+  if (!('serviceWorker' in navigator)) return
+  try {
+    const reg = await navigator.serviceWorker.getRegistration()
+    if (reg) {
+      await reg.update()
+      // Si después del update hay un SW waiting, mostrarlo.
+      if (reg.waiting && !updateReady) {
+        waitingWorker = reg.waiting
+        updateReady = true
+        trackEvent('sw_update_found', { source: 'manual_check' })
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 export const swUpdate = {
   get updateReady() {
     return updateReady
@@ -115,4 +140,5 @@ export const swUpdate = {
   },
   init,
   applyUpdate,
+  checkForUpdate,
 }

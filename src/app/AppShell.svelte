@@ -28,7 +28,6 @@
   import { identidad } from '$core/data/identidad'
   import { updateCheck } from '$core/utils/updateCheck.svelte'
   import { pwaInstall } from '$core/utils/pwaInstall.svelte'
-  import { swUpdate } from '$core/utils/swUpdate.svelte'
   import { notify } from '$core/ui/notify.svelte'
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
   import InstallBanner from '$lib/components/InstallBanner.svelte'
@@ -191,24 +190,6 @@
           },
         },
       )
-    }
-  })
-
-  // Toast cuando el service worker detectó una nueva versión ya descargada.
-  // El botón "Actualizar" envía SKIP_WAITING al SW y recarga la página
-  // (la recarga la maneja el listener de controllerchange en swUpdate).
-  let _notifiedSwUpdate = false
-  $effect(() => {
-    if (swUpdate.updateReady && !_notifiedSwUpdate) {
-      _notifiedSwUpdate = true
-      notify.info('Nueva versión de LOF disponible', {
-        duration: Infinity,
-        description: 'Ya se descargó en segundo plano. Actualizá para usarla.',
-        action: {
-          label: 'Actualizar',
-          onClick: () => swUpdate.applyUpdate(),
-        },
-      })
     }
   })
 
