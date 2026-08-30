@@ -66,15 +66,20 @@ async function main() {
       noExternal: ['@lucide/svelte', 'tailwind-variants', 'clsx', 'tailwind-merge'],
     },
     resolve: {
-      alias: {
-        $lib: resolve(root, 'src/lib'),
-        $core: resolve(root, 'src/core'),
-        $app: resolve(root, 'src/app'),
-        $landing: resolve(root, 'src/landing'),
-        $setup: resolve(root, 'src/setup'),
-        // Mock dataRepository para evitar importar PouchDB en SSR
-        '$core/data/dataRepository': resolve(root, 'src/prerender/mock-dataRepository.js'),
-      },
+      // Array syntax: el primer alias que matchea gana. El mock de
+      // dataRepository DEBE ir antes que $core para que se aplique.
+      // Con object syntax, Vite mergea con los alias del vite.config.js
+      // y $core del config puede tener prioridad, haciendo que el mock
+      // nunca se aplique → _detectBackend() devuelve 'grist' (SSR fallback)
+      // → isPouchMode === false → card "Ver una demo" oculta en pre-render.
+      alias: [
+        { find: '$core/data/dataRepository', replacement: resolve(root, 'src/prerender/mock-dataRepository.js') },
+        { find: '$lib', replacement: resolve(root, 'src/lib') },
+        { find: '$core', replacement: resolve(root, 'src/core') },
+        { find: '$app', replacement: resolve(root, 'src/app') },
+        { find: '$landing', replacement: resolve(root, 'src/landing') },
+        { find: '$setup', replacement: resolve(root, 'src/setup') },
+      ],
     },
     logLevel: 'warn',
   })

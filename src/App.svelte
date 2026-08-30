@@ -9,6 +9,8 @@
   import { identidad } from '$core/data/identidad'
   import { updateRouteMeta } from '$core/seo'
   import { syncStore as sync } from '$app/pages/configuracion/syncStore.svelte.js'
+  import { swUpdate } from '$core/utils/swUpdate.svelte'
+  import { notify } from '$core/ui/notify.svelte'
 
   const activeBackend = getActiveBackend()
   const isPouchMode = activeBackend === 'pouch'
@@ -102,6 +104,13 @@
       }
     })
     ready = true
+
+    // Verificar proactivamente si hay una nueva versión del SW.
+    // El navegador cachea sw.js por max-age=3600 (GitHub Pages), pero
+    // reg.update() bypassa el cache HTTP. Esto asegura que el usuario
+    // detecte updates apenas entra, sin esperar al evento updatefound.
+    swUpdate.checkForUpdate()
+
     return () => {
       cleanup?.()
       unsubAccess?.()
@@ -175,6 +184,24 @@
       modalidad,
       demo: isDemo,
     })
+  })
+
+  // Toast de SW update: acá (en App.svelte) se renderiza siempre, sin importar
+  // si el usuario está en la landing, en el setup wizard, o dentro de la app.
+  // Antes estaba en AppShell.svelte y no se veía si el usuario no entraba a la app.
+  let _notifiedSwUpdate = false
+  $effect(() => {
+    if (swUpdate.updateReady && !_notifiedSwUpdate) {
+      _notifiedSwUpdate = true
+      notify.warning('Nueva versión de LOF disponible', {
+        duration: Infinity,
+        description: 'Ya se descargó en segundo plano. Actualizá para usarla.',
+        action: {
+          label: 'Actualizar',
+          onClick: () => swUpdate.applyUpdate(),
+        },
+      })
+    }
   })
 </script>
 
