@@ -200,7 +200,13 @@
     }
     const pending = keyboard.consumePendingAction()
     if (pending) pending.action()
-    return unsub
+    // Escuchar presets de movimientos desde acciones custom de atajos.
+    const onPreset = (/** @type {CustomEvent} */ e) => store.nuevoConPreset(e.detail)
+    window.addEventListener('lof:movimiento-preset', onPreset)
+    return () => {
+      unsub()
+      window.removeEventListener('lof:movimiento-preset', onPreset)
+    }
   })
 </script>
 

@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte'
   import { comunidadStore as store } from './comunidadStore.svelte'
+  import { keyboard } from '$core/ui/keyboard.svelte'
   import { normalize } from '$core/utils/utils'
   import { daysSince } from '$core/utils/utils'
   import { formatFecha } from '$core/format/format'
@@ -75,7 +76,17 @@
       const config = await loadConfig()
       esIntegral = Boolean(config?.modulo_gestion_integral)
     } catch { /* config opcional */ }
-    return unsub
+    // Ejecutar acción pendiente (ej: atajo custom que navega a Comunidad
+    // y pre-carga el form de persona/socio).
+    const pending = keyboard.consumePendingAction()
+    if (pending) pending.action()
+    // Escuchar presets de persona desde acciones custom de atajos.
+    const onPreset = (/** @type {CustomEvent} */ e) => store.nuevo(e.detail)
+    window.addEventListener('lof:persona-preset', onPreset)
+    return () => {
+      unsub()
+      window.removeEventListener('lof:persona-preset', onPreset)
+    }
   })
 
   const vinculoFilterConfig = $derived({

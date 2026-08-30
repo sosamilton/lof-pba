@@ -108,8 +108,12 @@ const nuevo = (prefill = {}) => {
   ps.reset()
   fw.reset()
   edadWarning = ''
-  esSocio = false
+  esSocio = Boolean(prefill.esSocio)
   form = buildNewPersonaForm(prefill)
+  if (esSocio) {
+    form.tipo_socio = prefill.tipo_socio || 'Activo'
+    form.fecha_alta = todayISO()
+  }
   if (prefill.dni) {
     const d = normalizeDni(prefill.dni)
     if (d) {
