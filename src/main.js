@@ -24,8 +24,14 @@ if (typeof window !== 'undefined' && !window.location.hash) {
   }
 }
 
+// El pre-render deja HTML estático dentro de #app para SEO/OG previews
+// (WhatsApp, crawlers que no ejecutan JS). Cuando el SPA se monta en el
+// navegador, hay que limpiar ese HTML antes: mount() de Svelte 5 appende
+// sin limpiar, lo que dejaría contenido duplicado y botones sin event handlers.
+const target = document.getElementById('app')
+target.innerHTML = ''
 const app = mount(App, {
-  target: document.getElementById('app'),
+  target,
 })
 
 // Sincroniza datos estructurados (JSON-LD) con la versión real de la app.

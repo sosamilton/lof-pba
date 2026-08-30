@@ -205,7 +205,15 @@
   })
 </script>
 
-{#if !ready}
+{#if router.current === 'sobre-lof'}
+  <SobreLof />
+{:else if router.current === 'instalacion'}
+  <InstallGuide />
+{:else if router.current === 'seguridad'}
+  <Seguridad />
+{:else if router.current === 'ayuda-comunidad'}
+  <AyudaComunidad />
+{:else if !ready}
   <div class="flex items-center justify-center min-h-screen" role="status" aria-live="polite">
     <div class="flex flex-col items-center gap-3">
       <div class="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
@@ -214,14 +222,6 @@
   </div>
 {:else if router.current === 'landing'}
   <Landing installed={gristStatus === 'ready' && !needsSetup} />
-{:else if router.current === 'sobre-lof'}
-  <SobreLof />
-{:else if router.current === 'instalacion'}
-  <InstallGuide />
-{:else if router.current === 'seguridad'}
-  <Seguridad />
-{:else if router.current === 'ayuda-comunidad'}
-  <AyudaComunidad />
 {:else if gristStatus === 'ready' && needsSetup}
   {#await import('$setup/SetupWizard.svelte')}
     <div class="flex items-center justify-center min-h-screen" role="status">
