@@ -5,7 +5,7 @@
   import * as Tabs from '$lib/components/ui/tabs'
   import EmptyState from '$lib/components/EmptyState.svelte'
   import EjercicioSelector from '$lib/components/EjercicioSelector.svelte'
-  import { ORGANISMOS, ORGANISMO_LABELS } from '$app/modules/gobierno/constants.js'
+  import OrganismoTabs from './OrganismoTabs.svelte'
   import { formatFecha } from '$core/format/format'
   import HistoryIcon from '@lucide/svelte/icons/history'
 
@@ -14,29 +14,23 @@
 
 <Card.Root>
   <Card.Header>
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <Card.Title class="text-base">Histórico de mandatos</Card.Title>
-      <div class="flex items-center gap-3">
+    <div class="flex flex-col gap-3 min-w-0">
+      <div class="flex flex-col gap-3 min-w-0 sm:flex-row sm:items-center sm:justify-between">
+        <Card.Title class="text-base">Histórico de mandatos</Card.Title>
         {#if (store.ejercicios || []).length > 1}
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 shrink-0">
             <span class="text-xs text-muted-foreground">Ejercicio:</span>
             <EjercicioSelector
               ejercicios={store.ejercicios}
               value={store.ejercicioHistorico}
               onValueChange={(v) => { store.ejercicioHistorico = v ? Number(v) : null }}
-              class="h-8 w-[130px] text-xs"
+              class="h-8 w-full sm:w-[130px] text-xs"
               showEnCurso={false}
             />
           </div>
         {/if}
-        <Tabs.Root bind:value={store.organismo}>
-          <Tabs.List>
-            {#each ORGANISMOS as org}
-              <Tabs.Trigger value={org}>{ORGANISMO_LABELS[org]}</Tabs.Trigger>
-            {/each}
-          </Tabs.List>
-        </Tabs.Root>
       </div>
+      <OrganismoTabs bind:value={store.organismo} class="min-w-0 w-full" />
     </div>
     <Card.Description class="text-xs">
       Mandatos del ejercicio seleccionado (vigentes y cesados). Permite reconstruir quién ocupó cada cargo y desde qué acta.

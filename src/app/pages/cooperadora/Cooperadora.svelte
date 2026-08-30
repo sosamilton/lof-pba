@@ -192,7 +192,7 @@
     </div>
   {/snippet}
   <div class="flex flex-col gap-4 w-full">
-    <Tabs.Root value="datos-generales">
+    <Tabs.Root value="datos-generales" class="min-w-0">
       <Tabs.List class="mb-4">
         <Tabs.Trigger value="datos-generales" class="px-3">
           <BuildingIcon data-icon="inline-start" />

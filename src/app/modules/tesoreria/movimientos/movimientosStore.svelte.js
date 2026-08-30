@@ -76,6 +76,7 @@ export const movimientosStore = extendStore(base, {
   select: formLogic.select,
   nuevo: formLogic.nuevo,
   nuevoCuotaSocietaria: formLogic.nuevoCuotaSocietaria,
+  nuevoConPreset: formLogic.nuevoConPreset,
   cancelar: formLogic.cancelar,
   saveMovimiento: formLogic.saveMovimiento,
   onTipoChange: formLogic.onTipoChange,

@@ -43,7 +43,7 @@
 
 <div class="flex flex-wrap items-end gap-3 mb-4">
   <Select.Root type="single" bind:value={tipoFiltro} allowDeselect={true}>
-    <Select.Trigger class="w-[130px]" aria-label="Filtrar por tipo">
+    <Select.Trigger class="w-full sm:w-[130px]" aria-label="Filtrar por tipo">
       <Select.Value placeholder="Tipo" />
     </Select.Trigger>
     <Select.Content>
@@ -52,7 +52,7 @@
     </Select.Content>
   </Select.Root>
   <Select.Root type="single" bind:value={grupoFiltro} allowDeselect={true}>
-    <Select.Trigger class="w-[180px]" aria-label="Filtrar por grupo">
+    <Select.Trigger class="w-full sm:w-[180px]" aria-label="Filtrar por grupo">
       <Select.Value placeholder="Grupo" />
     </Select.Trigger>
     <Select.Content>
@@ -93,6 +93,7 @@
       {#if topRubros.length === 0}
         <p class="text-sm text-muted-foreground text-center py-8">Sin movimientos para los filtros seleccionados.</p>
       {:else}
+        <div class="overflow-x-auto rounded-lg border">
         <Table.Root>
           <Table.Header>
             <Table.Row>
@@ -121,6 +122,7 @@
             {/each}
           </Table.Body>
         </Table.Root>
+        </div>
       {/if}
     </Card.Content>
   </Card.Root>
@@ -133,6 +135,7 @@
       {#if gruposChart.length === 0}
         <p class="text-sm text-muted-foreground text-center py-8">Sin datos.</p>
       {:else}
+        <div class="overflow-x-auto rounded-lg border">
         <Table.Root>
           <Table.Header>
             <Table.Row>
@@ -159,6 +162,7 @@
             {/each}
           </Table.Body>
         </Table.Root>
+        </div>
       {/if}
     </Card.Content>
   </Card.Root>

@@ -239,7 +239,7 @@
             <Separator />
 
             <!-- Conteos -->
-            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div class="flex flex-col gap-1">
                 <span class="text-2xl font-bold">{svc.mergeAnalysis.resumen.movimientosNuevos}</span>
                 <span class="text-xs text-muted-foreground">Movimientos nuevos</span>

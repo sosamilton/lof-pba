@@ -75,6 +75,18 @@ export function createFormLogic({ formState, relatedData, base, cierresService }
     }
   }
 
+  // Atajo genérico: formulario pre-cargado con un preset de campos.
+  // Usado por las acciones personalizadas de atajos configurables.
+  const nuevoConPreset = (preset = {}) => {
+    nuevo()
+    if (preset.tipo_movimiento) formState.form.tipo_movimiento = preset.tipo_movimiento
+    if (preset.rubro_id) formState.form.rubro_id = String(preset.rubro_id)
+    if (preset.subrubro_id) formState.form.subrubro_id = String(preset.subrubro_id)
+    if (preset.detalle) formState.form.detalle = preset.detalle
+    if (preset.importe) formState.form.importe = String(preset.importe)
+    if (preset.cuenta_id) formState.form.cuenta_id = String(preset.cuenta_id)
+  }
+
   const cancelar = () => {
     formState.setForm(null)
     formState.setSelectedId(null)
@@ -192,6 +204,7 @@ export function createFormLogic({ formState, relatedData, base, cierresService }
     select,
     nuevo,
     nuevoCuotaSocietaria,
+    nuevoConPreset,
     cancelar,
     validate,
     saveMovimiento,

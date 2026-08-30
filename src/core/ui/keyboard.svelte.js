@@ -12,6 +12,10 @@ class KeyboardManager {
   /** Overlay de ayuda de atajos */
   helpOpen = $state(false)
 
+  /** true mientras la UI de Configuración captura una tecla para reasignar.
+   *  El handler global de atajos lo respeta y se desactiva. */
+  capturing = $state(false)
+
   /** Acción pendiente: se ejecuta cuando el módulo destino termina de cargar */
   _pendingAction = $state(null)
 
@@ -70,20 +74,8 @@ class KeyboardManager {
 export const keyboard = new KeyboardManager()
 
 /**
- * Mapa de atajos de navegación: tecla → ruta.
- * La tecla es el código de tecla sin modificadores (ej: 's' para Ctrl+S).
- */
-export const NAV_SHORTCUTS = {
-  i: { route: 'inicio', label: 'Inicio' },
-  c: { route: 'comunidad', label: 'Comunidad' },
-  m: { route: 'movimientos', label: 'Movimientos' },
-  r: { route: 'resumen', label: 'Análisis de tesorería' },
-  a: { route: 'gobierno', label: 'Asambleas y Memorias' },
-}
-
-/**
  * Dispara una acción context-aware buscando un elemento con data-shortcut.
- * @param {'new'|'search'} type
+ * @param {'new'|'search'|'cuota'} type
  */
 export function triggerContextAction(type) {
   const el = document.querySelector(`[data-shortcut="${type}"]`)

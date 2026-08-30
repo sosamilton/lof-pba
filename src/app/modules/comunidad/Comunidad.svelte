@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte'
   import { comunidadStore as store } from './comunidadStore.svelte'
+  import { keyboard } from '$core/ui/keyboard.svelte'
   import { normalize } from '$core/utils/utils'
   import { daysSince } from '$core/utils/utils'
   import { formatFecha } from '$core/format/format'
@@ -18,6 +19,7 @@
   import * as Alert from '$lib/components/ui/alert'
   import { Switch } from '$lib/components/ui/switch'
   import Combobox from '$lib/components/Combobox.svelte'
+  import ListFormLayout from '$lib/components/ListFormLayout.svelte'
   import PageScaffold from '$lib/components/PageScaffold.svelte'
   import UserPlusIcon from '@lucide/svelte/icons/user-plus'
   import LinkIcon from '@lucide/svelte/icons/link'
@@ -74,7 +76,17 @@
       const config = await loadConfig()
       esIntegral = Boolean(config?.modulo_gestion_integral)
     } catch { /* config opcional */ }
-    return unsub
+    // Ejecutar acción pendiente (ej: atajo custom que navega a Comunidad
+    // y pre-carga el form de persona/socio).
+    const pending = keyboard.consumePendingAction()
+    if (pending) pending.action()
+    // Escuchar presets de persona desde acciones custom de atajos.
+    const onPreset = (/** @type {CustomEvent} */ e) => store.nuevo(e.detail)
+    window.addEventListener('lof:persona-preset', onPreset)
+    return () => {
+      unsub()
+      window.removeEventListener('lof:persona-preset', onPreset)
+    }
   })
 
   const vinculoFilterConfig = $derived({
@@ -168,9 +180,14 @@
     {/snippet}
   </FilterBar>
 
-  <div class="grid gap-4 items-start" style="grid-template-columns: {filtered.length > 0 ? 'minmax(280px, 380px) 1fr' : '1fr'}">
-    {#if filtered.length > 0}
-      <div class="relative min-h-0 self-stretch min-h-[75vh]">
+  <ListFormLayout
+    showForm={Boolean(store.form)}
+    hasItems={filtered.length > 0}
+    onBack={() => store.cancelar()}
+    backLabel="Volver a comunidad"
+  >
+    {#snippet list()}
+      <div class="min-w-0">
         <RecordList
           items={filtered}
           selectedId={store.form?.id}
@@ -191,9 +208,8 @@
           }}
         />
       </div>
-    {/if}
-
-    <div>
+    {/snippet}
+    {#snippet detail()}
       {#if store.form}
         <Card.Root>
           <Card.Header>
@@ -412,7 +428,7 @@
           {/snippet}
         </EmptyStates>
       {/if}
-    </div>
-  </div>
+    {/snippet}
+  </ListFormLayout>
 
 </PageScaffold>

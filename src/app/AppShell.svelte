@@ -4,7 +4,8 @@
   import { configStore } from '$core/grist/stores/configStore.svelte'
   import { getActiveMenuItems } from '$core/utils/utils'
   import { applyBrandTheme } from '$core/ui/theme'
-  import { keyboard, NAV_SHORTCUTS, triggerContextAction } from '$core/ui/keyboard.svelte'
+  import { keyboard } from '$core/ui/keyboard.svelte'
+  import { shortcuts, matchShortcut, matchCustomAction, displayBinding } from '$core/ui/shortcuts.svelte'
   import * as Sidebar from '$lib/components/ui/sidebar'
   import CommandPalette from '$lib/components/CommandPalette.svelte'
   import KeyboardHelp from '$lib/components/KeyboardHelp.svelte'
@@ -30,6 +31,8 @@
   import { swUpdate } from '$core/utils/swUpdate.svelte'
   import { notify } from '$core/ui/notify.svelte'
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
+  import InstallBanner from '$lib/components/InstallBanner.svelte'
+  import MobileSidebarAutoClose from '$lib/components/MobileSidebarAutoClose.svelte'
   import { useConfirmDialog } from '$lib/hooks/useConfirmDialog.svelte.js'
   import { limpiarDispositivo } from '$core/data/intercambio.js'
 
@@ -70,13 +73,13 @@
     configuracion: SettingsIcon,
   }
 
-  const shortcutLabels = {
-    inicio: 'Ctrl+I',
-    comunidad: 'Ctrl+S',
-    movimientos: 'Ctrl+M',
-    resumen: 'Ctrl+R',
-    gobierno: 'Ctrl+A',
-  }
+  const shortcutLabels = $derived(
+    Object.fromEntries(
+      shortcuts.actions
+        .filter((a) => a.id.startsWith('nav.'))
+        .map((a) => [a.id.replace('nav.', ''), displayBinding(shortcuts.keysFor(a.id))])
+    )
+  )
 
   const go = (r) => navigate(r)
 
@@ -85,76 +88,42 @@
     mainEl?.focus()
   }
 
-  // Atajos de teclado globales
+  const isTypingTarget = (el) => {
+    if (!el) return false
+    const tag = el.tagName
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
+  }
+
+  // Atajos de teclado globales — basados en shortcutStore (single source of truth).
   const onKeyDown = (/** @type {KeyboardEvent} */ e) => {
-    // Ctrl+K → abrir/cerrar paleta de comandos
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    // Si la UI de Configuración está capturando una tecla, no interferir.
+    if (shortcuts.capturing || keyboard.capturing) return
+
+    // Paleta de comandos: siempre funciona (incluso abierta, para cerrarla).
+    if (matchShortcut(e, shortcuts.keysFor('action.palette'))) {
       e.preventDefault()
       keyboard.toggle()
       return
     }
 
-    // Si la paleta está abierta, no procesar más atajos (ella maneja su propio teclado)
+    // Si la paleta está abierta, ella maneja su propio teclado.
     if (keyboard.open) return
 
-    // Ctrl+N → nuevo registro (context-aware)
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
-      e.preventDefault()
-      triggerContextAction('new')
-      return
-    }
-
-    // Ctrl+F → buscar en la página actual (context-aware)
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
-      e.preventDefault()
-      triggerContextAction('search')
-      return
-    }
-
-    // Ctrl+1 → cuota societaria rápida (navega a movimientos y abre form pre-cargado)
-    if ((e.ctrlKey || e.metaKey) && e.key === '1') {
-      e.preventDefault()
-      if (router.current === 'movimientos') {
-        triggerContextAction('cuota')
-      } else {
-        keyboard.setPendingAction({
-          id: 'cuota-societaria',
-          action: () => triggerContextAction('cuota'),
-        })
-        navigate('movimientos')
-      }
-      return
-    }
-
-    // Atajos de navegación: Ctrl+Letra
-    if (e.ctrlKey || e.metaKey) {
-      const key = e.key.toLowerCase()
-      const nav = NAV_SHORTCUTS[key]
-      if (nav) {
+    // Resto de las acciones: primera que matchee gana.
+    for (const a of shortcuts.actions) {
+      if (a.id === 'action.palette') continue
+      const keys = shortcuts.keysFor(a.id)
+      if (keys && matchShortcut(e, keys)) {
+        // Atajos sin modificador (?, /) no disparan dentro de inputs.
+        if (a.guardInput && isTypingTarget(e.target)) continue
         e.preventDefault()
-        navigate(nav.route)
+        a.run()
         return
       }
     }
 
-    // '?' → mostrar ayuda de atajos (solo si no se está escribiendo en un input)
-    if (e.key === '?' && !isTypingTarget(e.target)) {
-      e.preventDefault()
-      keyboard.toggleHelp()
-      return
-    }
-
-    // '/' → enfocar búsqueda (solo si no se está escribiendo en un input)
-    if (e.key === '/' && !isTypingTarget(e.target)) {
-      e.preventDefault()
-      triggerContextAction('search')
-    }
-  }
-
-  const isTypingTarget = (el) => {
-    if (!el) return false
-    const tag = el.tagName
-    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
+    // Acciones personalizadas del usuario (presets de form).
+    if (matchCustomAction(e)) return
   }
 
   // Etiqueta accesible de la ruta actual (para título y anuncio de navegación)
@@ -257,6 +226,7 @@
 </script>
 
 <Sidebar.Provider>
+  <MobileSidebarAutoClose />
   <a
     href="#main-content"
     onclick={skipToContent}
@@ -343,51 +313,51 @@
   </Sidebar.Root>
 
   <Sidebar.Inset>
-    <header class="flex h-12 shrink-0 items-center gap-2 px-4">
-      <Sidebar.Trigger />
-      <span class="flex-1 text-center text-sm font-semibold truncate">{brandTitle}</span>
+    <header class="flex h-12 shrink-0 items-center gap-2 px-4 min-w-0 overflow-hidden">
+      <Sidebar.Trigger class="shrink-0" />
+      <span class="flex-1 min-w-0 text-center text-sm font-semibold truncate">{brandTitle}</span>
       <button
         type="button"
         onclick={() => keyboard.toggle()}
-        class="inline-flex items-center justify-center rounded-md border border-input bg-background p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        aria-label="Abrir paleta de comandos (Ctrl+K)"
-        title="Paleta de comandos (Ctrl+K)"
+        class="inline-flex shrink-0 items-center justify-center rounded-md border border-input bg-background p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        aria-label="Abrir paleta de comandos ({displayBinding(shortcuts.keysFor('action.palette'))})"
+        title="Paleta de comandos ({displayBinding(shortcuts.keysFor('action.palette'))})"
       >
         <CommandIcon class="size-4" />
       </button>
       {#if isColaborador}
-        <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[12px] font-semibold text-amber-700 dark:text-amber-400">
+        <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[12px] font-semibold text-amber-700 dark:text-amber-400">
           <HandHeartIcon class="size-3" />
-          Modo colaborador
+          <span class="hidden sm:inline">Modo colaborador</span>
         </span>
       {/if}
       {#if isDemo}
-        <span class="inline-flex items-center gap-1 rounded-full bg-chart-2/15 px-2 py-0.5 text-[12px] font-semibold text-chart-2">
+        <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-chart-2/15 px-2 py-0.5 text-[12px] font-semibold text-chart-2">
           <SparklesIcon class="size-3" />
-          Modo demo
+          <span class="hidden sm:inline">Modo demo</span>
         </span>
         <button
           type="button"
           onclick={handleSalirDemo}
-          class="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          class="inline-flex shrink-0 items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           title="Salir de la demo y limpiar los datos de ejemplo"
         >
           <LogOutIcon class="size-3" />
-          Salir de la demo
+          <span class="hidden sm:inline">Salir de la demo</span>
         </button>
       {/if}
       {#if pwaInstall.canInstall}
         <button
           type="button"
           onclick={() => pwaInstall.promptInstall()}
-          class="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[12px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          class="inline-flex shrink-0 items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[12px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           title="Instalar LOF en este dispositivo para usarlo sin conexión"
         >
           <DownloadIcon class="size-3" />
-          Instalar
+          <span class="hidden sm:inline">Instalar</span>
         </button>
       {/if}
-      <span class="text-xs text-muted-foreground">
+      <span class="hidden sm:inline text-xs text-muted-foreground shrink-0">
         v{versionActual}
         {#if updateCheck.updateAvailable}
           <a
@@ -402,6 +372,11 @@
         {/if}
       </span>
     </header>
+    {#if pwaInstall.needsManualInstructions}
+      <div class="px-4 pt-2 sm:px-6">
+        <InstallBanner />
+      </div>
+    {/if}
     <main
       bind:this={mainEl}
       id="main-content"

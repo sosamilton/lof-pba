@@ -52,7 +52,7 @@
           </Alert.Description>
         </Alert.Root>
       {:else}
-        <div class="border rounded-lg overflow-hidden">
+        <div class="border rounded-lg overflow-x-auto">
           <Table.Root>
             <Table.Header>
               <Table.Row>

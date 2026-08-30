@@ -32,3 +32,50 @@
 		<TriangleAlertIcon class="size-4" />
 	{/snippet}
 </Sonner>
+
+<!--
+	Sobreescribe los colores de los toasts richColors para alinearlos con el
+	tema de la app:
+	  - success y warning → color primario de la cooperadora (--primary)
+	  - error → rojo semántico fijo (--destructive), no varía con la marca
+	  - info → neutro del popover
+
+	Los fondos suaves se logran con color-mix sobre --primary a baja opacidad.
+-->
+<style>
+	:global([data-sonner-toaster][data-sonner-theme='light']) {
+		--success-bg: color-mix(in oklch, var(--primary) 12%, var(--popover));
+		--success-border: color-mix(in oklch, var(--primary) 30%, transparent);
+		--success-text: var(--primary);
+
+		--warning-bg: color-mix(in oklch, var(--primary) 12%, var(--popover));
+		--warning-border: color-mix(in oklch, var(--primary) 30%, transparent);
+		--warning-text: var(--primary);
+
+		--error-bg: color-mix(in oklch, var(--destructive) 12%, var(--popover));
+		--error-border: color-mix(in oklch, var(--destructive) 30%, transparent);
+		--error-text: var(--destructive);
+
+		--info-bg: var(--popover);
+		--info-border: var(--border);
+		--info-text: var(--popover-foreground);
+	}
+
+	:global([data-sonner-toaster][data-sonner-theme='dark']) {
+		--success-bg: color-mix(in oklch, var(--primary) 18%, var(--popover));
+		--success-border: color-mix(in oklch, var(--primary) 35%, transparent);
+		--success-text: var(--primary);
+
+		--warning-bg: color-mix(in oklch, var(--primary) 18%, var(--popover));
+		--warning-border: color-mix(in oklch, var(--primary) 35%, transparent);
+		--warning-text: var(--primary);
+
+		--error-bg: color-mix(in oklch, var(--destructive) 18%, var(--popover));
+		--error-border: color-mix(in oklch, var(--destructive) 35%, transparent);
+		--error-text: var(--destructive);
+
+		--info-bg: var(--popover);
+		--info-border: var(--border);
+		--info-text: var(--popover-foreground);
+	}
+</style>

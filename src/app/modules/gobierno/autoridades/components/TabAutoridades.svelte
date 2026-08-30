@@ -7,6 +7,7 @@
   import * as Alert from '$lib/components/ui/alert'
   import * as Field from '$lib/components/ui/field'
   import EmptyState from '$lib/components/EmptyState.svelte'
+  import OrganismoTabs from './OrganismoTabs.svelte'
   import { ORGANISMOS, ORGANISMO_LABELS } from '$app/modules/gobierno/constants.js'
   import { formatFecha } from '$core/format/format'
   import UserXIcon from '@lucide/svelte/icons/user-x'
@@ -20,15 +21,9 @@
 
 <Card.Root>
   <Card.Header>
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <Tabs.Root bind:value={store.organismo}>
-        <Tabs.List>
-          {#each ORGANISMOS as org}
-            <Tabs.Trigger value={org}>{ORGANISMO_LABELS[org]}</Tabs.Trigger>
-          {/each}
-        </Tabs.List>
-      </Tabs.Root>
-      <div class="flex items-center gap-2 text-xs text-muted-foreground">
+    <div class="flex flex-col gap-3 min-w-0 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+      <OrganismoTabs bind:value={store.organismo} class="min-w-0" />
+      <div class="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
         <AlertCircleIcon class="size-4" />
         Titulares vigentes: <span class="font-bold text-foreground">{store.quorumTitulares}</span>
       </div>

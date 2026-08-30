@@ -125,7 +125,7 @@
           <Card.Title class="text-base">Resumen del ejercicio</Card.Title>
         </Card.Header>
         <Card.Content>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <p class="text-muted-foreground">Total socios</p>
               <p class="font-medium">{store.cierreData.totalSocios}</p>
@@ -148,7 +148,7 @@
       </Card.Root>
 
       <!-- Tabs: PIA / Nómina / Historial -->
-      <Tabs.Root value={tabActiva} onValueChange={(e) => (tabActiva = e)}>
+      <Tabs.Root value={tabActiva} onValueChange={(e) => (tabActiva = e)} class="min-w-0">
         <Tabs.List>
           <Tabs.Trigger value="pia">PIA</Tabs.Trigger>
           <Tabs.Trigger value="nomina">Nómina</Tabs.Trigger>

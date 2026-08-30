@@ -10,10 +10,12 @@
   import TagsIcon from '@lucide/svelte/icons/tags'
   import CloudIcon from '@lucide/svelte/icons/cloud'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
+  import KeyboardIcon from '@lucide/svelte/icons/keyboard'
   import ConfigGeneral from './components/ConfigGeneral.svelte'
   import CategoriasTab from './components/CategoriasTab.svelte'
   import SyncTab from './components/SyncTab.svelte'
   import IntercambioTab from './components/IntercambioTab.svelte'
+  import AtajosTab from './components/AtajosTab.svelte'
 
   let tab = $state('general')
 
@@ -40,7 +42,7 @@
   {/snippet}
 
   <div class="flex flex-col gap-4 w-full">
-    <Tabs.Root bind:value={tab}>
+    <Tabs.Root bind:value={tab} class="min-w-0">
       <Tabs.List class="mb-4">
         <Tabs.Trigger value="general" class="px-3">
           <SettingsIcon data-icon="inline-start" />
@@ -58,6 +60,10 @@
           <ArrowLeftRightIcon data-icon="inline-start" />
           Intercambio
         </Tabs.Trigger>
+        <Tabs.Trigger value="atajos" class="px-3">
+          <KeyboardIcon data-icon="inline-start" />
+          Atajos
+        </Tabs.Trigger>
       </Tabs.List>
 
       <Tabs.Content value="general" class="flex flex-col gap-4">
@@ -74,6 +80,10 @@
 
       <Tabs.Content value="intercambio" class="flex flex-col gap-4">
         <IntercambioTab />
+      </Tabs.Content>
+
+      <Tabs.Content value="atajos" class="flex flex-col gap-4">
+        <AtajosTab />
       </Tabs.Content>
     </Tabs.Root>
   </div>

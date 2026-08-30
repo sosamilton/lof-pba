@@ -27,7 +27,7 @@
         <Skeleton class="h-9 w-32" />
         <Skeleton class="h-9 w-32" />
       </div>
-      <div class="grid gap-4" style="grid-template-columns: 320px 1fr">
+      <div class="grid gap-4 grid-cols-1 md:grid-cols-[320px_1fr]">
         <Skeleton class="h-96" />
         <Skeleton class="h-96" />
       </div>

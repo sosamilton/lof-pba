@@ -15,7 +15,7 @@
 </script>
 
 {#if items.length > 0}
-  <div bind:this={scroll.scrollEl} onscroll={scroll.onScroll} class="max-h-[calc(100vh-200px)] overflow-y-auto rounded-lg border border-border bg-card">
+  <div bind:this={scroll.scrollEl} onscroll={scroll.onScroll} class="max-h-[calc(100dvh-180px)] overflow-y-auto rounded-lg border border-border bg-card">
     {#each scroll.visible as m (m.id)}
       <button
         class="w-full border-b border-border px-4 py-3 text-left transition-colors hover:bg-accent {m.id === selectedId ? 'bg-primary/10' : ''}"
