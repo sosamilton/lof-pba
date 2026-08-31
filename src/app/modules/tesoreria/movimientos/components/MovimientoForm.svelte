@@ -23,6 +23,22 @@
   // ComprobanteField) que aceptan `disabled` como prop.
   let disabled = $derived(readonly)
 
+  // Rango de fechas del ejercicio visto (para limitar el date picker).
+  // Si no hay ejercicio visto o no tiene fechas calculadas, no se limita.
+  let rangoFechas = $derived(store.rangoFechasEjercicioVisto?.() || null)
+  let fechaMin = $derived(rangoFechas?.fechaMin || undefined)
+  let fechaMax = $derived(rangoFechas?.fechaMax || undefined)
+
+  // Warning si la fecha del movimiento cae fuera del rango del ejercicio visto.
+  // Solo para movimientos nuevos (no edición de existentes que pueden tener
+  // fechas legítimamente en otro ejercicio).
+  let fechaFueraRango = $derived.by(() => {
+    if (!rangoFechas || !store.form || store.form.id) return false
+    const f = store.form.fecha
+    if (!f) return false
+    return f < rangoFechas.fechaMin || f > rangoFechas.fechaMax
+  })
+
   let personaVinculadaValue = $derived(
     store.personasSeleccionables.tipo === 'socio'
       ? store.form?.socio_id ?? ''
@@ -66,7 +82,14 @@
     <Field.FieldGroup class="grid gap-4 sm:grid-cols-2">
       <Field.Field>
         <Field.FieldLabel for="fecha">Fecha</Field.FieldLabel>
-        <Input id="fecha" type="date" bind:value={store.form.fecha} {disabled} />
+        <Input id="fecha" type="date" bind:value={store.form.fecha} {disabled} min={fechaMin} max={fechaMax} />
+        {#if fechaFueraRango}
+          <p class="mt-1 text-xs text-amber-600 dark:text-amber-400">
+            La fecha está fuera del rango del ejercicio visto
+            ({fechaMin} a {fechaMax}). El movimiento se guardará en el
+            ejercicio que corresponda a esa fecha.
+          </p>
+        {/if}
       </Field.Field>
       <Field.Field>
         <Field.FieldLabel for="tipo-mov">Tipo</Field.FieldLabel>

@@ -72,6 +72,7 @@
   import CodeIcon from '@lucide/svelte/icons/code'
   import { identidad } from '$core/data/identidad'
   import data from './landing.json'
+  import DemoLoadingScreen from './DemoLoadingScreen.svelte'
 
   let { installed = false } = $props()
 
@@ -82,6 +83,10 @@
   let showReleases = $state(false)
   let demoLoading = $state(false)
   let demoError = $state('')
+  let demoStage = $state('')
+  let demoProgressCurrent = $state(0)
+  let demoProgressTotal = $state(0)
+  let demoFadingOut = $state(false)
 
   // Si la instalación actual vino de la card "Ver una demo", ofrecer salir
   // de la demo (limpiar y volver al wizard) desde la propia landing.
@@ -109,28 +114,47 @@
   // Carga una base de datos de ejemplo (ejercicios, movimientos, autoridades,
   // memorias, etc. ya cargados) para que se pueda navegar la app sin configurar
   // nada. Reutiliza el mismo importador que el restore de backups (.lof).
+  // Muestra una pantalla de carga full-screen con progreso etapa por etapa.
   const verDemo = async () => {
     demoLoading = true
     demoError = ''
+    demoStage = 'preparing'
+    demoProgressCurrent = 0
+    demoProgressTotal = 0
+    demoFadingOut = false
     try {
+      demoStage = 'downloading'
       const res = await fetch('/demo/lof-demo.lof')
       if (!res.ok) throw new Error('No se pudo descargar la base de ejemplo.')
       const blob = await res.blob()
       const { importFromLof } = await import('$core/data/exportImport.js')
-      await importFromLof(blob, { reemplazar: true })
+      await importFromLof(blob, {
+        reemplazar: true,
+        onProgress: ({ stage, current, total }) => {
+          demoStage = stage
+          demoProgressCurrent = current
+          demoProgressTotal = total
+        },
+      })
       // Marcar modo demo (flag client-only, no viaja en el .lof) para que
       // AppShell pueda avisar y ofrecer "Salir de la demo".
       localStorage.setItem('lof-demo-mode', '1')
       trackEvent('demo_started')
-      // reemplazar=true destruye y recrea la DB local: recargar para que
-      // todas las referencias (router, stores, etc.) tomen los datos nuevos.
-      // Forzamos la ruta 'inicio' para entrar directo a la app en vez de
-      // quedar en esta misma landing (que seguiría en el hash actual).
+      // Fade-out suave antes del reload para evitar el flash blanco en Firefox.
+      // El reload destruye y recrea la DB local: recargar para que todas las
+      // referencias (router, stores, etc.) tomen los datos nuevos.
+      // Forzamos la ruta 'inicio' para entrar directo a la app.
+      demoStage = 'finalizing'
+      demoFadingOut = true
       window.location.hash = 'inicio'
-      window.location.reload()
+      // Esperar 600ms para que el fade-out se complete antes del reload.
+      setTimeout(() => window.location.reload(), 600)
     } catch (e) {
       demoError = e?.message || String(e)
-      demoLoading = false
+      demoFadingOut = false
+      // En error, ocultar la pantalla de carga después de 3s para que el
+      // usuario pueda volver a interactuar con la landing.
+      setTimeout(() => { demoLoading = false }, 3000)
     }
   }
   const roadmapGroups = $derived(
@@ -142,6 +166,16 @@
     )
   )
 </script>
+
+{#if demoLoading}
+  <DemoLoadingScreen
+    stage={demoStage}
+    current={demoProgressCurrent}
+    total={demoProgressTotal}
+    error={demoError}
+    fadingOut={demoFadingOut}
+  />
+{/if}
 
 <main class="min-h-screen bg-background text-foreground">
   <a

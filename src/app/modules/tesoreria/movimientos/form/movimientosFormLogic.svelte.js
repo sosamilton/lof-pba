@@ -1,5 +1,28 @@
-import { dateToInput, buildMapById, normalize, todayISO } from '$core/utils/utils.js'
+import { dateToInput, buildMapById, normalize, todayISO, fechasEjercicio } from '$core/utils/utils.js'
 import { extractAttachmentIds, toAttachmentCellValue } from '$core/data/dataRepository'
+
+/**
+ * Determina el ejercicio_id correcto para un movimiento basándose en su fecha.
+ * Busca el ejercicio cuyo rango [fecha_inicio, fecha_fin] contiene la fecha.
+ * Si no hay ejercicio que contenga la fecha, cae al ejercicio en_curso.
+ * Si no hay ejercicio en_curso, devuelve null.
+ *
+ * @param {string} fecha - Fecha del movimiento (YYYY-MM-DD)
+ * @param {any[]} ejercicios - Lista de ejercicios
+ * @returns {number|null}
+ */
+const resolveEjercicioId = (fecha, ejercicios) => {
+  if (!fecha || !Array.isArray(ejercicios) || ejercicios.length === 0) return null
+  for (const ej of ejercicios) {
+    const { fechaInicio, fechaFin } = fechasEjercicio(ej)
+    if (fechaInicio && fechaFin && fecha >= fechaInicio && fecha <= fechaFin) {
+      return Number(ej.id)
+    }
+  }
+  // Fallback: ejercicio en_curso
+  const enCurso = ejercicios.find((e) => e.en_curso === true)
+  return enCurso ? Number(enCurso.id) : null
+}
 
 /**
  * Lógica CRUD individual de movimientos: seleccionar, nuevo, validar, guardar,
@@ -43,11 +66,21 @@ export function createFormLogic({ formState, relatedData, base, cierresService }
     formState.setSelectedId(null)
     formState.setListOpen(true)
     const today = todayISO()
+    // Default de fecha: si el ejercicio visto tiene rango de fechas y today
+    // cae fuera, usar el último día del ejercicio (si es viejo) o el primer
+    // día (si es futuro). Así el usuario no crea accidentalmente un movimiento
+    // con fecha de hoy en un ejercicio cerrado.
+    let fechaDefault = today
+    const rango = relatedData.rangoFechasEjercicioVisto?.()
+    if (rango) {
+      if (today < rango.fechaMin) fechaDefault = rango.fechaMin
+      else if (today > rango.fechaMax) fechaDefault = rango.fechaMax
+    }
     // Defaults: override de sesión → defaults persistidos → valores hardcodeados
     const d = relatedData.sessionOverride || relatedData.defaultsMovimiento || {}
     formState.setForm({
       id: null,
-      fecha: today,
+      fecha: fechaDefault,
       tipo_movimiento: d.tipo || 'Entrada',
       rubro_id: d.rubro_id || '',
       subrubro_id: '',
@@ -93,7 +126,9 @@ export function createFormLogic({ formState, relatedData, base, cierresService }
   }
 
   const validate = () => {
-    if (!relatedData.ejercicio) return 'No hay ejercicio en curso. Activá uno en "Institucional".'
+    if (!relatedData.ejercicio && (!relatedData.ejercicios || relatedData.ejercicios.length === 0)) {
+      return 'No hay ejercicio en curso. Activá uno en "Institucional".'
+    }
     if (!formState.form?.fecha) return 'Completá la fecha.'
     // No se pueden cargar movimientos con fecha futura.
     const fechaMov = new Date(formState.form.fecha + 'T00:00:00')
@@ -139,9 +174,16 @@ export function createFormLogic({ formState, relatedData, base, cierresService }
       }
 
       const form = formState.form
+      // Determinar ejercicio_id:
+      // - Edición de existente: mantener el ejercicio_id original (no pisarlo).
+      // - Nuevo movimiento: resolver desde la fecha (qué ejercicio contiene
+      //   esa fecha). Fallback al en_curso si no hay match.
+      const ejercicioId = form.id
+        ? (form.ejercicio_id || resolveEjercicioId(form.fecha, relatedData.ejercicios))
+        : resolveEjercicioId(form.fecha, relatedData.ejercicios)
       const fields = {
         ...form,
-        ejercicio_id: relatedData.ejercicio.id,
+        ejercicio_id: ejercicioId,
         importe: Number(form.importe),
         rubro_id: form.tipo_movimiento === 'Traspaso' ? '' : (form.rubro_id || ''),
         subrubro_id: form.tipo_movimiento === 'Traspaso' ? '' : (form.subrubro_id || ''),

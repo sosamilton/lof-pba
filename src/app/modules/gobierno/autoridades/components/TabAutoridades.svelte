@@ -22,7 +22,7 @@
 <Card.Root>
   <Card.Header>
     <div class="flex flex-col gap-3 min-w-0 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-      <OrganismoTabs bind:value={store.organismo} class="min-w-0" />
+      <OrganismoTabs value={store.organismo} onValueChange={(v) => store.setOrganismo(v)} class="min-w-0" />
       <div class="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
         <AlertCircleIcon class="size-4" />
         Titulares vigentes: <span class="font-bold text-foreground">{store.quorumTitulares}</span>

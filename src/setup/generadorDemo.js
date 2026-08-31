@@ -501,6 +501,8 @@ export const generarDatosPrueba = async ({
 
   /**
    * Genera movimientos aleatorios para un ejercicio en modo integral.
+   * Asegura que el total de salidas represente entre el 70% y 95% del total
+   * de entradas del ejercicio (ratio realista de una cooperadora).
    * @param {number} ejId - ID del ejercicio en Grist
    * @param {number} anioEj - Año de inicio del ejercicio
    * @param {number} cantidad - Cantidad de movimientos extra a generar
@@ -511,10 +513,18 @@ export const generarDatosPrueba = async ({
     // y solo hasta el mes actual (sin movimientos futuros)
     const periodos = ejRec ? periodosHastaHoy(generarPeriodosEjercicio(ejRec)) : []
     const bal = getBalance(ejId)
-    // Techo de gastos del ejercicio: no superar el 80% de lo ingresado
-    // (cuota social + lo que ya se generó como entrada), para que el saldo
-    // quede siempre positivo como en una cooperadora real.
-    const techoSalidas = bal.entradas * 0.8
+
+    // Estimar entradas totales para fijar un techo de salidas realista.
+    // bal.entradas ya incluye la cuota social generada previamente.
+    // Las entradas extra del loop: ~40% de TIPOS_MOV son 'Entrada', importe promedio ~$25k.
+    const entradasExtraEstimadas = cantidad * 0.4 * 25000
+    const entradasEstimadas = bal.entradas + entradasExtraEstimadas
+    // Techo conservador para el loop (80% de la estimación). El post-proceso
+    // ajusta después hacia el rango 70-95% real. Esto evita el bug donde
+    // bal.entradas=0 (sin cuota social) hacía techo=0 y convertía todas
+    // las salidas en entradas.
+    const techoSalidas = Math.max(entradasEstimadas * 0.8, 100)
+
     for (let i = 0; i < cantidad; i++) {
       let tipo = pick(TIPOS_MOV)
       // Si ya se alcanzó el techo de gastos del ejercicio, esta "salida"
@@ -579,6 +589,52 @@ export const generarDatosPrueba = async ({
 
       if (tipo === 'Entrada') bal.entradas += importe
       else if (tipo === 'Salida') bal.salidas += importe
+    }
+
+    // Post-proceso: ajustar el ratio salidas/entradas al rango 70-95%.
+    // El loop anterior es aleatorio y puede no llegar al target (especialmente
+    // si las entradas reales difieren de la estimación). Si el ratio quedó
+    // por debajo del 70%, generamos salidas extra distribuidas en los
+    // períodos del ejercicio hasta alcanzar un target aleatorio 70-95%.
+    if (bal.entradas > 0 && rubrosSalida.length > 0 && periodos.length > 0) {
+      const ratioFinal = bal.salidas / bal.entradas
+      if (ratioFinal < 0.70) {
+        const ratioDeseado = rand(70, 95) / 100
+        const faltante = Math.floor(bal.entradas * ratioDeseado - bal.salidas)
+        // Distribuir el faltante en ~20-50 salidas con importes grandes
+        // para no inflar demasiado la cantidad de movimientos.
+        const numSalidasExtra = rand(20, 50)
+        const importeBase = Math.ceil(faltante / numSalidasExtra)
+        let salidasGeneradas = 0
+        for (let s = 0; s < numSalidasExtra && salidasGeneradas < faltante; s++) {
+          const p = pick(periodos)
+          const [y, m] = p.split('-').map(Number)
+          // Variación ±20% sobre el importe base, sin exceder el faltante
+          const variacion = Math.floor(importeBase * 0.2)
+          const importe = Math.min(
+            Math.max(100, importeBase + rand(-variacion, variacion)),
+            faltante - salidasGeneradas,
+          )
+          movimientosData.push({
+            fecha: genFecha(y, m, rand(1, 28)),
+            ejercicio_id: ejId,
+            tipo_movimiento: 'Salida',
+            rubro_id: pick(rubrosSalida),
+            subrubro_id: null,
+            detalle: pick(DETALLES_MOV),
+            importe,
+            cuenta_id: cuentaIds.length > 0 ? pick(cuentaIds) : null,
+            destino_bancario: null,
+            cuenta_destino_id: null,
+            socio_id: null,
+            persona_id: null,
+            creado_por: 'demo',
+            creado_el: new Date().toISOString(),
+          })
+          salidasGeneradas += importe
+          bal.salidas += importe
+        }
+      }
     }
   }
 
@@ -682,7 +738,7 @@ export const generarDatosPrueba = async ({
         .map((pd) => personasRecs.find((p) => String(p.dni) === String(pd.dni)))
         .filter(Boolean)
 
-      const organismosTarget = ['CD', 'CRC']
+      const organismosTarget = ['CD', 'CRC', 'Federacion']
 
       // Construir lista de ejercicios: el actual + (cantEjercicios - 1) anteriores.
       // Cada ejercicio anterior dura 1 año menos y NO está en_curso.

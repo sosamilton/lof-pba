@@ -1,6 +1,6 @@
 import { resolveTableIds, fetchRelated } from '$core/data/dataStore.svelte'
 import { loadConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
-import { normalize, findEjercicioEnCurso } from '$core/utils/utils.js'
+import { normalize, findEjercicioEnCurso, fechasEjercicio } from '$core/utils/utils.js'
 
 /**
  * Estado y carga de las 7 tablas relacionadas del módulo de movimientos:
@@ -25,6 +25,11 @@ export function createRelatedData({ base }) {
   let personas = $state([])
   let ejercicios = $state([])
   let ejercicio = $state(null)
+  // Ejercicio que el usuario está viendo en el filtro (no necesariamente el
+  // en_curso). Se setea desde Movimientos.svelte cuando cambia ejercicioFiltro.
+  // Sirve para: (1) defaultear la fecha al crear movimientos nuevos, (2)
+  // limitar el date picker al rango del ejercicio visto.
+  let ejercicioVisto = $state(null)
   let userName = $state('SPA')
   let cuentaDefaultId = $state('')
   // Modo de gestión activo (para cambiar el flujo de "Nuevo").
@@ -45,6 +50,30 @@ export function createRelatedData({ base }) {
   const setEjercicio = (ejId) => {
     const found = ejercicios.find((e) => Number(e.id) === Number(ejId)) || null
     if (found) ejercicio = found
+  }
+
+  /**
+   * Setea el ejercicio que el usuario está viendo en el filtro.
+   * Si ejId es null/vacío, cae al ejercicio en_curso.
+   */
+  const setEjercicioVisto = (ejId) => {
+    if (!ejId) {
+      ejercicioVisto = ejercicio // en_curso
+      return
+    }
+    ejercicioVisto = ejercicios.find((e) => String(e.id) === String(ejId)) || ejercicio
+  }
+
+  /**
+   * Devuelve { fechaMin, fechaMax } del ejercicio visto, o null si no hay.
+   * Para limitar el date picker y validar la fecha del movimiento.
+   */
+  const rangoFechasEjercicioVisto = () => {
+    const ej = ejercicioVisto
+    if (!ej) return null
+    const { fechaInicio, fechaFin } = fechasEjercicio(ej)
+    if (!fechaInicio || !fechaFin) return null
+    return { fechaMin: fechaInicio, fechaMax: fechaFin }
   }
 
   const loadAll = async () => {
@@ -104,6 +133,7 @@ export function createRelatedData({ base }) {
     get personas() { return personas },
     get ejercicios() { return ejercicios },
     get ejercicio() { return ejercicio },
+    get ejercicioVisto() { return ejercicioVisto },
     get userName() { return userName },
     get cuentaDefaultId() { return cuentaDefaultId },
     get modoGestion() { return modoGestion },
@@ -116,6 +146,8 @@ export function createRelatedData({ base }) {
     setSessionOverride,
     resetSessionOverride,
     setEjercicio,
+    setEjercicioVisto,
+    rangoFechasEjercicioVisto,
     loadAll,
   }
 }
