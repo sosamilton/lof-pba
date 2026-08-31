@@ -96,7 +96,7 @@
     }
 
     // 7. Sin datos bancarios
-    if (!data.banco?.nombre_banco) {
+    if (!data.banco?.entidad) {
       out.push({
         nivel: 'warning',
         titulo: 'Sin datos bancarios',
