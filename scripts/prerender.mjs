@@ -14,7 +14,7 @@
 import { build } from 'vite'
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { resolve, dirname, join } from 'path'
-import { fileURLToPath } from 'url'
+import { fileURLToPath, pathToFileURL } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const root = resolve(__dirname, '..')
@@ -85,7 +85,8 @@ async function main() {
   })
 
   console.log('▸ Importando SSR bundle...')
-  const ssrEntry = await import(join(ssrOutDir, 'entry-server.js'))
+  // pathToFileURL: en Windows, import() requiere file:// URLs, no paths nativos (D:\...)
+  const ssrEntry = await import(pathToFileURL(join(ssrOutDir, 'entry-server.js')).href)
 
   // Leer el index.html generado por el build del SPA
   const indexHtmlPath = resolve(distDir, 'index.html')
