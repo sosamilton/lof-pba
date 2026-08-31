@@ -1,6 +1,7 @@
 <script>
   import * as Dialog from '$lib/components/ui/dialog'
   import * as ScrollArea from '$lib/components/ui/scroll-area'
+  import * as Collapsible from '$lib/components/ui/collapsible'
   import { Badge } from '$lib/components/ui/badge'
   import { Button } from '$lib/components/ui/button'
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link'
@@ -9,6 +10,7 @@
   import AlertIcon from '@lucide/svelte/icons/triangle-alert'
   import TagIcon from '@lucide/svelte/icons/tag'
   import CalendarIcon from '@lucide/svelte/icons/calendar'
+  import ChevronRightIcon from '@lucide/svelte/icons/chevron-right'
 
   // Repo canónico de GitHub (el nombre antiguo spa-cooperadora redirige a este).
   const REPO = 'sosamilton/lof-pba'
@@ -206,6 +208,62 @@
     flushPara()
     return html.join('\n')
   }
+
+  // --- Separación resumen / detalle técnico ---
+  // El body del release se divide en dos partes: el resumen (visible, orientado
+  // a usuarias) y el detalle técnico (colapsable). Se soportan dos convenciones,
+  // que pueden combinarse dentro del mismo body:
+  //   1) Un separador `---` seguido de un heading "Detalles técnicos" (todo lo
+  //      que sigue al heading es detalle técnico).
+  //   2) Bloques HTML legacy `<details><summary>…</summary>…</details>` (se
+  //      extraen antes de escapar el HTML, para que no se rompan en el renderer).
+  const TECH_HEADING_RE = /^#{2,4}\s*detalles\s+t[ée]cnicos?\b/i
+  const HR_RE = /^(---|\*\*\*|___)$/
+  const DETAILS_RE = /<details>\s*<summary>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>/gi
+
+  const splitReleaseBody = (md) => {
+    if (!md) return { summary: '', tech: '' }
+    let body = String(md)
+
+    // 1) Extraer bloques <details> legacy (antes de escapar HTML).
+    const techBlocks = []
+    body = body.replace(DETAILS_RE, (_m, _label, inner) => {
+      const t = inner.trim()
+      if (t) techBlocks.push(t)
+      return '' // se remueven del flujo principal del resumen
+    })
+
+    const lines = body.split('\n')
+
+    // 2) Primer heading de "Detalles técnicos".
+    let headingIdx = -1
+    for (let i = 0; i < lines.length; i++) {
+      if (TECH_HEADING_RE.test(lines[i].trim())) { headingIdx = i; break }
+    }
+
+    let summary
+    let techFromHeading = ''
+    if (headingIdx >= 0) {
+      // Resumen = todo antes del heading, sin un `---` colgante inmediatamente antes.
+      let end = headingIdx
+      while (end > 0 && lines[end - 1].trim() === '') end--
+      if (end > 0 && HR_RE.test(lines[end - 1].trim())) end--
+      summary = lines.slice(0, end).join('\n')
+      techFromHeading = lines.slice(headingIdx + 1).join('\n')
+    } else {
+      summary = lines.join('\n')
+    }
+
+    // Limpiar reglas horizontales sobrantes al final del resumen.
+    summary = summary.replace(/\n+(---|\*\*\*|___)\s*$/, '').trim()
+
+    const techParts = []
+    if (techFromHeading.trim()) techParts.push(techFromHeading.trim())
+    for (const b of techBlocks) techParts.push(b)
+    const tech = techParts.join('\n\n').trim()
+
+    return { summary, tech }
+  }
 </script>
 
 <Dialog.Root {open} onOpenChange={handleOpenChange}>
@@ -262,9 +320,25 @@
                   <div class="mt-2.5 text-sm font-semibold text-foreground">{r.name}</div>
                 {/if}
                 {#if r.body}
-                  <div class="mt-3 prose-release">
-                    {@html renderMd(r.body)}
-                  </div>
+                  {@const parts = splitReleaseBody(r.body)}
+                  {#if parts.summary}
+                    <div class="mt-3 prose-release">
+                      {@html renderMd(parts.summary)}
+                    </div>
+                  {/if}
+                  {#if parts.tech}
+                    <Collapsible.Root class="tech-collapsible mt-3">
+                      <Collapsible.Trigger class="inline-flex items-center gap-1.5 rounded-md text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+                        <ChevronRightIcon class="size-3.5" />
+                        Detalles técnicos
+                      </Collapsible.Trigger>
+                      <Collapsible.Content class="mt-2 overflow-hidden">
+                        <div class="rounded-md border border-border/60 bg-muted/30 p-3 prose-release">
+                          {@html renderMd(parts.tech)}
+                        </div>
+                      </Collapsible.Content>
+                    </Collapsible.Root>
+                  {/if}
                 {/if}
                 <a
                   href={r.html_url}
@@ -333,5 +407,12 @@
   }
   .prose-release :global(code) {
     border: 1px solid hsl(var(--border));
+  }
+  /* Chevron del colapsable de detalles técnicos: rota 90° al abrir. */
+  :global(.tech-collapsible[data-state='open'] [data-slot='collapsible-trigger'] svg) {
+    transform: rotate(90deg);
+  }
+  :global(.tech-collapsible [data-slot='collapsible-trigger'] svg) {
+    transition: transform 150ms ease;
   }
 </style>
