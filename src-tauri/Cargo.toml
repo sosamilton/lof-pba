@@ -1,6 +1,6 @@
 [package]
 name = "lof"
-version = "2.3.5"
+version = "2.3.6"
 description = "LOF — Gestión de cooperadoras escolares de PBA"
 authors = ["Milton Sosa"]
 edition = "2021"
