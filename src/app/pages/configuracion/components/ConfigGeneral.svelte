@@ -7,6 +7,7 @@
   import { Input } from '$lib/components/ui/input'
   import { Label } from '$lib/components/ui/label'
   import * as Select from '$lib/components/ui/select'
+  import * as ToggleGroup from '$lib/components/ui/toggle-group'
   import Combobox from '$lib/components/Combobox.svelte'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
   import RefreshIcon from '@lucide/svelte/icons/refresh-cw'
@@ -18,6 +19,9 @@
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import CalendarIcon from '@lucide/svelte/icons/calendar'
   import PaletteIcon from '@lucide/svelte/icons/palette'
+  import SunIcon from '@lucide/svelte/icons/sun'
+  import MoonIcon from '@lucide/svelte/icons/moon'
+  import MonitorIcon from '@lucide/svelte/icons/monitor'
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
   import { useConfirmDialog } from '$lib/hooks/useConfirmDialog.svelte.js'
   import { identidad } from '$core/data/identidad'
@@ -114,7 +118,7 @@
         </div>
 
         <div class="flex flex-col gap-1.5">
-          <Label for="color-primario">Color de marca</Label>
+          <Label for="color-primario">Color Primario</Label>
           <div class="flex items-center gap-2 mt-0.5">
             <Input
               id="color-primario"
@@ -127,6 +131,31 @@
             <span class="text-sm font-mono text-muted-foreground">{store.color_primario}</span>
           </div>
           <p class="text-xs text-muted-foreground">Se aplica inmediatamente al cambiar.</p>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <Label>Tema</Label>
+          <ToggleGroup.Root
+            type="single"
+            value={store.tema_preferencia || 'system'}
+            onValueChange={(v) => { if (v) store.onTemaChange(v) }}
+            variant="outline"
+            class="mt-0.5 w-fit"
+          >
+            <ToggleGroup.Item value="system" aria-label="Respetar configuración del navegador">
+              <MonitorIcon class="size-4" />
+              <span class="hidden sm:inline">Sistema</span>
+            </ToggleGroup.Item>
+            <ToggleGroup.Item value="light" aria-label="Modo claro">
+              <SunIcon class="size-4" />
+              <span class="hidden sm:inline">Claro</span>
+            </ToggleGroup.Item>
+            <ToggleGroup.Item value="dark" aria-label="Modo oscuro">
+              <MoonIcon class="size-4" />
+              <span class="hidden sm:inline">Oscuro</span>
+            </ToggleGroup.Item>
+          </ToggleGroup.Root>
+          <p class="text-xs text-muted-foreground">Elegí claro, oscuro o respetar el navegador. Se aplica al instante.</p>
         </div>
 
         <div class="flex flex-col gap-1.5 sm:col-span-2">

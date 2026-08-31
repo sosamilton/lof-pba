@@ -7,6 +7,14 @@ import './app.css'
 import App from './App.svelte'
 import { swUpdate } from '$core/utils/swUpdate.svelte'
 import { initSeo } from '$core/seo'
+import { getStoredTema, aplicarTema } from '$core/ui/themeStore.svelte'
+
+// Aplicar el tema cacheado antes de montar Svelte para evitar flash (FOUC).
+// La fuente de verdad es la tabla configuracion, pero localStorage nos da
+// un boot síncrono. themeStore.cargar() luego sincroniza con la config real.
+if (typeof document !== 'undefined') {
+  aplicarTema(getStoredTema() || 'system')
+}
 
 // Mapear URLs reales (pre-render) a hash routes del SPA.
 // Si el usuario llega a /sobre-lof directamente, el servidor sirvió

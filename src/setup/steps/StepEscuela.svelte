@@ -108,7 +108,7 @@
 <Card.Root class="mb-4">
   <Card.Content class="pt-6">
     <h2 class="text-[17px] font-bold mb-1.5">Datos de la cooperadora</h2>
-    <p class="text-[13px] text-muted-foreground mb-4">Datos de la cooperadora escolar asociada a la escuela. No provienen del registro oficial, completalos manualmente. El <strong class="text-foreground">CUIT</strong> se usa en reportes oficiales, el <strong class="text-foreground">email</strong> en comunicaciones y envío de reportes, el <strong class="text-foreground">teléfono</strong> como contacto y el <strong class="text-foreground">color de marca</strong> personaliza la identidad visual de la app.</p>
+    <p class="text-[13px] text-muted-foreground mb-4">Datos de la cooperadora escolar asociada a la escuela. No provienen del registro oficial, completalos manualmente. El <strong class="text-foreground">CUIT</strong> se usa en reportes oficiales, el <strong class="text-foreground">email</strong> en comunicaciones y envío de reportes, el <strong class="text-foreground">teléfono</strong> como contacto y el <strong class="text-foreground">color primario</strong> personaliza la identidad visual de la app.</p>
 
     <div class="grid gap-3 max-[600px]:grid-cols-1 sm:grid-cols-2">
       <div class="flex flex-col gap-1">
@@ -141,7 +141,7 @@
         </div>
       </div>
       <div class="flex flex-col gap-1">
-        <Label class="text-xs font-bold text-muted-foreground">Color de marca</Label>
+        <Label class="text-xs font-bold text-muted-foreground">Color Primario</Label>
         <Input type="color" bind:value={store.schoolData.color_primario} disabled={!escuelaEnabled} />
       </div>
     </div>
