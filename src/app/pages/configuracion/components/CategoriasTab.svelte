@@ -11,9 +11,8 @@
   import TrashIcon from '@lucide/svelte/icons/trash-2'
   import FolderIcon from '@lucide/svelte/icons/folder'
   import InfoIcon from '@lucide/svelte/icons/info'
-  import ChevronDownIcon from '@lucide/svelte/icons/chevron-down'
-  import ChevronRightIcon from '@lucide/svelte/icons/chevron-right'
   import PowerIcon from '@lucide/svelte/icons/power'
+  import CollapsibleSection from '$lib/components/CollapsibleSection.svelte'
 
   let { store } = $props()
 
@@ -128,101 +127,93 @@
       <div class="text-sm text-muted-foreground py-4">No se encontraron rubros. Verificá el schema desde la pestaña General.</div>
     {:else}
       {#each [...store.rubrosPorGrupo.entries()] as [grupo, rubros] (grupo)}
-        <div class="rounded-lg border border-border">
-          <button
-            type="button"
-            class="flex w-full items-center gap-2 px-3 py-2 text-sm font-semibold hover:bg-accent/50 transition-colors"
-            onclick={() => toggleGrupo(grupo)}
-            aria-expanded={gruposAbiertos.has(grupo)}
-          >
-            {#if gruposAbiertos.has(grupo)}
-              <ChevronDownIcon class="size-4 text-muted-foreground shrink-0" />
-            {:else}
-              <ChevronRightIcon class="size-4 text-muted-foreground shrink-0" />
-            {/if}
-            <span class="flex-1 text-left">{grupo}</span>
+        <CollapsibleSection
+          title={grupo}
+          open={gruposAbiertos.has(grupo)}
+          onToggle={() => toggleGrupo(grupo)}
+        >
+          {#snippet badge()}
             <Badge variant="secondary" class="font-mono">{rubros.length}</Badge>
-          </button>
-          {#if gruposAbiertos.has(grupo)}
-            <div class="flex flex-col gap-1 px-3 pb-3 pt-1">
-              {#each rubros as r (r.id)}
-                {@const subs = store.subrubrosPorRubro.get(Number(r.id)) || []}
-                <div class="rounded-md border border-border/60 bg-card/50">
-                  <div class="flex items-center gap-2 px-3 py-2">
-                    <div class="flex flex-1 flex-col gap-0.5 min-w-0">
-                      <div class="flex items-center gap-2 text-sm">
-                        <span class="font-mono text-xs text-muted-foreground shrink-0">{r.codigo_rubro}</span>
-                        <span class="truncate font-medium">{r.nombre_oficial}</span>
-                      </div>
-                      <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{r.tipo_rubro}</span>
-                      </div>
+          {/snippet}
+
+          <div class="flex flex-col gap-1">
+            {#each rubros as r (r.id)}
+              {@const subs = store.subrubrosPorRubro.get(Number(r.id)) || []}
+              <div class="rounded-md border border-border/60 bg-card/50">
+                <div class="flex items-center gap-2 px-3 py-2">
+                  <div class="flex flex-1 flex-col gap-0.5 min-w-0">
+                    <div class="flex items-center gap-2 text-sm">
+                      <span class="font-mono text-xs text-muted-foreground shrink-0">{r.codigo_rubro}</span>
+                      <span class="truncate font-medium">{r.nombre_oficial}</span>
                     </div>
-                    <div class="flex items-center gap-2 shrink-0">
-                      {#if subs.length > 0}
-                        <Badge variant="secondary" class="font-mono">{subs.length} subrubro{subs.length !== 1 ? 's' : ''}</Badge>
-                      {/if}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        class="h-7 px-2"
-                        onclick={() => abrirCrear(r)}
-                        disabled={store.busy}
-                      >
-                        <PlusIcon data-icon="inline-start" />
-                        Subrubro
-                      </Button>
+                    <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{r.tipo_rubro}</span>
                     </div>
                   </div>
-                  {#if subs.length > 0}
-                    <Separator />
-                    <div class="flex flex-col gap-0.5 px-3 py-2">
-                      {#each subs as s (s.id)}
-                        <div class="flex items-center gap-2 py-1 text-sm" class:opacity-50={s.activo === false}>
-                          <span class="flex-1 truncate pl-4 text-muted-foreground" class:line-through={s.activo === false}>↳ {s.nombre_subrubro}</span>
-                          {#if s.activo === false}
-                            <Badge variant="outline" class="h-4 text-[10px]">Inactivo</Badge>
-                          {/if}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            class="h-6 w-6 p-0"
-                            onclick={() => store.toggleSubrubroActivo(s.id, s.activo !== false ? false : true)}
-                            disabled={store.busy}
-                            aria-label={s.activo === false ? 'Reactivar subrubro' : 'Desactivar subrubro'}
-                            title={s.activo === false ? 'Reactivar' : 'Desactivar'}
-                          >
-                            <PowerIcon class="size-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            class="h-6 w-6 p-0"
-                            onclick={() => abrirEditar(s, r.nombre_oficial)}
-                            disabled={store.busy}
-                            aria-label="Editar subrubro"
-                          >
-                            <PencilIcon class="size-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            class="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                            onclick={() => abrirEliminar(s, r.nombre_oficial)}
-                            disabled={store.busy}
-                            aria-label="Eliminar subrubro"
-                          >
-                            <TrashIcon class="size-3.5" />
-                          </Button>
-                        </div>
-                      {/each}
-                    </div>
-                  {/if}
+                  <div class="flex items-center gap-2 shrink-0">
+                    {#if subs.length > 0}
+                      <Badge variant="secondary" class="font-mono">{subs.length} subrubro{subs.length !== 1 ? 's' : ''}</Badge>
+                    {/if}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      class="h-7 px-2"
+                      onclick={() => abrirCrear(r)}
+                      disabled={store.busy}
+                    >
+                      <PlusIcon data-icon="inline-start" />
+                      Subrubro
+                    </Button>
+                  </div>
                 </div>
-              {/each}
-            </div>
-          {/if}
-        </div>
+                {#if subs.length > 0}
+                  <Separator />
+                  <div class="flex flex-col gap-0.5 px-3 py-2">
+                    {#each subs as s (s.id)}
+                      <div class="flex items-center gap-2 py-1 text-sm" class:opacity-50={s.activo === false}>
+                        <span class="flex-1 truncate pl-4 text-muted-foreground" class:line-through={s.activo === false}>↳ {s.nombre_subrubro}</span>
+                        {#if s.activo === false}
+                          <Badge variant="outline" class="h-4 text-[10px]">Inactivo</Badge>
+                        {/if}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          class="h-6 w-6 p-0"
+                          onclick={() => store.toggleSubrubroActivo(s.id, s.activo !== false ? false : true)}
+                          disabled={store.busy}
+                          aria-label={s.activo === false ? 'Reactivar subrubro' : 'Desactivar subrubro'}
+                          title={s.activo === false ? 'Reactivar' : 'Desactivar'}
+                        >
+                          <PowerIcon class="size-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          class="h-6 w-6 p-0"
+                          onclick={() => abrirEditar(s, r.nombre_oficial)}
+                          disabled={store.busy}
+                          aria-label="Editar subrubro"
+                        >
+                          <PencilIcon class="size-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          class="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                          onclick={() => abrirEliminar(s, r.nombre_oficial)}
+                          disabled={store.busy}
+                          aria-label="Eliminar subrubro"
+                        >
+                          <TrashIcon class="size-3.5" />
+                        </Button>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        </CollapsibleSection>
       {/each}
     {/if}
 

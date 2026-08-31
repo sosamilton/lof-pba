@@ -39,7 +39,5 @@ export const createTables = async () => {}
 export const addRecords = async () => {}
 export const withMultiplayerProtection = async (fn) => fn()
 export const ensureOneRow = async () => {}
-export const exportGristDoc = async () => {}
-export const importGristDoc = async () => {}
 export const getPouchDb = () => null
 export const resetPouchDbSingleton = () => {}

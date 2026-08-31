@@ -20,7 +20,6 @@
   import UserXIcon from '@lucide/svelte/icons/user-x'
   import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
   import ChevronDownIcon from '@lucide/svelte/icons/chevron-down'
-  import ChevronRightIcon from '@lucide/svelte/icons/chevron-right'
   import ChevronUpIcon from '@lucide/svelte/icons/chevron-up'
   import SettingsIcon from '@lucide/svelte/icons/settings'
   import LockIcon from '@lucide/svelte/icons/lock'
@@ -29,6 +28,7 @@
   import CheckIcon from '@lucide/svelte/icons/check'
   import InfoIcon from '@lucide/svelte/icons/info'
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
+  import CollapsibleSection from '$lib/components/CollapsibleSection.svelte'
   import { useConfirmDialog } from '$lib/hooks/useConfirmDialog.svelte.js'
 
   let {
@@ -257,33 +257,27 @@
   <!-- Sección plegable: Cargos del estatuto -->
   <Separator />
 
-  <div class="flex items-center justify-between gap-2">
-    <button
-      type="button"
-      class="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
-      onclick={() => (mostrarCargosEstatuto = !mostrarCargosEstatuto)}
-    >
-      {#if mostrarCargosEstatuto}
-        <ChevronDownIcon class="size-4" />
-      {:else}
-        <ChevronRightIcon class="size-4" />
-      {/if}
-      <SettingsIcon class="size-4" />
-      Cargos del estatuto
+  <CollapsibleSection
+    title="Cargos del estatuto"
+    icon={SettingsIcon}
+    bind:open={mostrarCargosEstatuto}
+    contentClass="flex flex-col gap-3 p-4"
+  >
+    {#snippet badge()}
       {#if store.cargos_validados}
         <Badge variant="secondary"><LockIcon class="size-3" /> Verificado</Badge>
       {/if}
-    </button>
-    {#if mostrarCargosEstatuto && !store.cargos_validados && cargosEstatuto.length > 0}
-      <Button variant="outline" size="sm" onclick={confirmarVerificarCargos} disabled={store.busy}>
-        <CheckIcon data-icon="inline-start" />
-        Verificar cargos
-      </Button>
-    {/if}
-  </div>
+    {/snippet}
 
-  {#if mostrarCargosEstatuto}
-    <div class="flex flex-col gap-3 rounded-lg border border-border bg-muted/5 p-4">
+    {#snippet actions()}
+      {#if !store.cargos_validados && cargosEstatuto.length > 0}
+        <Button variant="outline" size="sm" onclick={confirmarVerificarCargos} disabled={store.busy}>
+          <CheckIcon data-icon="inline-start" />
+          Verificar cargos
+        </Button>
+      {/if}
+    {/snippet}
+
       {#if store.cargos_validados}
         <Alert.Root variant="default">
           <LockIcon class="size-4" />
@@ -441,8 +435,7 @@
           </div>
         </div>
       {/if}
-    </div>
-  {/if}
+  </CollapsibleSection>
 </div>
 
 <ConfirmDialog

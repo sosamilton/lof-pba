@@ -9,7 +9,7 @@
   import SettingsIcon from '@lucide/svelte/icons/settings'
   import TagsIcon from '@lucide/svelte/icons/tags'
   import CloudIcon from '@lucide/svelte/icons/cloud'
-  import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
+  import ShareIcon from '@lucide/svelte/icons/share'
   import KeyboardIcon from '@lucide/svelte/icons/keyboard'
   import ConfigGeneral from './components/ConfigGeneral.svelte'
   import CategoriasTab from './components/CategoriasTab.svelte'
@@ -57,8 +57,8 @@
           Sincronización
         </Tabs.Trigger>
         <Tabs.Trigger value="intercambio" class="px-3">
-          <ArrowLeftRightIcon data-icon="inline-start" />
-          Intercambio
+          <ShareIcon data-icon="inline-start" />
+          Exportar / compartir
         </Tabs.Trigger>
         <Tabs.Trigger value="atajos" class="px-3">
           <KeyboardIcon data-icon="inline-start" />

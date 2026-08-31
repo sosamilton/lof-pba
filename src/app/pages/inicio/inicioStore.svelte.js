@@ -20,6 +20,7 @@ import { saldosStore } from '$app/modules/tesoreria/resumen/saldosStore.svelte.j
 import { createDashboardStore } from './dashboardStore.svelte.js'
 import { TABLE_PREFERRED_IDS, normalizeFields } from '$core/utils/utils'
 import { applyBrandTheme } from '$core/ui/theme'
+import { themeStore } from '$core/ui/themeStore.svelte'
 import { trackEvent } from '$core/analytics/plausible.js'
 
 const bs = createBaseState()
@@ -39,6 +40,7 @@ let color_primario = $state('#16b378')
 let appTitle = $state('')
 let cuentaDefaultId = $state('')
 let cuentas = $state([])
+let tema_preferencia = $state('system')
 
 let showNuevoEjercicio = $state(false)
 let nuevoEj = $state({ anio_inicio: '', anio_fin: '', mes_inicio: 'Mayo', saldo_inicial_banco: 0, saldo_inicial_efectivo: 0, saldo_inicial_caja_chica: 0 })
@@ -394,6 +396,10 @@ const loadPreferencias = async () => {
     }
     if (config?.cooperadora_nombre) appTitle = config.cooperadora_nombre
     if (config?.cuenta_default_id) cuentaDefaultId = String(config.cuenta_default_id)
+    if (config?.tema_preferencia === 'light' || config?.tema_preferencia === 'dark' || config?.tema_preferencia === 'system') {
+      tema_preferencia = config.tema_preferencia
+      themeStore.aplicar(tema_preferencia)
+    }
 
     const tCuentas = await resolveTableId(TABLE_PREFERRED_IDS.cuentas)
     if (tCuentas) {
@@ -480,6 +486,22 @@ const onCuentaDefaultChange = async (cuentaId) => {
   } finally { savingConfig = false }
 }
 
+/**
+ * Guarda la preferencia de tema (claro/oscuro/sistema) en config y la
+ * aplica en vivo. Delega la persistencia + mirror localStorage en themeStore.
+ * @param {'system' | 'light' | 'dark'} pref
+ */
+const onTemaChange = async (pref) => {
+  if (pref !== 'system' && pref !== 'light' && pref !== 'dark') return
+  tema_preferencia = pref
+  savingConfig = true
+  try {
+    await themeStore.guardar(pref)
+  } catch (e) {
+    bs.setError(e?.message || String(e))
+  } finally { savingConfig = false }
+}
+
 const init = async () => {
   const gristStatus = await detectGrist()
   if (gristStatus !== 'ready') return
@@ -541,6 +563,7 @@ export const inicioStore = {
   get appTitle() { return appTitle },
   get cuentaDefaultId() { return cuentaDefaultId },
   get cuentas() { return cuentas },
+  get tema_preferencia() { return tema_preferencia },
   // Acciones
   onPeriodosAutoChange,
   onModalidadChange,
@@ -551,6 +574,7 @@ export const inicioStore = {
   onColorChange,
   onAppTitleChange,
   onCuentaDefaultChange,
+  onTemaChange,
   init,
   check,
   crearEjercicio,

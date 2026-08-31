@@ -4,6 +4,7 @@
   import { configStore } from '$core/grist/stores/configStore.svelte'
   import { getActiveMenuItems } from '$core/utils/utils'
   import { applyBrandTheme } from '$core/ui/theme'
+  import { themeStore } from '$core/ui/themeStore.svelte'
   import { keyboard } from '$core/ui/keyboard.svelte'
   import { shortcuts, matchShortcut, matchCustomAction, displayBinding } from '$core/ui/shortcuts.svelte'
   import * as Sidebar from '$lib/components/ui/sidebar'
@@ -155,6 +156,9 @@
         if (config.cooperadora_nombre) brandTitle = config.cooperadora_nombre
         if (config.escuela_nombre) brandSub = config.escuela_nombre
         if (config.color_primario) applyBrandTheme(config.color_primario)
+        if (config.tema_preferencia === 'light' || config.tema_preferencia === 'dark' || config.tema_preferencia === 'system') {
+          themeStore.aplicar(config.tema_preferencia)
+        }
       }
     } catch {
       // keep defaults
@@ -202,6 +206,9 @@
     if (c.cooperadora_nombre) brandTitle = c.cooperadora_nombre
     if (c.escuela_nombre) brandSub = c.escuela_nombre
     if (c.color_primario) applyBrandTheme(c.color_primario)
+    if (c.tema_preferencia === 'light' || c.tema_preferencia === 'dark' || c.tema_preferencia === 'system') {
+      themeStore.aplicar(c.tema_preferencia)
+    }
     isColaborador = c.modo_colaborador === true
   })
 </script>

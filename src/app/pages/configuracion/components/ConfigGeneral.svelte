@@ -7,6 +7,7 @@
   import { Input } from '$lib/components/ui/input'
   import { Label } from '$lib/components/ui/label'
   import * as Select from '$lib/components/ui/select'
+  import * as ToggleGroup from '$lib/components/ui/toggle-group'
   import Combobox from '$lib/components/Combobox.svelte'
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
   import RefreshIcon from '@lucide/svelte/icons/refresh-cw'
@@ -18,13 +19,15 @@
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
   import CalendarIcon from '@lucide/svelte/icons/calendar'
   import PaletteIcon from '@lucide/svelte/icons/palette'
+  import SunIcon from '@lucide/svelte/icons/sun'
+  import MoonIcon from '@lucide/svelte/icons/moon'
+  import MonitorIcon from '@lucide/svelte/icons/monitor'
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
   import { useConfirmDialog } from '$lib/hooks/useConfirmDialog.svelte.js'
   import { identidad } from '$core/data/identidad'
   import { exportToLof } from '$core/data/exportImport.js'
-  import { getActiveBackend, exportGristDoc, importGristDoc } from '$core/data/dataRepository'
+  import { getActiveBackend } from '$core/data/dataRepository'
   import DownloadIcon from '@lucide/svelte/icons/download'
-  import UploadIcon from '@lucide/svelte/icons/upload'
   import { notify } from '$core/ui/notify.svelte'
   import { trackEvent } from '$core/analytics/plausible.js'
 
@@ -32,17 +35,12 @@
   const isGristMode = getActiveBackend() === 'grist'
   let exporting = $state(false)
   let exportResult = $state(null)
-  let importing = $state(false)
-  let importResult = $state(null)
-  let gristFileInput = $state(null)
 
   const handleExport = async () => {
     exporting = true
     exportResult = null
     try {
-      const res = isPouchMode
-        ? await exportToLof({ kind: 'full' })
-        : await exportGristDoc()
+      const res = await exportToLof({ kind: 'full' })
       exportResult = res
       // Analytics: backup exportado (goal "Backup exportado")
       trackEvent('backup_exported', { backend: getActiveBackend(), doc_count: res.docCount || 0 })
@@ -50,28 +48,6 @@
       notify.error(e?.message || 'Error al exportar')
     } finally {
       exporting = false
-    }
-  }
-
-  const handleGristImport = async (/** @type {Event} */ e) => {
-    const input = /** @type {HTMLInputElement} */ (e.target)
-    const file = input.files?.[0]
-    if (!file) return
-    importing = true
-    importResult = null
-    const id = notify.loading('Importando documento Grist…')
-    try {
-      const res = await importGristDoc(file)
-      notify.dismiss(id)
-      importResult = res
-      trackEvent('backup_imported', { backend: 'grist', record_count: res.recordCount || 0 })
-      notify.success(`Importación completada: ${res.recordCount} registros en ${res.tableCount} tablas.`)
-    } catch (e) {
-      notify.dismiss(id)
-      notify.error(e?.message || 'Error al importar documento Grist')
-    } finally {
-      importing = false
-      input.value = ''
     }
   }
 
@@ -142,7 +118,7 @@
         </div>
 
         <div class="flex flex-col gap-1.5">
-          <Label for="color-primario">Color de marca</Label>
+          <Label for="color-primario">Color Primario</Label>
           <div class="flex items-center gap-2 mt-0.5">
             <Input
               id="color-primario"
@@ -155,6 +131,31 @@
             <span class="text-sm font-mono text-muted-foreground">{store.color_primario}</span>
           </div>
           <p class="text-xs text-muted-foreground">Se aplica inmediatamente al cambiar.</p>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <Label>Tema</Label>
+          <ToggleGroup.Root
+            type="single"
+            value={store.tema_preferencia || 'system'}
+            onValueChange={(v) => { if (v) store.onTemaChange(v) }}
+            variant="outline"
+            class="mt-0.5 w-fit"
+          >
+            <ToggleGroup.Item value="system" aria-label="Respetar configuración del navegador">
+              <MonitorIcon class="size-4" />
+              <span class="hidden sm:inline">Sistema</span>
+            </ToggleGroup.Item>
+            <ToggleGroup.Item value="light" aria-label="Modo claro">
+              <SunIcon class="size-4" />
+              <span class="hidden sm:inline">Claro</span>
+            </ToggleGroup.Item>
+            <ToggleGroup.Item value="dark" aria-label="Modo oscuro">
+              <MoonIcon class="size-4" />
+              <span class="hidden sm:inline">Oscuro</span>
+            </ToggleGroup.Item>
+          </ToggleGroup.Root>
+          <p class="text-xs text-muted-foreground">Elegí claro, oscuro o respetar el navegador. Se aplica al instante.</p>
         </div>
 
         <div class="flex flex-col gap-1.5 sm:col-span-2">
@@ -315,52 +316,6 @@
           <div class="text-xs text-muted-foreground rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
             Backup creado: <strong>{exportResult.filename}</strong>
             ({(exportResult.size / 1024 / 1024).toFixed(2)} MB, {exportResult.docCount} documentos).
-          </div>
-        {/if}
-      </div>
-    {:else if isGristMode}
-      <Separator />
-      <div class="rounded-lg border border-border px-4 py-3 flex flex-col gap-3">
-        <div class="flex items-center gap-2">
-          <DownloadIcon class="size-4 text-primary" />
-          <span class="text-sm font-semibold">Backup y restauración</span>
-        </div>
-        <p class="text-xs text-muted-foreground">
-          Exportá el documento Grist completo (.grist) con todas las tablas, datos y adjuntos.
-          Para restaurar, importá un .grist existente: se reemplazarán los datos actuales del documento.
-        </p>
-        <input
-          bind:this={gristFileInput}
-          type="file"
-          accept=".grist"
-          class="hidden"
-          onchange={handleGristImport}
-        />
-        <div class="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onclick={handleExport} disabled={exporting}>
-            <DownloadIcon data-icon="inline-start" />
-            {exporting ? 'Exportando…' : 'Exportar .grist'}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onclick={() => gristFileInput?.click()}
-            disabled={importing}
-          >
-            <UploadIcon data-icon="inline-start" />
-            {importing ? 'Importando…' : 'Importar .grist'}
-          </Button>
-        </div>
-        {#if exportResult}
-          <div class="text-xs text-muted-foreground rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
-            Documento exportado: <strong>{exportResult.filename}</strong>
-            ({(exportResult.size / 1024 / 1024).toFixed(2)} MB).
-          </div>
-        {/if}
-        {#if importResult}
-          <div class="text-xs text-muted-foreground rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
-            Importación completada: <strong>{importResult.recordCount}</strong> registros
-            en <strong>{importResult.tableCount}</strong> tablas.
           </div>
         {/if}
       </div>
