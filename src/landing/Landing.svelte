@@ -219,7 +219,7 @@
             <Badge variant="secondary" class="font-mono text-[12px]">v{versionActual}</Badge>
           </button>
         {/if}
-        <Button variant="ghost" size="sm" onclick={() => (showReleases = true)}>
+        <Button variant="ghost" size="sm" onclick={() => (showReleases = true)} aria-label="Novedades">
           <HistoryIcon data-icon="inline-start" />
           <span class="hidden sm:inline">Novedades</span>
         </Button>
@@ -296,7 +296,7 @@
               <div class="flex size-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
                 <BuildingIcon class="size-5" />
               </div>
-              <h3 class="text-base font-bold tracking-tight">Instalar mi cooperadora</h3>
+              <h2 class="text-base font-bold tracking-tight">Instalar mi cooperadora</h2>
               <p class="text-sm text-muted-foreground leading-relaxed">
                 Configurá LOF para tu escuela por primera vez. Guía paso a paso, en 5 minutos.
               </p>
@@ -314,7 +314,7 @@
               <div class="flex size-10 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600">
                 <HeartHandshakeIcon class="size-5" />
               </div>
-              <h3 class="text-base font-bold tracking-tight">Ayudar con la carga</h3>
+              <h2 class="text-base font-bold tracking-tight">Ayudar con la carga</h2>
               <p class="text-sm text-muted-foreground leading-relaxed">
                 ¿Te enviaron un archivo <span class="font-mono">.lof</span>? Importalo y cargá movimientos desde tu dispositivo.
               </p>
@@ -335,7 +335,7 @@
                 <div class="flex size-10 items-center justify-center rounded-lg bg-chart-2/15 text-chart-2">
                   <SparklesIcon class="size-5" />
                 </div>
-                <h3 class="text-base font-bold tracking-tight">Ver una demo</h3>
+                <h2 class="text-base font-bold tracking-tight">Ver una demo</h2>
                 <p class="text-sm text-muted-foreground leading-relaxed">
                   Navegá LOF ya cargado con datos de ejemplo (dos ejercicios, movimientos, autoridades y memorias) sin configurar nada.
                 </p>
@@ -716,7 +716,7 @@
         <strong class="text-foreground">¿Preferís una app de escritorio?</strong>
         También hay versiones nativas para Windows, Linux y macOS que se descargan e instalan
         como cualquier programa. Los datos se guardan en tu compu, sin navegador.
-        Disponibles en la <a href={enlaces.repo + '/releases'} target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">página de releases</a>.
+        Disponibles en la <a href={enlaces.repo + '/releases'} target="_blank" rel="noopener noreferrer" class="text-primary underline decoration-1 underline-offset-2 hover:decoration-2">página de releases</a>.
       </p>
     </div>
   </section>
@@ -1035,7 +1035,7 @@
             {identidad.lema}. Software libre bajo {identidad.licencia}.
             Funciona en el navegador, con respaldo local o dentro de Grist.
           </p>
-          <p class="text-xs text-muted-foreground/80 max-w-prose mt-1">
+          <p class="text-xs text-muted-foreground max-w-prose mt-1">
             Proyecto independiente, no oficial. Alineado con la normativa de cooperadoras escolares de PBA.
           </p>
         </div>
