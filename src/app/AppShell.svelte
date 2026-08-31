@@ -26,8 +26,10 @@
   import SparklesIcon from '@lucide/svelte/icons/sparkles'
   import LogOutIcon from '@lucide/svelte/icons/log-out'
   import DownloadIcon from '@lucide/svelte/icons/download'
+  import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
   import { identidad } from '$core/data/identidad'
   import { updateCheck } from '$core/utils/updateCheck.svelte'
+  import { swUpdate } from '$core/utils/swUpdate.svelte'
   import { pwaInstall } from '$core/utils/pwaInstall.svelte'
   import { notify } from '$core/ui/notify.svelte'
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
@@ -313,6 +315,17 @@
       >
         <CommandIcon class="size-4" />
       </button>
+      {#if swUpdate.updateReady}
+        <button
+          type="button"
+          onclick={() => swUpdate.applyUpdate()}
+          class="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 text-[12px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 animate-pulse"
+          title="Hay una nueva versión descargada. Actualizá para usarla."
+        >
+          <RefreshCwIcon class="size-3.5" />
+          <span class="hidden sm:inline">Actualizar sitio</span>
+        </button>
+      {/if}
       {#if isColaborador}
         <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[12px] font-semibold text-amber-700 dark:text-amber-400">
           <HandHeartIcon class="size-3" />
