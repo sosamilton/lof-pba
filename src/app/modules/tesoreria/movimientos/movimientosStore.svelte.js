@@ -48,6 +48,7 @@ export const movimientosStore = extendStore(base, {
   get personas() { return relatedData.personas },
   get ejercicios() { return relatedData.ejercicios },
   get ejercicio() { return relatedData.ejercicio },
+  get ejercicioVisto() { return relatedData.ejercicioVisto },
   get userName() { return relatedData.userName },
   get cuentaDefaultId() { return relatedData.cuentaDefaultId },
   get modoGestion() { return relatedData.modoGestion },
@@ -57,6 +58,8 @@ export const movimientosStore = extendStore(base, {
   get sessionOverride() { return relatedData.sessionOverride },
   setSessionOverride: relatedData.setSessionOverride,
   resetSessionOverride: relatedData.resetSessionOverride,
+  setEjercicioVisto: relatedData.setEjercicioVisto,
+  rangoFechasEjercicioVisto: relatedData.rangoFechasEjercicioVisto,
   // formState
   get selectedId() { return formState.selectedId },
   get form() { return formState.form },

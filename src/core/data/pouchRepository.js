@@ -40,6 +40,87 @@ let _indexReady = false
 // Mapa de tableKey → Set de IDs cargados (para refresh incremental)
 const _loadedTables = new Map()
 
+// Cache del Map de personas para computedContext.
+// Se invalida cuando un doc de tipo "personas" cambia (ver changes listener).
+// Sin esto, cada carga de socios/autoridades/asesores hace un full scan de
+// la tabla personas (~1s en Firefox Android con 500 docs).
+let _personasCache = null
+
+// Cache de docs por tabla para fetchRecords.
+// Estructura: Map<tableKey, Map<numericId, rawDoc>>
+// Se actualiza incrementalmente desde el changes feed (upsert/delete por doc),
+// sin necesidad de refetchear toda la tabla. La primera carga usa allDocs
+// (range scan del índice primario _id, mucho más rápido que db.find en
+// Firefox Android). Las siguientes son cache hits instantáneos.
+const _tableCache = new Map()
+
+/**
+ * Fetcha todos los docs de una tabla usando allDocs con range scan por _id.
+ * Los docs tienen _id: "{tableKey}_{numericId}", así que son contiguos en el
+ * índice primario. Esto es 5-10x más rápido que db.find({ selector: { type } })
+ * en Firefox Android, porque usa el índice primario (siempre optimizado) en
+ * vez del índice secundario type (lento en Firefox).
+ */
+const _fetchAllDocsByType = async (tableKey) => {
+  const db = _getDb()
+  const result = await db.allDocs({
+    startkey: tableKey + '_\u0000',
+    endkey: tableKey + '_\uffff',
+    include_docs: true,
+    limit: 100000,
+  })
+  // Filtrar por type por si hay colisión de prefijos (ej: _grist_Tables vs
+  // _grist_Tables_column). allDocs no filtra por type, solo por rango de _id.
+  const docs = []
+  for (const row of result.rows) {
+    if (row.doc && row.doc.type === tableKey) {
+      docs.push(row.doc)
+    }
+  }
+  return docs
+}
+
+/**
+ * Parsea el tableKey de un _id de PouchDB ("{tableKey}_{numericId}").
+ * Usa el último underscore como separador (algunos tableKeys tienen _
+ * internos, ej: "Cierres_mensuales", "Datos_banco").
+ */
+const _parseTableKeyFromId = (docId) => {
+  if (!docId) return null
+  const idx = docId.lastIndexOf('_')
+  if (idx <= 0) return null
+  return docId.substring(0, idx)
+}
+
+/**
+ * Parsea el numericId de un _id de PouchDB ("{tableKey}_{numericId}").
+ */
+const _parseNumericIdFromId = (docId) => {
+  if (!docId) return null
+  const idx = docId.lastIndexOf('_')
+  if (idx <= 0) return null
+  return Number(docId.substring(idx + 1))
+}
+
+/**
+ * Upsert de un doc en el cache de tabla (si la tabla está cacheada).
+ * No hace nada si la tabla no está en cache (la primera fetchRecords la cargará).
+ */
+const _upsertTableCache = (tableKey, doc) => {
+  const cache = _tableCache.get(tableKey)
+  if (cache && doc.id != null) {
+    cache.set(Number(doc.id), doc)
+  }
+}
+
+/**
+ * Remove de un doc del cache de tabla (si la tabla está cacheada).
+ */
+const _removeFromTableCache = (tableKey, numericId) => {
+  const cache = _tableCache.get(tableKey)
+  if (cache) cache.delete(Number(numericId))
+}
+
 /**
  * Devuelve la instancia singleton de PouchDB.
  * La crea con el nombre "lof" si no existe.
@@ -80,6 +161,12 @@ export const _resetDbSingleton = () => {
   _counters = null
   _indexReady = false
   _currentOptions = null
+  _personasCache = null
+  _tableCache.clear()
+  if (_changesDebounceTimer) {
+    clearTimeout(_changesDebounceTimer)
+    _changesDebounceTimer = null
+  }
   if (_changesListener) {
     _changesListener.cancel()
     _changesListener = null
@@ -98,6 +185,10 @@ export const _resetForTesting = async () => {
     _changesListener.cancel()
     _changesListener = null
   }
+  if (_changesDebounceTimer) {
+    clearTimeout(_changesDebounceTimer)
+    _changesDebounceTimer = null
+  }
   if (_db) {
     try { await _db.destroy() } catch { /* ignore */ }
     _db = null
@@ -106,6 +197,8 @@ export const _resetForTesting = async () => {
   _counters = null
   _indexReady = false
   _currentOptions = null
+  _personasCache = null
+  _tableCache.clear()
   _recordsSubscribers.clear()
   _optionsSubscribers.clear()
   _accessSubscribers.clear()
@@ -134,6 +227,7 @@ export const detectGrist = async () => {
     _status = 'ready'
     _notifyAccess()
     _setupChangesListener()
+    _prefetchCommonTables()
     return 'ready'
   } catch (e) {
     _status = 'no-access'
@@ -165,6 +259,28 @@ const _notifyAccess = () => {
 
 // --- Suscripción a cambios ---
 
+/**
+ * Precarga las tablas más pesadas en background al arrancar.
+ * Fire-and-forget: no awaiting, los errores se ignoran. Para cuando el
+ * usuario navega a un módulo, los docs ya están en cache (cache hit
+ * instantáneo). Las tablas pequeñas (Configuracion, Cuentas, etc.) no
+ * necesitan prefetch — allDocs ya es rápido para pocas filas.
+ */
+const _prefetchCommonTables = () => {
+  const commonTables = ['Movimientos', 'Socios', 'Personas', 'Autoridades', 'Ejercicios']
+  for (const tableKey of commonTables) {
+    // fetchRecords guarda en cache internamente. Ignorar errores (ej: si
+    // una tabla no existe, allDocs devuelve vacío, no hay error).
+    fetchRecords(tableKey).catch(() => {})
+  }
+}
+
+// Debounce del changes feed: si llegan N cambios rápidos (ej: bulk import,
+// o cascada de writes), notificar a los subscribers una sola vez después
+// de 100ms en lugar de N veces. Esto evita que cada cambio dispare un
+// refetch completo de todos los stores (el problema de cascada).
+let _changesDebounceTimer = null
+
 const _setupChangesListener = () => {
   if (_changesListener) return
   const db = _getDb()
@@ -173,10 +289,32 @@ const _setupChangesListener = () => {
     live: true,
     include_docs: true,
   }).on('change', (change) => {
-    // Notificar a todos los subscribers de records
-    for (const cb of _recordsSubscribers) {
-      try { cb([], null) } catch (e) { console.error('[pouch] records subscriber error:', e) }
+    // Update incremental del cache de tablas: upsert o delete del doc
+    // específico, sin refetchear toda la tabla.
+    const changedType = change.doc?.type || _parseTableKeyFromId(change.id)
+    if (changedType && _tableCache.has(changedType)) {
+      const cache = _tableCache.get(changedType)
+      if (change.deleted) {
+        const numId = _parseNumericIdFromId(change.id)
+        if (numId != null) cache.delete(numId)
+      } else if (change.doc) {
+        cache.set(Number(change.doc.id), change.doc)
+      }
     }
+
+    // Invalidar cache de personas si cambió un doc de personas
+    if (changedType && String(changedType).toLowerCase() === 'personas') {
+      _invalidatePersonasCache()
+    }
+
+    // Debounce: coalescer cambios rápidos en una sola notificación
+    if (_changesDebounceTimer) return
+    _changesDebounceTimer = setTimeout(() => {
+      _changesDebounceTimer = null
+      for (const cb of _recordsSubscribers) {
+        try { cb([], null) } catch (e) { console.error('[pouch] records subscriber error:', e) }
+      }
+    }, 100)
   }).on('error', (err) => {
     console.error('[pouch] changes error:', err)
   })
@@ -287,7 +425,8 @@ const _nextId = async (tableKey) => {
   // restore sin _local/counters), verificar que el ID no exista ya.
   // Si existe, incrementar hasta encontrar uno libre.
   const db = _getDb()
-  for (let attempts = 0; attempts < 1000; attempts++) {
+  let attempts = 0
+  for (; attempts < 1000; attempts++) {
     const docId = `${tableKey}_${next}`
     try {
       await db.get(docId)
@@ -348,17 +487,20 @@ export const fetchRecords = async (tableId, options = {}) => {
   // puede ser capitalizado ('Movimientos') según TABLE_PREFERRED_IDS.
   const logicalKey = String(tableId || '').toLowerCase()
 
-  // Asegurar índice de type
-  await _ensureIndex()
+  // Obtener docs: cache hit (instantáneo) o allDocs (primera carga)
+  let docs
+  const cached = _tableCache.get(tableKey)
+  if (cached) {
+    docs = Array.from(cached.values())
+  } else {
+    docs = await _fetchAllDocsByType(tableKey)
+    // Guardar en cache como Map<numericId, rawDoc> para updates incrementales
+    const map = new Map()
+    for (const doc of docs) map.set(Number(doc.id), doc)
+    _tableCache.set(tableKey, map)
+  }
 
-  // Usar Mango query por type
-  const result = await db.find({
-    selector: { type: tableKey },
-    // No limitar aquí — aplicamos limit después de sort/filter
-    limit: 100000,
-  })
-
-  let records = result.docs.map(_docToRecord)
+  let records = docs.map(_docToRecord)
 
   // Aplicar computed fields (lookups de persona_id, fórmulas como periodo, etc.)
   if (records.length > 0 && _needsComputedFields(logicalKey)) {
@@ -457,6 +599,10 @@ export const applyUserActions = async (actions) => {
       }
       results.push({ id, rev: res.rev })
 
+      // Actualizar cache de tabla si está cargada (consistencia inmediata,
+      // sin esperar al changes feed)
+      _upsertTableCache(tableId, { ...doc, _rev: res.rev })
+
       // Actualizar contador si se auto-generó
       if (rowId == null) {
         const counters = await _loadCounters()
@@ -479,6 +625,8 @@ export const applyUserActions = async (actions) => {
         }
         const res = await db.put(updated)
         results.push({ id, rev: res.rev })
+        // Actualizar cache de tabla
+        _upsertTableCache(tableId, { ...updated, _rev: res.rev })
       } catch (e) {
         if (e.status === 404) {
           // El doc no existe — lo creamos
@@ -490,6 +638,7 @@ export const applyUserActions = async (actions) => {
           }
           const res = await db.put(doc)
           results.push({ id, rev: res.rev })
+          _upsertTableCache(tableId, { ...doc, _rev: res.rev })
         } else {
           throw e
         }
@@ -501,6 +650,8 @@ export const applyUserActions = async (actions) => {
         const doc = await db.get(docId)
         await db.remove(doc)
         results.push({ id, removed: true })
+        // Actualizar cache de tabla
+        _removeFromTableCache(tableId, id)
       } catch (e) {
         if (e.status !== 404) throw e
         results.push({ id, removed: false, notFound: true })
@@ -525,6 +676,14 @@ export const applyUserActions = async (actions) => {
       }
       const res = await db.bulkDocs(docs)
       results.push(res)
+
+      // Actualizar cache de tabla con los docs nuevos
+      for (let i = 0; i < docs.length; i++) {
+        if (res[i]?.ok && res[i]?.rev) {
+          docs[i]._rev = res[i].rev
+        }
+        _upsertTableCache(tableId, docs[i])
+      }
 
       // Actualizar contadores
       const counters = await _loadCounters()
@@ -742,17 +901,31 @@ const _buildComputedContext = async (tableKey) => {
   // Solo socios, autoridades y asesores necesitan lookup de personas
   if (!['socios', 'autoridades', 'asesores'].includes(tableKey)) return {}
 
+  // Cache hit: devolver sin re-scannear
+  if (_personasCache) {
+    return { personas: _personasCache }
+  }
+
   // Resolver el tableId real de personas (ej: 'Personas' en PouchDB,
   // ya que resolveTableId devuelve el primer preferred ID, que está
   // capitalizado). Usar hardcode 'personas' no encuentra los docs.
   const { TABLE_PREFERRED_IDS } = await import('$core/utils/utils')
   const personasTableId = (await resolveTableId(TABLE_PREFERRED_IDS.personas)) || 'Personas'
 
-  const db = _getDb()
-  const result = await db.find({ selector: { type: personasTableId }, limit: 100000 })
+  // Usar allDocs (range scan del índice primario) en vez de db.find
+  const docs = await _fetchAllDocsByType(personasTableId)
   const personas = new Map()
-  for (const doc of result.docs) {
+  for (const doc of docs) {
     personas.set(Number(doc.id), _docToRecord(doc))
   }
+  _personasCache = personas
   return { personas }
+}
+
+/**
+ * Invalida el cache de personas. Se llama desde el changes listener cuando
+ * un doc de tipo "personas" cambia. También se puede llamar manualmente.
+ */
+const _invalidatePersonasCache = () => {
+  _personasCache = null
 }

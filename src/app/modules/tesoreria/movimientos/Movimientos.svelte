@@ -191,6 +191,12 @@
     }
   })
 
+  // Sincronizar el ejercicio visto con el store para que el form logic
+  // pueda defaultear la fecha y limitar el date picker al rango correcto.
+  $effect(() => {
+    store.setEjercicioVisto(ejercicioFiltro || null)
+  })
+
   onMount(async () => {
     const unsub = store.subscribe()
     await store.loadAll()
