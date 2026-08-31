@@ -406,6 +406,10 @@ async function _exportGrist(tables, opts) {
  * @param {File|object} file - Archivo .lof, o payload ya parseado (de validateLof).
  * @param {object} [opts]
  * @param {boolean} [opts.reemplazar] - Si true, destruye la DB antes de importar (solo PouchDB).
+ * @param {(progress: { stage: string, current: number, total: number }) => void} [opts.onProgress]
+ *        Callback de progreso. Se llama al inicio de cada etapa y durante los
+ *        batches de inserción. `stage` es un string identificatorio, `current`
+ *        y `total` son los docs procesados hasta el momento.
  * @returns {Promise<{ docCount: number, inserted: number, skipped: number }>}
  */
 export async function importFromLof(file, opts = {}) {
@@ -437,10 +441,16 @@ export async function importFromLof(file, opts = {}) {
  * Importa formato neutral v3 a PouchDB.
  */
 async function _importLofToPouch(payload, opts) {
+  const onProgress = opts.onProgress
+  const report = (stage, current, total) => {
+    if (onProgress) onProgress({ stage, current, total })
+  }
+
   const db = getPouchDb()
   if (!db) throw new Error('No hay base de datos PouchDB activa.')
 
   if (opts.reemplazar) {
+    report('preparing', 0, payload.docs.length)
     // Resetear el singleton ANTES de destruir, para que llamadas concurrentes
     // (router, inicioStore, etc.) no obtengan la DB que se va a destruir.
     resetPouchDbSingleton()
@@ -454,6 +464,7 @@ async function _importLofToPouch(payload, opts) {
   const docsToInsert = []
 
   // Primero: subir attachments y mapear IDs
+  report('attachments', 0, payload.docs.length)
   const attachmentIdMapping = new Map() // oldId → newId
 
   for (const doc of payload.docs) {
@@ -468,6 +479,8 @@ async function _importLofToPouch(payload, opts) {
   }
 
   // Segundo: insertar docs normales
+  report('indexing', 0, payload.docs.length)
+  let processed = 0
   for (const doc of payload.docs) {
     if (doc.table === 'attachment') continue
 
@@ -500,15 +513,20 @@ async function _importLofToPouch(payload, opts) {
     }
 
     docsToInsert.push(fields)
+    processed++
   }
 
+  // Tercero: insertar en batches con reporte de progreso
+  const totalToInsert = docsToInsert.length
   for (let i = 0; i < docsToInsert.length; i += BATCH) {
     const batch = docsToInsert.slice(i, i + BATCH)
     await targetDb.bulkDocs(batch)
     inserted += batch.length
+    report('importing', inserted, totalToInsert)
   }
 
   // Reconstruir counters
+  report('finalizing', inserted, totalToInsert)
   await _rebuildCounters(targetDb)
 
   return { docCount: payload.docs.length, inserted, skipped }
