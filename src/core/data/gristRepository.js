@@ -36,6 +36,4 @@ export {
   addRecords,
   withMultiplayerProtection,
   ensureOneRow,
-  exportGristDoc,
-  importGristDoc,
 } from '../grist/grist.js'
