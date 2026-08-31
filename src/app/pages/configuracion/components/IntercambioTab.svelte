@@ -42,7 +42,8 @@
     <CheckCircleIcon data-icon="inline-start" />
     <AlertDescription>
       En modo Grist, podés exportar un backup completo en formato <span class="font-mono">.lof</span>
-      para migrar a una instalación standalone (PouchDB). El intercambio descentralizado
+      para migrar a una instalación standalone (PouchDB). Para un respaldo del documento Grist
+      nativo, usá las herramientas de backup de Grist. El intercambio descentralizado
       (sets de trabajo y patches entre colaboradores) solo está disponible en modo standalone.
     </AlertDescription>
   </Alert>

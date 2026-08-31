@@ -41,7 +41,7 @@ LOF tiene una **capa de datos desacoplada**. Todos los stores y módulos importa
   - `importFromLof(file, opts)` — importa detectando automáticamente formato v3 (neutral) o v1/v2 (legacy).
   - `validateLof(file)` — validación de ambos formatos.
 - `src/core/data/intercambio.js` — intercambio descentralizado (working sets, patches, merge aditivo).
-- Exportar: Configuración → General → Backup, o Configuración → Intercambio → Exportar.
+- Exportar: Configuración → General → Backup (solo PouchDB), o Configuración → Exportar / compartir → Exportar (ambos backends, `.lof`). En modo Grist, para un respaldo nativo del documento, usar las herramientas de backup de Grist.
 - Importar: Setup wizard → primera página → "¿Tenés un backup?".
 - Migración Grist → PouchDB: exportar backup `.lof` desde Grist, importar en setup wizard de PWA.
 - Migración PouchDB → Grist: exportar backup `.lof` desde PWA, importar en setup wizard de Grist.
