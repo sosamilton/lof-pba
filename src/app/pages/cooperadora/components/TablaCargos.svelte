@@ -98,7 +98,7 @@
 
 <div class="flex flex-col gap-4">
   <!-- Selector de organismo -->
-  <OrganismoTabs bind:value={store.organismo} class="min-w-0 w-full" />
+  <OrganismoTabs value={store.organismo} onValueChange={(v) => store.setOrganismo(v)} class="min-w-0 w-full" />
   {#if esFederacion}
     <!-- Toggle de adhesión a la Federación -->
     <div class="flex items-center gap-2.5 p-3 rounded-xl border transition-colors {store.federacion_adherida ? 'border-primary/40 bg-primary/5' : 'border-border'}">

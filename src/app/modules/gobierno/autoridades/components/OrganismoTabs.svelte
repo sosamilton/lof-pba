@@ -5,11 +5,16 @@
 
   let {
     value = $bindable(),
+    onValueChange,
     class: className,
   } = $props()
 </script>
 
-<Tabs.Root bind:value class={cn('min-w-0', className)}>
+<Tabs.Root
+  bind:value
+  onValueChange={(v) => onValueChange?.(v)}
+  class={cn('min-w-0', className)}
+>
   <Tabs.List>
     {#each ORGANISMOS as org}
       <Tabs.Trigger value={org} class="flex-none">{ORGANISMO_LABELS[org]}</Tabs.Trigger>
