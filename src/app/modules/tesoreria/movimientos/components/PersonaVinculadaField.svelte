@@ -9,7 +9,7 @@
     filtroCategoria = '',
     onSetFiltroCategoria = () => {},
     value = '',
-    onChange = () => {},
+    onchange = () => {},
     disabled = false,
   } = $props()
 </script>
@@ -39,7 +39,7 @@
     {#if personasSeleccionables.items.length > 0}
       <Combobox
         {value}
-        onchange={onChange}
+        {onchange}
         items={personasSeleccionables.items}
         placeholder="(Ninguno)"
         searchPlaceholder="Buscar persona…"
