@@ -24,6 +24,7 @@
   import FingerprintIcon from '@lucide/svelte/icons/fingerprint'
   import CameraIcon from '@lucide/svelte/icons/camera'
   import AlertCircleIcon from '@lucide/svelte/icons/circle-alert'
+  import CopyCheckIcon from '@lucide/svelte/icons/copy-check'
   import { formatBytes } from '$core/format/format'
   import { trackEvent } from '$core/analytics/plausible.js'
   import { getActiveBackend } from '$core/data/dataRepository'
@@ -32,6 +33,7 @@
   let deviceRole = $derived(migrateRoleFromConfig(configStore.config))
   let savingRole = $state(false)
   let selectedRole = $state('')
+  let roleChangeError = $state('')
 
   $effect(() => {
     if (deviceRole) selectedRole = deviceRole
@@ -43,15 +45,58 @@
     description: role.description,
   }))
 
+  // Guard: no permitir salir de super_admin sin contraseña maestra + PIN de super_admin.
+  // Sin esos dos, no hay forma de volver a super_admin (recovery key viene de la
+  // contraseña maestra, y el PIN de super_admin es para reingresar con ese rol).
+  let canChangeFromSuperAdmin = $derived(
+    deviceRole !== 'super_admin' ||
+    (passphraseStore.configured && pinStore.configuredRoles().includes('super_admin'))
+  )
+
   async function saveRole() {
     if (!selectedRole || selectedRole === deviceRole) return
+    roleChangeError = ''
+
+    // Guard crítico: si estás en super_admin y querés bajar de rol,
+    // necesitás contraseña maestra + PIN de super_admin configurados.
+    // Esto garantiza que siempre podés volver a super_admin.
+    if (deviceRole === 'super_admin' && selectedRole !== 'super_admin') {
+      const missing = []
+      if (!passphraseStore.configured) missing.push('contraseña maestra')
+      if (!pinStore.configuredRoles().includes('super_admin')) missing.push('PIN de super_admin')
+      if (missing.length > 0) {
+        roleChangeError = `No podés cambiar de rol sin configurar primero ${missing.join(' y ')}. ` +
+          'Sin esos, no podés volver a super_admin (la recovery key viene de la contraseña maestra, ' +
+          'y el PIN de super_admin es para reingresar con ese rol).'
+        notify.error(roleChangeError)
+        return
+      }
+    }
+
     savingRole = true
     try {
       const config = await loadConfig()
       await saveConfig({ ...config, rol_dispositivo: selectedRole })
       await configStore.load()
-      notify.success(`Rol del dispositivo cambiado a: ${ROLES[selectedRole].label}`)
       trackEvent('config_changed', { field: 'rol_dispositivo', value: selectedRole, backend: getActiveBackend() })
+
+      // Cambiar el rol activo de la sesión en vivo (sin bloquear).
+      // Así el usuario sigue en la app con el nuevo rol inmediatamente.
+      pinStore.unlock(selectedRole)
+
+      // Avisar si el rol destino no tiene PIN configurado.
+      const targetHasPin = pinStore.configuredRoles().includes(selectedRole)
+      if (targetHasPin) {
+        notify.success(`Rol cambiado a: ${ROLES[selectedRole].label}.`)
+      } else {
+        notify.success(`Rol cambiado a: ${ROLES[selectedRole].label}.`)
+        notify.warning(
+          `No hay PIN configurado para ${ROLES[selectedRole].label}. ` +
+          `Si bloqueás la app, vas a tener que entrar con el PIN de super_admin ` +
+          `(que te dará rol super_admin, no ${ROLES[selectedRole].label}). ` +
+          `Para usar este rol después de bloquear, volvé a super_admin y configurá un PIN para ${ROLES[selectedRole].label}.`
+        )
+      }
     } catch (e) {
       notify.error(e?.message || 'No se pudo cambiar el rol.')
     } finally {
@@ -157,30 +202,50 @@
   let showPassphraseForm = $state(false)
   let newPassphrase = $state('')
   let confirmPassphrase = $state('')
+  let currentPassphrase = $state('')
   let savingPassphrase = $state(false)
   let passphraseError = $state('')
+  let generatedRecoveryKey = $state('')
+  let recoveryKeyAcknowledged = $state(false)
 
   async function savePassphrase() {
     passphraseError = ''
     if (newPassphrase.length < 6) {
-      passphraseError = 'La passphrase debe tener al menos 6 caracteres.'
+      passphraseError = 'La contraseña maestra debe tener al menos 6 caracteres.'
       return
     }
     if (newPassphrase !== confirmPassphrase) {
-      passphraseError = 'Las passphrases no coinciden.'
+      passphraseError = 'Las contraseñas no coinciden.'
       return
     }
+    // Si ya hay una contraseña configurada, pedir la actual para verificar.
+    if (passphraseStore.configured) {
+      const validCurrent = await passphraseStore.verifyPassphrase(currentPassphrase)
+      if (!validCurrent) {
+        passphraseError = 'La contraseña actual no es correcta.'
+        return
+      }
+    }
     savingPassphrase = true
-    const ok = await passphraseStore.setPassphrase(newPassphrase)
+    const result = await passphraseStore.setPassphrase(newPassphrase)
     savingPassphrase = false
-    if (ok) {
-      notify.success('Contraseña maestra configurada.')
-      showPassphraseForm = false
+    if (result.ok) {
       newPassphrase = ''
       confirmPassphrase = ''
+      currentPassphrase = ''
+      showPassphraseForm = false
       trackEvent('passphrase_set', { backend: getActiveBackend() })
+      if (result.recoveryKey) {
+        // Es la primera vez — mostrar la recovery key hasta que confirmen
+        // que la guardaron en un lugar seguro institucional.
+        generatedRecoveryKey = result.recoveryKey
+        recoveryKeyAcknowledged = false
+        notify.success('Contraseña maestra configurada. Guardá la recovery key que aparece abajo.')
+      } else {
+        notify.success('Contraseña maestra actualizada.')
+      }
     } else {
-      passphraseError = 'No se pudo guardar la passphrase.'
+      passphraseError = 'No se pudo guardar la contraseña maestra.'
     }
   }
 
@@ -295,8 +360,49 @@
       </Field.FieldDescription>
     </Field.Field>
 
+    {#if deviceRole === 'super_admin' && selectedRole !== 'super_admin' && !canChangeFromSuperAdmin}
+      <Alert variant="destructive">
+        <AlertCircleIcon data-icon="inline-start" />
+        <AlertDescription class="text-sm">
+          <strong>No podés bajar de rol todavía.</strong> Para volver a super_admin necesitás:
+          <ul class="mt-1 ml-4 list-disc">
+            {#if !passphraseStore.configured}
+              <li>Configurar la <strong>contraseña maestra</strong> (genera la recovery key para recuperar acceso)</li>
+            {/if}
+            {#if !pinStore.configuredRoles().includes('super_admin')}
+              <li>Configurar el <strong>PIN de super_admin</strong> (para reingresar con ese rol)</li>
+            {/if}
+          </ul>
+          Configurá ambos más abajo en esta página, y después podés cambiar de rol.
+        </AlertDescription>
+      </Alert>
+    {/if}
+
+    {#if roleChangeError}
+      <Alert variant="destructive">
+        <AlertCircleIcon data-icon="inline-start" />
+        <AlertDescription class="text-sm">{roleChangeError}</AlertDescription>
+      </Alert>
+    {/if}
+
+    {#if deviceRole === 'super_admin' && selectedRole !== 'super_admin' && selectedRole !== deviceRole && canChangeFromSuperAdmin && !pinStore.configuredRoles().includes(selectedRole)}
+      <Alert>
+        <AlertCircleIcon data-icon="inline-start" />
+        <AlertDescription class="text-sm">
+          <strong>Advertencia:</strong> No hay PIN configurado para {ROLES[selectedRole]?.label}.
+          Podés cambiar de rol ahora y seguir usando la app, pero si bloqueás la app
+          vas a tener que entrar con el PIN de super_admin (que te dará rol super_admin).
+          Para usar {ROLES[selectedRole]?.label} después de bloquear, volvé a super_admin
+          y configurá un PIN para {ROLES[selectedRole]?.label} más abajo.
+        </AlertDescription>
+      </Alert>
+    {/if}
+
     <div class="flex justify-end">
-      <Button onclick={saveRole} disabled={savingRole || !selectedRole || selectedRole === deviceRole}>
+      <Button
+        onclick={saveRole}
+        disabled={savingRole || !selectedRole || selectedRole === deviceRole || (deviceRole === 'super_admin' && selectedRole !== 'super_admin' && !canChangeFromSuperAdmin)}
+      >
         {savingRole ? 'Guardando…' : 'Guardar rol'}
       </Button>
     </div>
@@ -454,6 +560,44 @@
         </AlertDescription>
       </Alert>
 
+      {#if generatedRecoveryKey}
+        <Alert variant="default" class="border-primary/40 bg-primary/5">
+          <KeyIcon data-icon="inline-start" />
+          <AlertDescription class="text-sm">
+            <div class="font-semibold mb-1">Recovery key generada</div>
+            <p class="text-muted-foreground mb-2">
+              Esta key te permite recuperar acceso a super_admin si perdés el PIN o cambiaste
+              de rol. <strong>No se vuelve a mostrar.</strong> Guardala en un sobre lacrado
+              en el armario institucional, igual que la contraseña maestra.
+            </p>
+            <code class="block bg-muted p-3 rounded text-sm break-all font-mono select-all">{generatedRecoveryKey}</code>
+            <div class="flex flex-col gap-3 mt-3">
+              <label class="flex items-start gap-2 text-sm">
+                <input type="checkbox" bind:checked={recoveryKeyAcknowledged} class="size-4 rounded border-input mt-0.5" />
+                <span>
+                  Confirmo que guardé la recovery key en un sobre lacrado en el armario
+                  institucional (o lugar seguro y accesible por la institución).
+                </span>
+              </label>
+              <div class="flex gap-2">
+                <Button variant="outline" size="sm" onclick={() => navigator.clipboard.writeText(generatedRecoveryKey)}>
+                  <CopyCheckIcon data-icon="inline-start" />
+                  Copiar
+                </Button>
+                <Button variant="default" size="sm" disabled={!recoveryKeyAcknowledged} onclick={() => { generatedRecoveryKey = ''; recoveryKeyAcknowledged = false }}>
+                  Ya la guardé en un lugar seguro
+                </Button>
+              </div>
+              {#if !recoveryKeyAcknowledged}
+                <p class="text-xs text-muted-foreground">
+                  Marcá el checkbox de arriba para confirmar que la guardaste.
+                </p>
+              {/if}
+            </div>
+          </AlertDescription>
+        </Alert>
+      {/if}
+
       {#if passphraseStore.configured}
         <div class="flex items-center gap-2 text-sm">
           <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
@@ -465,11 +609,16 @@
         {#if showPassphraseForm}
           <Field.FieldGroup>
             <Field.Field>
-              <Field.FieldLabel for="new-passphrase">Passphrase nueva</Field.FieldLabel>
+              <Field.FieldLabel for="current-passphrase">Contraseña maestra actual</Field.FieldLabel>
+              <Input id="current-passphrase" type="password" autocomplete="off" bind:value={currentPassphrase} autofocus />
+              <Field.FieldDescription>Verificamos que sos quien tiene la contraseña actual antes de cambiarla.</Field.FieldDescription>
+            </Field.Field>
+            <Field.Field>
+              <Field.FieldLabel for="new-passphrase">Contraseña maestra nueva</Field.FieldLabel>
               <Input id="new-passphrase" type="password" autocomplete="off" bind:value={newPassphrase} />
             </Field.Field>
             <Field.Field>
-              <Field.FieldLabel for="confirm-passphrase">Confirmar passphrase</Field.FieldLabel>
+              <Field.FieldLabel for="confirm-passphrase">Confirmar contraseña nueva</Field.FieldLabel>
               <Input id="confirm-passphrase" type="password" autocomplete="off" bind:value={confirmPassphrase} />
             </Field.Field>
             {#if passphraseError}
@@ -478,15 +627,15 @@
               </Alert>
             {/if}
             <div class="flex justify-end gap-2">
-              <Button variant="outline" onclick={() => { showPassphraseForm = false; passphraseError = '' }}>Cancelar</Button>
-              <Button onclick={savePassphrase} disabled={savingPassphrase || !newPassphrase || !confirmPassphrase}>
-                {savingPassphrase ? 'Guardando…' : 'Guardar passphrase'}
+              <Button variant="outline" onclick={() => { showPassphraseForm = false; passphraseError = ''; currentPassphrase = '' }}>Cancelar</Button>
+              <Button onclick={savePassphrase} disabled={savingPassphrase || !newPassphrase || !confirmPassphrase || !currentPassphrase}>
+                {savingPassphrase ? 'Guardando…' : 'Guardar contraseña'}
               </Button>
             </div>
           </Field.FieldGroup>
         {:else}
           <div class="flex gap-2">
-            <Button variant="outline" onclick={() => { showPassphraseForm = true; newPassphrase = ''; confirmPassphrase = ''; passphraseError = '' }}>Cambiar passphrase</Button>
+            <Button variant="outline" onclick={() => { showPassphraseForm = true; newPassphrase = ''; confirmPassphrase = ''; currentPassphrase = ''; passphraseError = '' }}>Cambiar contraseña</Button>
           </div>
         {/if}
       {:else}

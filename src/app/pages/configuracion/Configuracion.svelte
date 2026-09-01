@@ -32,6 +32,7 @@
   onMount(() => {
     // El inicioStore se inicializa desde Inicio.svelte; si el usuario entra
     // directo a Configuracion, lo inicializamos acá también.
+    pinStore.init()
     const unsubInicio = inicio.init()
     categorias.load()
     const unsubCategorias = categorias.subscribe()

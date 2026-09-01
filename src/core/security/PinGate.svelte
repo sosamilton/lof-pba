@@ -2,6 +2,8 @@
   import { onMount, onDestroy } from 'svelte'
   import { pinStore } from '$core/security/pinStore.svelte'
   import { passkeyStore } from '$core/security/passkeyStore.svelte'
+  import { LOCKOUT_THRESHOLD } from '$core/security/lockout'
+  import { PIN_MIN_LENGTH, PIN_MAX_LENGTH } from '$core/security/pinCrypto'
   import { Button } from '$lib/components/ui/button'
   import { Input } from '$lib/components/ui/input'
   import * as Field from '$lib/components/ui/field'
@@ -47,6 +49,11 @@
 
   async function handleSubmit() {
     if (!pinInput) return
+    // Validar longitud mínima antes de verificar (no cuenta como intento fallido)
+    if (pinInput.length < PIN_MIN_LENGTH) {
+      error = `El PIN debe tener entre ${PIN_MIN_LENGTH} y ${PIN_MAX_LENGTH} dígitos.`
+      return
+    }
     verifying = true
     error = ''
     const result = await pinStore.verify(pinInput)
@@ -62,7 +69,12 @@
       pinStore.startCountdown()
       error = `Demasiados intentos fallidos. Esperá ${result.remainingSeconds}s para reintentar.`
     } else {
-      error = 'PIN incorrecto.'
+      const remaining = LOCKOUT_THRESHOLD - pinStore.failedAttempts
+      if (remaining > 0) {
+        error = `PIN incorrecto. Te quedan ${remaining} intento${remaining === 1 ? '' : 's'} antes del bloqueo.`
+      } else {
+        error = 'PIN incorrecto.'
+      }
     }
   }
 
@@ -99,10 +111,16 @@
         <AlertDescription>
           <div class="font-semibold text-sm">Dispositivo bloqueado</div>
           <div class="text-sm mt-1 text-muted-foreground">
-            Esperá {pinStore.remainingLockout}s para reintentar.
+            Esperá <strong class="text-foreground">{pinStore.remainingLockout}s</strong> para reintentar.
           </div>
         </AlertDescription>
       </Alert>
+    {:else if pinStore.failedAttempts > 0 && !usePasskey}
+      <div class="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-center">
+        <span class="text-sm text-amber-700 dark:text-amber-400">
+          Intentos fallidos: <strong>{pinStore.failedAttempts}</strong> / {LOCKOUT_THRESHOLD}
+        </span>
+      </div>
     {/if}
 
     {#if usePasskey}
@@ -149,7 +167,7 @@
           </Alert>
         {/if}
 
-        <Button type="submit" disabled={!pinInput || pinStore.isLocked || verifying}>
+        <Button type="submit" disabled={!pinInput || pinInput.length < PIN_MIN_LENGTH || pinStore.isLocked || verifying}>
           {verifying ? 'Verificando…' : 'Desbloquear'}
         </Button>
       </form>

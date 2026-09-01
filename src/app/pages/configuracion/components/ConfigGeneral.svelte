@@ -29,6 +29,7 @@
   import { exportToLof } from '$core/data/exportImport.js'
   import { getActiveBackend } from '$core/data/dataRepository'
   import { passphraseStore } from '$core/security/passphraseStore.svelte'
+  import { pinStore } from '$core/security/pinStore.svelte'
   import PassphrasePromptDialog from '$core/security/PassphrasePromptDialog.svelte'
   import { loadConfig, saveConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
   import { configStore } from '$core/grist/stores/configStore.svelte'
@@ -58,15 +59,8 @@
     }
     recoveringRole = true
     try {
-      // Verificar la recovery key contra lo almacenado
-      const { verifyRecoveryKey } = await import('$core/security/recoveryKey')
-      const storedRaw = localStorage.getItem('lof-recovery-key')
-      if (!storedRaw) {
-        notify.error('No hay recovery key configurada en este dispositivo.')
-        return
-      }
-      const stored = JSON.parse(storedRaw)
-      const valid = verifyRecoveryKey(recoveryKeyInput, stored)
+      // Verificar la recovery key contra lo almacenado por passphraseStore
+      const valid = await passphraseStore.verifyRecoveryKey(recoveryKeyInput)
       if (!valid) {
         notify.error('La recovery key no es correcta.')
         return
@@ -75,6 +69,10 @@
       const config = await loadConfig()
       await saveConfig({ ...config, rol_dispositivo: 'super_admin' })
       await configStore.load()
+      // Actualizar el rol activo de la sesión para que la UI reaccione
+      // (menú, tabs, permisos). Sin esto, pinStore.activeRole sigue siendo
+      // el rol anterior y pisa el rol de la config.
+      pinStore.unlock('super_admin')
       notify.success('Acceso recuperado. El rol del dispositivo es super_admin nuevamente.')
       trackEvent('role_recovered', { backend: getActiveBackend() })
       showRoleRecovery = false

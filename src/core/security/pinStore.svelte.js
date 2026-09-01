@@ -39,8 +39,12 @@ let unlocked = $state(false)
 let activeRole = $state(/** @type {string | null} */ (null))
 let failedAttempts = $state(0)
 let lockedUntil = $state(/** @type {number | null} */ (null))
+let lastFailedAt = $state(/** @type {number | null} */ (null))
 let initialized = $state(false)
 let _configuredRoles = $state(/** @type {string[]} */ ([]))
+
+/** Tiempo para resetear los intentos fallidos (24h en ms). */
+const LOCKOUT_RESET_MS = 24 * 60 * 60 * 1000
 
 /**
  * Carga el estado desde localStorage al iniciar la app.
@@ -76,7 +80,15 @@ function init() {
       const lock = JSON.parse(lockStr)
       failedAttempts = lock.failedAttempts || 0
       lockedUntil = lock.lockedUntil || null
+      lastFailedAt = lock.lastFailedAt || null
+      // Si el lockout ya expiró, limpiar lockedUntil pero MANTENER failedAttempts
+      // (el contador sigue subiendo — solo resetea después de 24h sin fallos).
       if (lockedUntil && !isLocked(lockedUntil, Date.now())) {
+        lockedUntil = null
+        persistLockout()
+      }
+      // Si pasaron 24h desde el último fallo, resetear el contador.
+      if (lastFailedAt && (Date.now() - lastFailedAt > LOCKOUT_RESET_MS)) {
         clearLockout()
       }
     }
@@ -155,8 +167,14 @@ function clearPinForRole(role) {
 async function verify(pin) {
   if (!enabled) return { ok: true, role: null, locked: false, remainingSeconds: 0 }
 
-  // Si está bloqueado, no aceptar intentos
   const now = Date.now()
+
+  // Si pasaron 24h desde el último fallo, resetear el contador.
+  if (lastFailedAt && (now - lastFailedAt > LOCKOUT_RESET_MS)) {
+    clearLockout()
+  }
+
+  // Si está bloqueado, no aceptar intentos
   if (isLocked(lockedUntil, now)) {
     return {
       ok: false,
@@ -181,9 +199,10 @@ async function verify(pin) {
 
   // Intento fallido — ningún PIN coincidió
   failedAttempts += 1
+  lastFailedAt = now
   if (shouldLock(failedAttempts)) {
     const seconds = getLockoutSeconds(failedAttempts)
-    lockedUntil = Date.now() + seconds * 1000
+    lockedUntil = now + seconds * 1000
     persistLockout()
     return { ok: false, role: null, locked: true, remainingSeconds: seconds }
   }
@@ -245,7 +264,7 @@ function persistLockout() {
   try {
     localStorage.setItem(
       STORAGE_KEY + '-lockout',
-      JSON.stringify({ failedAttempts, lockedUntil }),
+      JSON.stringify({ failedAttempts, lockedUntil, lastFailedAt }),
     )
   } catch { /* ignore */ }
 }
@@ -253,6 +272,7 @@ function persistLockout() {
 function clearLockout() {
   failedAttempts = 0
   lockedUntil = null
+  lastFailedAt = null
   try {
     localStorage.removeItem(STORAGE_KEY + '-lockout')
   } catch { /* ignore */ }
@@ -268,7 +288,12 @@ function startCountdown() {
   _countdownTimer = setInterval(() => {
     const now = Date.now()
     if (!isLocked(lockedUntil, now)) {
+      // El lockout expiró — limpiar lockedUntil pero MANTENER failedAttempts.
+      // El contador sigue subiendo: si falla de nuevo, el lockout es más largo.
+      // Solo se resetea a 0 después de 24h sin fallos (o al acertar el PIN).
       remainingLockout = 0
+      lockedUntil = null
+      persistLockout()
       stopCountdown()
       return
     }
@@ -301,5 +326,11 @@ export const pinStore = {
   get failedAttempts() { return failedAttempts },
   get lockedUntil() { return lockedUntil },
   get remainingLockout() { return remainingLockout },
-  get isLocked() { return isLocked(lockedUntil, Date.now()) },
+  // isLocked depende de remainingLockout para que sea reactivo al countdown:
+  // cuando el countdown llega a 0, remainingLockout cambia y Svelte re-evalúa.
+  get isLocked() {
+    // Touch remainingLockout para que Svelte trackee la dependencia
+    void remainingLockout
+    return isLocked(lockedUntil, Date.now())
+  },
 }
