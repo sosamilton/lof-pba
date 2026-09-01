@@ -19,6 +19,7 @@ import { createBaseState } from '$core/data/dataStore.svelte'
 import { saldosStore } from '$app/modules/tesoreria/resumen/saldosStore.svelte.js'
 import { createDashboardStore } from './dashboardStore.svelte.js'
 import { TABLE_PREFERRED_IDS, normalizeFields } from '$core/utils/utils'
+import { migrateRoleFromConfig } from '$core/security/roles'
 import { applyBrandTheme } from '$core/ui/theme'
 import { themeStore } from '$core/ui/themeStore.svelte'
 import { trackEvent } from '$core/analytics/plausible.js'
@@ -116,6 +117,20 @@ const check = async () => {
           }
           if (resMigrarEstatuto?.migrated > 0) {
             notify.success('Se migró el estatuto al nuevo modelo de historial de versiones.')
+          }
+
+          // Migración de roles (Etapa 1 — seguridad): persistir rol_dispositivo
+          // en la config si no está seteado. modo_colaborador=true legacy →
+          // tesorero. modo_colaborador se mantiene como flag legacy una versión.
+          try {
+            const config = await loadConfig()
+            if (config && !config.rol_dispositivo) {
+              const rol = migrateRoleFromConfig(config)
+              await saveConfig({ ...config, rol_dispositivo: rol })
+              await configStore.load() // refresca cache para que el menú se actualice
+            }
+          } catch (e) {
+            console.warn('[inicioStore] migración de rol falló:', e?.message || e)
           }
         } catch (e) {
           // Non-fatal: la sincronización falla silenciosamente, no bloquea Inicio.

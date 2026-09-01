@@ -9,7 +9,8 @@ import {
   isAdult,
   daysSince,
   todayISO,
-  TABLE_PREFERRED_IDS
+  TABLE_PREFERRED_IDS,
+  getActiveMenuItems
 } from '$core/utils/utils'
 
 describe('normalize', () => {
@@ -160,5 +161,86 @@ describe('daysSince', () => {
     const iso = '2020-01-01'
     const result = daysSince(iso)
     expect(result).toBeGreaterThan(1000)
+  })
+})
+
+describe('getActiveMenuItems — filtrado por rol', () => {
+  const baseConfigIntegral = {
+    instalado: true,
+    modulo_gestion_integral: true,
+    modulo_carga_consolidada: false,
+  }
+  const baseConfigConsolidada = {
+    instalado: true,
+    modulo_gestion_integral: false,
+    modulo_carga_consolidada: true,
+  }
+
+  it('super_admin ve todas las rutas en gestión integral', () => {
+    const items = getActiveMenuItems({ ...baseConfigIntegral, rol_dispositivo: 'super_admin' })
+    const routes = items.map((i) => i.route)
+    expect(routes).toContain('cooperadora')
+    expect(routes).toContain('movimientos')
+    expect(routes).toContain('gobierno')
+    expect(routes).toContain('resumen')
+    expect(routes).toContain('cierre')
+    expect(routes).toContain('configuracion')
+  })
+
+  it('tesorero no ve cooperadora pero sí configuracion y rutas operativas', () => {
+    const items = getActiveMenuItems({ ...baseConfigIntegral, rol_dispositivo: 'tesorero' })
+    const routes = items.map((i) => i.route)
+    expect(routes).not.toContain('cooperadora')
+    expect(routes).toContain('configuracion')
+    expect(routes).toContain('movimientos')
+    expect(routes).toContain('comunidad')
+    expect(routes).toContain('gobierno')
+    expect(routes).toContain('resumen')
+    expect(routes).toContain('cierre')
+  })
+
+  it('admin ve cooperadora y configuracion', () => {
+    const items = getActiveMenuItems({ ...baseConfigIntegral, rol_dispositivo: 'admin' })
+    const routes = items.map((i) => i.route)
+    expect(routes).toContain('cooperadora')
+    expect(routes).toContain('configuracion')
+  })
+
+  it('migración legacy: modo_colaborador=true sin rol → comportamiento de tesorero', () => {
+    const items = getActiveMenuItems({ ...baseConfigIntegral, modo_colaborador: true })
+    const routes = items.map((i) => i.route)
+    expect(routes).not.toContain('cooperadora')
+    expect(routes).toContain('configuracion')
+    expect(routes).toContain('movimientos')
+  })
+
+  it('sin rol y sin modo_colaborador → super_admin (menú completo)', () => {
+    const items = getActiveMenuItems(baseConfigIntegral)
+    const routes = items.map((i) => i.route)
+    expect(routes).toContain('cooperadora')
+  })
+
+  it('config null → solo inicio', () => {
+    const items = getActiveMenuItems(null)
+    expect(items).toEqual([{ route: 'inicio', label: 'Inicio' }])
+  })
+
+  it('carga consolidada con tesorero: no ve cooperadora, ve rutas operativas', () => {
+    const items = getActiveMenuItems({ ...baseConfigConsolidada, rol_dispositivo: 'tesorero' })
+    const routes = items.map((i) => i.route)
+    expect(routes).not.toContain('cooperadora')
+    expect(routes).toContain('movimientos')
+    expect(routes).toContain('comunidad')
+  })
+
+  it('el rol se respeta incluso si modo_colaborador=true (rol explícito tiene prioridad)', () => {
+    const items = getActiveMenuItems({
+      ...baseConfigIntegral,
+      modo_colaborador: true,
+      rol_dispositivo: 'admin',
+    })
+    const routes = items.map((i) => i.route)
+    // admin ve cooperadora aunque modo_colaborador=true
+    expect(routes).toContain('cooperadora')
   })
 })
