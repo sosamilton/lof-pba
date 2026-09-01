@@ -21,6 +21,7 @@
   import CommandIcon from '@lucide/svelte/icons/command'
   import HeartHandshakeIcon from '@lucide/svelte/icons/heart-handshake'
   import InfoIcon from '@lucide/svelte/icons/info'
+  import LockIcon from '@lucide/svelte/icons/lock'
   import ArrowUpCircleIcon from '@lucide/svelte/icons/arrow-up-circle'
   import HandHeartIcon from '@lucide/svelte/icons/hand-heart'
   import SparklesIcon from '@lucide/svelte/icons/sparkles'
@@ -37,6 +38,11 @@
   import MobileSidebarAutoClose from '$lib/components/MobileSidebarAutoClose.svelte'
   import { useConfirmDialog } from '$lib/hooks/useConfirmDialog.svelte.js'
   import { limpiarDispositivo } from '$core/data/intercambio.js'
+  import { migrateRoleFromConfig, ROLES } from '$core/security/roles'
+  import { pinStore } from '$core/security/pinStore.svelte'
+  import { passkeyStore } from '$core/security/passkeyStore.svelte'
+  import { snapshotScheduler } from '$core/security/snapshotScheduler.svelte'
+  import PinGate from '$core/security/PinGate.svelte'
 
   let { title = identidad.nombre, children } = $props()
 
@@ -150,11 +156,27 @@
     mainEl.focus()
   })
 
+  // Bloquear la sesión: limpia el estado de desbloqueo del PIN/passkey
+  // y navega a la landing. Al volver a la app, el gate pedirá el PIN again.
+  function handleLock() {
+    pinStore.lock()
+    passkeyStore.lock()
+    // Limpiar passphrase cacheada del sessionStorage también
+    try { sessionStorage.removeItem('lof-passphrase-session') } catch { /* ignore */ }
+    go('landing')
+  }
+
   onMount(async () => {
+    // Inicializar el store de PIN y passkey (carga estado desde localStorage).
+    pinStore.init()
+    passkeyStore.init()
+    snapshotScheduler.init()
+
     try {
       const config = await configStore.load()
       if (config) {
-        menuItems = getActiveMenuItems(config)
+        // menuItems lo calcula el $effect reactivamente (con rol del PIN si hay).
+        // Solo actualizamos brand/tema acá.
         if (config.cooperadora_nombre) brandTitle = config.cooperadora_nombre
         if (config.escuela_nombre) brandSub = config.escuela_nombre
         if (config.color_primario) applyBrandTheme(config.color_primario)
@@ -173,6 +195,27 @@
     // Capturar beforeinstallprompt para ofrecer instalación PWA con un
     // botón propio (más visible y medible que el banner nativo).
     pwaInstall.init()
+
+    // Snapshot sellado automático en background.
+    // Si está habilitado y corresponde según la periodicidad, genera
+    // el snapshot sin intervención del usuario. Usa la passphrase
+    // institucional cacheada en sessionStorage (si el usuario ya la
+    // ingresó en esta sesión). Si no está cacheada, se saltea silenciosamente
+    // — el usuario puede dispararlo manualmente desde Configuración → Seguridad.
+    if (snapshotScheduler.enabled && snapshotScheduler.shouldRun) {
+      const cachedPassphrase = sessionStorage.getItem('lof-passphrase-session')
+      if (cachedPassphrase) {
+        snapshotScheduler.maybeRunSnapshot(cachedPassphrase).then((result) => {
+          if (result.ran) {
+            notify.success('Snapshot sellado generado automáticamente.')
+          } else if (result.error) {
+            console.warn('Snapshot automático falló:', result.error)
+          }
+        }).catch((e) => {
+          console.warn('Snapshot automático error:', e)
+        })
+      }
+    }
   })
 
   // Mostrar toast cuando se detecta una actualización disponible.
@@ -201,7 +244,7 @@
 
   // Reactivo: cuando configStore.config cambia (ej. desde Configuración),
   // actualizar brand y tema en vivo sin recargar.
-  let isColaborador = $state(false)
+  let deviceRole = $state(/** @type {string | null} */ (null))
   $effect(() => {
     const c = configStore.config
     if (!c) return
@@ -211,10 +254,25 @@
     if (c.tema_preferencia === 'light' || c.tema_preferencia === 'dark' || c.tema_preferencia === 'system') {
       themeStore.aplicar(c.tema_preferencia)
     }
-    isColaborador = c.modo_colaborador === true
+  })
+
+  // Effect dedicado: recalcula deviceRole y menuItems cuando cambia
+  // la config O cuando el PIN se desbloquea con un rol específico.
+  // Esto garantiza que al ingresar un PIN de tesorero, el menú se
+  // actualice inmediatamente con los permisos de ese rol.
+  $effect(() => {
+    const c = configStore.config
+    const pinRole = pinStore.activeRole
+    if (!c) return
+    const configRole = migrateRoleFromConfig(c)
+    deviceRole = pinRole || configRole
+    menuItems = getActiveMenuItems(c, deviceRole)
   })
 </script>
 
+{#if (pinStore.enabled && !pinStore.unlocked) || (passkeyStore.configured && !passkeyStore.unlocked)}
+  <PinGate />
+{:else}
 <Sidebar.Provider>
   <MobileSidebarAutoClose />
   <a
@@ -275,9 +333,9 @@
     <Sidebar.Footer>
       <Sidebar.Menu>
         <Sidebar.MenuItem>
-          <Sidebar.MenuButton onclick={() => go('landing')} tooltipContent="Acerca de LOF" class="h-auto min-h-8">
-            <InfoIcon class="shrink-0" />
-            <span class="flex-1 leading-tight">Acerca de LOF</span>
+          <Sidebar.MenuButton onclick={handleLock} tooltipContent="Bloquear y salir al inicio" class="h-auto min-h-8">
+            <LockIcon class="shrink-0" />
+            <span class="flex-1 leading-tight">Bloquear</span>
           </Sidebar.MenuButton>
         </Sidebar.MenuItem>
       </Sidebar.Menu>
@@ -326,11 +384,22 @@
           <span class="hidden sm:inline">Actualizar sitio</span>
         </button>
       {/if}
-      {#if isColaborador}
-        <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[12px] font-semibold text-amber-700 dark:text-amber-400">
+      {#if deviceRole && deviceRole !== 'super_admin' && ROLES[deviceRole]}
+        <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[12px] font-semibold text-amber-700 dark:text-amber-400" title={ROLES[deviceRole].description}>
           <HandHeartIcon class="size-3" />
-          <span class="hidden sm:inline">Modo colaborador</span>
+          <span class="hidden sm:inline">{ROLES[deviceRole].label}</span>
         </span>
+      {/if}
+      {#if pinStore.enabled || passkeyStore.configured}
+        <button
+          type="button"
+          onclick={handleLock}
+          class="inline-flex shrink-0 items-center gap-1 rounded-md border border-input bg-background p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          title="Bloquear la app (pedirá PIN/passkey al volver)"
+          aria-label="Bloquear"
+        >
+          <LockIcon class="size-4" />
+        </button>
       {/if}
       {#if isDemo}
         <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-chart-2/15 px-2 py-0.5 text-[12px] font-semibold text-chart-2">
@@ -389,6 +458,7 @@
     </main>
   </Sidebar.Inset>
 </Sidebar.Provider>
+{/if}
 
 <svelte:window onkeydown={onKeyDown} />
 
