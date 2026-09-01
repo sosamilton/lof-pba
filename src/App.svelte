@@ -189,12 +189,14 @@
   // Toast de SW update: acá (en App.svelte) se renderiza siempre, sin importar
   // si el usuario está en la landing, en el setup wizard, o dentro de la app.
   // Antes estaba en AppShell.svelte y no se veía si el usuario no entraba a la app.
+  // El toast es el aviso inicial; el botón "Actualizar sitio" en el header
+  // (AppShell) y en el navbar (Landing) queda persistente para accionar a demanda.
   let _notifiedSwUpdate = false
   $effect(() => {
     if (swUpdate.updateReady && !_notifiedSwUpdate) {
       _notifiedSwUpdate = true
       notify.warning('Nueva versión de LOF disponible', {
-        duration: Infinity,
+        duration: 10000,
         description: 'Ya se descargó en segundo plano. Actualizá para usarla.',
         action: {
           label: 'Actualizar',

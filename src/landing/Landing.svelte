@@ -71,6 +71,7 @@
   import MailIcon from '@lucide/svelte/icons/mail'
   import CodeIcon from '@lucide/svelte/icons/code'
   import { identidad } from '$core/data/identidad'
+  import { swUpdate } from '$core/utils/swUpdate.svelte'
   import data from './landing.json'
   import DemoLoadingScreen from './DemoLoadingScreen.svelte'
 
@@ -218,6 +219,13 @@
           >
             <Badge variant="secondary" class="font-mono text-[12px]">v{versionActual}</Badge>
           </button>
+        {/if}
+        {#if swUpdate.updateReady}
+          <Button variant="default" size="sm" onclick={() => swUpdate.applyUpdate()} class="animate-pulse">
+            <RefreshCwIcon data-icon="inline-start" />
+            <span class="hidden sm:inline">Actualizar sitio</span>
+            <span class="sm:hidden">Actualizar</span>
+          </Button>
         {/if}
         <Button variant="ghost" size="sm" onclick={() => (showReleases = true)} aria-label="Novedades">
           <HistoryIcon data-icon="inline-start" />
