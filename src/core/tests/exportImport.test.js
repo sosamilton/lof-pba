@@ -583,3 +583,159 @@ function extractAttachmentIds_mock(value) {
   }
   return []
 }
+
+// --- Export cifrado (Etapa 1.D) ---
+
+describe('exportImport — cifrado con passphrase', () => {
+  beforeEach(async () => {
+    await resetTestDb()
+  })
+
+  it('exportToLof con encrypt=true produce archivo con magic LOFENC1', async () => {
+    await addDoc('personas', 1, { dni: '30123456', apellido: 'Test' })
+
+    const blobs = []
+    const mockDoc = {
+      body: { appendChild: () => {}, removeChild: () => {} },
+      createElement: () => ({ click: () => {}, href: '', download: '' }),
+    }
+    const origDocument = globalThis.document
+    const origUrl = globalThis.URL
+    globalThis.document = mockDoc
+    globalThis.URL = { ...origUrl, createObjectURL: (b) => { blobs.push(b); return 'mock://blob' }, revokeObjectURL: () => {} }
+
+    try {
+      const res = await exportToLof({ kind: 'full', tables: ['personas'], encrypt: true, passphrase: 'test-pass' })
+      expect(res.docCount).toBe(1)
+      expect(res.encrypted).toBe(true)
+
+      const ab = await blobs[0].arrayBuffer()
+      const bytes = new Uint8Array(ab)
+      const magic = strFromU8(bytes.slice(0, 7))
+      expect(magic).toBe('LOFENC1')
+    } finally {
+      globalThis.document = origDocument
+      globalThis.URL = origUrl
+    }
+  })
+
+  it('exportToLof con encrypt=true pero sin passphrase falla', async () => {
+    await addDoc('personas', 1, { dni: '30123456' })
+    await expect(exportToLof({ encrypt: true })).rejects.toThrow('passphrase')
+  })
+
+  it('round-trip: export cifrado → import con passphrase correcta', async () => {
+    await addDoc('personas', 1, { dni: '30123456', apellido: 'Gomez', nombre: 'Maria' })
+    await addDoc('cuentas', 1, { nombre_cuenta: 'Banco', orden: 1 })
+
+    const blobs = []
+    const mockDoc = {
+      body: { appendChild: () => {}, removeChild: () => {} },
+      createElement: () => ({ click: () => {}, href: '', download: '' }),
+    }
+    const origDocument = globalThis.document
+    const origUrl = globalThis.URL
+    globalThis.document = mockDoc
+    globalThis.URL = { ...origUrl, createObjectURL: (b) => { blobs.push(b); return 'mock://blob' }, revokeObjectURL: () => {} }
+
+    let encryptedFile
+    try {
+      await exportToLof({ kind: 'full', tables: ['personas', 'cuentas'], encrypt: true, passphrase: 'institucional-pass' })
+      encryptedFile = new File([blobs[0]], 'test.lof', { type: 'application/octet-stream' })
+    } finally {
+      globalThis.document = origDocument
+      globalThis.URL = origUrl
+    }
+
+    // Reset DB e importar con passphrase
+    await resetTestDb()
+    const res = await importFromLof(encryptedFile, { reemplazar: true, passphrase: 'institucional-pass' })
+    expect(res.inserted).toBeGreaterThan(0)
+
+    const personas = await findByType('personas')
+    expect(personas).toHaveLength(1)
+    expect(personas[0].apellido).toBe('Gomez')
+  })
+
+  it('import de archivo cifrado sin passphrase falla con mensaje claro', async () => {
+    await addDoc('personas', 1, { dni: '30123456' })
+
+    const blobs = []
+    const mockDoc = {
+      body: { appendChild: () => {}, removeChild: () => {} },
+      createElement: () => ({ click: () => {}, href: '', download: '' }),
+    }
+    const origDocument = globalThis.document
+    const origUrl = globalThis.URL
+    globalThis.document = mockDoc
+    globalThis.URL = { ...origUrl, createObjectURL: (b) => { blobs.push(b); return 'mock://blob' }, revokeObjectURL: () => {} }
+
+    let encryptedFile
+    try {
+      await exportToLof({ kind: 'full', tables: ['personas'], encrypt: true, passphrase: 'secret' })
+      encryptedFile = new File([blobs[0]], 'test.lof', { type: 'application/octet-stream' })
+    } finally {
+      globalThis.document = origDocument
+      globalThis.URL = origUrl
+    }
+
+    await resetTestDb()
+    await expect(importFromLof(encryptedFile, { reemplazar: true })).rejects.toThrow('cifrado')
+  })
+
+  it('import de archivo cifrado con passphrase incorrecta falla', async () => {
+    await addDoc('personas', 1, { dni: '30123456' })
+
+    const blobs = []
+    const mockDoc = {
+      body: { appendChild: () => {}, removeChild: () => {} },
+      createElement: () => ({ click: () => {}, href: '', download: '' }),
+    }
+    const origDocument = globalThis.document
+    const origUrl = globalThis.URL
+    globalThis.document = mockDoc
+    globalThis.URL = { ...origUrl, createObjectURL: (b) => { blobs.push(b); return 'mock://blob' }, revokeObjectURL: () => {} }
+
+    let encryptedFile
+    try {
+      await exportToLof({ kind: 'full', tables: ['personas'], encrypt: true, passphrase: 'correcta' })
+      encryptedFile = new File([blobs[0]], 'test.lof', { type: 'application/octet-stream' })
+    } finally {
+      globalThis.document = origDocument
+      globalThis.URL = origUrl
+    }
+
+    await resetTestDb()
+    await expect(importFromLof(encryptedFile, { reemplazar: true, passphrase: 'incorrecta' })).rejects.toThrow()
+  })
+
+  it('import de archivo plano (no cifrado) sigue funcionando sin passphrase', async () => {
+    await addDoc('personas', 1, { dni: '30123456', apellido: 'Plano' })
+
+    const blobs = []
+    const mockDoc = {
+      body: { appendChild: () => {}, removeChild: () => {} },
+      createElement: () => ({ click: () => {}, href: '', download: '' }),
+    }
+    const origDocument = globalThis.document
+    const origUrl = globalThis.URL
+    globalThis.document = mockDoc
+    globalThis.URL = { ...origUrl, createObjectURL: (b) => { blobs.push(b); return 'mock://blob' }, revokeObjectURL: () => {} }
+
+    let plainFile
+    try {
+      await exportToLof({ kind: 'full', tables: ['personas'] })
+      plainFile = new File([blobs[0]], 'test.lof', { type: 'application/octet-stream' })
+    } finally {
+      globalThis.document = origDocument
+      globalThis.URL = origUrl
+    }
+
+    await resetTestDb()
+    const res = await importFromLof(plainFile, { reemplazar: true })
+    expect(res.inserted).toBeGreaterThan(0)
+    const personas = await findByType('personas')
+    expect(personas).toHaveLength(1)
+    expect(personas[0].apellido).toBe('Plano')
+  })
+})

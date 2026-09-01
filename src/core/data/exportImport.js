@@ -39,8 +39,15 @@ import {
 } from './dataRepository.js'
 import { TABLE_PREFERRED_IDS } from '$core/utils/utils'
 import schema from './schema.json' with { type: 'json' }
+import {
+  encryptWithPassphrase,
+  decryptWithPassphrase,
+  serializeEnvelope,
+  parseEnvelope,
+} from '$core/security/cryptoEnvelope.js'
 
 const MAGIC = 'LOFBK1'
+const MAGIC_ENCRYPTED = 'LOFENC1'
 const VERSION = 3
 
 // Tablas que tienen columnas de tipo Attachments
@@ -142,6 +149,9 @@ function _toLogicalKey(physicalId) {
  * @param {string[]} [opts.escuelaFields] - Campos de escuela a incluir.
  * @param {function} [opts.filter] - Filtro adicional por doc.
  * @param {object} [opts.extra] - Campos extra para el payload (modalidad, defaults, etc).
+ * @param {boolean} [opts.encrypt] - Cifrar el .lof con passphrase (sobre AES-GCM).
+ * @param {string} [opts.passphrase] - Passphrase para cifrar (requerido si encrypt=true).
+ * @param {string} [opts.recipientId] - ID del destinatario (default: 'institucional').
  * @returns {Promise<{ filename: string, size: number, docCount: number }>}
  */
 export async function exportToLof(opts = {}) {
@@ -167,6 +177,15 @@ export async function exportToLof(opts = {}) {
     tables,
     ...(opts.extra || {}),
     docs,
+  }
+
+  if (opts.encrypt) {
+    if (!opts.passphrase) throw new Error('Se requiere passphrase para cifrar el export.')
+    return _packEncryptAndDownload(payload, kind, opts.passphrase, opts.recipientId || 'institucional', opts.returnBytes)
+  }
+
+  if (opts.returnBytes) {
+    return _packToBytes(payload, kind)
   }
 
   return _packAndDownload(payload, kind)
@@ -420,8 +439,8 @@ export async function importFromLof(file, opts = {}) {
   if (file && typeof file === 'object' && file.v != null && Array.isArray(file.docs)) {
     payload = file
   } else if (file && typeof file === 'object' && typeof file.arrayBuffer === 'function') {
-    // Es un File/Blob — parsearlo
-    payload = await _parseLof(file)
+    // Es un File/Blob — parsearlo (con passphrase si está cifrado)
+    payload = await _parseLof(file, opts.passphrase)
   } else {
     throw new Error('importFromLof: se esperaba un File o un payload parseado.')
   }
@@ -861,9 +880,9 @@ async function _importLegacyPouch(payload, opts) {
  * @param {File} file
  * @returns {Promise<{ valid: boolean, version?: number, kind?: string, docCount?: number, exportedAt?: string, sourceBackend?: string, error?: string, payload?: object }>}
  */
-export async function validateLof(file) {
+export async function validateLof(file, passphrase) {
   try {
-    const payload = await _parseLof(file)
+    const payload = await _parseLof(file, passphrase)
     return {
       valid: true,
       version: payload.v,
@@ -884,7 +903,7 @@ export async function validateLof(file) {
 // HELPERS
 // ============================================================================
 
-async function _parseLof(file) {
+async function _parseLof(file, passphrase) {
   if (!file) throw new Error('Archivo vacío o no válido.')
   // Intentar múltiples métodos de lectura para máxima compatibilidad:
   // 1. file.arrayBuffer() (estándar moderno)
@@ -910,6 +929,25 @@ async function _parseLof(file) {
     }
   }
   const fileBytes = new Uint8Array(arrayBuffer)
+
+  // Detectar formato: LOFENC1 = cifrado, LOFBK1 = plano
+  const encMagicLen = MAGIC_ENCRYPTED.length
+  if (fileBytes.length >= encMagicLen && strFromU8(fileBytes.slice(0, encMagicLen)) === MAGIC_ENCRYPTED) {
+    // Archivo cifrado — descifrar con passphrase
+    if (!passphrase) {
+      throw new Error('Este archivo está cifrado. Ingresá la passphrase para importarlo.')
+    }
+    const envelopeJson = strFromU8(fileBytes.slice(encMagicLen))
+    const envelope = parseEnvelope(envelopeJson)
+    const compressed = await decryptWithPassphrase(passphrase, envelope)
+    const jsonBytes = gunzipSync(compressed)
+    const payload = JSON.parse(strFromU8(jsonBytes))
+    if (!payload.docs || !Array.isArray(payload.docs)) {
+      throw new Error('Archivo corrupto: no contiene documentos.')
+    }
+    return payload
+  }
+
   const magicLen = MAGIC.length
   if (fileBytes.length < magicLen + 10) {
     throw new Error('Archivo demasiado pequeño para ser válido.')
@@ -958,6 +996,89 @@ function _packAndDownload(payload, kind) {
     filename,
     size: fileBytes.length,
     docCount: payload.docs.length,
+  }
+}
+
+/**
+ * Empaqueta el payload en gzip, lo cifra con passphrase (sobre AES-GCM v1),
+ * y descarga el archivo con magic header LOFENC1.
+ */
+async function _packEncryptAndDownload(payload, kind, passphrase, recipientId, returnBytes) {
+  const jsonStr = JSON.stringify(payload)
+  const jsonBytes = strToU8(jsonStr)
+  const compressed = gzipSync(jsonBytes, { level: 9 })
+
+  const envelope = await encryptWithPassphrase(passphrase, compressed, recipientId)
+  const envelopeJson = serializeEnvelope(envelope)
+  const envelopeBytes = strToU8(envelopeJson)
+
+  const magicBytes = strToU8(MAGIC_ENCRYPTED)
+  const fileBytes = new Uint8Array(magicBytes.length + envelopeBytes.length)
+  fileBytes.set(magicBytes, 0)
+  fileBytes.set(envelopeBytes, magicBytes.length)
+
+  const date = new Date().toISOString().slice(0, 10)
+  const suffix = kind === 'working-set' ? 'working-set'
+    : kind === 'patch' ? 'patch'
+    : kind === 'custom' ? 'export'
+    : 'backup'
+  const filename = `lof-${suffix}-${date}.lof`
+
+  if (returnBytes) {
+    return {
+      filename,
+      size: fileBytes.length,
+      docCount: payload.docs.length,
+      encrypted: true,
+      bytes: fileBytes,
+    }
+  }
+
+  const blob = new Blob([fileBytes], { type: 'application/octet-stream' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+
+  return {
+    filename,
+    size: fileBytes.length,
+    docCount: payload.docs.length,
+    encrypted: true,
+  }
+}
+
+/**
+ * Empaqueta el payload en gzip + magic header, devolviendo los bytes
+ * (sin descargar). Usado por el snapshot scheduler para guardar via fileOutput.
+ */
+function _packToBytes(payload, kind) {
+  const jsonStr = JSON.stringify(payload)
+  const jsonBytes = strToU8(jsonStr)
+  const compressed = gzipSync(jsonBytes, { level: 9 })
+
+  const magicBytes = strToU8(MAGIC)
+  const fileBytes = new Uint8Array(magicBytes.length + compressed.length)
+  fileBytes.set(magicBytes, 0)
+  fileBytes.set(compressed, magicBytes.length)
+
+  const date = new Date().toISOString().slice(0, 10)
+  const suffix = kind === 'working-set' ? 'working-set'
+    : kind === 'patch' ? 'patch'
+    : kind === 'custom' ? 'export'
+    : 'backup'
+  const filename = `lof-${suffix}-${date}.lof`
+
+  return {
+    filename,
+    size: fileBytes.length,
+    docCount: payload.docs.length,
+    encrypted: false,
+    bytes: fileBytes,
   }
 }
 
