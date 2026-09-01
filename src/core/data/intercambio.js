@@ -901,6 +901,20 @@ export async function limpiarDispositivo() {
   localStorage.removeItem('lof-backend')
   localStorage.removeItem('lof-config-cache')
   localStorage.removeItem('lof-demo-mode')
+  // Limpiar datos de seguridad (PINs, contraseña maestra, recovery key, lockout, passkey)
+  // para que al salir del demo no quede nada seteado.
+  localStorage.removeItem('lof-pin-roles')
+  localStorage.removeItem('lof-pin-roles-lockout')
+  localStorage.removeItem('lof-pin') // legacy
+  localStorage.removeItem('lof-pin-lockout') // legacy
+  localStorage.removeItem('lof-passphrase')
+  localStorage.removeItem('lof-recovery-key')
+  localStorage.removeItem('lof-passkey')
+  localStorage.removeItem('lof-passkey-credential')
+  // Limpiar sesión
+  sessionStorage.removeItem('lof-pin-unlocked')
+  sessionStorage.removeItem('lof-pin-active-role')
+  sessionStorage.removeItem('lof-passphrase-session')
   // Recargar para volver al wizard
   window.location.reload()
 }
