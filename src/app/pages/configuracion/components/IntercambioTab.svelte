@@ -5,7 +5,10 @@
   import { Separator } from '$lib/components/ui/separator'
   import { Checkbox } from '$lib/components/ui/checkbox'
   import * as Select from '$lib/components/ui/select'
+  import * as Field from '$lib/components/ui/field'
+  import { Input } from '$lib/components/ui/input'
   import { Alert, AlertDescription } from '$lib/components/ui/alert'
+  import KeyIcon from '@lucide/svelte/icons/key-round'
   import DownloadIcon from '@lucide/svelte/icons/download'
   import UploadIcon from '@lucide/svelte/icons/upload'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
@@ -18,6 +21,7 @@
   import { getActiveBackend } from '$core/data/dataRepository'
   import { formatFecha } from '$core/format/format'
   import { createIntercambioService } from '../intercambioService.svelte.js'
+  import PassphrasePromptDialog from '$core/security/PassphrasePromptDialog.svelte'
 
   const isPouchMode = getActiveBackend() === 'pouch'
   const svc = createIntercambioService()
@@ -115,6 +119,45 @@
         </Alert>
       {/if}
 
+      <!-- Contraseña opcional para cifrar el export (solo working set y patch, no full) -->
+      {#if svc.exportProfile !== 'full'}
+        <div class="flex flex-col gap-2 rounded-lg border border-input p-3 bg-muted/30">
+          <div class="flex items-center gap-2 text-sm font-medium">
+            <KeyIcon class="size-4 text-muted-foreground" />
+            Cifrar con contraseña (opcional)
+          </div>
+          <p class="text-xs text-muted-foreground">
+            Si ingresás una contraseña, el archivo <span class="font-mono">.lof</span> se cifra con AES-GCM.
+            La persona que lo reciba debe ingresar la misma contraseña para importarlo.
+            Dejalo vacío para exportar sin cifrar.
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Input
+              type="password"
+              placeholder="Contraseña"
+              autocomplete="off"
+              bind:value={svc.exportPassphrase}
+              disabled={svc.exporting}
+            />
+            <Input
+              type="password"
+              placeholder="Repetir contraseña"
+              autocomplete="off"
+              bind:value={svc.exportConfirmPassphrase}
+              disabled={svc.exporting}
+            />
+          </div>
+        </div>
+      {:else}
+        <Alert>
+          <KeyIcon data-icon="inline-start" />
+          <AlertDescription>
+            El backup completo se cifra automáticamente con la <strong>contraseña maestra</strong>
+            si está configurada (Configuración → Seguridad). No necesita contraseña ad-hoc.
+          </AlertDescription>
+        </Alert>
+      {/if}
+
       <Button onclick={svc.handleExport} disabled={svc.exporting} class="w-fit">
         {#if svc.exporting}
           <CheckCircleIcon data-icon="inline-start" class="animate-spin" />
@@ -156,6 +199,26 @@
           class="hidden"
           onchange={svc.handleWsImport}
         />
+
+        <!-- Contraseña para descifrar (si el set está cifrado) -->
+        <div class="flex flex-col gap-2 rounded-lg border border-input p-3 bg-muted/30">
+          <div class="flex items-center gap-2 text-sm font-medium">
+            <KeyIcon class="size-4 text-muted-foreground" />
+            Contraseña (si el set está cifrado)
+          </div>
+          <p class="text-xs text-muted-foreground">
+            Si la cooperadora te envió un set de trabajo cifrado, ingresá la contraseña acá.
+            Si no está cifrado, dejalo vacío.
+          </p>
+          <Input
+            type="password"
+            placeholder="Contraseña (opcional)"
+            autocomplete="off"
+            bind:value={svc.wsPassphrase}
+            disabled={svc.importingWs}
+          />
+        </div>
+
         <Button
           variant="outline"
           onclick={() => wsFileInput?.click()}
@@ -195,6 +258,25 @@
           class="hidden"
           onchange={svc.handleMergeFileSelect}
         />
+
+        <!-- Contraseña para descifrar el patch (si está cifrado) -->
+        <div class="flex flex-col gap-2 rounded-lg border border-input p-3 bg-muted/30">
+          <div class="flex items-center gap-2 text-sm font-medium">
+            <KeyIcon class="size-4 text-muted-foreground" />
+            Contraseña (si el patch está cifrado)
+          </div>
+          <p class="text-xs text-muted-foreground">
+            Si el colaborador te envió un patch cifrado, ingresá la contraseña acá antes de analizarlo.
+            Si no está cifrado, dejalo vacío.
+          </p>
+          <Input
+            type="password"
+            placeholder="Contraseña (opcional)"
+            autocomplete="off"
+            bind:value={svc.mergePassphrase}
+            disabled={svc.analyzing || svc.applying}
+          />
+        </div>
 
         {#if !svc.mergeAnalysis && !svc.analyzing}
           <Button
@@ -506,3 +588,10 @@
     {/if}
   {/if}
 </div>
+
+<PassphrasePromptDialog
+  bind:open={svc.showFullBackupPassphrasePrompt}
+  title="Contraseña maestra"
+  description="Ingresá la contraseña maestra para cifrar el backup completo."
+  onConfirm={svc.onFullBackupPassphraseConfirm}
+/>

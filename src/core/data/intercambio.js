@@ -23,8 +23,15 @@ import { gzipSync, gunzipSync, strToU8, strFromU8 } from 'fflate'
 import { getPouchDb, getActiveBackend, applyUserActions, resolveTableId } from './dataRepository.js'
 import { TABLE_PREFERRED_IDS } from '$core/utils/utils'
 import { parseDni } from '$core/format/format'
+import {
+  encryptWithPassphrase,
+  decryptWithPassphrase,
+  serializeEnvelope,
+  parseEnvelope,
+} from '$core/security/cryptoEnvelope.js'
 
 const MAGIC = 'LOFBK1'
+const MAGIC_ENCRYPTED = 'LOFENC1'
 const VERSION = 2
 
 // --- Perfiles de exportación ---
@@ -145,6 +152,7 @@ async function _resolveTableType(key) {
  * Exporta un subset de la DB a un archivo .lof.
  * @param {string} profileKey - clave de EXPORT_PROFILES o alias ('working_set', 'patch_movimientos')
  * @param {object} [opts] - opciones extra (ej: { tables: [...] } para custom)
+ * @param {string} [opts.passphrase] - Passphrase ad-hoc para cifrar el .lof (sobre AES-GCM).
  * @returns {Promise<{ filename: string, size: number, docCount: number }>}
  */
 export async function exportParcial(profileKey, opts = {}) {
@@ -233,16 +241,31 @@ export async function exportParcial(profileKey, opts = {}) {
   const jsonBytes = strToU8(jsonStr)
   const compressed = gzipSync(jsonBytes, { level: 9 })
 
-  const magicBytes = strToU8(MAGIC)
-  const fileBytes = new Uint8Array(magicBytes.length + compressed.length)
-  fileBytes.set(magicBytes, 0)
-  fileBytes.set(compressed, magicBytes.length)
-
-  const blob = new Blob([fileBytes], { type: 'application/octet-stream' })
   const date = new Date().toISOString().slice(0, 10)
   const suffix = resolvedKey.startsWith('working_set') ? 'working-set'
     : resolvedKey.startsWith('patch') ? 'patch' : 'export'
   const filename = `lof-${suffix}-${date}.lof`
+
+  let fileBytes
+  let encrypted = false
+  if (opts.passphrase) {
+    // Cifrar con passphrase ad-hoc (sobre AES-GCM, destinatario 'colaborador')
+    const envelope = await encryptWithPassphrase(opts.passphrase, compressed, 'colaborador')
+    const envelopeJson = serializeEnvelope(envelope)
+    const envelopeBytes = strToU8(envelopeJson)
+    const magicBytes = strToU8(MAGIC_ENCRYPTED)
+    fileBytes = new Uint8Array(magicBytes.length + envelopeBytes.length)
+    fileBytes.set(magicBytes, 0)
+    fileBytes.set(envelopeBytes, magicBytes.length)
+    encrypted = true
+  } else {
+    const magicBytes = strToU8(MAGIC)
+    fileBytes = new Uint8Array(magicBytes.length + compressed.length)
+    fileBytes.set(magicBytes, 0)
+    fileBytes.set(compressed, magicBytes.length)
+  }
+
+  const blob = new Blob([fileBytes], { type: 'application/octet-stream' })
 
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -257,6 +280,7 @@ export async function exportParcial(profileKey, opts = {}) {
     filename,
     size: fileBytes.length,
     docCount: docs.length,
+    encrypted,
   }
 }
 
@@ -269,7 +293,7 @@ export async function exportParcial(profileKey, opts = {}) {
  * el colaborador pueda luego exportar solo lo que él creó.
  *
  * @param {File} file
- * @param {object} [opts] - { exportId, reemplazar, inicializar }
+ * @param {object} [opts] - { exportId, reemplazar, inicializar, passphrase }
  * @returns {Promise<{ docCount: number, inserted: number, skipped: number, replaced: number }>}
  */
 export async function importWorkingSet(file, opts = {}) {
@@ -279,7 +303,7 @@ export async function importWorkingSet(file, opts = {}) {
   const db = getPouchDb()
   if (!db) throw new Error('No hay base de datos activa.')
 
-  const payload = await _parseLof(file)
+  const payload = await _parseLof(file, opts.passphrase)
 
   if (payload.kind && payload.kind !== 'working-set' && payload.kind !== 'custom') {
     throw new Error(`Este archivo es de tipo "${payload.kind}". Use "Importar set de trabajo" solo para sets de trabajo.`)
@@ -350,14 +374,14 @@ export async function importWorkingSet(file, opts = {}) {
  * @param {File} file
  * @returns {Promise<MergeReport>}
  */
-export async function analizarMerge(file) {
+export async function analizarMerge(file, passphrase) {
   if (getActiveBackend() !== 'pouch') {
     throw new Error('El intercambio solo está disponible en modo standalone (PouchDB).')
   }
   const db = getPouchDb()
   if (!db) throw new Error('No hay base de datos activa.')
 
-  const payload = await _parseLof(file)
+  const payload = await _parseLof(file, passphrase)
 
   if (payload.kind !== 'patch') {
     throw new Error(
@@ -677,16 +701,17 @@ function _analizarMergeMovimientos(patchMovimientos, patchPersonas, real) {
  *
  * @param {File} file
  * @param {string|object} analisisAprobado - hash devuelto por analizarMerge, o el reporte completo
+ * @param {string} [passphrase] - Passphrase si el archivo está cifrado.
  * @returns {Promise<{ added: object, remapped: object, deduped: object, log: string[] }>}
  */
-export async function aplicarMerge(file, analisisAprobado) {
+export async function aplicarMerge(file, analisisAprobado, passphrase) {
   if (getActiveBackend() !== 'pouch') {
     throw new Error('El intercambio solo está disponible en modo standalone (PouchDB).')
   }
   const db = getPouchDb()
   if (!db) throw new Error('No hay base de datos activa.')
 
-  const payload = await _parseLof(file)
+  const payload = await _parseLof(file, passphrase)
   if (payload.kind !== 'patch') throw new Error('El archivo no es un patch válido para merge.')
 
   // Validar hash
@@ -885,11 +910,12 @@ export async function limpiarDispositivo() {
 /**
  * Valida un archivo .lof y devuelve metadata sin importarlo.
  * @param {File} file
+ * @param {string} [passphrase] - Passphrase si el archivo está cifrado.
  * @returns {Promise<{ valid: boolean, kind?: string, docCount?: number, exportedAt?: string, modalidad?: string, error?: string }>}
  */
-export async function validarIntercambio(file) {
+export async function validarIntercambio(file, passphrase) {
   try {
-    const payload = await _parseLof(file)
+    const payload = await _parseLof(file, passphrase)
     return {
       valid: true,
       kind: payload.kind || 'full',
@@ -904,7 +930,7 @@ export async function validarIntercambio(file) {
 
 // --- Helpers internos ---
 
-async function _parseLof(file) {
+async function _parseLof(file, passphrase) {
   if (!file) throw new Error('Archivo vacío o no válido.')
   let arrayBuffer
   try {
@@ -926,6 +952,24 @@ async function _parseLof(file) {
     }
   }
   const fileBytes = new Uint8Array(arrayBuffer)
+
+  // Detectar formato cifrado (LOFENC1)
+  const encMagicLen = MAGIC_ENCRYPTED.length
+  if (fileBytes.length >= encMagicLen && strFromU8(fileBytes.slice(0, encMagicLen)) === MAGIC_ENCRYPTED) {
+    if (!passphrase) {
+      throw new Error('Este archivo está cifrado. Ingresá la passphrase para importarlo.')
+    }
+    const envelopeJson = strFromU8(fileBytes.slice(encMagicLen))
+    const envelope = parseEnvelope(envelopeJson)
+    const compressed = await decryptWithPassphrase(passphrase, envelope, 'colaborador')
+    const jsonBytes = gunzipSync(compressed)
+    const payload = JSON.parse(strFromU8(jsonBytes))
+    if (!payload.docs || !Array.isArray(payload.docs)) {
+      throw new Error('Archivo corrupto: no contiene documentos.')
+    }
+    return payload
+  }
+
   const magicLen = MAGIC.length
   if (fileBytes.length < magicLen + 10) {
     throw new Error('Archivo demasiado pequeño para ser un backup válido.')
@@ -1006,6 +1050,7 @@ async function _setModoColaborador(payload) {
     const modalidad = payload.modalidad
     const flags = {
       modo_colaborador: true,
+      rol_dispositivo: 'tesorero',
       instalado: true,
       fecha_instalacion: new Date().toISOString(),
     }

@@ -123,7 +123,7 @@ import {
   validarIntercambio,
   EXPORT_PROFILES,
 } from '../data/intercambio.js'
-import { gzipSync, strToU8 } from 'fflate'
+import { gzipSync, strToU8, strFromU8 } from 'fflate'
 import { TABLE_PREFERRED_IDS } from '$core/utils/utils'
 
 const MAGIC = 'LOFBK1'
@@ -392,6 +392,7 @@ describe('intercambio.js', () => {
     await importWorkingSet(file, { inicializar: true })
     expect(_mockConfig).toBeTruthy()
     expect(_mockConfig.modo_colaborador).toBe(true)
+    expect(_mockConfig.rol_dispositivo).toBe('tesorero')
     expect(_mockConfig.instalado).toBe(true)
     expect(_mockConfig.modulo_gestion_integral).toBe(true)
   })
@@ -714,5 +715,184 @@ describe('intercambio.js', () => {
     const personas = await findByType('personas')
     expect(personas[0].imported_from).toBeUndefined()
     expect(personas[0].apellido).toBe('Test')
+  })
+})
+
+// --- Cifrado ad-hoc con passphrase (Etapa 1.D intercambio) ---
+
+describe('intercambio — cifrado ad-hoc con passphrase', () => {
+  beforeEach(async () => {
+    await resetTestDb()
+  })
+
+  it('exportParcial con passphrase produce archivo cifrado (magic LOFENC1)', async () => {
+    await seedRealData()
+
+    const blobs = []
+    const mockDoc = {
+      body: { appendChild: () => {}, removeChild: () => {} },
+      createElement: () => ({ click: () => {}, href: '', download: '' }),
+    }
+    const origDocument = globalThis.document
+    const origUrl = globalThis.URL
+    globalThis.document = mockDoc
+    globalThis.URL = { ...origUrl, createObjectURL: (b) => { blobs.push(b); return 'mock://blob' }, revokeObjectURL: () => {} }
+
+    try {
+      const res = await exportParcial('working_set', { passphrase: 'colab-pass-123' })
+      expect(res.encrypted).toBe(true)
+
+      const ab = await blobs[0].arrayBuffer()
+      const bytes = new Uint8Array(ab)
+      const magic = strFromU8(bytes.slice(0, 7))
+      expect(magic).toBe('LOFENC1')
+    } finally {
+      globalThis.document = origDocument
+      globalThis.URL = origUrl
+    }
+  })
+
+  it('exportParcial sin passphrase produce archivo plano (magic LOFBK1)', async () => {
+    await seedRealData()
+
+    const blobs = []
+    const mockDoc = {
+      body: { appendChild: () => {}, removeChild: () => {} },
+      createElement: () => ({ click: () => {}, href: '', download: '' }),
+    }
+    const origDocument = globalThis.document
+    const origUrl = globalThis.URL
+    globalThis.document = mockDoc
+    globalThis.URL = { ...origUrl, createObjectURL: (b) => { blobs.push(b); return 'mock://blob' }, revokeObjectURL: () => {} }
+
+    try {
+      const res = await exportParcial('working_set')
+      expect(res.encrypted).toBe(false)
+
+      const ab = await blobs[0].arrayBuffer()
+      const bytes = new Uint8Array(ab)
+      const magic = strFromU8(bytes.slice(0, 6))
+      expect(magic).toBe('LOFBK1')
+    } finally {
+      globalThis.document = origDocument
+      globalThis.URL = origUrl
+    }
+  })
+
+  it('round-trip: export cifrado → importWorkingSet con passphrase correcta', async () => {
+    await seedRealData()
+
+    const blobs = []
+    const mockDoc = {
+      body: { appendChild: () => {}, removeChild: () => {} },
+      createElement: () => ({ click: () => {}, href: '', download: '' }),
+    }
+    const origDocument = globalThis.document
+    const origUrl = globalThis.URL
+    globalThis.document = mockDoc
+    globalThis.URL = { ...origUrl, createObjectURL: (b) => { blobs.push(b); return 'mock://blob' }, revokeObjectURL: () => {} }
+
+    let encryptedFile
+    try {
+      await exportParcial('working_set', { passphrase: 'colab-secret' })
+      encryptedFile = new File([blobs[0]], 'test.lof', { type: 'application/octet-stream' })
+    } finally {
+      globalThis.document = origDocument
+      globalThis.URL = origUrl
+    }
+
+    await resetTestDb()
+    const res = await importWorkingSet(encryptedFile, { passphrase: 'colab-secret' })
+    expect(res.inserted).toBeGreaterThan(0)
+  })
+
+  it('importWorkingSet de archivo cifrado sin passphrase falla con mensaje claro', async () => {
+    await seedRealData()
+
+    const blobs = []
+    const mockDoc = {
+      body: { appendChild: () => {}, removeChild: () => {} },
+      createElement: () => ({ click: () => {}, href: '', download: '' }),
+    }
+    const origDocument = globalThis.document
+    const origUrl = globalThis.URL
+    globalThis.document = mockDoc
+    globalThis.URL = { ...origUrl, createObjectURL: (b) => { blobs.push(b); return 'mock://blob' }, revokeObjectURL: () => {} }
+
+    let encryptedFile
+    try {
+      await exportParcial('working_set', { passphrase: 'secret' })
+      encryptedFile = new File([blobs[0]], 'test.lof', { type: 'application/octet-stream' })
+    } finally {
+      globalThis.document = origDocument
+      globalThis.URL = origUrl
+    }
+
+    await resetTestDb()
+    await expect(importWorkingSet(encryptedFile, {})).rejects.toThrow('cifrado')
+  })
+
+  it('importWorkingSet de archivo cifrado con passphrase incorrecta falla', async () => {
+    await seedRealData()
+
+    const blobs = []
+    const mockDoc = {
+      body: { appendChild: () => {}, removeChild: () => {} },
+      createElement: () => ({ click: () => {}, href: '', download: '' }),
+    }
+    const origDocument = globalThis.document
+    const origUrl = globalThis.URL
+    globalThis.document = mockDoc
+    globalThis.URL = { ...origUrl, createObjectURL: (b) => { blobs.push(b); return 'mock://blob' }, revokeObjectURL: () => {} }
+
+    let encryptedFile
+    try {
+      await exportParcial('working_set', { passphrase: 'correcta' })
+      encryptedFile = new File([blobs[0]], 'test.lof', { type: 'application/octet-stream' })
+    } finally {
+      globalThis.document = origDocument
+      globalThis.URL = origUrl
+    }
+
+    await resetTestDb()
+    await expect(importWorkingSet(encryptedFile, { passphrase: 'incorrecta' })).rejects.toThrow()
+  })
+
+  it('round-trip: export patch cifrado → analizarMerge + aplicarMerge con passphrase', async () => {
+    await seedRealData()
+    // El colaborador carga un movimiento
+    await addDoc('movimientos', 50, {
+      fecha: '2026-08-20', detalle: 'Cuota colaborador', importe: 2000,
+      rubro_id: 1, cuenta_id: 1, ejercicio_id: 1,
+    })
+
+    const blobs = []
+    const mockDoc = {
+      body: { appendChild: () => {}, removeChild: () => {} },
+      createElement: () => ({ click: () => {}, href: '', download: '' }),
+    }
+    const origDocument = globalThis.document
+    const origUrl = globalThis.URL
+    globalThis.document = mockDoc
+    globalThis.URL = { ...origUrl, createObjectURL: (b) => { blobs.push(b); return 'mock://blob' }, revokeObjectURL: () => {} }
+
+    let patchFile
+    try {
+      await exportParcial('patch_movimientos', { passphrase: 'patch-pass' })
+      patchFile = new File([blobs[0]], 'patch.lof', { type: 'application/octet-stream' })
+    } finally {
+      globalThis.document = origDocument
+      globalThis.URL = origUrl
+    }
+
+    // Reset (simular cooperadora importando el patch del colaborador)
+    await resetTestDb()
+    await seedRealData()
+
+    const report = await analizarMerge(patchFile, 'patch-pass')
+    expect(report).toBeTruthy()
+
+    const result = await aplicarMerge(patchFile, report, 'patch-pass')
+    expect(result.added.movimientos).toBeGreaterThanOrEqual(1)
   })
 })

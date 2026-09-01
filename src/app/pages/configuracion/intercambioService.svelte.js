@@ -41,15 +41,18 @@ export function createIntercambioService() {
   let exportProfile = $state('working_set')
   let exporting = $state(false)
   let exportResult = $state(null)
+  let exportPassphrase = $state('')
+  let exportConfirmPassphrase = $state('')
 
   const handleExportPatchYLimpiar = async () => {
     cleaning = true
     try {
       const profile = config?.modulo_carga_consolidada ? 'patch_consolidada' : 'patch_integral'
-      const res = await exportParcial(profile)
+      const opts = exportPassphrase ? { passphrase: exportPassphrase } : {}
+      const res = await exportParcial(profile, opts)
       patchExported = true
-      notify.success(`Patch exportado: ${res.filename} (${res.docCount} documentos)`)
-      trackEvent('colaborador_patch_exported', { profile, doc_count: res.docCount })
+      notify.success(`Patch exportado: ${res.filename} (${res.docCount} documentos)${res.encrypted ? ' [cifrado]' : ''}`)
+      trackEvent('colaborador_patch_exported', { profile, doc_count: res.docCount, encrypted: res.encrypted })
     } catch (e) {
       notify.error(e?.message || 'Error al exportar patch')
       patchExported = false
@@ -69,31 +72,40 @@ export function createIntercambioService() {
     }
   }
 
+  let showFullBackupPassphrasePrompt = $state(false)
+  let pendingFullExport = $state(false)
+
   const handleExport = async () => {
     if (exportProfile === 'full') {
-      // Export completo en formato neutral (funciona en cualquier backend)
-      exporting = true
-      exportResult = null
-      try {
-        const res = await exportToLof({ kind: 'full' })
-        exportResult = res
-        trackEvent('backup_exported', { backend: 'pouch', profile: 'full', doc_count: res.docCount })
-        notify.success(`Backup exportado: ${res.filename} (${res.docCount} documentos)`)
-      } catch (e) {
-        notify.error(e?.message || 'Error al exportar')
-      } finally {
-        exporting = false
+      // Export completo: si hay passphrase institucional configurada,
+      // pedirle al usuario que la ingrese para cifrar el backup.
+      // Si no hay passphrase configurada, exportar plano.
+      const { passphraseStore } = await import('$core/security/passphraseStore.svelte')
+      passphraseStore.init()
+      if (passphraseStore.configured) {
+        pendingFullExport = true
+        showFullBackupPassphrasePrompt = true
+        return
       }
+      // No hay passphrase configurada — exportar plano
+      await _doFullExport(null)
+      return
+    }
+
+    // Validar que las passphrases coincidan si se ingresó una
+    if (exportPassphrase && exportPassphrase !== exportConfirmPassphrase) {
+      notify.error('Las contraseñas no coinciden.')
       return
     }
 
     exporting = true
     exportResult = null
     try {
-      const res = await exportParcial(exportProfile)
+      const opts = exportPassphrase ? { passphrase: exportPassphrase } : {}
+      const res = await exportParcial(exportProfile, opts)
       exportResult = res
-      trackEvent('intercambio_exported', { backend: 'pouch', profile: exportProfile, doc_count: res.docCount })
-      notify.success(`Exportado: ${res.filename} (${res.docCount} documentos)`)
+      trackEvent('intercambio_exported', { backend: 'pouch', profile: exportProfile, doc_count: res.docCount, encrypted: res.encrypted })
+      notify.success(`Exportado: ${res.filename} (${res.docCount} documentos)${res.encrypted ? ' [cifrado]' : ''}`)
     } catch (e) {
       notify.error(e?.message || 'Error al exportar')
     } finally {
@@ -101,8 +113,41 @@ export function createIntercambioService() {
     }
   }
 
+  /** Ejecuta el export completo, opcionalmente cifrado con passphrase institucional */
+  async function _doFullExport(institutionalPassphrase) {
+    exporting = true
+    exportResult = null
+    try {
+      const opts = institutionalPassphrase
+        ? { encrypt: true, passphrase: institutionalPassphrase }
+        : {}
+      const res = await exportToLof({ kind: 'full', ...opts })
+      exportResult = res
+      trackEvent('backup_exported', { backend: 'pouch', profile: 'full', doc_count: res.docCount, encrypted: !!institutionalPassphrase })
+      notify.success(`Backup exportado: ${res.filename} (${res.docCount} documentos)${institutionalPassphrase ? ' [cifrado]' : ''}`)
+    } catch (e) {
+      notify.error(e?.message || 'Error al exportar')
+    } finally {
+      exporting = false
+      pendingFullExport = false
+    }
+  }
+
+  /** Handler del modal de passphrase para backup completo */
+  async function onFullBackupPassphraseConfirm(passphrase) {
+    const { passphraseStore } = await import('$core/security/passphraseStore.svelte')
+    const valid = await passphraseStore.verifyPassphrase(passphrase)
+    if (!valid) {
+      throw new Error('La passphrase institucional no es correcta.')
+    }
+    // Cachear en sesión para el snapshot automático
+    try { sessionStorage.setItem('lof-passphrase-session', passphrase) } catch { /* ignore */ }
+    await _doFullExport(passphrase)
+  }
+
   // --- Import working set ---
   let importingWs = $state(false)
+  let wsPassphrase = $state('')
 
   const handleWsImport = async (/** @type {Event} */ e) => {
     const input = /** @type {HTMLInputElement} */ (e.target)
@@ -111,10 +156,12 @@ export function createIntercambioService() {
     importingWs = true
     const id = notify.loading('Importando set de trabajo…')
     try {
-      const res = await importWorkingSet(file)
+      const opts = wsPassphrase ? { passphrase: wsPassphrase } : {}
+      const res = await importWorkingSet(file, opts)
       notify.dismiss(id)
-      trackEvent('intercambio_ws_imported', { backend: 'pouch', inserted: res.inserted, skipped: res.skipped })
+      trackEvent('intercambio_ws_imported', { backend: 'pouch', inserted: res.inserted, skipped: res.skipped, encrypted: !!wsPassphrase })
       notify.success(`Set importado: ${res.inserted} documentos insertados, ${res.skipped} ya existían.`)
+      wsPassphrase = ''
     } catch (e) {
       notify.dismiss(id)
       notify.error(e?.message || 'Error al importar set de trabajo')
@@ -131,6 +178,7 @@ export function createIntercambioService() {
   let applying = $state(false)
   let mergeResult = $state(null)
   let doBackupBefore = $state(true)
+  let mergePassphrase = $state('')
 
   const handleMergeFileSelect = async (/** @type {Event} */ e) => {
     const input = /** @type {HTMLInputElement} */ (e.target)
@@ -141,9 +189,9 @@ export function createIntercambioService() {
     mergeResult = null
     analyzing = true
     try {
-      const report = await analizarMerge(file)
+      const report = await analizarMerge(file, mergePassphrase || undefined)
       mergeAnalysis = report
-      trackEvent('intercambio_merge_analyzed', { backend: 'pouch', conflictos: report.resumen.conflictos })
+      trackEvent('intercambio_merge_analyzed', { backend: 'pouch', conflictos: report.resumen.conflictos, encrypted: !!mergePassphrase })
     } catch (e) {
       notify.error(e?.message || 'Error al analizar el patch')
       mergeFile = null
@@ -179,7 +227,7 @@ export function createIntercambioService() {
 
     const id = notify.loading('Aplicando merge…')
     try {
-      const res = await aplicarMerge(mergeFile, mergeAnalysis.analisisHash)
+      const res = await aplicarMerge(mergeFile, mergeAnalysis.analisisHash, mergePassphrase || undefined)
       notify.dismiss(id)
       mergeResult = res
       trackEvent('intercambio_merge_applied', {
@@ -225,10 +273,20 @@ export function createIntercambioService() {
     set exportProfile(v) { exportProfile = v },
     get exporting() { return exporting },
     get exportResult() { return exportResult },
+    get exportPassphrase() { return exportPassphrase },
+    set exportPassphrase(v) { exportPassphrase = v },
+    get exportConfirmPassphrase() { return exportConfirmPassphrase },
+    set exportConfirmPassphrase(v) { exportConfirmPassphrase = v },
+    get showFullBackupPassphrasePrompt() { return showFullBackupPassphrasePrompt },
+    set showFullBackupPassphrasePrompt(v) { showFullBackupPassphrasePrompt = v },
+    get pendingFullExport() { return pendingFullExport },
+    onFullBackupPassphraseConfirm,
     handleExport,
 
     // Import working set
     get importingWs() { return importingWs },
+    get wsPassphrase() { return wsPassphrase },
+    set wsPassphrase(v) { wsPassphrase = v },
     handleWsImport,
 
     // Merge
@@ -239,6 +297,8 @@ export function createIntercambioService() {
     get mergeResult() { return mergeResult },
     get doBackupBefore() { return doBackupBefore },
     set doBackupBefore(v) { doBackupBefore = v },
+    get mergePassphrase() { return mergePassphrase },
+    set mergePassphrase(v) { mergePassphrase = v },
     get canApply() { return canApply },
     handleMergeFileSelect,
     handleApplyMerge,
