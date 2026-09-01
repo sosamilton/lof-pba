@@ -38,7 +38,7 @@
   import MobileSidebarAutoClose from '$lib/components/MobileSidebarAutoClose.svelte'
   import { useConfirmDialog } from '$lib/hooks/useConfirmDialog.svelte.js'
   import { limpiarDispositivo } from '$core/data/intercambio.js'
-  import { migrateRoleFromConfig, ROLES } from '$core/security/roles'
+  import { migrateRoleFromConfig, ROLES, getRoleLabel } from '$core/security/roles'
   import { pinStore } from '$core/security/pinStore.svelte'
   import { passkeyStore } from '$core/security/passkeyStore.svelte'
   import { snapshotScheduler } from '$core/security/snapshotScheduler.svelte'
@@ -387,7 +387,7 @@
       {#if deviceRole && deviceRole !== 'super_admin' && ROLES[deviceRole]}
         <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[12px] font-semibold text-amber-700 dark:text-amber-400" title={ROLES[deviceRole].description}>
           <HandHeartIcon class="size-3" />
-          <span class="hidden sm:inline">{ROLES[deviceRole].label}</span>
+          <span class="hidden sm:inline">{getRoleLabel(deviceRole, configStore.config)}</span>
         </span>
       {/if}
       {#if pinStore.enabled || passkeyStore.configured}

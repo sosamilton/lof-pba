@@ -23,7 +23,9 @@ export async function doInstall(s) {
       const { ensureSchema } = await import('./initLof')
       // Crear schema (tablas) antes de importar los docs
       await ensureSchema()
-      await importWorkingSet(s.workingSetFile, { inicializar: true })
+      const wsOpts = { inicializar: true }
+      if (s.workingSetPassphrase) wsOpts.passphrase = s.workingSetPassphrase
+      await importWorkingSet(s.workingSetFile, wsOpts)
       trackEvent('setup_completed', { backend: getActiveBackend(), via: 'working_set', cooperadora_tipo: 'colaborador' })
       await new Promise((resolve) => setTimeout(resolve, 500))
       window.location.reload()

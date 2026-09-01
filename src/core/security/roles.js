@@ -180,3 +180,16 @@ export function migrateRoleFromConfig(config) {
   if (config.modo_colaborador === true) return 'tesorero'
   return DEFAULT_ROLE
 }
+
+/**
+ * Devuelve el label para mostrar en la UI, teniendo en cuenta el modo.
+ * En modo colaborador, el rol tesorero se muestra como "Colaborador".
+ * @param {Role} role
+ * @param {Record<string, any> | null} [config]
+ * @returns {string}
+ */
+export function getRoleLabel(role, config) {
+  if (!ROLES[role]) return 'Desconocido'
+  if (role === 'tesorero' && config?.modo_colaborador === true) return 'Colaborador'
+  return ROLES[role].label
+}

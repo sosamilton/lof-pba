@@ -38,7 +38,7 @@ export function createIntercambioService() {
   loadConfigData()
 
   // --- Export ---
-  let exportProfile = $state('working_set')
+  let exportProfile = $state('working_set') // fijo en working_set, no se cambia
   let exporting = $state(false)
   let exportResult = $state(null)
   let exportPassphrase = $state('')
@@ -48,13 +48,14 @@ export function createIntercambioService() {
     cleaning = true
     try {
       const profile = config?.modulo_carga_consolidada ? 'patch_consolidada' : 'patch_integral'
-      const opts = exportPassphrase ? { passphrase: exportPassphrase } : {}
+      // En modo colaborador, exportar sin contraseña (exportPassphrase siempre vacío)
+      const opts = {}
       const res = await exportParcial(profile, opts)
       patchExported = true
-      notify.success(`Patch exportado: ${res.filename} (${res.docCount} documentos)${res.encrypted ? ' [cifrado]' : ''}`)
-      trackEvent('colaborador_patch_exported', { profile, doc_count: res.docCount, encrypted: res.encrypted })
+      notify.success(`Cargas exportadas: ${res.filename} (${res.docCount} documentos)`)
+      trackEvent('colaborador_patch_exported', { profile, doc_count: res.docCount, encrypted: false })
     } catch (e) {
-      notify.error(e?.message || 'Error al exportar patch')
+      notify.error(e?.message || 'Error al exportar las cargas')
       patchExported = false
     } finally {
       cleaning = false
@@ -72,26 +73,8 @@ export function createIntercambioService() {
     }
   }
 
-  let showFullBackupPassphrasePrompt = $state(false)
-  let pendingFullExport = $state(false)
 
   const handleExport = async () => {
-    if (exportProfile === 'full') {
-      // Export completo: si hay passphrase institucional configurada,
-      // pedirle al usuario que la ingrese para cifrar el backup.
-      // Si no hay passphrase configurada, exportar plano.
-      const { passphraseStore } = await import('$core/security/passphraseStore.svelte')
-      passphraseStore.init()
-      if (passphraseStore.configured) {
-        pendingFullExport = true
-        showFullBackupPassphrasePrompt = true
-        return
-      }
-      // No hay passphrase configurada — exportar plano
-      await _doFullExport(null)
-      return
-    }
-
     // Validar que las passphrases coincidan si se ingresó una
     if (exportPassphrase && exportPassphrase !== exportConfirmPassphrase) {
       notify.error('Las contraseñas no coinciden.')
@@ -102,47 +85,15 @@ export function createIntercambioService() {
     exportResult = null
     try {
       const opts = exportPassphrase ? { passphrase: exportPassphrase } : {}
-      const res = await exportParcial(exportProfile, opts)
+      const res = await exportParcial('working_set', opts)
       exportResult = res
-      trackEvent('intercambio_exported', { backend: 'pouch', profile: exportProfile, doc_count: res.docCount, encrypted: res.encrypted })
-      notify.success(`Exportado: ${res.filename} (${res.docCount} documentos)${res.encrypted ? ' [cifrado]' : ''}`)
+      trackEvent('intercambio_exported', { backend: 'pouch', profile: 'working_set', doc_count: res.docCount, encrypted: res.encrypted })
+      notify.success(`Set de trabajo exportado: ${res.filename} (${res.docCount} documentos)${res.encrypted ? ' [cifrado]' : ''}`)
     } catch (e) {
       notify.error(e?.message || 'Error al exportar')
     } finally {
       exporting = false
     }
-  }
-
-  /** Ejecuta el export completo, opcionalmente cifrado con passphrase institucional */
-  async function _doFullExport(institutionalPassphrase) {
-    exporting = true
-    exportResult = null
-    try {
-      const opts = institutionalPassphrase
-        ? { encrypt: true, passphrase: institutionalPassphrase }
-        : {}
-      const res = await exportToLof({ kind: 'full', ...opts })
-      exportResult = res
-      trackEvent('backup_exported', { backend: 'pouch', profile: 'full', doc_count: res.docCount, encrypted: !!institutionalPassphrase })
-      notify.success(`Backup exportado: ${res.filename} (${res.docCount} documentos)${institutionalPassphrase ? ' [cifrado]' : ''}`)
-    } catch (e) {
-      notify.error(e?.message || 'Error al exportar')
-    } finally {
-      exporting = false
-      pendingFullExport = false
-    }
-  }
-
-  /** Handler del modal de passphrase para backup completo */
-  async function onFullBackupPassphraseConfirm(passphrase) {
-    const { passphraseStore } = await import('$core/security/passphraseStore.svelte')
-    const valid = await passphraseStore.verifyPassphrase(passphrase)
-    if (!valid) {
-      throw new Error('La passphrase institucional no es correcta.')
-    }
-    // Cachear en sesión para el snapshot automático
-    try { sessionStorage.setItem('lof-passphrase-session', passphrase) } catch { /* ignore */ }
-    await _doFullExport(passphrase)
   }
 
   // --- Import working set ---
@@ -277,10 +228,6 @@ export function createIntercambioService() {
     set exportPassphrase(v) { exportPassphrase = v },
     get exportConfirmPassphrase() { return exportConfirmPassphrase },
     set exportConfirmPassphrase(v) { exportConfirmPassphrase = v },
-    get showFullBackupPassphrasePrompt() { return showFullBackupPassphrasePrompt },
-    set showFullBackupPassphrasePrompt(v) { showFullBackupPassphrasePrompt = v },
-    get pendingFullExport() { return pendingFullExport },
-    onFullBackupPassphraseConfirm,
     handleExport,
 
     // Import working set
