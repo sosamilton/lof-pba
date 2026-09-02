@@ -12,6 +12,6 @@
     "dialog:allow-open",
     "fs:default",
     "fs:allow-write-file",
-    "fs:allow-create-dir"
+    "fs:allow-mkdir"
   ]
 }
