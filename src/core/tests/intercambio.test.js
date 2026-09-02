@@ -123,7 +123,7 @@ import {
   validarIntercambio,
   EXPORT_PROFILES,
 } from '../data/intercambio.js'
-import { gzipSync, strToU8, strFromU8 } from 'fflate'
+import { gzipSync, gunzipSync, strToU8, strFromU8 } from 'fflate'
 import { TABLE_PREFERRED_IDS } from '$core/utils/utils'
 
 const MAGIC = 'LOFBK1'
@@ -282,6 +282,106 @@ describe('intercambio.js', () => {
   it('exportParcial rechaza perfil desconocido', async () => {
     _mockConfig = { modulo_gestion_integral: true }
     await expect(exportParcial('inexistente')).rejects.toThrow('Perfil de exportación desconocido')
+  })
+
+  /** Descomprime el payload de un blob .lof sin cifrar (magic LOFBK1) */
+  async function readPlainPayload(blob) {
+    const ab = await blob.arrayBuffer()
+    const bytes = new Uint8Array(ab)
+    const compressed = bytes.slice(MAGIC.length)
+    return JSON.parse(strFromU8(gunzipSync(compressed)))
+  }
+
+  it('exportParcial patch: no reenvía movimientos ya exportados sin cambios, pero sí reenvía los modificados', async () => {
+    await seedRealData()
+    await addDoc('movimientos', 50, {
+      fecha: '2026-08-01', detalle: 'Cuota A', importe: 1000, rubro_id: 1, cuenta_id: 1, ejercicio_id: 1,
+    })
+    await addDoc('movimientos', 51, {
+      fecha: '2026-08-02', detalle: 'Cuota B', importe: 1500, rubro_id: 1, cuenta_id: 1, ejercicio_id: 1,
+    })
+
+    const blobs = []
+    const mockDoc = {
+      body: { appendChild: () => {}, removeChild: () => {} },
+      createElement: () => ({ click: () => {}, href: '', download: '' }),
+    }
+    const origDocument = globalThis.document
+    const origUrl = globalThis.URL
+    globalThis.document = mockDoc
+    globalThis.URL = { ...origUrl, createObjectURL: (b) => { blobs.push(b); return 'mock://blob' }, revokeObjectURL: () => {} }
+
+    const movimientosType = tType('movimientos')
+    const soloMovimientos = (docs) => docs.filter((d) => d.type === movimientosType)
+
+    try {
+      // Primer patch: exporta los dos movimientos nuevos (además de la
+      // persona/socio de seedRealData, que también son locales/nuevos)
+      await exportParcial('patch_movimientos')
+      const payload1 = await readPlainPayload(blobs[0])
+      expect(soloMovimientos(payload1.docs).map((d) => d.detalle).sort()).toEqual(['Cuota A', 'Cuota B'])
+
+      // Se edita el movimiento 50 después del primer export (simula edición
+      // local; en producción pouchRepository.js estampa este campo solo).
+      await updateDoc('movimientos', 50, {
+        importe: 1200, modificado_el: new Date(Date.now() + 1000).toISOString(),
+      })
+
+      // Segundo patch: solo debe traer el 50 modificado, sin repetir el 51
+      // ni la persona/socio ya exportados sin cambios
+      await exportParcial('patch_movimientos')
+      const payload2 = await readPlainPayload(blobs[1])
+      const movs2 = soloMovimientos(payload2.docs)
+      expect(movs2.map((d) => d.detalle)).toEqual(['Cuota A'])
+      expect(movs2[0].importe).toBe(1200)
+      // Nada más viaja: ni el 51 ni la persona/socio, que no cambiaron
+      expect(payload2.docs).toHaveLength(1)
+    } finally {
+      globalThis.document = origDocument
+      globalThis.URL = origUrl
+    }
+  })
+
+  it('exportParcial working_set_integral incluye ultimos_pagos por socio activo, y el patch nunca los expone', async () => {
+    await seedRealData()
+    // Socio 10 (activo, seedRealData) con dos pagos de cuota: debe quedar el más reciente
+    await addDoc('movimientos', 60, {
+      fecha: '2026-06-01', detalle: 'Cuota junio', importe: 500, rubro_id: 1, socio_id: 10, cuenta_id: 1, ejercicio_id: 1,
+    })
+    await addDoc('movimientos', 61, {
+      fecha: '2026-07-01', detalle: 'Cuota julio', importe: 550, rubro_id: 1, socio_id: 10, cuenta_id: 1, ejercicio_id: 1,
+    })
+    // Socio de baja: no debe aparecer en ultimos_pagos
+    await addDoc('personas', 20, { dni: '30999999', apellido: 'Baja', nombre: 'Ex Socio' })
+    await addDoc('socios', 20, { persona_id: 20, tipo_socio: 'Activo', fecha_baja: '2026-01-01' })
+    await addDoc('movimientos', 62, {
+      fecha: '2026-07-15', detalle: 'Cuota ex socio', importe: 500, rubro_id: 1, socio_id: 20, cuenta_id: 1, ejercicio_id: 1,
+    })
+    _mockConfig = { modulo_gestion_integral: true }
+
+    const blobs = []
+    const mockDoc = {
+      body: { appendChild: () => {}, removeChild: () => {} },
+      createElement: () => ({ click: () => {}, href: '', download: '' }),
+    }
+    const origDocument = globalThis.document
+    const origUrl = globalThis.URL
+    globalThis.document = mockDoc
+    globalThis.URL = { ...origUrl, createObjectURL: (b) => { blobs.push(b); return 'mock://blob' }, revokeObjectURL: () => {} }
+
+    try {
+      await exportParcial('working_set')
+      const wsPayload = await readPlainPayload(blobs[0])
+      expect(wsPayload.ultimos_pagos['10']).toMatchObject({ fecha: '2026-07-01', importe: 550 })
+      expect(wsPayload.ultimos_pagos['20']).toBeUndefined()
+
+      await exportParcial('patch_movimientos')
+      const patchPayload = await readPlainPayload(blobs[1])
+      expect(patchPayload.ultimos_pagos).toBeNull()
+    } finally {
+      globalThis.document = origDocument
+      globalThis.URL = origUrl
+    }
   })
 
   it('EXPORT_PROFILES tiene los perfiles mode-aware esperados', () => {

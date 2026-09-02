@@ -622,6 +622,10 @@ export const applyUserActions = async (actions) => {
           id,
           type: tableId,
           _id: docId,
+          // Fecha de última edición del doc. Permite detectar, en el modo
+          // colaborador, si un registro ya importado (o ya exportado en un
+          // patch anterior) fue modificado localmente y debe reenviarse.
+          modificado_el: new Date().toISOString(),
         }
         const res = await db.put(updated)
         results.push({ id, rev: res.rev })
