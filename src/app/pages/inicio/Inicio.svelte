@@ -25,6 +25,7 @@
   import XIcon from '@lucide/svelte/icons/x'
   import { pinStore } from '$core/security/pinStore.svelte.js'
   import { passkeyStore } from '$core/security/passkeyStore.svelte.js'
+  import { setPendingTab } from '$app/pages/configuracion/configuracionTabPreset.js'
 
   // Aviso de seguridad sin configurar: se puede descartar por 7 días.
   const SEGURIDAD_DISMISS_KEY = 'lof-seguridad-aviso-dismissed-until'
@@ -101,7 +102,10 @@
                 {' '}
                 Cualquiera con acceso a este dispositivo puede ver y modificar los datos.
                 {' '}
-                <button type="button" class="text-primary font-medium hover:underline" onclick={() => navigate('configuracion')}>
+                <button type="button" class="text-primary font-medium hover:underline" onclick={() => {
+                  setPendingTab('seguridad')
+                  navigate('configuracion')
+                }}>
                   Configurar seguridad
                 </button>
               </div>

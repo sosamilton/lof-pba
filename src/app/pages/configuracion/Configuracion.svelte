@@ -21,6 +21,7 @@
   import IntercambioTab from './components/IntercambioTab.svelte'
   import AtajosTab from './components/AtajosTab.svelte'
   import SeguridadTab from './components/SeguridadTab.svelte'
+  import { consumePendingTab } from './configuracionTabPreset.js'
 
   let tab = $state('general')
 
@@ -38,6 +39,9 @@
     const unsubCategorias = categorias.subscribe()
     sync.load()
     configStore.load()
+    // Consumir tab pendiente (ej: aviso de seguridad desde Inicio)
+    const pendingTab = consumePendingTab()
+    if (pendingTab) tab = pendingTab
     return () => {
       if (typeof unsubInicio === 'function') unsubInicio()
       unsubCategorias?.()
