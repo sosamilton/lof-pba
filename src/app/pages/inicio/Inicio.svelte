@@ -21,6 +21,29 @@
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right'
   import CalendarPlusIcon from '@lucide/svelte/icons/calendar-plus'
   import BuildingIcon from '@lucide/svelte/icons/building'
+  import ShieldAlertIcon from '@lucide/svelte/icons/shield-alert'
+  import XIcon from '@lucide/svelte/icons/x'
+  import { pinStore } from '$core/security/pinStore.svelte.js'
+  import { passkeyStore } from '$core/security/passkeyStore.svelte.js'
+
+  // Aviso de seguridad sin configurar: se puede descartar por 7 días.
+  const SEGURIDAD_DISMISS_KEY = 'lof-seguridad-aviso-dismissed-until'
+  let seguridadAvisoVisible = $state(false)
+
+  function checkSeguridadAviso() {
+    if (pinStore.enabled || passkeyStore.configured) {
+      seguridadAvisoVisible = false
+      return
+    }
+    const dismissedUntil = Number(localStorage.getItem(SEGURIDAD_DISMISS_KEY) || 0)
+    seguridadAvisoVisible = Date.now() > dismissedUntil
+  }
+
+  function descartarSeguridadAviso() {
+    const sieteDias = 7 * 24 * 60 * 60 * 1000
+    localStorage.setItem(SEGURIDAD_DISMISS_KEY, String(Date.now() + sieteDias))
+    seguridadAvisoVisible = false
+  }
 
   const saldos = $derived(store.saldos)
 
@@ -33,6 +56,7 @@
   let gristReady = $state(isInGrist())
 
   onMount(() => {
+    checkSeguridadAviso()
     const unsubAccess = subscribeAccess((s) => {
       gristReady = s === 'ready'
     })
@@ -69,6 +93,30 @@
     {:else if store.status}
       {#if store.status.missing.length === 0 && store.status.schemaDiff?.missingTables?.length === 0 && store.status.schemaDiff?.missingColumns?.length === 0}
         <div class="flex flex-col gap-4 mt-2">
+          {#if seguridadAvisoVisible}
+            <div class="flex items-center gap-3 rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-4 py-3">
+              <ShieldAlertIcon class="size-5 text-yellow-600 shrink-0" />
+              <div class="flex-1 text-sm">
+                <span class="font-semibold">Sin método de seguridad configurado.</span>
+                {' '}
+                Cualquiera con acceso a este dispositivo puede ver y modificar los datos.
+                {' '}
+                <button type="button" class="text-primary font-medium hover:underline" onclick={() => navigate('configuracion')}>
+                  Configurar seguridad
+                </button>
+              </div>
+              <button
+                type="button"
+                class="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                onclick={descartarSeguridadAviso}
+                aria-label="Descartar aviso por 7 días"
+                title="Descartar por 7 días"
+              >
+                <XIcon class="size-4" />
+              </button>
+            </div>
+          {/if}
+
           <!-- Ficha institucional compacta (una línea) -->
           <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground rounded-lg border border-border bg-card px-3 py-2">
             <BuildingIcon class="size-4 text-primary shrink-0" />

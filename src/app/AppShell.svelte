@@ -158,6 +158,8 @@
 
   // Bloquear la sesión: limpia el estado de desbloqueo del PIN/passkey
   // y navega a la landing. Al volver a la app, el gate pedirá el PIN again.
+  // Si no hay ningún método de seguridad configurado, no bloquea nada —
+  // solo vuelve a la landing (texto del botón: "Volver a la página").
   function handleLock() {
     pinStore.lock()
     passkeyStore.lock()
@@ -165,6 +167,9 @@
     try { sessionStorage.removeItem('lof-passphrase-session') } catch { /* ignore */ }
     go('landing')
   }
+
+  // True cuando hay PIN o passkey configurado (el botón bloquea de verdad).
+  let tieneSeguridad = $derived(pinStore.enabled || passkeyStore.configured)
 
   onMount(async () => {
     // Inicializar el store de PIN y passkey (carga estado desde localStorage).
@@ -333,9 +338,9 @@
     <Sidebar.Footer>
       <Sidebar.Menu>
         <Sidebar.MenuItem>
-          <Sidebar.MenuButton onclick={handleLock} tooltipContent="Bloquear y salir al inicio" class="h-auto min-h-8">
+          <Sidebar.MenuButton onclick={handleLock} tooltipContent={tieneSeguridad ? 'Bloquear y salir al inicio' : 'Volver a la página de inicio'} class="h-auto min-h-8">
             <LockIcon class="shrink-0" />
-            <span class="flex-1 leading-tight">Bloquear</span>
+            <span class="flex-1 leading-tight">{tieneSeguridad ? 'Bloquear' : 'Volver al inicio'}</span>
           </Sidebar.MenuButton>
         </Sidebar.MenuItem>
       </Sidebar.Menu>
