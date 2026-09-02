@@ -27,10 +27,10 @@
     if (pinStore.isLocked) {
       pinStore.startCountdown()
     }
-    // Si hay passkey configurada, intentar autenticar automáticamente.
-    if (usePasskey && !passkeyStore.unlocked) {
-      await tryPasskey()
-    }
+    // No autenticar passkey automáticamente: el usuario debe clickear
+    // "Desbloquear con passkey" manualmente. Así evitamos que se dispare
+    // en montajes transitorios (ej: al recargar y antes de que el router
+    // decida si mostrar landing o app).
   })
 
   onDestroy(() => {
