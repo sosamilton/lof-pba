@@ -4,6 +4,7 @@ import { createFormState } from './form/movimientosFormState.svelte.js'
 import { createCierresService } from '../resumen/cierresService.svelte.js'
 import { createPersonasSelector } from './form/personasSelector.svelte.js'
 import { createFormLogic } from './form/movimientosFormLogic.svelte.js'
+import { createUltimoPagoService } from './form/ultimoPagoService.svelte.js'
 import { createCargaPIAService } from '../cargaPia/cargaPIAService.svelte.js'
 import { createCargasService } from '../cargaPia/cargasService.svelte.js'
 
@@ -19,12 +20,18 @@ const base = createGristStore({
   },
 })
 
+// Importe de la cuota social del ejercicio en curso (para el botón "1 mes"
+// en el form cuando se carga una cuota desde Comunidad). Se settea via
+// `nuevoConPreset` cuando el preset trae `importeCuota`.
+let importeCuotaSocio = $state(null)
+
 // Sub-módulos (orden: sin dependencias circulares)
 const relatedData = createRelatedData({ base })
 const formState = createFormState()
 const cierresService = createCierresService({ relatedData, base })
 const personasSelector = createPersonasSelector({ relatedData, formState })
 const formLogic = createFormLogic({ formState, relatedData, base, cierresService })
+const ultimoPagoService = createUltimoPagoService({ personasSelector })
 const cargaPIAService = createCargaPIAService({ relatedData, base, cierresService })
 const cargasService = createCargasService({ relatedData, base })
 
@@ -75,11 +82,20 @@ export const movimientosStore = extendStore(base, {
   // personasSelector
   get personasSeleccionables() { return personasSelector.personasSeleccionables },
   get categoriasDisponibles() { return personasSelector.categoriasDisponibles },
+  // ultimoPagoService
+  get ultimoPagoSocio() { return ultimoPagoService.ultimoPago },
+  get ultimoPagoSocioLoading() { return ultimoPagoService.loading },
+  buscarUltimoPagoSocio: ultimoPagoService.buscar,
+  resetUltimoPagoSocio: ultimoPagoService.reset,
   // formLogic
   select: formLogic.select,
   nuevo: formLogic.nuevo,
   nuevoCuotaSocietaria: formLogic.nuevoCuotaSocietaria,
-  nuevoConPreset: formLogic.nuevoConPreset,
+  nuevoConPreset: (preset = {}) => {
+    formLogic.nuevoConPreset(preset)
+    importeCuotaSocio = preset.importeCuota || null
+  },
+  get importeCuotaSocio() { return importeCuotaSocio },
   cancelar: formLogic.cancelar,
   saveMovimiento: formLogic.saveMovimiento,
   onTipoChange: formLogic.onTipoChange,

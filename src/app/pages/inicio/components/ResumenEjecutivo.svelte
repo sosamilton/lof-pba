@@ -8,6 +8,13 @@
   import PercentIcon from '@lucide/svelte/icons/percent'
   import ReceiptIcon from '@lucide/svelte/icons/receipt'
   import MetricCard from './MetricCard.svelte'
+  import { navigate } from '$core/ui/router.svelte'
+
+  // Navega a Comunidad con un preset de filtros (via evento custom).
+  const goToComunidad = (filtros) => {
+    window.dispatchEvent(new CustomEvent('lof:comunidad-filtro-preset', { detail: filtros }))
+    navigate('comunidad')
+  }
 
   let {
     dashLoading = false,
@@ -55,6 +62,7 @@
     loading={dashLoading}
     skeletonClass="h-6 w-16"
     value={sociosActivos}
+    onclick={() => goToComunidad({ vinculo: 'socios', estado: 'activos' })}
   >
     {#snippet icon()}<UsersIcon class="size-4" />{/snippet}
   </MetricCard>
@@ -64,6 +72,7 @@
       label="Altas/bajas último año"
       value={`+${altasUltimoAnio} / -${bajasUltimoAnio}`}
       sub={`Saldo neto: ${altasUltimoAnio - bajasUltimoAnio}`}
+      onclick={() => goToComunidad({ vinculo: 'socios', estado: 'bajas' })}
     >
       {#snippet icon()}<TrendingUpIcon class="size-4" />{/snippet}
     </MetricCard>
@@ -108,6 +117,7 @@
       sub={morosidadPct > 30 ? 'Revisar cobranza' : 'Dentro de lo esperado'}
       cardClass={morosidadPct > 30 ? 'border-destructive/40' : ''}
       iconClass={morosidadPct > 30 ? 'text-destructive' : 'text-primary'}
+      onclick={() => goToComunidad({ vinculo: 'socios', estado: 'activos' })}
     >
       {#snippet icon()}<PercentIcon class="size-4" />{/snippet}
     </MetricCard>

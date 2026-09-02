@@ -23,6 +23,7 @@ import {
   ejercicioAnterior,
   mesesTranscurridosEjercicio,
   calcularMorosidad,
+  calcularMorosidadPorSocio,
   saludOperativa,
   mayorEgreso,
 } from '../shared/tesoreriaCalc.js'
@@ -621,6 +622,100 @@ describe('calcularMorosidad', () => {
     const m = calcularMorosidad(ejercicio, movsEj, [], socios, [])
     expect(m.tieneDatos).toBe(false)
     expect(m.esperado).toBe(0)
+  })
+})
+
+describe('calcularMorosidadPorSocio', () => {
+  // Ejercicio con mes_inicio=Enero y año actual para que mesesTranscurridos > 0
+  const ejActual = {
+    ...ejercicio,
+    anio_inicio: new Date().getFullYear(),
+    anio_fin: new Date().getFullYear() + 1,
+    mes_inicio: 'Enero',
+  }
+
+  it('devuelve Map vacío si no hay socios activos', () => {
+    const result = calcularMorosidadPorSocio(ejActual, movsEj, rubros, [], asambleas)
+    expect(result.size).toBe(0)
+  })
+
+  it('devuelve Map vacío si no hay rubro de cuota social', () => {
+    const result = calcularMorosidadPorSocio(ejActual, movsEj, [], socios, asambleas)
+    expect(result.size).toBe(0)
+  })
+
+  it('devuelve Map vacío si no hay importe de cuota (sin asamblea AGO)', () => {
+    const result = calcularMorosidadPorSocio(ejActual, movsEj, rubros, socios, [])
+    expect(result.size).toBe(0)
+  })
+
+  it('todos los socios en "sin-datos" si no hay movimientos con socio_id', () => {
+    const movsSinVincular = [
+      mov({ rubro_id: 100, tipo_movimiento: 'Entrada', importe: 1000, periodo: '2026-03' }),
+    ]
+    const result = calcularMorosidadPorSocio(ejActual, movsSinVincular, rubros, socios, asambleas)
+    expect(result.size).toBe(2) // socios 1 y 2 (activos)
+    expect(result.get(1).estado).toBe('sin-datos')
+    expect(result.get(2).estado).toBe('sin-datos')
+  })
+
+  it('socio que pagó todos los períodos transcurridos está "al-dia"', () => {
+    // Socio 1 pagó 2026-03 y 2026-04 en movsEj. Si estamos en marzo/abril, está al día.
+    // Para garantizar el test, generamos movs para todos los períodos hasta hoy.
+    const periodos = generarPeriodosEjercicio(ejActual)
+    const ahora = new Date()
+    const mesActualKey = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}`
+    const periodosTranscurridos = periodos.filter((p) => p <= mesActualKey)
+    const movsSocio1AlDia = periodosTranscurridos.map((p) =>
+      mov({ rubro_id: 100, tipo_movimiento: 'Entrada', importe: 1000, periodo: p, socio_id: 1 }),
+    )
+    const result = calcularMorosidadPorSocio(ejActual, movsSocio1AlDia, rubros, socios, asambleas)
+    expect(result.get(1).estado).toBe('al-dia')
+    expect(result.get(1).mesesAdeudados).toBe(0)
+    // Socio 2 no pagó nada → mora-3-mas si pasaron 3+ meses, sino mora-1-2
+    expect(result.get(2).estado).not.toBe('al-dia')
+  })
+
+  it('socio que no pagó nada tiene mesesAdeudados = meses transcurridos', () => {
+    const result = calcularMorosidadPorSocio(ejActual, [], rubros, socios, asambleas)
+    // Sin movimientos vinculados → todos sin-datos
+    expect(result.get(1).estado).toBe('sin-datos')
+    expect(result.get(2).estado).toBe('sin-datos')
+  })
+
+  it('socio con 1-2 períodos sin pagar está en "mora-1-2"', () => {
+    const periodos = generarPeriodosEjercicio(ejActual)
+    const ahora = new Date()
+    const mesActualKey = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}`
+    const periodosTranscurridos = periodos.filter((p) => p <= mesActualKey)
+    // Socio 1 pagó todos menos el último → adeuda 1
+    if (periodosTranscurridos.length >= 2) {
+      const pagados = periodosTranscurridos.slice(0, -1)
+      const movsSocio1 = pagados.map((p) =>
+        mov({ rubro_id: 100, tipo_movimiento: 'Entrada', importe: 1000, periodo: p, socio_id: 1 }),
+      )
+      const result = calcularMorosidadPorSocio(ejActual, movsSocio1, rubros, socios, asambleas)
+      expect(result.get(1).estado).toBe('mora-1-2')
+      expect(result.get(1).mesesAdeudados).toBe(1)
+    }
+  })
+
+  it('modalidad Anual: socio que pagó está al día, el que no está en mora', () => {
+    const asambleasAnual = [
+      { ejercicio_id: 10, tipo_asamblea: 'AGO', cuota_social_importe: 12000, cuota_social_modalidad: 'Anual' },
+    ]
+    const movsAnual = [
+      mov({ rubro_id: 100, tipo_movimiento: 'Entrada', importe: 12000, socio_id: 1 }),
+    ]
+    const result = calcularMorosidadPorSocio(ejActual, movsAnual, rubros, socios, asambleasAnual)
+    expect(result.get(1).estado).toBe('al-dia')
+    expect(result.get(2).estado).toBe('mora-3-mas')
+  })
+
+  it('no incluye socios inactivos (con fecha_baja)', () => {
+    const result = calcularMorosidadPorSocio(ejActual, movsEj, rubros, socios, asambleas)
+    // socio 3 tiene fecha_baja → no está en el map
+    expect(result.has(3)).toBe(false)
   })
 })
 

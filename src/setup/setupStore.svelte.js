@@ -72,6 +72,8 @@ export class SetupStore {
 
   // Modo colaborador: archivo .lof de set de trabajo para inicializar
   workingSetFile = $state(/** @type {File | null} */ (null))
+  // Passphrase si el set de trabajo está cifrado (no se persiste, solo en memoria)
+  workingSetPassphrase = $state('')
 
   schoolData = $state({
     escuela_nombre: '',

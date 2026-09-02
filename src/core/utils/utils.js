@@ -1,3 +1,5 @@
+import { migrateRoleFromConfig, can } from '$core/security/roles'
+
 export const normalize = (s) => String(s || '').toLowerCase().trim()
 
 export const normalizeFields = (obj) => {
@@ -221,19 +223,9 @@ export const MODULES = {
 const isCargaConsolidada = (config) =>
   Boolean(config?.modulo_carga_consolidada || config?.modulo_solo_pia || config?.modulo_gestion_etapas)
 
-export const getActiveMenuItems = (config) => {
+export const getActiveMenuItems = (config, roleOverride) => {
   if (!config) return [{ route: 'inicio', label: 'Inicio' }]
   const items = [{ route: 'inicio', label: 'Inicio' }]
-
-  // Modo colaborador: menú reducido — solo movimientos, comunidad (si integral) y configuración
-  if (config.modo_colaborador) {
-    items.push({ route: 'movimientos', label: 'Movimientos' })
-    if (config.modulo_gestion_integral) {
-      items.push({ route: 'comunidad', label: 'Comunidad' })
-    }
-    items.push({ route: 'configuracion', label: 'Configuración' })
-    return items
-  }
 
   // Información institucional/formal de la cooperadora (escuela, banco,
   // kiosco, cargos, asesor, ejercicios). Visible en ambas modalidades.
@@ -256,7 +248,10 @@ export const getActiveMenuItems = (config) => {
   // Configuración siempre visible (modalidad, versiones, categorías/subrubros)
   items.push({ route: 'configuracion', label: 'Configuración' })
 
-  return items
+  // Filtrar por rol del dispositivo (Etapa 1 — seguridad por roles).
+  // El rol puede venir del PIN activo (roleOverride) o de la config.
+  const rol = roleOverride || migrateRoleFromConfig(config)
+  return items.filter((item) => can(rol, 'view', item.route))
 }
 
 /**

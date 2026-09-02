@@ -405,3 +405,18 @@ export const formatFechaHora = (raw) => {
   if (Number.isNaN(d.getTime())) return String(raw)
   return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
+
+/**
+ * Formatea un tamaño en bytes a una unidad legible (KB, MB, GB).
+ * @param {number} bytes
+ * @returns {string}
+ */
+export const formatBytes = (bytes) => {
+  if (!bytes && bytes !== 0) return ''
+  const n = Number(bytes)
+  if (!Number.isFinite(n) || n < 0) return String(bytes)
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
+  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(2)} MB`
+  return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`
+}

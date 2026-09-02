@@ -15,6 +15,8 @@
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check'
   import AlertCircleIcon from '@lucide/svelte/icons/circle-alert'
   import HandHeartIcon from '@lucide/svelte/icons/hand-heart'
+  import KeyIcon from '@lucide/svelte/icons/key-round'
+  import { Button } from '$lib/components/ui/button'
 
   let { store, modo = 'normal' } = $props()
 
@@ -25,6 +27,10 @@
   let fileInput = $state(null)
   let validation = $state(null)
   let validating = $state(false)
+  let selectedFile = $state(/** @type {File | null} */ (null))
+  let needsPassphrase = $state(false)
+  let backupPassphrase = $state('')
+  let restoringWithPassphrase = $state(false)
 
   // --- Modo colaborador ---
   let wsFileInput = $state(null)
@@ -32,12 +38,18 @@
   let wsValidating = $state(false)
   let wsImporting = $state(false)
   let wsResult = $state(null)
+  let wsSelectedFile = $state(/** @type {File | null} */ (null))
+  let wsNeedsPassphrase = $state(false)
+  let wsPassphrase = $state('')
 
   const handleWsFile = async (/** @type {Event} */ e) => {
     const target = /** @type {HTMLInputElement} */ (e.target)
     const file = target.files?.[0]
     if (!file) return
+    wsSelectedFile = file
     wsValidation = null
+    wsNeedsPassphrase = false
+    wsPassphrase = ''
     wsValidating = true
     wsResult = null
     try {
@@ -46,11 +58,16 @@
       if (result.valid && (result.kind === 'working-set' || result.kind === 'custom')) {
         store.selectedModules.colaborador = true
         store.workingSetFile = file
+        store.workingSetPassphrase = ''
       } else if (result.valid) {
         wsValidation = { valid: false, error: `Este archivo es de tipo "${result.kind}". Necesitás un set de trabajo.` }
+      } else if (result.error && result.error.includes('cifrado')) {
+        wsNeedsPassphrase = true
       }
     } catch (err) {
-      wsValidation = { valid: false, error: err?.message || String(err) }
+      const msg = err?.message || String(err)
+      wsValidation = { valid: false, error: msg }
+      if (msg.includes('cifrado')) wsNeedsPassphrase = true
     } finally {
       wsValidating = false
     }
@@ -60,20 +77,68 @@
     const target = /** @type {HTMLInputElement} */ (e.target)
     const file = target.files?.[0]
     if (!file) return
+    selectedFile = file
     validation = null
+    needsPassphrase = false
+    backupPassphrase = ''
     validating = true
     try {
       const result = await validateLof(file)
       validation = result
       if (result.valid) {
-        // Pasar el payload ya parseado para evitar re-leer el File
-        // (que ya fue consumido por validateLof y no se puede leer dos veces).
+        await store.restoreFromBackup(result.payload)
+      } else if (result.error && result.error.includes('cifrado')) {
+        // El archivo está cifrado — mostrar campo de passphrase
+        needsPassphrase = true
+      }
+    } catch (err) {
+      const msg = err?.message || String(err)
+      validation = { valid: false, error: msg }
+      if (msg.includes('cifrado')) {
+        needsPassphrase = true
+      }
+    } finally {
+      validating = false
+    }
+  }
+
+  async function restoreWithPassphrase() {
+    if (!selectedFile || !backupPassphrase) return
+    restoringWithPassphrase = true
+    validation = null
+    try {
+      const result = await validateLof(selectedFile, backupPassphrase)
+      validation = result
+      if (result.valid) {
+        needsPassphrase = false
         await store.restoreFromBackup(result.payload)
       }
     } catch (err) {
       validation = { valid: false, error: err?.message || String(err) }
     } finally {
-      validating = false
+      restoringWithPassphrase = false
+    }
+  }
+
+  async function restoreWsWithPassphrase() {
+    if (!wsSelectedFile || !wsPassphrase) return
+    wsValidation = null
+    wsValidating = true
+    try {
+      const result = await validarIntercambio(wsSelectedFile, wsPassphrase)
+      wsValidation = result
+      if (result.valid && (result.kind === 'working-set' || result.kind === 'custom')) {
+        wsNeedsPassphrase = false
+        store.selectedModules.colaborador = true
+        store.workingSetFile = wsSelectedFile
+        store.workingSetPassphrase = wsPassphrase
+      } else if (result.valid) {
+        wsValidation = { valid: false, error: `Este archivo es de tipo "${result.kind}". Necesitás un set de trabajo.` }
+      }
+    } catch (err) {
+      wsValidation = { valid: false, error: err?.message || String(err) }
+    } finally {
+      wsValidating = false
     }
   }
 </script>
@@ -125,6 +190,29 @@
         <div class="mt-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
           <AlertCircleIcon class="size-4 text-destructive shrink-0 mt-0.5" />
           <p class="text-xs text-destructive">{validation.error}</p>
+        </div>
+      {/if}
+
+      {#if needsPassphrase}
+        <div class="mt-3 flex flex-col gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-3">
+          <div class="flex items-center gap-2 text-sm font-medium">
+            <KeyIcon class="size-4 text-primary" />
+            Contraseña del backup
+          </div>
+          <p class="text-xs text-muted-foreground">
+            Este backup está cifrado. Ingresá la contraseña maestra (o la contraseña ad-hoc
+            si es un archivo de colaborador) para importarlo.
+          </p>
+          <Input
+            type="password"
+            placeholder="Contraseña"
+            autocomplete="off"
+            bind:value={backupPassphrase}
+            disabled={restoringWithPassphrase}
+          />
+          <Button onclick={restoreWithPassphrase} disabled={!backupPassphrase || restoringWithPassphrase} size="sm" class="w-fit">
+            {restoringWithPassphrase ? 'Importando…' : 'Importar backup'}
+          </Button>
         </div>
       {/if}
 
@@ -246,6 +334,27 @@
         <div class="mt-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
           <AlertCircleIcon class="size-4 text-destructive shrink-0 mt-0.5" />
           <p class="text-xs text-destructive">{wsValidation.error}</p>
+        </div>
+      {/if}
+
+      {#if wsNeedsPassphrase}
+        <div class="mt-3 flex flex-col gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-3">
+          <div class="flex items-center gap-2 text-sm font-medium">
+            <KeyIcon class="size-4 text-primary" />
+            Contraseña del set de trabajo
+          </div>
+          <p class="text-xs text-muted-foreground">
+            Este set de trabajo está cifrado. Ingresá la contraseña que te pasó la cooperadora.
+          </p>
+          <Input
+            type="password"
+            placeholder="Contraseña"
+            autocomplete="off"
+            bind:value={wsPassphrase}
+          />
+          <Button onclick={restoreWsWithPassphrase} disabled={!wsPassphrase} size="sm" class="w-fit">
+            Validar set de trabajo
+          </Button>
         </div>
       {/if}
     </Card.Content>

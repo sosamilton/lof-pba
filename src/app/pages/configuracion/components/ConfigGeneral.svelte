@@ -25,9 +25,18 @@
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte'
   import { useConfirmDialog } from '$lib/hooks/useConfirmDialog.svelte.js'
   import { identidad } from '$core/data/identidad'
+  import { formatBytes } from '$core/format/format'
   import { exportToLof } from '$core/data/exportImport.js'
   import { getActiveBackend } from '$core/data/dataRepository'
+  import { passphraseStore } from '$core/security/passphraseStore.svelte'
+  import { pinStore } from '$core/security/pinStore.svelte'
+  import PassphrasePromptDialog from '$core/security/PassphrasePromptDialog.svelte'
+  import { loadConfig, saveConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
+  import { configStore } from '$core/grist/stores/configStore.svelte'
+  import { migrateRoleFromConfig } from '$core/security/roles'
   import DownloadIcon from '@lucide/svelte/icons/download'
+  import KeyIcon from '@lucide/svelte/icons/key-round'
+  import ShieldIcon from '@lucide/svelte/icons/shield'
   import { notify } from '$core/ui/notify.svelte'
   import { trackEvent } from '$core/analytics/plausible.js'
 
@@ -35,20 +44,83 @@
   const isGristMode = getActiveBackend() === 'grist'
   let exporting = $state(false)
   let exportResult = $state(null)
+  let showPassphrasePrompt = $state(false)
+  let showRoleRecovery = $state(false)
+  let recoveryKeyInput = $state('')
+  let recoveringRole = $state(false)
+  let currentRole = $derived(migrateRoleFromConfig(configStore.config))
+
+  passphraseStore.init()
+
+  async function handleRoleRecovery() {
+    if (!recoveryKeyInput) {
+      notify.error('Ingresá la recovery key.')
+      return
+    }
+    recoveringRole = true
+    try {
+      // Verificar la recovery key contra lo almacenado por passphraseStore
+      const valid = await passphraseStore.verifyRecoveryKey(recoveryKeyInput)
+      if (!valid) {
+        notify.error('La recovery key no es correcta.')
+        return
+      }
+      // Resetear el rol a super_admin
+      const config = await loadConfig()
+      await saveConfig({ ...config, rol_dispositivo: 'super_admin' })
+      await configStore.load()
+      // Actualizar el rol activo de la sesión para que la UI reaccione
+      // (menú, tabs, permisos). Sin esto, pinStore.activeRole sigue siendo
+      // el rol anterior y pisa el rol de la config.
+      pinStore.unlock('super_admin')
+      notify.success('Acceso recuperado. El rol del dispositivo es super_admin nuevamente.')
+      trackEvent('role_recovered', { backend: getActiveBackend() })
+      showRoleRecovery = false
+      recoveryKeyInput = ''
+    } catch (e) {
+      notify.error(e?.message || 'Error al recuperar acceso.')
+    } finally {
+      recoveringRole = false
+    }
+  }
 
   const handleExport = async () => {
+    // Si hay passphrase institucional configurada, pedirla para cifrar.
+    if (passphraseStore.configured) {
+      showPassphrasePrompt = true
+      return
+    }
+    // No hay passphrase — exportar plano
+    await _doExport(null)
+  }
+
+  async function _doExport(institutionalPassphrase) {
     exporting = true
     exportResult = null
     try {
-      const res = await exportToLof({ kind: 'full' })
+      const opts = institutionalPassphrase
+        ? { encrypt: true, passphrase: institutionalPassphrase }
+        : {}
+      const res = await exportToLof({ kind: 'full', ...opts })
       exportResult = res
-      // Analytics: backup exportado (goal "Backup exportado")
-      trackEvent('backup_exported', { backend: getActiveBackend(), doc_count: res.docCount || 0 })
+      trackEvent('backup_exported', { backend: getActiveBackend(), doc_count: res.docCount || 0, encrypted: !!institutionalPassphrase })
+      if (institutionalPassphrase) {
+        notify.success(`Backup cifrado: ${res.filename} (${res.docCount} documentos)`)
+      }
     } catch (e) {
       notify.error(e?.message || 'Error al exportar')
     } finally {
       exporting = false
     }
+  }
+
+  async function onPassphraseConfirm(passphrase) {
+    const valid = await passphraseStore.verifyPassphrase(passphrase)
+    if (!valid) {
+      throw new Error('La contraseña maestra no es correcta.')
+    }
+    try { sessionStorage.setItem('lof-passphrase-session', passphrase) } catch { /* ignore */ }
+    await _doExport(passphrase)
   }
 
   let {
@@ -302,10 +374,58 @@
           <DownloadIcon class="size-4 text-primary" />
           <span class="text-sm font-semibold">Backup y restauración</span>
         </div>
+
+        {#if currentRole && currentRole !== 'super_admin'}
+          <div class="rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2 flex flex-col gap-2">
+            <div class="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-400">
+              <ShieldIcon class="size-4" />
+              Rol actual: {currentRole} — sin acceso a Seguridad
+            </div>
+            <p class="text-xs text-muted-foreground">
+              Si necesitás volver a super_admin (ej: te cambiaste de rol y perdiste acceso a Seguridad),
+              usá la <strong>recovery key</strong> que se generó al configurar la contraseña maestra.
+            </p>
+            {#if !showRoleRecovery}
+              <Button variant="outline" size="sm" onclick={() => showRoleRecovery = true} class="w-fit">
+                <KeyIcon data-icon="inline-start" />
+                Recuperar acceso
+              </Button>
+            {:else}
+              <div class="flex flex-col gap-2">
+                <Input
+                  type="password"
+                  placeholder="Recovery key (43 caracteres)"
+                  autocomplete="off"
+                  bind:value={recoveryKeyInput}
+                  disabled={recoveringRole}
+                />
+                <div class="flex gap-2">
+                  <Button variant="outline" size="sm" onclick={handleRoleRecovery} disabled={recoveringRole || !recoveryKeyInput}>
+                    {recoveringRole ? 'Verificando…' : 'Recuperar'}
+                  </Button>
+                  <Button variant="ghost" size="sm" onclick={() => { showRoleRecovery = false; recoveryKeyInput = '' }}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            {/if}
+          </div>
+        {/if}
         <p class="text-xs text-muted-foreground">
           Exportá todos los datos de tu cooperadora a un archivo comprimido (.lof).
           Usalo para migrar a otra computadora o como respaldo de seguridad.
         </p>
+        {#if passphraseStore.configured}
+          <div class="flex items-center gap-1.5 text-xs text-primary">
+            <KeyIcon class="size-3.5" />
+            Se cifra con contraseña maestra automáticamente.
+          </div>
+        {:else}
+          <div class="text-xs text-amber-600 dark:text-amber-400">
+            Sin contraseña maestra: el backup se exporta sin cifrar.
+            Configurá la contraseña maestra en Seguridad para proteger los backups.
+          </div>
+        {/if}
         <div class="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onclick={handleExport} disabled={exporting}>
             <DownloadIcon data-icon="inline-start" />
@@ -315,7 +435,7 @@
         {#if exportResult}
           <div class="text-xs text-muted-foreground rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
             Backup creado: <strong>{exportResult.filename}</strong>
-            ({(exportResult.size / 1024 / 1024).toFixed(2)} MB, {exportResult.docCount} documentos).
+            ({formatBytes(exportResult.size)}, {exportResult.docCount} documentos){exportResult.encrypted ? ' [cifrado]' : ''}.
           </div>
         {/if}
       </div>
@@ -356,4 +476,11 @@
   variant={confirm.variant}
   busy={store.migrating}
   onConfirm={confirm.handleConfirm}
+/>
+
+<PassphrasePromptDialog
+  bind:open={showPassphrasePrompt}
+  title="Contraseña maestra"
+  description="Ingresá la contraseña maestra para cifrar el backup."
+  onConfirm={onPassphraseConfirm}
 />

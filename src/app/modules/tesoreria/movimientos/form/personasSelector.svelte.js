@@ -42,6 +42,14 @@ export function createPersonasSelector({ relatedData, formState }) {
       .map((s) => ({ value: s.id, label: `${s.apellido}, ${s.nombre} · DNI ${s.dni || '-'}` }))
   )
 
+  // IDs de los rubros que matchean el heurístico de "cuota societaria".
+  // Se usa para buscar el último pago de un socio (ver ultimoPagoService).
+  const rubrosCuotaIds = $derived(
+    relatedData.rubros
+      .filter((r) => isRubroPagoSocietario(r.id))
+      .map((r) => Number(r.id))
+  )
+
   // Todas las personas con badges de tipo (Física/Jurídica) y categoría
   const personasTodas = $derived(
     relatedData.personas
@@ -82,6 +90,7 @@ export function createPersonasSelector({ relatedData, formState }) {
 
   return {
     get sociosActivos() { return sociosActivos },
+    get rubrosCuotaIds() { return rubrosCuotaIds },
     get personasTodas() { return personasTodas },
     get categoriasDisponibles() { return categoriasDisponibles },
     get personasFiltradas() { return personasFiltradas },

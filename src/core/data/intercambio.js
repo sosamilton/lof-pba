@@ -21,10 +21,17 @@
 
 import { gzipSync, gunzipSync, strToU8, strFromU8 } from 'fflate'
 import { getPouchDb, getActiveBackend, applyUserActions, resolveTableId } from './dataRepository.js'
-import { TABLE_PREFERRED_IDS } from '$core/utils/utils'
+import { TABLE_PREFERRED_IDS, normalize } from '$core/utils/utils'
 import { parseDni } from '$core/format/format'
+import {
+  encryptWithPassphrase,
+  decryptWithPassphrase,
+  serializeEnvelope,
+  parseEnvelope,
+} from '$core/security/cryptoEnvelope.js'
 
 const MAGIC = 'LOFBK1'
+const MAGIC_ENCRYPTED = 'LOFENC1'
 const VERSION = 2
 
 // --- Perfiles de exportación ---
@@ -55,19 +62,19 @@ export const EXPORT_PROFILES = {
     kind: 'working-set',
     modalidad: 'carga_consolidada',
   },
-  /** Patch para gestión integral: movimientos + personas + socios nuevos. */
+  /** Patch para gestión integral: movimientos + personas + socios nuevos o modificados. */
   patch_integral: {
     tables: ['movimientos', 'personas', 'socios'],
     personaFields: null,
     kind: 'patch',
-    filter: (doc) => !doc.imported_from,
+    filter: _esPatchElegible,
   },
-  /** Patch para carga consolidada: cargas + movimientos. */
+  /** Patch para carga consolidada: cargas + movimientos nuevos o modificados. */
   patch_consolidada: {
     tables: ['cargas', 'movimientos'],
     personaFields: null,
     kind: 'patch',
-    filter: (doc) => !doc.imported_from,
+    filter: _esPatchElegible,
   },
   /** Personalizado: el usuario elige tablas. */
   custom: {
@@ -78,6 +85,44 @@ export const EXPORT_PROFILES = {
   // Alias de compatibilidad con código Fase 1
   working_set: null, // se resuelve dinámicamente según modalidad
   patch_movimientos: null,
+}
+
+/**
+ * Determina si un doc es elegible para un patch (kind: "patch"):
+ *   - Nuevo: fue creado localmente por el colaborador (nunca tuvo `imported_from`).
+ *   - Modificado: vino del working set pero el colaborador lo editó
+ *     localmente después de importarlo (`modificado_el` seteado).
+ * Además evita reenviar en un patch incremental lo que ya se exportó en un
+ * patch anterior y no cambió desde entonces (`exportado_el` vs `modificado_el`).
+ * @param {object} doc
+ * @returns {boolean}
+ */
+function _esPatchElegible(doc) {
+  const esNuevo = !doc.imported_from
+  const fueModificadoTrasImportar = Boolean(doc.imported_from) && Boolean(doc.modificado_el)
+  if (!esNuevo && !fueModificadoTrasImportar) return false
+
+  if (doc.exportado_el) {
+    const sinCambiosDesdeUltimoExport = !doc.modificado_el || doc.modificado_el <= doc.exportado_el
+    if (sinCambiosDesdeUltimoExport) return false
+  }
+  return true
+}
+
+/**
+ * Marca los docs recién exportados en un patch con `exportado_el`, para
+ * que la próxima exportación incremental pueda distinguir lo ya enviado
+ * (y sin cambios) de lo nuevo o modificado desde entonces.
+ * @param {PouchDB.Database} db
+ * @param {object[]} rawDocs - docs crudos (con _id/_rev) tal como salieron de allDocs
+ * @param {string} exportedAt
+ */
+async function _marcarExportado(db, rawDocs, exportedAt) {
+  const BATCH = 500
+  const updates = rawDocs.map((d) => ({ ...d, exportado_el: exportedAt }))
+  for (let i = 0; i < updates.length; i += BATCH) {
+    await db.bulkDocs(updates.slice(i, i + BATCH))
+  }
 }
 
 /**
@@ -145,6 +190,7 @@ async function _resolveTableType(key) {
  * Exporta un subset de la DB a un archivo .lof.
  * @param {string} profileKey - clave de EXPORT_PROFILES o alias ('working_set', 'patch_movimientos')
  * @param {object} [opts] - opciones extra (ej: { tables: [...] } para custom)
+ * @param {string} [opts.passphrase] - Passphrase ad-hoc para cifrar el .lof (sobre AES-GCM).
  * @returns {Promise<{ filename: string, size: number, docCount: number }>}
  */
 export async function exportParcial(profileKey, opts = {}) {
@@ -168,14 +214,22 @@ export async function exportParcial(profileKey, opts = {}) {
   const escuelaType = await _resolveTableType('escuela')
 
   const result = await db.allDocs({ include_docs: true, conflicts: false })
-  let docs = result.rows
+  let rawDocs = result.rows
     .map((r) => r.doc)
     .filter((d) => !d._id.startsWith('_local/'))
     .filter((d) => tableSet.has(d.type))
-    .map((d) => {
-      const { _revisions, _conflicts, imported_from, ...clean } = d
-      return clean
-    })
+
+  // Aplicar filtro del perfil sobre los docs crudos: para patches necesita
+  // `imported_from`, `modificado_el` y `exportado_el` intactos para
+  // distinguir nuevo/modificado/ya-exportado-sin-cambios (ver _esPatchElegible).
+  if (profile.filter) {
+    rawDocs = rawDocs.filter(profile.filter)
+  }
+
+  let docs = rawDocs.map((d) => {
+    const { _revisions, _conflicts, imported_from, modificado_el, exportado_el, ...clean } = d
+    return clean
+  })
 
   // Filtrar personas por campos (reducción de PII)
   if (profile.personaFields && tableSet.has(personasType)) {
@@ -209,13 +263,16 @@ export async function exportParcial(profileKey, opts = {}) {
     })
   }
 
-  // Aplicar filtro del perfil (ej: solo docs sin imported_from)
-  if (profile.filter) {
-    docs = docs.filter(profile.filter)
-  }
-
   // Cargar config para incluir defaults_movimiento y modalidad en el payload
   const config = await _loadConfig()
+
+  // Último pago de cuota societaria por socio activo: información de
+  // solo lectura para que el colaborador sepa a quién cobrarle. Va como
+  // metadata del working set (nunca como doc), así que no puede volver
+  // a la cooperadora en un patch del colaborador.
+  const ultimosPagos = resolvedKey === 'working_set_integral'
+    ? await _calcularUltimosPagos(db)
+    : null
 
   const payload = {
     v: VERSION,
@@ -226,6 +283,7 @@ export async function exportParcial(profileKey, opts = {}) {
     modalidad: profile.modalidad || null,
     source: opts.source || null,
     defaults_movimiento: config?.defaults_movimiento || null,
+    ultimos_pagos: ultimosPagos,
     docs,
   }
 
@@ -233,16 +291,31 @@ export async function exportParcial(profileKey, opts = {}) {
   const jsonBytes = strToU8(jsonStr)
   const compressed = gzipSync(jsonBytes, { level: 9 })
 
-  const magicBytes = strToU8(MAGIC)
-  const fileBytes = new Uint8Array(magicBytes.length + compressed.length)
-  fileBytes.set(magicBytes, 0)
-  fileBytes.set(compressed, magicBytes.length)
-
-  const blob = new Blob([fileBytes], { type: 'application/octet-stream' })
   const date = new Date().toISOString().slice(0, 10)
   const suffix = resolvedKey.startsWith('working_set') ? 'working-set'
     : resolvedKey.startsWith('patch') ? 'patch' : 'export'
   const filename = `lof-${suffix}-${date}.lof`
+
+  let fileBytes
+  let encrypted = false
+  if (opts.passphrase) {
+    // Cifrar con passphrase ad-hoc (sobre AES-GCM, destinatario 'colaborador')
+    const envelope = await encryptWithPassphrase(opts.passphrase, compressed, 'colaborador')
+    const envelopeJson = serializeEnvelope(envelope)
+    const envelopeBytes = strToU8(envelopeJson)
+    const magicBytes = strToU8(MAGIC_ENCRYPTED)
+    fileBytes = new Uint8Array(magicBytes.length + envelopeBytes.length)
+    fileBytes.set(magicBytes, 0)
+    fileBytes.set(envelopeBytes, magicBytes.length)
+    encrypted = true
+  } else {
+    const magicBytes = strToU8(MAGIC)
+    fileBytes = new Uint8Array(magicBytes.length + compressed.length)
+    fileBytes.set(magicBytes, 0)
+    fileBytes.set(compressed, magicBytes.length)
+  }
+
+  const blob = new Blob([fileBytes], { type: 'application/octet-stream' })
 
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -253,10 +326,17 @@ export async function exportParcial(profileKey, opts = {}) {
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
 
+  // Marcar los docs de un patch como exportados, para que una próxima
+  // exportación incremental no vuelva a reenviarlos si no cambiaron.
+  if (profile.kind === 'patch' && rawDocs.length > 0) {
+    await _marcarExportado(db, rawDocs, payload.exportedAt)
+  }
+
   return {
     filename,
     size: fileBytes.length,
     docCount: docs.length,
+    encrypted,
   }
 }
 
@@ -269,7 +349,7 @@ export async function exportParcial(profileKey, opts = {}) {
  * el colaborador pueda luego exportar solo lo que él creó.
  *
  * @param {File} file
- * @param {object} [opts] - { exportId, reemplazar, inicializar }
+ * @param {object} [opts] - { exportId, reemplazar, inicializar, passphrase }
  * @returns {Promise<{ docCount: number, inserted: number, skipped: number, replaced: number }>}
  */
 export async function importWorkingSet(file, opts = {}) {
@@ -279,7 +359,7 @@ export async function importWorkingSet(file, opts = {}) {
   const db = getPouchDb()
   if (!db) throw new Error('No hay base de datos activa.')
 
-  const payload = await _parseLof(file)
+  const payload = await _parseLof(file, opts.passphrase)
 
   if (payload.kind && payload.kind !== 'working-set' && payload.kind !== 'custom') {
     throw new Error(`Este archivo es de tipo "${payload.kind}". Use "Importar set de trabajo" solo para sets de trabajo.`)
@@ -333,6 +413,22 @@ export async function importWorkingSet(file, opts = {}) {
     await _mergeConfigDefaults(payload.defaults_movimiento)
   }
 
+  // Guardar el snapshot de "último pago por socio" en un doc _local/: estos
+  // docs nunca se incluyen en ningún export (ver el filtro `_local/` al
+  // inicio de exportParcial), así que el dato queda disponible para la UI
+  // del colaborador (ultimoPagoService) pero jamás puede reenviarse.
+  if (payload.ultimos_pagos) {
+    try {
+      const existing = await db.get('_local/ultimos_pagos_import').catch(() => null)
+      await db.put({
+        _id: '_local/ultimos_pagos_import',
+        ...(existing ? { _rev: existing._rev } : {}),
+        value: payload.ultimos_pagos,
+        importedAt: payload.exportedAt,
+      })
+    } catch { /* no bloquear el import por esto */ }
+  }
+
   // Si inicializar (modo colaborador), setear flags en configuracion
   if (opts.inicializar) {
     await _setModoColaborador(payload)
@@ -350,14 +446,14 @@ export async function importWorkingSet(file, opts = {}) {
  * @param {File} file
  * @returns {Promise<MergeReport>}
  */
-export async function analizarMerge(file) {
+export async function analizarMerge(file, passphrase) {
   if (getActiveBackend() !== 'pouch') {
     throw new Error('El intercambio solo está disponible en modo standalone (PouchDB).')
   }
   const db = getPouchDb()
   if (!db) throw new Error('No hay base de datos activa.')
 
-  const payload = await _parseLof(file)
+  const payload = await _parseLof(file, passphrase)
 
   if (payload.kind !== 'patch') {
     throw new Error(
@@ -677,16 +773,17 @@ function _analizarMergeMovimientos(patchMovimientos, patchPersonas, real) {
  *
  * @param {File} file
  * @param {string|object} analisisAprobado - hash devuelto por analizarMerge, o el reporte completo
+ * @param {string} [passphrase] - Passphrase si el archivo está cifrado.
  * @returns {Promise<{ added: object, remapped: object, deduped: object, log: string[] }>}
  */
-export async function aplicarMerge(file, analisisAprobado) {
+export async function aplicarMerge(file, analisisAprobado, passphrase) {
   if (getActiveBackend() !== 'pouch') {
     throw new Error('El intercambio solo está disponible en modo standalone (PouchDB).')
   }
   const db = getPouchDb()
   if (!db) throw new Error('No hay base de datos activa.')
 
-  const payload = await _parseLof(file)
+  const payload = await _parseLof(file, passphrase)
   if (payload.kind !== 'patch') throw new Error('El archivo no es un patch válido para merge.')
 
   // Validar hash
@@ -876,6 +973,20 @@ export async function limpiarDispositivo() {
   localStorage.removeItem('lof-backend')
   localStorage.removeItem('lof-config-cache')
   localStorage.removeItem('lof-demo-mode')
+  // Limpiar datos de seguridad (PINs, contraseña maestra, recovery key, lockout, passkey)
+  // para que al salir del demo no quede nada seteado.
+  localStorage.removeItem('lof-pin-roles')
+  localStorage.removeItem('lof-pin-roles-lockout')
+  localStorage.removeItem('lof-pin') // legacy
+  localStorage.removeItem('lof-pin-lockout') // legacy
+  localStorage.removeItem('lof-passphrase')
+  localStorage.removeItem('lof-recovery-key')
+  localStorage.removeItem('lof-passkey')
+  localStorage.removeItem('lof-passkey-credential')
+  // Limpiar sesión
+  sessionStorage.removeItem('lof-pin-unlocked')
+  sessionStorage.removeItem('lof-pin-active-role')
+  sessionStorage.removeItem('lof-passphrase-session')
   // Recargar para volver al wizard
   window.location.reload()
 }
@@ -885,11 +996,12 @@ export async function limpiarDispositivo() {
 /**
  * Valida un archivo .lof y devuelve metadata sin importarlo.
  * @param {File} file
+ * @param {string} [passphrase] - Passphrase si el archivo está cifrado.
  * @returns {Promise<{ valid: boolean, kind?: string, docCount?: number, exportedAt?: string, modalidad?: string, error?: string }>}
  */
-export async function validarIntercambio(file) {
+export async function validarIntercambio(file, passphrase) {
   try {
-    const payload = await _parseLof(file)
+    const payload = await _parseLof(file, passphrase)
     return {
       valid: true,
       kind: payload.kind || 'full',
@@ -904,7 +1016,7 @@ export async function validarIntercambio(file) {
 
 // --- Helpers internos ---
 
-async function _parseLof(file) {
+async function _parseLof(file, passphrase) {
   if (!file) throw new Error('Archivo vacío o no válido.')
   let arrayBuffer
   try {
@@ -926,6 +1038,24 @@ async function _parseLof(file) {
     }
   }
   const fileBytes = new Uint8Array(arrayBuffer)
+
+  // Detectar formato cifrado (LOFENC1)
+  const encMagicLen = MAGIC_ENCRYPTED.length
+  if (fileBytes.length >= encMagicLen && strFromU8(fileBytes.slice(0, encMagicLen)) === MAGIC_ENCRYPTED) {
+    if (!passphrase) {
+      throw new Error('Este archivo está cifrado. Ingresá la passphrase para importarlo.')
+    }
+    const envelopeJson = strFromU8(fileBytes.slice(encMagicLen))
+    const envelope = parseEnvelope(envelopeJson)
+    const compressed = await decryptWithPassphrase(passphrase, envelope, 'colaborador')
+    const jsonBytes = gunzipSync(compressed)
+    const payload = JSON.parse(strFromU8(jsonBytes))
+    if (!payload.docs || !Array.isArray(payload.docs)) {
+      throw new Error('Archivo corrupto: no contiene documentos.')
+    }
+    return payload
+  }
+
   const magicLen = MAGIC.length
   if (fileBytes.length < magicLen + 10) {
     throw new Error('Archivo demasiado pequeño para ser un backup válido.')
@@ -958,6 +1088,48 @@ async function _fetchAllByType(db, type) {
   await db.createIndex({ index: { fields: ['type'] } })
   const result = await db.find({ selector: { type }, limit: 100000 })
   return result.docs
+}
+
+/**
+ * Calcula, para cada socio activo (sin `fecha_baja`), la fecha e importe
+ * del último movimiento de cuota societaria registrado. Es información de
+ * contexto para el colaborador (a quién cobrarle) — se agrega como
+ * metadata del working set (`payload.ultimos_pagos`), nunca como doc de
+ * una tabla, así que un patch del colaborador nunca puede reenviarla.
+ * @param {PouchDB.Database} db
+ * @returns {Promise<Record<string, { fecha: string, importe: number }>>} keyed por socio_id
+ */
+async function _calcularUltimosPagos(db) {
+  const rubrosType = await _resolveTableType('rubros_pia')
+  const sociosType = await _resolveTableType('socios')
+  const movimientosType = await _resolveTableType('movimientos')
+
+  const rubros = await _fetchAllByType(db, rubrosType)
+  const rubroCuota = rubros.find((r) => {
+    const nombre = normalize(r.nombre_oficial || '')
+    return nombre.includes('cuota') || nombre.includes('socio') ||
+      nombre.includes('societ') || nombre.includes('aporte socio')
+  })
+  if (!rubroCuota) return {}
+
+  const socios = await _fetchAllByType(db, sociosType)
+  const sociosActivosIds = new Set(
+    socios.filter((s) => !s.fecha_baja).map((s) => Number(s.id))
+  )
+  if (sociosActivosIds.size === 0) return {}
+
+  const movimientos = await _fetchAllByType(db, movimientosType)
+  const ultimos = {}
+  for (const m of movimientos) {
+    if (Number(m.rubro_id) !== Number(rubroCuota.id)) continue
+    const socioId = m.socio_id != null ? Number(m.socio_id) : null
+    if (socioId == null || !sociosActivosIds.has(socioId)) continue
+    const actual = ultimos[socioId]
+    if (!actual || String(m.fecha) > String(actual.fecha)) {
+      ultimos[socioId] = { fecha: m.fecha, importe: m.importe }
+    }
+  }
+  return ultimos
 }
 
 async function _rebuildCounters(db) {
@@ -1006,6 +1178,7 @@ async function _setModoColaborador(payload) {
     const modalidad = payload.modalidad
     const flags = {
       modo_colaborador: true,
+      rol_dispositivo: 'tesorero',
       instalado: true,
       fecha_instalacion: new Date().toISOString(),
     }

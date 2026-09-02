@@ -1,6 +1,8 @@
 <script>
   import * as Field from '$lib/components/ui/field'
   import Combobox from '$lib/components/Combobox.svelte'
+  import { formatARS } from '$core/utils/utils'
+  import { formatFecha } from '$core/format/format'
 
   // Campo de persona/socio vinculado a un movimiento, con filtro de categoría.
   let {
@@ -9,7 +11,11 @@
     filtroCategoria = '',
     onSetFiltroCategoria = () => {},
     value = '',
-    onChange = () => {},
+    onchange = () => {},
+    // Último pago de cuota societaria del socio seleccionado (solo lectura,
+    // informativo — no se guarda en el movimiento ni se exporta).
+    ultimoPago = null,
+    ultimoPagoLoading = false,
     disabled = false,
   } = $props()
 </script>
@@ -39,7 +45,7 @@
     {#if personasSeleccionables.items.length > 0}
       <Combobox
         {value}
-        onchange={onChange}
+        {onchange}
         items={personasSeleccionables.items}
         placeholder="(Ninguno)"
         searchPlaceholder="Buscar persona…"
@@ -48,6 +54,17 @@
       />
       {#if personasSeleccionables.tipo === 'socio'}
         <Field.FieldDescription>Solo se muestran socios activos (pago societario).</Field.FieldDescription>
+        {#if value}
+          {#if ultimoPagoLoading}
+            <p class="mt-1 text-xs text-muted-foreground">Buscando último pago…</p>
+          {:else if ultimoPago}
+            <p class="mt-1 text-xs text-muted-foreground">
+              Último pago de cuota: {formatARS(ultimoPago.importe)} el {formatFecha(ultimoPago.fecha)}
+            </p>
+          {:else}
+            <p class="mt-1 text-xs text-muted-foreground">Sin pagos de cuota registrados para este socio.</p>
+          {/if}
+        {/if}
       {:else}
         <Field.FieldDescription>
           Se muestran todas las personas con su tipo y categoría. Usá el filtro para acotar.

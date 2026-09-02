@@ -4,8 +4,10 @@
   import { Badge } from '$lib/components/ui/badge'
   import { Separator } from '$lib/components/ui/separator'
   import { Checkbox } from '$lib/components/ui/checkbox'
-  import * as Select from '$lib/components/ui/select'
+  import * as Field from '$lib/components/ui/field'
+  import { Input } from '$lib/components/ui/input'
   import { Alert, AlertDescription } from '$lib/components/ui/alert'
+  import KeyIcon from '@lucide/svelte/icons/key-round'
   import DownloadIcon from '@lucide/svelte/icons/download'
   import UploadIcon from '@lucide/svelte/icons/upload'
   import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right'
@@ -18,6 +20,14 @@
   import { getActiveBackend } from '$core/data/dataRepository'
   import { formatFecha } from '$core/format/format'
   import { createIntercambioService } from '../intercambioService.svelte.js'
+  import { pinStore } from '$core/security/pinStore.svelte'
+  import { configStore } from '$core/grist/stores/configStore.svelte'
+
+  // Rol activo para decidir qué secciones mostrar
+  const activeRole = $derived(pinStore.activeRole || (configStore.config?.modo_colaborador ? 'tesorero' : 'super_admin'))
+  const isColaboradorMode = $derived(!!configStore.config?.modo_colaborador || activeRole === 'tesorero')
+  // "Integrar cambios" solo para super_admin y admin (la cooperadora)
+  const canImportPatches = $derived(activeRole === 'super_admin' || activeRole === 'admin')
 
   const isPouchMode = getActiveBackend() === 'pouch'
   const svc = createIntercambioService()
@@ -30,11 +40,6 @@
   let showMovimientos = $state(false)
   let showPersonas = $state(false)
 
-  const PROFILE_LABELS = {
-    working_set: 'Set de trabajo (para colaborador)',
-    patch_movimientos: 'Solo movimientos nuevos (patch)',
-    full: 'Backup completo',
-  }
 </script>
 
 {#if !isPouchMode}
@@ -50,70 +55,123 @@
 {/if}
 
 <div class="flex flex-col gap-6">
-  <!-- Exportar (disponible en cualquier backend) -->
+  {#if isColaboradorMode}
+    <!-- Modo colaborador: solo "Finalizar colaboración" -->
+    <Card.Root class="border-amber-500/30">
+      <Card.Header>
+        <Card.Title class="flex items-center gap-2">
+          <HandHeartIcon class="size-5 text-amber-600" />
+          Finalizar colaboración
+        </Card.Title>
+        <Card.Description>
+          Exportá los movimientos que cargaste para devolverselos a la cooperadora.
+          Después podés limpiar el dispositivo para borrar todos los datos.
+        </Card.Description>
+      </Card.Header>
+      <Card.Content class="flex flex-col gap-4">
+        {#if !svc.patchExported}
+          <Button onclick={svc.handleExportPatchYLimpiar} disabled={svc.cleaning} class="w-fit">
+            {#if svc.cleaning}
+              <CheckCircleIcon data-icon="inline-start" class="animate-spin" />
+              Exportando…
+            {:else}
+              <DownloadIcon data-icon="inline-start" />
+              Exportar cargas realizadas
+            {/if}
+          </Button>
+        {:else}
+          <Alert>
+            <CheckCircleIcon data-icon="inline-start" />
+            <AlertDescription>
+              Cargas exportadas. Ya podés limpiar el dispositivo.
+            </AlertDescription>
+          </Alert>
+
+          <Button variant="outline" onclick={() => (svc.showCleanupConfirm = true)} disabled={svc.cleaning} class="w-fit">
+            <TrashIcon data-icon="inline-start" />
+            Limpiar dispositivo
+          </Button>
+        {/if}
+
+        {#if svc.showCleanupConfirm}
+          <Alert variant="destructive">
+            <AlertCircleIcon data-icon="inline-start" />
+            <AlertDescription>
+              <p class="font-medium">¿Seguro que querés limpiar el dispositivo?</p>
+              <p class="mt-1 text-sm">
+                Se borrarán todos los datos locales (movimientos, personas, configuración).
+                Esta acción no se puede deshacer. Asegurate de haber exportado las cargas.
+              </p>
+              <div class="mt-3 flex gap-2">
+                <Button variant="destructive" size="sm" onclick={svc.handleLimpiarDispositivo} disabled={svc.cleaning}>
+                  {#if svc.cleaning}
+                    <CheckCircleIcon data-icon="inline-start" class="animate-spin" />
+                    Limpiando…
+                  {:else}
+                    <TrashIcon data-icon="inline-start" />
+                    Sí, limpiar todo
+                  {/if}
+                </Button>
+                <Button variant="outline" size="sm" onclick={() => (svc.showCleanupConfirm = false)}>
+                  Cancelar
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        {/if}
+      </Card.Content>
+    </Card.Root>
+  {:else if canImportPatches}
+    <!-- Modo cooperadora (super_admin / admin): Exportar set de trabajo + Integrar cambios -->
   <Card.Root>
     <Card.Header>
       <Card.Title class="flex items-center gap-2">
         <ShareIcon class="size-5" />
-        Exportar
+        Exportar set de trabajo
       </Card.Title>
       <Card.Description>
-        {#if isPouchMode}
-          Exportá un subset de datos para enviar a un colaborador o para traer de vuelta los cambios.
-        {:else}
-          Exportá un backup completo para migrar a otra instalación.
-        {/if}
+        Generá un archivo <span class="font-mono">.lof</span> con los datos que un colaborador
+        necesita para cargar movimientos desde su dispositivo.
       </Card.Description>
     </Card.Header>
     <Card.Content class="flex flex-col gap-4">
-      <div class="flex flex-col gap-2">
-        <label class="text-sm font-medium" for="export-profile">Perfil de exportación</label>
-        <Select.Root type="single" bind:value={svc.exportProfile}>
-          <Select.Trigger id="export-profile" class="w-full">
-            {PROFILE_LABELS[svc.exportProfile] ?? 'Seleccionar…'}
-          </Select.Trigger>
-          <Select.Content>
-            {#if isPouchMode}
-              <Select.Item value="working_set" label="Set de trabajo (para colaborador)">
-                Set de trabajo (para colaborador)
-              </Select.Item>
-              <Select.Item value="patch_movimientos" label="Solo movimientos nuevos (patch)">
-                Solo movimientos nuevos (patch)
-              </Select.Item>
-            {/if}
-            <Select.Item value="full" label="Backup completo">Backup completo</Select.Item>
-          </Select.Content>
-        </Select.Root>
-      </div>
+      <Alert>
+        <CheckCircleIcon data-icon="inline-start" />
+        <AlertDescription>
+          Incluye personas (datos reducidos: sin domicilio, teléfono ni email), socios,
+          cuentas, rubros, subrubros, ejercicios y configuración. El colaborador puede
+          usarlo para cargar movimientos y después devolverte los cambios.
+        </AlertDescription>
+      </Alert>
 
-      {#if svc.exportProfile === 'working_set'}
-        <Alert>
-          <CheckCircleIcon data-icon="inline-start" />
-          <AlertDescription>
-            Incluye personas (datos reducidos: sin domicilio, teléfono ni email), socios,
-            cuentas, rubros, subrubros, ejercicios y configuración. Un colaborador puede
-            usarlo para cargar movimientos desde su dispositivo.
-          </AlertDescription>
-        </Alert>
-      {:else if svc.exportProfile === 'patch_movimientos'}
-        <Alert>
-          <CheckCircleIcon data-icon="inline-start" />
-          <AlertDescription>
-            Exporta solo los movimientos, personas y socios que creaste localmente
-            (excluye lo que recibiste de un set de trabajo). Pensado para devolver a la
-            cooperadora y que haga merge.
-          </AlertDescription>
-        </Alert>
-      {:else if svc.exportProfile === 'full'}
-        <Alert>
-          <CheckCircleIcon data-icon="inline-start" />
-          <AlertDescription>
-            Exporta todos los datos (todas las tablas, comprobantes y estatuto) en formato
-            neutral <span class="font-mono">.lof</span>. Podés importarlo en cualquier instalación
-            de LOF, sea standalone (PouchDB) o Grist.
-          </AlertDescription>
-        </Alert>
-      {/if}
+      <!-- Contraseña opcional para cifrar el set de trabajo -->
+      <div class="flex flex-col gap-2 rounded-lg border border-input p-3 bg-muted/30">
+        <div class="flex items-center gap-2 text-sm font-medium">
+          <KeyIcon class="size-4 text-muted-foreground" />
+          Cifrar con contraseña (opcional)
+        </div>
+        <p class="text-xs text-muted-foreground">
+          Si ingresás una contraseña, el archivo <span class="font-mono">.lof</span> se cifra con AES-GCM.
+          El colaborador debe ingresar la misma contraseña para importarlo.
+          Dejalo vacío para exportar sin cifrar.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <Input
+            type="password"
+            placeholder="Contraseña"
+            autocomplete="off"
+            bind:value={svc.exportPassphrase}
+            disabled={svc.exporting}
+          />
+          <Input
+            type="password"
+            placeholder="Repetir contraseña"
+            autocomplete="off"
+            bind:value={svc.exportConfirmPassphrase}
+            disabled={svc.exporting}
+          />
+        </div>
+      </div>
 
       <Button onclick={svc.handleExport} disabled={svc.exporting} class="w-fit">
         {#if svc.exporting}
@@ -121,7 +179,7 @@
           Exportando…
         {:else}
           <DownloadIcon data-icon="inline-start" />
-          Exportar .lof
+          Exportar set de trabajo
         {/if}
       </Button>
 
@@ -134,45 +192,6 @@
   </Card.Root>
 
   {#if isPouchMode}
-    <Separator />
-
-    <!-- Importar set de trabajo (colaborador) -->
-    <Card.Root>
-      <Card.Header>
-        <Card.Title class="flex items-center gap-2">
-          <FileUpIcon class="size-5" />
-          Importar set de trabajo
-        </Card.Title>
-        <Card.Description>
-          Para colaboradores: importá el set de trabajo que te envió la cooperadora y empezá
-          a cargar movimientos desde tu dispositivo.
-        </Card.Description>
-      </Card.Header>
-      <Card.Content class="flex flex-col gap-4">
-        <input
-          bind:this={wsFileInput}
-          type="file"
-          accept=".lof"
-          class="hidden"
-          onchange={svc.handleWsImport}
-        />
-        <Button
-          variant="outline"
-          onclick={() => wsFileInput?.click()}
-          disabled={svc.importingWs}
-          class="w-fit"
-        >
-          {#if svc.importingWs}
-            <CheckCircleIcon data-icon="inline-start" class="animate-spin" />
-            Importando…
-          {:else}
-            <UploadIcon data-icon="inline-start" />
-            Seleccionar set de trabajo (.lof)
-          {/if}
-        </Button>
-      </Card.Content>
-    </Card.Root>
-
     <Separator />
 
     <!-- Merge import (cooperadora) -->
@@ -434,75 +453,6 @@
         {/if}
       </Card.Content>
     </Card.Root>
-
-    {#if svc.isColaborador}
-      <Separator />
-
-      <!-- Finalizar colaboración -->
-      <Card.Root class="border-amber-500/30">
-        <Card.Header>
-          <Card.Title class="flex items-center gap-2">
-            <HandHeartIcon class="size-5 text-amber-600" />
-            Finalizar colaboración
-          </Card.Title>
-          <Card.Description>
-            Exportá los movimientos que cargaste para devolverselos a la cooperadora.
-            Después podés limpiar el dispositivo para borrar todos los datos.
-          </Card.Description>
-        </Card.Header>
-        <Card.Content class="flex flex-col gap-4">
-          {#if !svc.patchExported}
-            <Button onclick={svc.handleExportPatchYLimpiar} disabled={svc.cleaning} class="w-fit">
-              {#if svc.cleaning}
-                <CheckCircleIcon data-icon="inline-start" class="animate-spin" />
-                Exportando…
-              {:else}
-                <DownloadIcon data-icon="inline-start" />
-                Exportar patch y limpiar
-              {/if}
-            </Button>
-          {:else}
-            <Alert>
-              <CheckCircleIcon data-icon="inline-start" />
-              <AlertDescription>
-                Patch exportado. Ya podés limpiar el dispositivo.
-              </AlertDescription>
-            </Alert>
-
-            <Button variant="outline" onclick={() => (svc.showCleanupConfirm = true)} disabled={svc.cleaning} class="w-fit">
-              <TrashIcon data-icon="inline-start" />
-              Limpiar dispositivo
-            </Button>
-          {/if}
-
-          {#if svc.showCleanupConfirm}
-            <Alert variant="destructive">
-              <AlertCircleIcon data-icon="inline-start" />
-              <AlertDescription>
-                <p class="font-medium">¿Seguro que querés limpiar el dispositivo?</p>
-                <p class="mt-1 text-sm">
-                  Se borrarán todos los datos locales (movimientos, personas, configuración).
-                  Esta acción no se puede deshacer. Asegurate de haber exportado el patch.
-                </p>
-                <div class="mt-3 flex gap-2">
-                  <Button variant="destructive" size="sm" onclick={svc.handleLimpiarDispositivo} disabled={svc.cleaning}>
-                    {#if svc.cleaning}
-                      <CheckCircleIcon data-icon="inline-start" class="animate-spin" />
-                      Limpiando…
-                    {:else}
-                      <TrashIcon data-icon="inline-start" />
-                      Sí, limpiar todo
-                    {/if}
-                  </Button>
-                  <Button variant="outline" size="sm" onclick={() => (svc.showCleanupConfirm = false)}>
-                    Cancelar
-                  </Button>
-                </div>
-              </AlertDescription>
-            </Alert>
-          {/if}
-        </Card.Content>
-      </Card.Root>
-    {/if}
   {/if}
+{/if}
 </div>

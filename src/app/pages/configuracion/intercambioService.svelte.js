@@ -38,20 +38,24 @@ export function createIntercambioService() {
   loadConfigData()
 
   // --- Export ---
-  let exportProfile = $state('working_set')
+  let exportProfile = $state('working_set') // fijo en working_set, no se cambia
   let exporting = $state(false)
   let exportResult = $state(null)
+  let exportPassphrase = $state('')
+  let exportConfirmPassphrase = $state('')
 
   const handleExportPatchYLimpiar = async () => {
     cleaning = true
     try {
       const profile = config?.modulo_carga_consolidada ? 'patch_consolidada' : 'patch_integral'
-      const res = await exportParcial(profile)
+      // En modo colaborador, exportar sin contraseña (exportPassphrase siempre vacío)
+      const opts = {}
+      const res = await exportParcial(profile, opts)
       patchExported = true
-      notify.success(`Patch exportado: ${res.filename} (${res.docCount} documentos)`)
-      trackEvent('colaborador_patch_exported', { profile, doc_count: res.docCount })
+      notify.success(`Cargas exportadas: ${res.filename} (${res.docCount} documentos)`)
+      trackEvent('colaborador_patch_exported', { profile, doc_count: res.docCount, encrypted: false })
     } catch (e) {
-      notify.error(e?.message || 'Error al exportar patch')
+      notify.error(e?.message || 'Error al exportar las cargas')
       patchExported = false
     } finally {
       cleaning = false
@@ -69,31 +73,22 @@ export function createIntercambioService() {
     }
   }
 
+
   const handleExport = async () => {
-    if (exportProfile === 'full') {
-      // Export completo en formato neutral (funciona en cualquier backend)
-      exporting = true
-      exportResult = null
-      try {
-        const res = await exportToLof({ kind: 'full' })
-        exportResult = res
-        trackEvent('backup_exported', { backend: 'pouch', profile: 'full', doc_count: res.docCount })
-        notify.success(`Backup exportado: ${res.filename} (${res.docCount} documentos)`)
-      } catch (e) {
-        notify.error(e?.message || 'Error al exportar')
-      } finally {
-        exporting = false
-      }
+    // Validar que las passphrases coincidan si se ingresó una
+    if (exportPassphrase && exportPassphrase !== exportConfirmPassphrase) {
+      notify.error('Las contraseñas no coinciden.')
       return
     }
 
     exporting = true
     exportResult = null
     try {
-      const res = await exportParcial(exportProfile)
+      const opts = exportPassphrase ? { passphrase: exportPassphrase } : {}
+      const res = await exportParcial('working_set', opts)
       exportResult = res
-      trackEvent('intercambio_exported', { backend: 'pouch', profile: exportProfile, doc_count: res.docCount })
-      notify.success(`Exportado: ${res.filename} (${res.docCount} documentos)`)
+      trackEvent('intercambio_exported', { backend: 'pouch', profile: 'working_set', doc_count: res.docCount, encrypted: res.encrypted })
+      notify.success(`Set de trabajo exportado: ${res.filename} (${res.docCount} documentos)${res.encrypted ? ' [cifrado]' : ''}`)
     } catch (e) {
       notify.error(e?.message || 'Error al exportar')
     } finally {
@@ -103,6 +98,7 @@ export function createIntercambioService() {
 
   // --- Import working set ---
   let importingWs = $state(false)
+  let wsPassphrase = $state('')
 
   const handleWsImport = async (/** @type {Event} */ e) => {
     const input = /** @type {HTMLInputElement} */ (e.target)
@@ -111,10 +107,12 @@ export function createIntercambioService() {
     importingWs = true
     const id = notify.loading('Importando set de trabajo…')
     try {
-      const res = await importWorkingSet(file)
+      const opts = wsPassphrase ? { passphrase: wsPassphrase } : {}
+      const res = await importWorkingSet(file, opts)
       notify.dismiss(id)
-      trackEvent('intercambio_ws_imported', { backend: 'pouch', inserted: res.inserted, skipped: res.skipped })
+      trackEvent('intercambio_ws_imported', { backend: 'pouch', inserted: res.inserted, skipped: res.skipped, encrypted: !!wsPassphrase })
       notify.success(`Set importado: ${res.inserted} documentos insertados, ${res.skipped} ya existían.`)
+      wsPassphrase = ''
     } catch (e) {
       notify.dismiss(id)
       notify.error(e?.message || 'Error al importar set de trabajo')
@@ -131,6 +129,7 @@ export function createIntercambioService() {
   let applying = $state(false)
   let mergeResult = $state(null)
   let doBackupBefore = $state(true)
+  let mergePassphrase = $state('')
 
   const handleMergeFileSelect = async (/** @type {Event} */ e) => {
     const input = /** @type {HTMLInputElement} */ (e.target)
@@ -141,9 +140,9 @@ export function createIntercambioService() {
     mergeResult = null
     analyzing = true
     try {
-      const report = await analizarMerge(file)
+      const report = await analizarMerge(file, mergePassphrase || undefined)
       mergeAnalysis = report
-      trackEvent('intercambio_merge_analyzed', { backend: 'pouch', conflictos: report.resumen.conflictos })
+      trackEvent('intercambio_merge_analyzed', { backend: 'pouch', conflictos: report.resumen.conflictos, encrypted: !!mergePassphrase })
     } catch (e) {
       notify.error(e?.message || 'Error al analizar el patch')
       mergeFile = null
@@ -179,7 +178,7 @@ export function createIntercambioService() {
 
     const id = notify.loading('Aplicando merge…')
     try {
-      const res = await aplicarMerge(mergeFile, mergeAnalysis.analisisHash)
+      const res = await aplicarMerge(mergeFile, mergeAnalysis.analisisHash, mergePassphrase || undefined)
       notify.dismiss(id)
       mergeResult = res
       trackEvent('intercambio_merge_applied', {
@@ -225,10 +224,16 @@ export function createIntercambioService() {
     set exportProfile(v) { exportProfile = v },
     get exporting() { return exporting },
     get exportResult() { return exportResult },
+    get exportPassphrase() { return exportPassphrase },
+    set exportPassphrase(v) { exportPassphrase = v },
+    get exportConfirmPassphrase() { return exportConfirmPassphrase },
+    set exportConfirmPassphrase(v) { exportConfirmPassphrase = v },
     handleExport,
 
     // Import working set
     get importingWs() { return importingWs },
+    get wsPassphrase() { return wsPassphrase },
+    set wsPassphrase(v) { wsPassphrase = v },
     handleWsImport,
 
     // Merge
@@ -239,6 +244,8 @@ export function createIntercambioService() {
     get mergeResult() { return mergeResult },
     get doBackupBefore() { return doBackupBefore },
     set doBackupBefore(v) { doBackupBefore = v },
+    get mergePassphrase() { return mergePassphrase },
+    set mergePassphrase(v) { mergePassphrase = v },
     get canApply() { return canApply },
     handleMergeFileSelect,
     handleApplyMerge,
