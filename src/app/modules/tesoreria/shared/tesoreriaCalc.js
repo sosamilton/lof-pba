@@ -979,6 +979,116 @@ export function calcularMorosidad(ejercicio, movimientos, rubros, socios, asambl
 }
 
 /**
+ * Calcula el estado de cumplimiento de la cuota social **por socio**.
+ *
+ * Reusa la misma lógica de `calcularMorosidad` para identificar el rubro
+ * de cuota social, el importe y la modalidad, pero en vez de devolver un
+ * único agregado, devuelve un Map<socioId, { estado, mesesAdeudados }> donde
+ * `estado` es:
+ *  - 'al-dia': pagó todos los períodos transcurridos
+ *  - 'mora-1-2': adeuda 1 o 2 períodos
+ *  - 'mora-3-mas': adeuda 3 o más períodos
+ *  - 'sin-datos': no hay movimientos con socio_id vinculados (no se puede
+ *    determinar si pagó o no — evita falsos positivos de morosidad)
+ *
+ * Cuando `vinculacion.tieneVinculados === false` (ningún movimiento tiene
+ * `socio_id`), TODOS los socios quedan en 'sin-datos' — mismo criterio
+ * conservador que `calcularMorosidad` usa para su lista de deudores.
+ *
+ * @param {Record<string, any>|null} ejercicio
+ * @param {any[]} movimientos - Movimientos del ejercicio
+ * @param {any[]} rubros
+ * @param {any[]} socios - Todos los socios (se filtran activos)
+ * @param {any[]} asambleas - Asambleas (se busca la AGO del ejercicio)
+ * @returns {Map<number, { estado: 'al-dia'|'mora-1-2'|'mora-3-mas'|'sin-datos', mesesAdeudados: number }>}
+ */
+export function calcularMorosidadPorSocio(ejercicio, movimientos, rubros, socios, asambleas) {
+  const result = new Map()
+  const sociosActivosArr = (socios || []).filter((s) => s.activo !== false && !s.fecha_baja)
+  if (sociosActivosArr.length === 0) return result
+
+  const rubroCuota = findRubroCuotaSocial(rubros)
+  const rubroCuotaId = rubroCuota ? Number(rubroCuota.id) : null
+  if (rubroCuotaId == null) return result
+
+  const asambleaAgo = (asambleas || []).find(
+    (a) => Number(a.ejercicio_id) === Number(ejercicio?.id) && String(a.tipo_asamblea || '') === 'AGO'
+  )
+  const importeCuota = Number(asambleaAgo?.cuota_social_importe) || 0
+  if (importeCuota <= 0) return result
+
+  const modalidad = String(asambleaAgo?.cuota_social_modalidad || 'Mensual')
+  if (modalidad !== 'Mensual' && modalidad !== 'Anual') return result
+
+  const meses = mesesTranscurridosEjercicio(ejercicio)
+  if (meses <= 0) return result
+
+  // Filtrar movimientos del rubro cuota social (Entradas)
+  const movsCuota = (movimientos || []).filter(
+    (m) => Number(m.rubro_id) === rubroCuotaId
+      && String(m.tipo_movimiento || '') === 'Entrada'
+      && m.socio_id != null,
+  )
+
+  // Si no hay movimientos vinculados, todos los socios quedan en 'sin-datos'
+  if (movsCuota.length === 0) {
+    for (const s of sociosActivosArr) {
+      result.set(Number(s.id), { estado: 'sin-datos', mesesAdeudados: 0 })
+    }
+    return result
+  }
+
+  // Para modalidad Anual: un solo período. Si pagó algo, está al día.
+  if (modalidad === 'Anual') {
+    const sociosPagadores = new Set(movsCuota.map((m) => Number(m.socio_id)))
+    for (const s of sociosActivosArr) {
+      const sid = Number(s.id)
+      if (sociosPagadores.has(sid)) {
+        result.set(sid, { estado: 'al-dia', mesesAdeudados: 0 })
+      } else {
+        result.set(sid, { estado: 'mora-3-mas', mesesAdeudados: 1 })
+      }
+    }
+    return result
+  }
+
+  // Modalidad Mensual: contar períodos pagados por socio
+  const periodos = generarPeriodosEjercicio(ejercicio)
+  const periodosTranscurridos = periodos.slice(0, meses)
+  const periodosSet = new Set(periodosTranscurridos)
+
+  // Para cada socio, registrar en qué períodos pagó
+  const pagosPorSocio = new Map() // socioId → Set<periodoKey>
+  for (const m of movsCuota) {
+    const sid = Number(m.socio_id)
+    const periodo = periodoDeMovimiento(m, 'mensual', ejercicio)
+    if (periodosSet.has(periodo)) {
+      if (!pagosPorSocio.has(sid)) pagosPorSocio.set(sid, new Set())
+      pagosPorSocio.get(sid).add(periodo)
+    }
+  }
+
+  for (const s of sociosActivosArr) {
+    const sid = Number(s.id)
+    const pagados = pagosPorSocio.get(sid)
+    const periodosPagados = pagados ? pagados.size : 0
+    const mesesAdeudados = Math.max(0, meses - periodosPagados)
+
+    let estado
+    if (mesesAdeudados === 0) {
+      estado = 'al-dia'
+    } else if (mesesAdeudados <= 2) {
+      estado = 'mora-1-2'
+    } else {
+      estado = 'mora-3-mas'
+    }
+    result.set(sid, { estado, mesesAdeudados })
+  }
+
+  return result
+}
+
+/**
  * Salud operativa del ejercicio: alertas accionables.
  *
  * @param {Record<string, any>|null} ejercicio
