@@ -413,6 +413,22 @@ export async function importWorkingSet(file, opts = {}) {
     await _mergeConfigDefaults(payload.defaults_movimiento)
   }
 
+  // Guardar el snapshot de "último pago por socio" en un doc _local/: estos
+  // docs nunca se incluyen en ningún export (ver el filtro `_local/` al
+  // inicio de exportParcial), así que el dato queda disponible para la UI
+  // del colaborador (ultimoPagoService) pero jamás puede reenviarse.
+  if (payload.ultimos_pagos) {
+    try {
+      const existing = await db.get('_local/ultimos_pagos_import').catch(() => null)
+      await db.put({
+        _id: '_local/ultimos_pagos_import',
+        ...(existing ? { _rev: existing._rev } : {}),
+        value: payload.ultimos_pagos,
+        importedAt: payload.exportedAt,
+      })
+    } catch { /* no bloquear el import por esto */ }
+  }
+
   // Si inicializar (modo colaborador), setear flags en configuracion
   if (opts.inicializar) {
     await _setModoColaborador(payload)

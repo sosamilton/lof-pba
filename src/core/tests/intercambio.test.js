@@ -255,6 +255,7 @@ function makeWorkingSetPayload(docs, opts = {}) {
     modalidad: opts.modalidad || 'gestion_integral',
     source: opts.source || null,
     defaults_movimiento: opts.defaults_movimiento || null,
+    ultimos_pagos: opts.ultimos_pagos || null,
     docs: normalizedDocs,
   }
 }
@@ -517,6 +518,39 @@ describe('intercambio.js', () => {
     expect(_mockConfig.defaults_movimiento).toBeTruthy()
     expect(_mockConfig.defaults_movimiento.tipo).toBe('Entrada')
     expect(_mockConfig.defaults_movimiento.detalle).toBe('Cuota')
+  })
+
+  it('importWorkingSet guarda ultimos_pagos en un doc _local/ (no exportable)', async () => {
+    const docs = [{ _id: 'socios_10', type: 'socios', id: 10, persona_id: 10 }]
+    const ultimosPagos = { 10: { fecha: '2026-07-01', importe: 550 } }
+    const file = makeLofFile(makeWorkingSetPayload(docs, { ultimos_pagos: ultimosPagos }))
+    await importWorkingSet(file)
+
+    const doc = await db().get('_local/ultimos_pagos_import')
+    expect(doc.value).toEqual(ultimosPagos)
+
+    // Un doc _local/ nunca puede terminar en un export posterior, aunque
+    // matchee las tablas de un perfil.
+    _mockConfig = { modulo_gestion_integral: true }
+    const mockDoc = {
+      body: { appendChild: () => {}, removeChild: () => {} },
+      createElement: () => ({ click: () => {}, href: '', download: '' }),
+    }
+    const blobs = []
+    const origDocument = globalThis.document
+    const origUrl = globalThis.URL
+    globalThis.document = mockDoc
+    globalThis.URL = { ...origUrl, createObjectURL: (b) => { blobs.push(b); return 'mock://blob' }, revokeObjectURL: () => {} }
+    try {
+      await exportParcial('working_set')
+      const ab = await blobs[0].arrayBuffer()
+      const bytes = new Uint8Array(ab)
+      const payload = JSON.parse(strFromU8(gunzipSync(bytes.slice(MAGIC.length))))
+      expect(payload.docs.some((d) => d._id?.startsWith('_local/'))).toBe(false)
+    } finally {
+      globalThis.document = origDocument
+      globalThis.URL = origUrl
+    }
   })
 
   // --- analizarMerge (dry-run) ---
