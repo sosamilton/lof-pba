@@ -8,8 +8,23 @@
   import * as Field from '$lib/components/ui/field'
   import Combobox from '$lib/components/Combobox.svelte'
   import { notifyAfter } from '$core/ui/notify.svelte'
+  import { navigate } from '$core/ui/router.svelte'
   import PersonaVinculadaField from './PersonaVinculadaField.svelte'
   import ComprobanteField from './ComprobanteField.svelte'
+  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left'
+
+  // Volver a Comunidad y re-seleccionar la persona del movimiento actual.
+  // Solo se muestra si el movimiento tiene persona_id (ej: vino con preset
+  // desde la ficha de un socio en Comunidad).
+  const volverAComunidad = () => {
+    const personaId = store.form?.persona_id
+    if (personaId) {
+      window.dispatchEvent(
+        new CustomEvent('lof:persona-preset', { detail: { id: personaId } }),
+      )
+    }
+    navigate('comunidad')
+  }
 
   let {
     store,
@@ -80,6 +95,12 @@
         {/if}
       </Card.Title>
       <div class="flex gap-2">
+        {#if store.form?.persona_id}
+          <Button variant="outline" size="sm" onclick={volverAComunidad}>
+            <ArrowLeftIcon data-icon="inline-start" />
+            Volver a la persona
+          </Button>
+        {/if}
         {#if !store.form.id && !readonly}
           <Button variant="ghost" size="sm" onclick={store.cancelar}>Cancelar</Button>
         {/if}
@@ -125,6 +146,15 @@
           <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">$</span>
           <Input id="importe" type="number" step="0.01" min="0" bind:value={store.form.importe} {disabled} class="pl-7" placeholder="0,00" />
         </div>
+        {#if store.importeCuotaSocio && !disabled}
+          <button
+            type="button"
+            class="mt-1 text-xs text-primary hover:underline"
+            onclick={() => { if (store.form) store.form.importe = String(store.importeCuotaSocio) }}
+          >
+            Setear 1 cuota (${store.importeCuotaSocio})
+          </button>
+        {/if}
       </Field.Field>
       <Field.Field>
         <Field.FieldLabel for="cuenta">Caja/cuenta</Field.FieldLabel>

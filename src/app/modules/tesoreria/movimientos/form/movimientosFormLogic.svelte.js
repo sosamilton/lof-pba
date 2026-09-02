@@ -118,6 +118,8 @@ export function createFormLogic({ formState, relatedData, base, cierresService }
     if (preset.detalle) formState.form.detalle = preset.detalle
     if (preset.importe) formState.form.importe = String(preset.importe)
     if (preset.cuenta_id) formState.form.cuenta_id = String(preset.cuenta_id)
+    if (preset.socio_id) formState.form.socio_id = String(preset.socio_id)
+    if (preset.persona_id) formState.form.persona_id = String(preset.persona_id)
   }
 
   const cancelar = () => {

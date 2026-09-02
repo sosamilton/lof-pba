@@ -20,6 +20,11 @@ const base = createGristStore({
   },
 })
 
+// Importe de la cuota social del ejercicio en curso (para el botón "1 mes"
+// en el form cuando se carga una cuota desde Comunidad). Se settea via
+// `nuevoConPreset` cuando el preset trae `importeCuota`.
+let importeCuotaSocio = $state(null)
+
 // Sub-módulos (orden: sin dependencias circulares)
 const relatedData = createRelatedData({ base })
 const formState = createFormState()
@@ -86,7 +91,11 @@ export const movimientosStore = extendStore(base, {
   select: formLogic.select,
   nuevo: formLogic.nuevo,
   nuevoCuotaSocietaria: formLogic.nuevoCuotaSocietaria,
-  nuevoConPreset: formLogic.nuevoConPreset,
+  nuevoConPreset: (preset = {}) => {
+    formLogic.nuevoConPreset(preset)
+    importeCuotaSocio = preset.importeCuota || null
+  },
+  get importeCuotaSocio() { return importeCuotaSocio },
   cancelar: formLogic.cancelar,
   saveMovimiento: formLogic.saveMovimiento,
   onTipoChange: formLogic.onTipoChange,
