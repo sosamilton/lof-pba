@@ -137,8 +137,18 @@ const genFechaNacimiento = () => {
 }
 
 /** @param {number} anioInicio @returns {string} */
-const genFechaAlta = (anioInicio) =>
-  genFecha(anioInicio + rand(0, 1), rand(1, 12), rand(1, 28))
+const genFechaAlta = (anioInicio) => {
+  const anio = anioInicio + rand(0, 1)
+  const mes = rand(1, 12)
+  const dia = rand(1, 28)
+  // Nunca generar un alta futura: si el ejercicio coincide con el año en
+  // curso, "anio + 1" puede caer después de hoy (ver bug del texto de
+  // antigüedad en Comunidad.svelte, que asumía fecha_alta <= hoy).
+  const candidata = new Date(anio, mes - 1, dia)
+  const hoy = new Date()
+  if (candidata > hoy) return genFecha(hoy.getFullYear(), hoy.getMonth() + 1, hoy.getDate())
+  return genFecha(anio, mes, dia)
+}
 
 /** @param {string|null} fechaAlta @returns {string|null} */
 const genFechaBaja = (fechaAlta) => {

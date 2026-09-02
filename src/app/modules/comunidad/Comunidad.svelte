@@ -358,11 +358,14 @@
               </Field.FieldGroup>
 
               {#if store.form.id && store.form.tipo_socio === 'Activo' && !store.form.fecha_baja}
-                {#if (daysSince(store.form.fecha_alta) ?? 0) < 30}
+                {@const dias = daysSince(store.form.fecha_alta)}
+                {#if dias == null || dias < 0}
+                  <!-- Fecha de alta inválida o futura: no hay antigüedad calculable, no mostrar nada. -->
+                {:else if dias < 30}
                   <Alert.Root>
                     <Alert.Title>Antigüedad insuficiente para votar</Alert.Title>
                     <Alert.Description>
-                      Faltan {30 - (daysSince(store.form.fecha_alta) ?? 0)} días para alcanzar los 30 días mínimos.
+                      Faltan {30 - dias} días para alcanzar los 30 días mínimos.
                     </Alert.Description>
                   </Alert.Root>
                 {:else}
