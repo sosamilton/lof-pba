@@ -23,13 +23,25 @@
   import PageScaffold from '$lib/components/PageScaffold.svelte'
   import UserPlusIcon from '@lucide/svelte/icons/user-plus'
   import LinkIcon from '@lucide/svelte/icons/link'
+  import ReceiptIcon from '@lucide/svelte/icons/receipt'
   import FilterBar from './components/FilterBar.svelte'
   import RecordList from './components/RecordList.svelte'
   import PersonaFormFields from './components/PersonaFormFields.svelte'
   import CuilInput from './components/CuilInput.svelte'
   import EmptyStates from './components/EmptyStates.svelte'
+  import FiltroResumen from './components/FiltroResumen.svelte'
   import PersonaMovimientos from './personas/components/PersonaMovimientos.svelte'
   import { loadConfig } from '$app/pages/cooperadora/cooperadoraApi.js'
+  import { buildResumenSegments } from './resumenSegments.js'
+  import { resolverRangoPreset } from './bajasStats.js'
+  import { createMorosidadStore } from '$app/modules/tesoreria/shared/morosidadStore.svelte.js'
+  import { findEjercicioEnCurso } from '$core/utils/utils'
+  import { fetchRecords, resolveTableId } from '$core/data/dataRepository'
+  import { TABLE_PREFERRED_IDS } from '$core/utils/utils'
+  import { navigate } from '$core/ui/router.svelte'
+
+  // Store de morosidad compartido con Inicio (fuente única de verdad)
+  const morosidadStore = createMorosidadStore()
 
   let q = $state('')
   const qd = useDebounce(() => q)
@@ -39,6 +51,42 @@
   let tipoPersonaFilter = $state('')
   let categoriaFilter = $state('')
   let esIntegral = $state(false)
+
+  // Resumen contextual: preset de período para bajas + segmento activo
+  let presetBajas = $state('ultimo-anio')
+  let motivoBajaSegmentActivo = $state('')
+  let moraSegmentActivo = $state('') // Fase 2: 'al-dia' | 'mora-1-2' | 'mora-3-mas' | 'sin-datos' | ''
+
+  // Estado de mora del socio seleccionado (para mostrar botón "Cargar cuota")
+  let socioSeleccionadoMora = $derived.by(() => {
+    if (!esIntegral || !store.form?.socio_id) return null
+    const mora = morosidadStore.morosidadPorSocio?.get(Number(store.form.socio_id))
+    return mora || null
+  })
+
+  // Navega a Movimientos con preset de cuota societaria para el socio actual
+  const cargarCuotaSocietaria = () => {
+    if (!store.form?.socio_id) return
+    const cuota = morosidadStore.importeCuota || 0
+    const meses = socioSeleccionadoMora?.mesesAdeudados || 0
+    // Importe default: total que adeuda (cuota × meses). Si es 'sin-datos'
+    // o no hay cuota, mandar solo 1 cuota como fallback.
+    const importeDefault = cuota > 0 && meses > 0 ? cuota * meses : cuota
+    window.dispatchEvent(
+      new CustomEvent('lof:movimiento-preset', {
+        detail: {
+          tipo_movimiento: 'Entrada',
+          detalle: 'Cuota societaria',
+          socio_id: store.form.socio_id,
+          persona_id: store.form.id,
+          rubro_id: morosidadStore.rubroCuotaId || undefined,
+          importe: importeDefault > 0 ? String(importeDefault) : undefined,
+          importeCuota: cuota > 0 ? String(cuota) : undefined,
+        },
+      }),
+    )
+    navigate('movimientos')
+  }
 
   const isJuridica = (p) => p.tipo_persona === 'Juridica'
 
@@ -59,7 +107,20 @@
           })
           .filter((p) => (tipoSocioFilter ? String(p.tipo_socio || '') === tipoSocioFilter : true))
           .filter((p) => (tipoPersonaFilter ? (p.tipo_persona || 'Fisica') === tipoPersonaFilter : true))
-          .filter((p) => (categoriaFilter ? (p.categoria || '') === categoriaFilter : true)),
+          .filter((p) => (categoriaFilter ? (p.categoria || '') === categoriaFilter : true))
+          .filter((p) => {
+            // Filtro por motivo de baja (segmento del resumen contextual)
+            if (!motivoBajaSegmentActivo) return true
+            if (!p.fecha_baja) return false
+            return String(p.motivo_baja || 'Sin motivo') === motivoBajaSegmentActivo
+          })
+          .filter((p) => {
+            // Filtro por estado de mora (segmento del resumen contextual, Fase 2)
+            if (!moraSegmentActivo) return true
+            if (!p.socio_id) return false
+            const mora = morosidadStore.morosidadPorSocio?.get(Number(p.socio_id))
+            return mora?.estado === moraSegmentActivo
+          }),
         qd.value,
         (p) => [p.dni, p.cuil, p.apellido, p.nombre, p.razon_social, p.email, p.telefono, p.localidad],
       ),
@@ -75,17 +136,49 @@
     try {
       const config = await loadConfig()
       esIntegral = Boolean(config?.modulo_gestion_integral)
+      // Preset de período de bajas guardado por la cooperadora (default 'ultimo-anio')
+      if (config?.preset_periodo_bajas) presetBajas = config.preset_periodo_bajas
+      // Cargar morosidad por socio solo si gestión integral está activo
+      if (esIntegral) {
+        const tEjercicios = await resolveTableId(TABLE_PREFERRED_IDS.ejercicios)
+        if (tEjercicios) {
+          const ejercicios = await fetchRecords(tEjercicios)
+          const ejercicioEnCurso = findEjercicioEnCurso(ejercicios)
+          if (ejercicioEnCurso) await morosidadStore.load(ejercicioEnCurso, config)
+        }
+      }
     } catch { /* config opcional */ }
     // Ejecutar acción pendiente (ej: atajo custom que navega a Comunidad
     // y pre-carga el form de persona/socio).
     const pending = keyboard.consumePendingAction()
     if (pending) pending.action()
     // Escuchar presets de persona desde acciones custom de atajos.
-    const onPreset = (/** @type {CustomEvent} */ e) => store.nuevo(e.detail)
+    // Si el preset trae `id`, selecciona la persona existente (ej: volver
+    // desde Movimientos); si no, crea una nueva con el preset.
+    const onPreset = (/** @type {CustomEvent} */ e) => {
+      const detail = e.detail || {}
+      if (detail.id) {
+        const persona = store.records.find((p) => Number(p.id) === Number(detail.id))
+        if (persona) {
+          store.select(persona)
+          return
+        }
+      }
+      store.nuevo(detail)
+    }
     window.addEventListener('lof:persona-preset', onPreset)
+    // Escuchar presets de filtro desde Inicio (MetricCard clickeables).
+    const onFiltroPreset = (/** @type {CustomEvent} */ e) => {
+      const { vinculo, estado, categoria } = e.detail || {}
+      if (vinculo) vinculoFilter = vinculo
+      if (estado) estadoFilter = estado
+      if (categoria) categoriaFilter = categoria
+    }
+    window.addEventListener('lof:comunidad-filtro-preset', onFiltroPreset)
     return () => {
       unsub()
       window.removeEventListener('lof:persona-preset', onPreset)
+      window.removeEventListener('lof:comunidad-filtro-preset', onFiltroPreset)
     }
   })
 
@@ -160,6 +253,43 @@
       ? [vinculoFilterConfig, estadoSocioFilterConfig, tipoSocioFilterConfig, tipoPersonaFilterConfig, categoriaFilterConfig]
       : [vinculoFilterConfig, tipoPersonaFilterConfig, categoriaFilterConfig],
   )
+
+  // Resumen contextual: se recalcula solo cuando cambian los filtros (no q).
+  // Depende de store.records (en memoria) y del preset de bajas. Fase 2
+  // sumará morosidadPorSocio desde morosidadStore.
+  let rangoBajas = $derived(resolverRangoPreset(presetBajas))
+
+  let resumenContextual = $derived(
+    buildResumenSegments(
+      { vinculoFilter, estadoFilter, categoriaFilter, motivoBajaSegmentActivo, moraSegmentActivo },
+      {
+        records: store.records,
+        rangoBajas,
+        presetBajas,
+        morosidadPorSocio: morosidadStore.morosidadPorSocio,
+      },
+    ),
+  )
+
+  // Click en un segmento: toggle del filtro activo (click again = deselect)
+  const onResumenSegmentClick = (segId) => {
+    // Segmentos de bajas: id = `baja-{motivo}`
+    if (segId.startsWith('baja-')) {
+      const motivo = segId.slice(5)
+      motivoBajaSegmentActivo = motivoBajaSegmentActivo === motivo ? '' : motivo
+      return
+    }
+    // Segmentos de mora (Fase 2): id = 'al-dia' | 'mora-1-2' | 'mora-3-mas' | 'sin-datos'
+    if (['al-dia', 'mora-1-2', 'mora-3-mas', 'sin-datos'].includes(segId)) {
+      moraSegmentActivo = moraSegmentActivo === segId ? '' : segId
+      return
+    }
+    // Segmentos institucionales: no filtran por ahora (futuro)
+  }
+
+  const onPeriodoBajasChange = (v) => {
+    presetBajas = v
+  }
 </script>
 
 <PageScaffold title="Comunidad" loading={store.loading} error={store.error} notice={store.notice}>
@@ -179,6 +309,15 @@
       <UserPlusIcon data-icon="inline-start" />
     {/snippet}
   </FilterBar>
+
+  <FiltroResumen
+    segments={resumenContextual.segments}
+    periodSelector={resumenContextual.periodSelector
+      ? { ...resumenContextual.periodSelector, onChange: onPeriodoBajasChange }
+      : null}
+    loading={store.loading}
+    onSegmentClick={onResumenSegmentClick}
+  />
 
   <ListFormLayout
     showForm={Boolean(store.form)}
@@ -238,6 +377,25 @@
                 <Button variant="ghost" size="sm" onclick={store.cancelar}>Cancelar</Button>
               {/if}
             </div>
+
+            {#if esIntegral && socioSeleccionadoMora && socioSeleccionadoMora.estado !== 'al-dia'}
+              <div class="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
+                <ReceiptIcon class="size-4 text-primary shrink-0" />
+                <div class="flex-1 text-sm">
+                  {#if socioSeleccionadoMora.estado === 'sin-datos'}
+                    Sin pagos registrados de cuota social.
+                  {:else if socioSeleccionadoMora.estado === 'mora-1-2'}
+                    Adeuda {socioSeleccionadoMora.mesesAdeudados} {socioSeleccionadoMora.mesesAdeudados === 1 ? 'mes' : 'meses'} de cuota social.
+                  {:else}
+                    Adeuda {socioSeleccionadoMora.mesesAdeudados}+ meses de cuota social.
+                  {/if}
+                </div>
+                <Button variant="default" size="sm" onclick={cargarCuotaSocietaria}>
+                  <ReceiptIcon data-icon="inline-start" />
+                  Agregar pago
+                </Button>
+              </div>
+            {/if}
 
             <Separator />
 
