@@ -45,6 +45,17 @@
       : store.form?.persona_id ?? '',
   )
 
+  // Buscar el último pago de cuota societaria cada vez que cambia el socio
+  // vinculado (selección manual, o al abrir un movimiento existente para
+  // editarlo). Es solo informativo — no se guarda en el movimiento.
+  $effect(() => {
+    if (store.personasSeleccionables.tipo === 'socio' && personaVinculadaValue) {
+      store.buscarUltimoPagoSocio(personaVinculadaValue)
+    } else {
+      store.resetUltimoPagoSocio()
+    }
+  })
+
   const onPersonaVinculadaChange = (/** @type {any} */ val) => {
     if (store.personasSeleccionables.tipo === 'socio') {
       store.form.socio_id = val
@@ -198,6 +209,8 @@
         onSetFiltroCategoria={store.setFiltroCategoria}
         value={personaVinculadaValue}
         onchange={onPersonaVinculadaChange}
+        ultimoPago={store.ultimoPagoSocio}
+        ultimoPagoLoading={store.ultimoPagoSocioLoading}
         {disabled}
       />
 

@@ -4,6 +4,7 @@ import { createFormState } from './form/movimientosFormState.svelte.js'
 import { createCierresService } from '../resumen/cierresService.svelte.js'
 import { createPersonasSelector } from './form/personasSelector.svelte.js'
 import { createFormLogic } from './form/movimientosFormLogic.svelte.js'
+import { createUltimoPagoService } from './form/ultimoPagoService.svelte.js'
 import { createCargaPIAService } from '../cargaPia/cargaPIAService.svelte.js'
 import { createCargasService } from '../cargaPia/cargasService.svelte.js'
 
@@ -25,6 +26,7 @@ const formState = createFormState()
 const cierresService = createCierresService({ relatedData, base })
 const personasSelector = createPersonasSelector({ relatedData, formState })
 const formLogic = createFormLogic({ formState, relatedData, base, cierresService })
+const ultimoPagoService = createUltimoPagoService({ personasSelector })
 const cargaPIAService = createCargaPIAService({ relatedData, base, cierresService })
 const cargasService = createCargasService({ relatedData, base })
 
@@ -75,6 +77,11 @@ export const movimientosStore = extendStore(base, {
   // personasSelector
   get personasSeleccionables() { return personasSelector.personasSeleccionables },
   get categoriasDisponibles() { return personasSelector.categoriasDisponibles },
+  // ultimoPagoService
+  get ultimoPagoSocio() { return ultimoPagoService.ultimoPago },
+  get ultimoPagoSocioLoading() { return ultimoPagoService.loading },
+  buscarUltimoPagoSocio: ultimoPagoService.buscar,
+  resetUltimoPagoSocio: ultimoPagoService.reset,
   // formLogic
   select: formLogic.select,
   nuevo: formLogic.nuevo,
